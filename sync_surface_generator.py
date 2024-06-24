@@ -259,35 +259,17 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
 
     def get_imports(self, filename):
         """
-        Get the imports from a file, and do a find-and-replace against asyncio_replacements
+        Extract all imports from file root
+
+        Include if statements that contain imports
         """
-        imports = set()
         with open(filename, "r") as f:
             full_tree = ast.parse(f.read(), filename)
-            for node in ast.walk(full_tree):
-                if isinstance(node, (ast.Import, ast.ImportFrom)):
-                    for alias in node.names:
-                        if isinstance(node, ast.Import):
-                            # import statments
-                            new_import = self.asyncio_replacements.get(alias.name, alias.name)
-                            imports.add(ast.parse(f"import {new_import}").body[0])
-                        else:
-                            # import from statements
-                            # break into individual components
-                            full_path = f"{node.module}.{alias.name}"
-                            if full_path in self.asyncio_replacements:
-                                full_path = self.asyncio_replacements[full_path]
-                            module, name = full_path.rsplit(".", 1)
-                            # don't import from same file
-                            if module == ".":
-                                continue
-                            asname_str = f" as {alias.asname}" if alias.asname else ""
-                            imports.add(
-                                ast.parse(f"from {module} import {name}{asname_str}").body[
-                                    0
-                                ]
-                            )
-        return imports
+            imports = [node for node in full_tree.body if isinstance(node, (ast.Import, ast.ImportFrom))]
+            if_imports = [node for node in full_tree.body if isinstance(node, ast.If) and any(isinstance(n, (ast.Import, ast.ImportFrom)) for n in node.body)]
+            try_imports = [node for node in full_tree.body if isinstance(node, ast.Try)]
+        return set(imports + if_imports + try_imports)
+
 
 def transform_class(in_obj: Type, **kwargs):
     filename = inspect.getfile(in_obj)
@@ -316,17 +298,6 @@ def transform_class(in_obj: Type, **kwargs):
     transformer.visit(ast_tree)
     # find imports
     imports = transformer.get_imports(filename)
-    # imports.add(ast.parse("from abc import ABC").body[0])
-    # add locals from file, in case they are needed
-    if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
-        with open(filename, "r") as f:
-            for node in ast.walk(ast.parse(f.read(), filename)):
-                if isinstance(node, ast.ClassDef):
-                    imports.add(
-                        ast.parse(
-                            f"from {in_obj.__module__} import {node.name}"
-                        ).body[0]
-                    )
     return ast_tree.body, imports
 
 

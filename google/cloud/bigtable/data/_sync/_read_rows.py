@@ -16,20 +16,16 @@
 
 
 from __future__ import annotations
-from typing import Iterable
 from typing import Sequence
 
 from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data import _helpers
-from google.cloud.bigtable.data._async._read_rows import _ResetRow
-from google.cloud.bigtable.data._sync.client import Table
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable.data.row import Cell
-from google.cloud.bigtable.data.row import Row
+from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
 from google.cloud.bigtable_v2.types import RowRange as RowRangePB

@@ -18,12 +18,7 @@
 from __future__ import annotations
 from functools import partial
 from grpc import Channel
-from typing import Any
-from typing import Iterable
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from typing import cast
+from typing import cast, Any, Optional, Set, Sequence, TYPE_CHECKING
 import asyncio
 import concurrent.futures
 import os
@@ -38,18 +33,12 @@ from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import ServiceUnavailable
 from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data import _helpers
-from google.cloud.bigtable.data._helpers import RowKeySamples
-from google.cloud.bigtable.data._helpers import ShardedQuery
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import _MB_SIZE
-from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
-from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
-from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
 from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
-from google.cloud.bigtable.data.mutations import Mutation
-from google.cloud.bigtable.data.mutations import RowMutationEntry
+from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.row import Row
@@ -57,20 +46,31 @@ from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
-from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.transports.base import (
     DEFAULT_CLIENT_INFO,
 )
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-    PooledBigtableGrpcTransport,
-)
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-    PooledChannel,
-)
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
+
+if CrossSync.is_async:
+    pass
+else:
+    from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
+    from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
+    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+        PooledBigtableGrpcTransport,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+        PooledChannel,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
+    from typing import Iterable
+if TYPE_CHECKING:
+    from google.cloud.bigtable.data._helpers import RowKeySamples
+    from google.cloud.bigtable.data._helpers import ShardedQuery
 import google.auth._default
 import google.auth.credentials
 

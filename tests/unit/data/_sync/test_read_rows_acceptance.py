@@ -17,8 +17,7 @@
 
 from __future__ import annotations
 from itertools import zip_longest
-from tests.unit.v2_client.test_row_merger import ReadRowsTest
-from tests.unit.v2_client.test_row_merger import TestFile
+from tests.unit.v2_client.test_row_merger import ReadRowsTest, TestFile
 import mock
 import os
 import pytest

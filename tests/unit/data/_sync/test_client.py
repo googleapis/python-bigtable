@@ -16,30 +16,30 @@
 
 
 from __future__ import annotations
-from mock import AsyncMock
-from tests.unit.data._async.test_client import TestBigtableDataClientAsync
-from tests.unit.data._async.test_client import TestReadRowsAsync
-from tests.unit.data._async.test_client import TestTableAsync
-from unittest import mock
-from unittest.mock import AsyncMock
 import asyncio
 import grpc
-import mock
 import pytest
 import re
 import sys
+
+try:
+    from unittest import mock
+    from unittest.mock import AsyncMock
+except ImportError:
+    import mock
+    from mock import AsyncMock
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import grpc_helpers_async
 from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable.data import TABLE_DEFAULT
 from google.cloud.bigtable.data import mutations
+from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable_v2 import ReadRowsResponse
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
@@ -53,11 +53,13 @@ from google.cloud.bigtable_v2.types import ReadRowsResponse
 class TestBigtableDataClient:
     @staticmethod
     def _get_target_class():
-        if CrossSync.is_async:
+        if CrossSync._Sync_Impl.is_async:
             from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
+
             return BigtableDataClientAsync
         else:
             from google.cloud.bigtable.data._sync.client import BigtableDataClient
+
             return BigtableDataClient
 
     @classmethod
@@ -305,8 +307,6 @@ class TestBigtableDataClient:
 
     def test__ping_and_warm_instances(self):
         """test ping and warm with mocked asyncio.gather"""
-        from google.cloud.bigtable.data._sync.cross_sync import CrossSync
-
         client_mock = mock.Mock()
         client_mock._execute_ping_and_warms = (
             lambda *args: self._get_target_class()._execute_ping_and_warms(
@@ -933,8 +933,6 @@ class TestBigtableDataClient:
         assert client._channel_refresh_tasks == []
 
     def test_close_with_timeout(self):
-        from google.cloud.bigtable.data._sync.cross_sync import CrossSync
-
         pool_size = 7
         expected_timeout = 19
         client = self._make_client(project="project-id", pool_size=pool_size)
@@ -1739,7 +1737,7 @@ class TestReadRows:
         return _ReadRowsOperationAsync
 
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return TestBigtableDataClient._make_client(*args, **kwargs)
 
     def _make_table(self, *args, **kwargs):
         from google.cloud.bigtable.data._async.client import TableAsync
@@ -2195,7 +2193,7 @@ class TestReadRows:
 
 class TestReadRowsSharded:
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return TestBigtableDataClient._make_client(*args, **kwargs)
 
     def test_read_rows_sharded_empty_query(self):
         with self._make_client() as client:
@@ -2388,7 +2386,7 @@ class TestReadRowsSharded:
 
 class TestSampleRowKeys:
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return TestBigtableDataClient._make_client(*args, **kwargs)
 
     def _make_gapic_stream(self, sample_list: list[tuple[bytes, int]]):
         from google.cloud.bigtable_v2.types import SampleRowKeysResponse
@@ -2516,7 +2514,7 @@ class TestSampleRowKeys:
 
 class TestTable:
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return TestBigtableDataClient._make_client(*args, **kwargs)
 
     @staticmethod
     def _get_target_class():

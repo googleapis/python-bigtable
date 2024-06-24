@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 from collections import deque
-from typing import Sequence
+from typing import Sequence, TYPE_CHECKING
 import atexit
 import concurrent.futures
 import warnings
@@ -26,14 +26,20 @@ from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import _MB_SIZE
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
-from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
-from google.cloud.bigtable.data._sync.client import Table
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.mutations import Mutation
-from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+
+if TYPE_CHECKING:
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
+
+    if CrossSync.is_async:
+        pass
+    else:
+        from google.cloud.bigtable.data._sync.client import Table
+        from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
 
 
 class MutationsBatcher:
