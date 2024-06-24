@@ -100,10 +100,6 @@ class TestBigtableDataClientAsync:
         with mock.patch.dict(os.environ, env_mask):
             return cls._get_target_class()(*args, **kwargs)
 
-    @property
-    def is_async(self):
-        return True
-
     @pytest.mark.asyncio
     async def test_ctor(self):
         expected_project = "project-id"
@@ -134,7 +130,7 @@ class TestBigtableDataClientAsync:
         credentials = AnonymousCredentials()
         client_options = {"api_endpoint": "foo.bar:1234"}
         options_parsed = client_options_lib.from_dict(client_options)
-        asyncio_portion = "-async" if self.is_async else ""
+        asyncio_portion = "-async" if CrossSync.is_async else ""
         transport_str = f"bt-{bigtable_version}-data{asyncio_portion}-{pool_size}"
         with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
             bigtable_client_init.return_value = None
@@ -191,7 +187,7 @@ class TestBigtableDataClientAsync:
 
     @pytest.mark.asyncio
     async def test_veneer_grpc_headers(self):
-        client_component = "data-async" if self.is_async else "data"
+        client_component = "data-async" if CrossSync.is_async else "data"
         VENEER_HEADER_REGEX = re.compile(
             r"gapic\/[0-9]+\.[\w.-]+ gax\/[0-9]+\.[\w.-]+ gccl\/[0-9]+\.[\w.-]+-"
             + client_component
@@ -200,7 +196,7 @@ class TestBigtableDataClientAsync:
 
         # client_info should be populated with headers to
         # detect as a veneer client
-        if self.is_async:
+        if CrossSync_async:
             patch = mock.patch("google.api_core.gapic_v1.method_async.wrap_method")
         else:
             patch = mock.patch("google.api_core.gapic_v1.method.wrap_method")
@@ -264,7 +260,7 @@ class TestBigtableDataClientAsync:
     async def test_channel_pool_replace(self):
         import time
 
-        sleep_module = asyncio if self.is_async else time
+        sleep_module = asyncio if CrossSync.is_async else time
         with mock.patch.object(sleep_module, "sleep"):
             pool_size = 7
             client = self._make_client(project="project-id", pool_size=pool_size)
@@ -281,7 +277,7 @@ class TestBigtableDataClientAsync:
                         replace_idx, grace=grace_period, new_channel=new_channel
                     )
                     close.assert_called_once()
-                    if self.is_async:
+                    if CrossSync.is_async:
                         close.assert_called_once_with(grace=grace_period)
                         close.assert_awaited_once()
                 assert client.transport._grpc_channel._pool[replace_idx] == new_channel
@@ -324,7 +320,7 @@ class TestBigtableDataClientAsync:
             client._start_background_channel_refresh()
             assert len(client._channel_refresh_tasks) == pool_size
             for task in client._channel_refresh_tasks:
-                if self.is_async:
+                if CrossSync.is_async:
                     assert isinstance(task, asyncio.Task)
                 else:
                     assert isinstance(task, concurrent.futures.Future)
@@ -387,7 +383,7 @@ class TestBigtableDataClientAsync:
             # expect one partial for each instance
             partial_list = gather.call_args.args[0]
             assert len(partial_list) == 4
-            if self.is_async:
+            if CrossSync.is_async:
                 gather.assert_awaited_once()
             # check grpc call arguments
             grpc_call_args = channel.unary_unary().call_args_list
@@ -420,11 +416,11 @@ class TestBigtableDataClientAsync:
             )
         )
         gather_tuple = (
-            (asyncio, "gather") if self.is_async else (client_mock._executor, "submit")
+            (asyncio, "gather") if CrossSync.is_async else (client_mock._executor, "submit")
         )
         with mock.patch.object(*gather_tuple, AsyncMock()) as gather:
             gather.side_effect = lambda *args, **kwargs: [mock.Mock() for _ in args]
-            if self.is_async:
+            if CrossSync.is_async:
                 # simulate gather by returning the same number of items as passed in
                 # gather is expected to return None for each coroutine passed
                 gather.side_effect = lambda *args, **kwargs: [None for _ in args]
@@ -476,7 +472,7 @@ class TestBigtableDataClientAsync:
         with mock.patch.object(time, "monotonic") as monotonic:
             monotonic.return_value = 0
             sleep_tuple = (
-                (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+                (asyncio, "sleep") if CrossSync.is_async else (threading.Event, "wait")
             )
             with mock.patch.object(*sleep_tuple) as sleep:
                 sleep.side_effect = asyncio.CancelledError
@@ -509,7 +505,7 @@ class TestBigtableDataClientAsync:
         new_channel = mock.Mock()
         client_mock.transport.grpc_channel._create_channel.return_value = new_channel
         # should ping an warm all new channels, and old channels if sleeping
-        sleep_tuple = (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+        sleep_tuple = (asyncio, "sleep") if CrossSync.is_async else (threading.Event, "wait")
         with mock.patch.object(*sleep_tuple):
             # stop process after replace_channel is called
             client_mock.transport.replace_channel.side_effect = asyncio.CancelledError
@@ -563,7 +559,7 @@ class TestBigtableDataClientAsync:
             with mock.patch.object(time, "time") as time_mock:
                 time_mock.return_value = 0
                 sleep_tuple = (
-                    (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+                    (asyncio, "sleep") if CrossSync.is_async else (threading.Event, "wait")
                 )
                 with mock.patch.object(*sleep_tuple) as sleep:
                     sleep.side_effect = [None for i in range(num_cycles - 1)] + [
@@ -592,7 +588,7 @@ class TestBigtableDataClientAsync:
         import random
         import threading
 
-        sleep_tuple = (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+        sleep_tuple = (asyncio, "sleep") if CrossSync.is_async else (threading.Event, "wait")
         with mock.patch.object(*sleep_tuple) as sleep:
             with mock.patch.object(random, "uniform") as uniform:
                 uniform.return_value = 0
@@ -627,14 +623,14 @@ class TestBigtableDataClientAsync:
         expected_grace = 9
         expected_refresh = 0.5
         channel_idx = 1
-        grpc_lib = grpc.aio if self.is_async else grpc
+        grpc_lib = grpc.aio if CrossSync.is_async else grpc
         new_channel = grpc_lib.insecure_channel("localhost:8080")
 
         with mock.patch.object(
             PooledBigtableGrpcAsyncIOTransport, "replace_channel"
         ) as replace_channel:
             sleep_tuple = (
-                (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+                (asyncio, "sleep") if CrossSync.is_async else (threading.Event, "wait")
             )
             with mock.patch.object(*sleep_tuple) as sleep:
                 sleep.side_effect = [None for i in range(num_cycles)] + [
@@ -1111,7 +1107,7 @@ class TestBigtableDataClientAsync:
 
 @CrossSync.sync_output(
     "tests.unit.data._sync.test_client.TestTable",
-    replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient", "TableAsync": "Table"},
+    replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient", "TableAsync": "Table", "BigtableAsyncClient": "BigtableClient"},
 )
 class TestTableAsync:
     def _make_client(self, *args, **kwargs):
@@ -1120,10 +1116,6 @@ class TestTableAsync:
     @staticmethod
     def _get_target_class():
         return TableAsync
-
-    @property
-    def is_async(self):
-        return True
 
     @pytest.mark.asyncio
     async def test_table_ctor(self):
@@ -1346,7 +1338,7 @@ class TestTableAsync:
         retry_fn = "retry_target"
         if is_stream:
             retry_fn += "_stream"
-        if self.is_async:
+        if CrossSync.is_async:
             retry_fn = f"CrossSync.{retry_fn}"
         else:
             retry_fn = f"CrossSync._Sync_Impl.{retry_fn}"
