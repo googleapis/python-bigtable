@@ -344,8 +344,13 @@ if __name__ == "__main__":
     # find all classes in the library
     lib_root = "google/cloud/bigtable/data/_async"
     lib_files = [f"{lib_root}/{f}" for f in os.listdir(lib_root) if f.endswith(".py")]
+
+    test_root = "tests/unit/data/_async"
+    test_files = [f"{test_root}/{f}" for f in os.listdir(test_root) if f.endswith(".py")]
+    all_files = lib_files + test_files
+
     enabled_classes = []
-    for file in lib_files:
+    for file in all_files:
         file_module = file.replace("/", ".")[:-3]
         for cls_name, cls in inspect.getmembers(importlib.import_module(file_module), inspect.isclass):
             # keep only those with CrossSync annotation

@@ -42,6 +42,8 @@ from google.cloud.bigtable.data import TABLE_DEFAULT
 from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 
+from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
@@ -51,6 +53,9 @@ except ImportError:  # pragma: NO COVER
     from mock import AsyncMock  # type: ignore
 
 
+@CrossSync.sync_output(
+    "tests.unit.data._sync.test_client.TestBigtableDataClient",
+)
 class TestBigtableDataClientAsync:
     @staticmethod
     def _get_target_class():
@@ -1090,7 +1095,9 @@ class TestBigtableDataClientAsync:
         assert client.project == "project-id"
         assert client._channel_refresh_tasks == []
 
-
+@CrossSync.sync_output(
+    "tests.unit.data._sync.test_client.TestTable",
+)
 class TestTableAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
@@ -1409,7 +1416,9 @@ class TestTableAsync:
                 else:
                     assert "app_profile_id=" not in goog_metadata
 
-
+@CrossSync.sync_output(
+    "tests.unit.data._sync.test_client.TestReadRows",
+)
 class TestReadRowsAsync:
     """
     Tests for table.read_rows and related methods.
@@ -1916,6 +1925,9 @@ class TestReadRowsAsync:
                 assert query.filter._to_dict() == expected_filter
 
 
+@CrossSync.sync_output(
+    "tests.unit.data._sync.test_client.TestReadRowsSharded",
+)
 class TestReadRowsShardedAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
@@ -2136,6 +2148,9 @@ class TestReadRowsShardedAsync:
                     )
 
 
+@CrossSync.sync_output(
+    "tests.unit.data._sync.test_client.TestSampleRowKeys",
+)
 class TestSampleRowKeysAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
@@ -2287,6 +2302,9 @@ class TestSampleRowKeysAsync:
                         await table.sample_row_keys()
 
 
+@CrossSync.sync_output(
+    "tests.unit.data._sync.test_client.TestMutateRow",
+)
 class TestMutateRowAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
@@ -2462,6 +2480,9 @@ class TestMutateRowAsync:
                     assert e.value.args[0] == "No mutations provided"
 
 
+@CrossSync.sync_output(
+    "tests.unit.data._sync.test_client.TestBulkMutateRows",
+)
 class TestBulkMutateRowsAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
@@ -2841,6 +2862,9 @@ class TestBulkMutateRowsAsync:
                 await table.bulk_mutate_rows(entries, operation_timeout=1000)
 
 
+@CrossSync.sync_output(
+    "tests.unit.data._sync.test_client.TestCheckAndMutateRow",
+)
 class TestCheckAndMutateRowAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
@@ -2992,6 +3016,9 @@ class TestCheckAndMutateRowAsync:
                     )
 
 
+@CrossSync.sync_output(
+    "tests.unit.data._sync.test_client.TestReadModifyWriteRow",
+)
 class TestReadModifyWriteRowAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
