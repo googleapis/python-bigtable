@@ -39,7 +39,8 @@ if TYPE_CHECKING:
     else:
         from google.cloud.bigtable.data._sync.client import Table
         from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
-        from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
+if not CrossSync._Sync_Impl.is_async:
+    from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
 
 
 class _MutateRowsOperation:
