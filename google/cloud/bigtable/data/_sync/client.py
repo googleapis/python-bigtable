@@ -54,7 +54,7 @@ from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
-if CrossSync.is_async:
+if CrossSync._Sync_Impl.is_async:
     pass
 else:
     from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation

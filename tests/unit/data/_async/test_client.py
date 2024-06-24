@@ -24,15 +24,6 @@ from google.api_core import grpc_helpers_async
 from google.cloud.bigtable.data import mutations
 from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable_v2.types import ReadRowsResponse
-from google.cloud.bigtable_v2.services.bigtable.async_client import (
-    BigtableAsyncClient,
-)
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledBigtableGrpcAsyncIOTransport,
-)
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledChannel as PooledChannelAsync,
-)
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import InvalidChunk
@@ -52,6 +43,24 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
     from mock import AsyncMock  # type: ignore
 
+if CrossSync.is_async:
+    from google.cloud.bigtable_v2.services.bigtable.async_client import (
+        BigtableAsyncClient,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+        PooledBigtableGrpcAsyncIOTransport,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+        PooledChannel as PooledChannelAsync,
+    )
+else:
+    from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+        PooledBigtableGrpcTransport,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+        PooledChannel,
+    )
 
 @CrossSync.sync_output(
     "tests.unit.data._sync.test_client.TestBigtableDataClient",

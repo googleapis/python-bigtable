@@ -40,14 +40,20 @@ from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledBigtableGrpcAsyncIOTransport,
-)
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledChannel as PooledChannelAsync,
-)
 from google.cloud.bigtable_v2.types import ReadRowsResponse
+
+if CrossSync._Sync_Impl.is_async:
+    from google.cloud.bigtable_v2.services.bigtable.async_client import (
+        BigtableAsyncClient,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+        PooledBigtableGrpcAsyncIOTransport,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+        PooledChannel as PooledChannelAsync,
+    )
+else:
+    pass
 
 
 class TestBigtableDataClient:

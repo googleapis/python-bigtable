@@ -266,8 +266,8 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         with open(filename, "r") as f:
             full_tree = ast.parse(f.read(), filename)
             imports = [node for node in full_tree.body if isinstance(node, (ast.Import, ast.ImportFrom))]
-            if_imports = [node for node in full_tree.body if isinstance(node, ast.If) and any(isinstance(n, (ast.Import, ast.ImportFrom)) for n in node.body)]
-            try_imports = [node for node in full_tree.body if isinstance(node, ast.Try)]
+            if_imports = [self.visit(node) for node in full_tree.body if isinstance(node, ast.If) and any(isinstance(n, (ast.Import, ast.ImportFrom)) for n in node.body)]
+            try_imports = [self.visit(node) for node in full_tree.body if isinstance(node, ast.Try)]
         return set(imports + if_imports + try_imports)
 
 

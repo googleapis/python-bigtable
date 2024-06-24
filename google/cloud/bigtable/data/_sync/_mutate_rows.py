@@ -34,7 +34,7 @@ from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_L
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
-    if CrossSync.is_async:
+    if CrossSync._Sync_Impl.is_async:
         pass
     else:
         from google.cloud.bigtable.data._sync.client import Table
