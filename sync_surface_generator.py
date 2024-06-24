@@ -117,12 +117,13 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             # TODO: make generic
             new_list = []
             for decorator in node.decorator_list:
-                # check for cross_sync decorator
-                if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute) and isinstance(decorator.func.value, ast.Name) and decorator.func.value.id == "CrossSync":
-                    decorator_type = decorator.func.attr
-                    if decorator_type == "rename_sync":
+                # check for @CrossSync.x() decorators
+                if "CrossSync" in ast.dump(decorator):
+                    if "rename_sync" in ast.dump(decorator):
                         new_name = decorator.args[0].value
                         node.name = new_name
+                    elif "drop_method" in ast.dump(decorator):
+                        return None
                 else:
                     new_list.append(decorator)
             node.decorator_list = new_list

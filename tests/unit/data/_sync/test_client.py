@@ -258,12 +258,6 @@ class TestBigtableDataClient:
                         assert client.transport._grpc_channel._pool[i] != start_pool[i]
             client.close()
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-    def test__start_background_channel_refresh_sync(self):
-        client = self._make_client(project="project-id", use_emulator=False)
-        with pytest.raises(RuntimeError):
-            client._start_background_channel_refresh()
-
     def test__start_background_channel_refresh_tasks_exist(self):
         client = self._make_client(project="project-id", use_emulator=False)
         assert len(client._channel_refresh_tasks) > 0
@@ -293,20 +287,6 @@ class TestBigtableDataClient:
             assert ping_and_warm.call_count == pool_size
             for channel in client.transport._grpc_channel._pool:
                 ping_and_warm.assert_any_call(channel)
-        client.close()
-
-    @pytest.mark.skipif(
-        sys.version_info < (3, 8), reason="Task.name requires python3.8 or higher"
-    )
-    def test__start_background_channel_refresh_tasks_names(self):
-        pool_size = 3
-        client = self._make_client(
-            project="project-id", pool_size=pool_size, use_emulator=False
-        )
-        for i in range(pool_size):
-            name = client._channel_refresh_tasks[i].get_name()
-            assert str(i) in name
-            assert "BigtableDataClientAsync channel refresh " in name
         client.close()
 
     def test__ping_and_warm_instances(self):
@@ -981,18 +961,6 @@ class TestBigtableDataClient:
         close_mock.assert_called_once()
         close_mock.assert_awaited()
         true_close
-
-    def test_client_ctor_sync(self):
-        with pytest.warns(RuntimeWarning) as warnings:
-            client = self._make_client(project="project-id", use_emulator=False)
-        expected_warning = [w for w in warnings if "client.py" in w.filename]
-        assert len(expected_warning) == 1
-        assert (
-            "BigtableDataClientAsync should be started in an asyncio event loop."
-            in str(expected_warning[0].message)
-        )
-        assert client.project == "project-id"
-        assert client._channel_refresh_tasks == []
 
 
 class TestBulkMutateRows:
@@ -2638,12 +2606,6 @@ class TestTable:
                 Table(client, "", "", **{operation_timeout: -1})
             assert "operation_timeout must be greater than 0" in str(e.value)
         client.close()
-
-    def test_table_ctor_sync(self):
-        client = mock.Mock()
-        with pytest.raises(RuntimeError) as e:
-            Table(client, "instance-id", "table-id")
-        assert e.match("TableAsync must be created within an async event loop context.")
 
     @pytest.mark.parametrize(
         "fn_name,fn_args,is_stream,extra_retryables",

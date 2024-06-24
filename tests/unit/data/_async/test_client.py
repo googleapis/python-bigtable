@@ -288,6 +288,7 @@ class TestBigtableDataClientAsync:
                         assert client.transport._grpc_channel._pool[i] != start_pool[i]
             await client.close()
 
+    @CrossSync.drop_method
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test__start_background_channel_refresh_sync(self):
         # should raise RuntimeError if called in a sync context
@@ -330,6 +331,7 @@ class TestBigtableDataClientAsync:
                 ping_and_warm.assert_any_call(channel)
         await client.close()
 
+    @CrossSync.drop_method
     @pytest.mark.asyncio
     @pytest.mark.skipif(
         sys.version_info < (3, 8), reason="Task.name requires python3.8 or higher"
@@ -1091,6 +1093,7 @@ class TestBigtableDataClientAsync:
         # actually close the client
         await true_close
 
+    @CrossSync.drop_method
     def test_client_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
 
@@ -1239,6 +1242,7 @@ class TestTableAsync:
             assert "operation_timeout must be greater than 0" in str(e.value)
         await client.close()
 
+    @CrossSync.drop_method
     def test_table_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
         from google.cloud.bigtable.data._async.client import TableAsync
