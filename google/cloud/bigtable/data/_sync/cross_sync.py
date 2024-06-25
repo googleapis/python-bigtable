@@ -54,11 +54,8 @@ class CrossSync:
         return decorator
 
     @staticmethod
-    def drop_method(*args, **kwargs):
-        def decorator(func):
-            return func
-
-        return decorator
+    def drop_method(func):
+        return func
 
     @classmethod
     def sync_output(

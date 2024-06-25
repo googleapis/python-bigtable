@@ -86,7 +86,7 @@ class TestBigtableDataClient:
             credentials=expected_credentials,
             use_emulator=False,
         )
-        asyncio.sleep(0)
+        CrossSync._Sync_Impl.yield_to_event_loop()
         assert client.project == expected_project
         assert len(client.transport._grpc_channel._pool) == expected_pool_size
         assert not client._active_instances
@@ -273,7 +273,8 @@ class TestBigtableDataClient:
                     assert isinstance(task, asyncio.Task)
                 else:
                     assert isinstance(task, concurrent.futures.Future)
-            asyncio.sleep(0.1)
+            if CrossSync._Sync_Impl.is_async:
+                asyncio.sleep(0.1)
             assert ping_and_warm.call_count == pool_size
             for channel in client.transport._grpc_channel._pool:
                 ping_and_warm.assert_any_call(channel)
@@ -463,9 +464,12 @@ class TestBigtableDataClient:
                         except asyncio.CancelledError:
                             pass
                     assert sleep.call_count == num_cycles
-                    total_sleep = sum(
-                        [call[1]["timeout"] for call in sleep.call_args_list]
-                    )
+                    if CrossSync._Sync_Impl.is_async:
+                        total_sleep = sum([call[0][0] for call in sleep.call_args_list])
+                    else:
+                        total_sleep = sum(
+                            [call[1]["timeout"] for call in sleep.call_args_list]
+                        )
                     assert (
                         abs(total_sleep - expected_sleep) < 0.1
                     ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
@@ -721,11 +725,17 @@ class TestBigtableDataClient:
                 assert len(client._active_instances) == 1
                 assert id(table_1) in client._instance_owners[instance_1_key]
                 with client.get_table("instance_1", "table_1") as table_2:
+                    assert table_2._register_instance_future is not None
+                    if not CrossSync._Sync_Impl.is_async:
+                        table_2._register_instance_future.result()
                     assert len(client._instance_owners[instance_1_key]) == 2
                     assert len(client._active_instances) == 1
                     assert id(table_1) in client._instance_owners[instance_1_key]
                     assert id(table_2) in client._instance_owners[instance_1_key]
                     with client.get_table("instance_1", "table_3") as table_3:
+                        assert table_3._register_instance_future is not None
+                        if not CrossSync._Sync_Impl.is_async:
+                            table_3._register_instance_future.result()
                         instance_3_path = client._gapic_client.instance_path(
                             client.project, "instance_1"
                         )
@@ -754,7 +764,13 @@ class TestBigtableDataClient:
 
         with self._make_client(project="project-id") as client:
             with client.get_table("instance_1", "table_1") as table_1:
+                assert table_1._register_instance_future is not None
+                if not CrossSync._Sync_Impl.is_async:
+                    table_1._register_instance_future.result()
                 with client.get_table("instance_2", "table_2") as table_2:
+                    assert table_2._register_instance_future is not None
+                    if not CrossSync._Sync_Impl.is_async:
+                        table_2._register_instance_future.result()
                     instance_1_path = client._gapic_client.instance_path(
                         client.project, "instance_1"
                     )
@@ -792,7 +808,7 @@ class TestBigtableDataClient:
         table = client.get_table(
             expected_instance_id, expected_table_id, expected_app_profile_id
         )
-        asyncio.sleep(0)
+        CrossSync._Sync_Impl.yield_to_event_loop()
         assert isinstance(table, TestTable._get_target_class())
         assert table.table_id == expected_table_id
         assert (
@@ -854,7 +870,7 @@ class TestBigtableDataClient:
                 with client.get_table(
                     expected_instance_id, expected_table_id, expected_app_profile_id
                 ) as table:
-                    asyncio.sleep(0)
+                    CrossSync._Sync_Impl.yield_to_event_loop()
                     assert isinstance(table, TestTable._get_target_class())
                     assert table.table_id == expected_table_id
                     assert (
@@ -1708,10 +1724,10 @@ class TestReadRows:
     def _make_table(self, *args, **kwargs):
         client_mock = mock.Mock()
         client_mock._register_instance.side_effect = (
-            lambda *args, **kwargs: asyncio.sleep(0)
+            lambda *args, **kwargs: CrossSync._Sync_Impl.yield_to_event_loop()
         )
         client_mock._remove_instance_registration.side_effect = (
-            lambda *args, **kwargs: asyncio.sleep(0)
+            lambda *args, **kwargs: CrossSync._Sync_Impl.yield_to_event_loop()
         )
         kwargs["instance_id"] = kwargs.get(
             "instance_id", args[0] if args else "instance"
@@ -2510,7 +2526,7 @@ class TestTable:
             default_mutate_rows_operation_timeout=expected_mutate_rows_operation_timeout,
             default_mutate_rows_attempt_timeout=expected_mutate_rows_attempt_timeout,
         )
-        asyncio.sleep(0)
+        CrossSync._Sync_Impl.yield_to_event_loop()
         assert table.table_id == expected_table_id
         assert table.instance_id == expected_instance_id
         assert table.app_profile_id == expected_app_profile_id
@@ -2551,7 +2567,7 @@ class TestTable:
         client = self._make_client()
         assert not client._active_instances
         table = Table(client, expected_instance_id, expected_table_id)
-        asyncio.sleep(0)
+        CrossSync._Sync_Impl.yield_to_event_loop()
         assert table.table_id == expected_table_id
         assert table.instance_id == expected_instance_id
         assert table.app_profile_id is None
@@ -2695,9 +2711,7 @@ class TestTable:
     def test_call_metadata(self, include_app_profile, fn_name, fn_args, gapic_fn):
         """check that all requests attach proper metadata headers"""
         profile = "profile" if include_app_profile else None
-        with mock.patch.object(
-            BigtableClient, gapic_fn, mock.AsyncMock()
-        ) as gapic_mock:
+        with mock.patch.object(BigtableClient, gapic_fn, mock.Mock()) as gapic_mock:
             gapic_mock.side_effect = RuntimeError("stop early")
             with self._make_client() as client:
                 table = Table(client, "instance-id", "table-id", profile)
