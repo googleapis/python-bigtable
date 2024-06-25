@@ -20,7 +20,6 @@ import sys
 
 import pytest
 
-from google.api_core import grpc_helpers_async
 from google.cloud.bigtable.data import mutations
 from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable_v2.types import ReadRowsResponse
@@ -44,6 +43,7 @@ except ImportError:  # pragma: NO COVER
     from mock import AsyncMock  # type: ignore
 
 if CrossSync.is_async:
+    from google.api_core import grpc_helpers_async
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
         BigtableAsyncClient,
     )
@@ -54,8 +54,9 @@ if CrossSync.is_async:
         PooledChannel as PooledChannelAsync,
     )
     from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-    from google.cloud.bigtable.data._async.client import TableAsync
+    from google.cloud.bigtable.data._async.client import TableAsync, BigtableDataClientAsync
 else:
+    from google.api_core import grpc_helpers
     from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
         PooledBigtableGrpcTransport,
@@ -64,22 +65,25 @@ else:
         PooledChannel,
     )
     from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
-    from google.cloud.bigtable.data._sync.client import Table
+    from google.cloud.bigtable.data._sync.client import Table, BigtableDataClient
 
 @CrossSync.sync_output(
     "tests.unit.data._sync.test_client.TestBigtableDataClient",
+    replace_symbols={
+        "TestTableAsync": "TestTable",
+        "BigtableDataClientAsync": "BigtableDataClient",
+        "TableAsync": "Table",
+        "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
+        "grpc_helpers_async": "grpc_helpers",
+        "PooledChannelAsync": "PooledChannel",
+        "BigtableAsyncClient": "BigtableClient",
+        "AsyncMock": "mock.Mock",
+    }
 )
 class TestBigtableDataClientAsync:
     @staticmethod
     def _get_target_class():
-        if CrossSync.is_async:
-            from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
-
-            return BigtableDataClientAsync
-        else:
-            from google.cloud.bigtable.data._sync.client import BigtableDataClient
-
-            return BigtableDataClient
+        return BigtableDataClientAsync
 
     @classmethod
     def _make_client(cls, *args, use_emulator=True, **kwargs):
@@ -196,7 +200,7 @@ class TestBigtableDataClientAsync:
 
         # client_info should be populated with headers to
         # detect as a veneer client
-        if CrossSync_async:
+        if CrossSync.is_async:
             patch = mock.patch("google.api_core.gapic_v1.method_async.wrap_method")
         else:
             patch = mock.patch("google.api_core.gapic_v1.method.wrap_method")
@@ -417,18 +421,8 @@ class TestBigtableDataClientAsync:
                 client_mock, *args
             )
         )
-        gather_tuple = (
-            (asyncio, "gather") if CrossSync.is_async else (client_mock._executor, "submit")
-        )
-        with mock.patch.object(*gather_tuple, AsyncMock()) as gather:
-            gather.side_effect = lambda *args, **kwargs: [mock.Mock() for _ in args]
-            if CrossSync.is_async:
-                # simulate gather by returning the same number of items as passed in
-                # gather is expected to return None for each coroutine passed
-                gather.side_effect = lambda *args, **kwargs: [None for _ in args]
-            else:
-                # submit is expected to call the function passed, and return the result
-                gather.side_effect = lambda fn, **kwargs: [fn(**kwargs)]
+        with mock.patch.object(CrossSync, "gather_partials", AsyncMock()) as gather:
+            gather.side_effect = lambda *args, **kwargs: [fn() for fn in args[0]]
             channel = mock.Mock()
             # test with large set of instances
             client_mock._active_instances = [mock.Mock()] * 100
@@ -473,10 +467,7 @@ class TestBigtableDataClientAsync:
 
         with mock.patch.object(time, "monotonic") as monotonic:
             monotonic.return_value = 0
-            sleep_tuple = (
-                (asyncio, "sleep") if CrossSync.is_async else (threading.Event, "wait")
-            )
-            with mock.patch.object(*sleep_tuple) as sleep:
+            with mock.patch.object(CrossSync, "event_wait") as sleep:
                 sleep.side_effect = asyncio.CancelledError
                 try:
                     client = self._make_client(project="project-id")
@@ -485,7 +476,7 @@ class TestBigtableDataClientAsync:
                 except asyncio.CancelledError:
                     pass
                 sleep.assert_called_once()
-                call_time = sleep.call_args[0][0]
+                call_time = sleep.call_args[0][1]
                 assert (
                     abs(call_time - expected_sleep) < 0.1
                 ), f"refresh_interval: {refresh_interval}, wait_time: {wait_time}, expected_sleep: {expected_sleep}"
@@ -579,7 +570,7 @@ class TestBigtableDataClientAsync:
                         except asyncio.CancelledError:
                             pass
                     assert sleep.call_count == num_cycles
-                    total_sleep = sum([call[0][0] for call in sleep.call_args_list])
+                    total_sleep = sum([call[1]["timeout"] for call in sleep.call_args_list])
                     assert (
                         abs(total_sleep - expected_sleep) < 0.1
                     ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
@@ -1056,7 +1047,8 @@ class TestBigtableDataClientAsync:
         ) as close_mock:
             await client.close()
             close_mock.assert_called_once()
-            close_mock.assert_awaited()
+            if CrossSync.is_async:
+                close_mock.assert_awaited()
         for task in tasks_list:
             assert task.done()
         assert client._channel_refresh_tasks == []
@@ -1070,7 +1062,8 @@ class TestBigtableDataClientAsync:
         with mock.patch.object(CrossSync, "wait", AsyncMock()) as wait_for_mock:
             await client.close(timeout=expected_timeout)
             wait_for_mock.assert_called_once()
-            wait_for_mock.assert_awaited()
+            if CrossSync.is_async:
+                wait_for_mock.assert_awaited()
             assert wait_for_mock.call_args[1]["timeout"] == expected_timeout
         client._channel_refresh_tasks = tasks
         await client.close()
@@ -1089,7 +1082,8 @@ class TestBigtableDataClientAsync:
             assert client._active_instances == set()
             close_mock.assert_not_called()
         close_mock.assert_called_once()
-        close_mock.assert_awaited()
+        if CrossSync.is_async:
+            close_mock.assert_awaited()
         # actually close the client
         await true_close
 

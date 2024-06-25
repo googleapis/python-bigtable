@@ -20,7 +20,6 @@ import asyncio
 import grpc
 import pytest
 import re
-import sys
 
 try:
     from unittest import mock
@@ -30,7 +29,6 @@ except ImportError:
     from mock import AsyncMock
 
 from google.api_core import exceptions as core_exceptions
-from google.api_core import grpc_helpers_async
 from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable.data import TABLE_DEFAULT
 from google.cloud.bigtable.data import mutations
@@ -43,32 +41,24 @@ from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 
 if CrossSync._Sync_Impl.is_async:
-    from google.cloud.bigtable_v2.services.bigtable.async_client import (
-        BigtableAsyncClient,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledBigtableGrpcAsyncIOTransport,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledChannel as PooledChannelAsync,
-    )
+    pass
 else:
+    from google.api_core import grpc_helpers
     from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+        PooledBigtableGrpcTransport,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+        PooledChannel,
+    )
     from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
-    from google.cloud.bigtable.data._sync.client import Table
+    from google.cloud.bigtable.data._sync.client import Table, BigtableDataClient
 
 
 class TestBigtableDataClient:
     @staticmethod
     def _get_target_class():
-        if CrossSync._Sync_Impl.is_async:
-            from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
-
-            return BigtableDataClientAsync
-        else:
-            from google.cloud.bigtable.data._sync.client import BigtableDataClient
-
-            return BigtableDataClient
+        return BigtableDataClient
 
     @classmethod
     def _make_client(cls, *args, use_emulator=True, **kwargs):
@@ -116,7 +106,7 @@ class TestBigtableDataClient:
         options_parsed = client_options_lib.from_dict(client_options)
         asyncio_portion = "-async" if CrossSync._Sync_Impl.is_async else ""
         transport_str = f"bt-{bigtable_version}-data{asyncio_portion}-{pool_size}"
-        with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
+        with mock.patch.object(BigtableClient, "__init__") as bigtable_client_init:
             bigtable_client_init.return_value = None
             with mock.patch.object(
                 ClientWithProject, "__init__"
@@ -147,7 +137,7 @@ class TestBigtableDataClient:
         from google.api_core.client_options import ClientOptions
 
         client_options = {"api_endpoint": "foo.bar:1234"}
-        with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
+        with mock.patch.object(BigtableClient, "__init__") as bigtable_client_init:
             try:
                 self._make_client(client_options=client_options)
             except TypeError:
@@ -173,7 +163,7 @@ class TestBigtableDataClient:
             + client_component
             + " gl-python\\/[0-9]+\\.[\\w.-]+ grpc\\/[0-9]+\\.[\\w.-]+"
         )
-        if CrossSync_async:
+        if CrossSync._Sync_Impl.is_async:
             patch = mock.patch("google.api_core.gapic_v1.method_async.wrap_method")
         else:
             patch = mock.patch("google.api_core.gapic_v1.method.wrap_method")
@@ -195,7 +185,7 @@ class TestBigtableDataClient:
     def test_channel_pool_creation(self):
         pool_size = 14
         with mock.patch.object(
-            grpc_helpers_async, "create_channel", AsyncMock()
+            grpc_helpers, "create_channel", mock.Mock()
         ) as create_channel:
             client = self._make_client(project="project-id", pool_size=pool_size)
             assert create_channel.call_count == pool_size
@@ -208,7 +198,7 @@ class TestBigtableDataClient:
 
     def test_channel_pool_rotation(self):
         pool_size = 7
-        with mock.patch.object(PooledChannelAsync, "next_channel") as next_channel:
+        with mock.patch.object(PooledChannel, "next_channel") as next_channel:
             client = self._make_client(project="project-id", pool_size=pool_size)
             assert len(client.transport._grpc_channel._pool) == pool_size
             next_channel.reset_mock()
@@ -271,7 +261,7 @@ class TestBigtableDataClient:
         import concurrent.futures
 
         with mock.patch.object(
-            self._get_target_class(), "_ping_and_warm_instances", AsyncMock()
+            self._get_target_class(), "_ping_and_warm_instances", mock.Mock()
         ) as ping_and_warm:
             client = self._make_client(
                 project="project-id", pool_size=pool_size, use_emulator=False
@@ -298,7 +288,7 @@ class TestBigtableDataClient:
             )
         )
         with mock.patch.object(
-            CrossSync._Sync_Impl, "gather_partials", AsyncMock()
+            CrossSync._Sync_Impl, "gather_partials", mock.Mock()
         ) as gather:
             gather.side_effect = lambda partials, **kwargs: [None for _ in partials]
             channel = mock.Mock()
@@ -349,17 +339,10 @@ class TestBigtableDataClient:
                 client_mock, *args
             )
         )
-        gather_tuple = (
-            (asyncio, "gather")
-            if CrossSync._Sync_Impl.is_async
-            else (client_mock._executor, "submit")
-        )
-        with mock.patch.object(*gather_tuple, AsyncMock()) as gather:
-            gather.side_effect = lambda *args, **kwargs: [mock.Mock() for _ in args]
-            if CrossSync._Sync_Impl.is_async:
-                gather.side_effect = lambda *args, **kwargs: [None for _ in args]
-            else:
-                gather.side_effect = lambda fn, **kwargs: [fn(**kwargs)]
+        with mock.patch.object(
+            CrossSync._Sync_Impl, "gather_partials", mock.Mock()
+        ) as gather:
+            gather.side_effect = lambda *args, **kwargs: [fn() for fn in args[0]]
             channel = mock.Mock()
             client_mock._active_instances = [mock.Mock()] * 100
             test_key = ("test-instance", "test-table", "test-app-profile")
@@ -387,17 +370,11 @@ class TestBigtableDataClient:
     def test__manage_channel_first_sleep(
         self, refresh_interval, wait_time, expected_sleep
     ):
-        import threading
         import time
 
         with mock.patch.object(time, "monotonic") as monotonic:
             monotonic.return_value = 0
-            sleep_tuple = (
-                (asyncio, "sleep")
-                if CrossSync._Sync_Impl.is_async
-                else (threading.Event, "wait")
-            )
-            with mock.patch.object(*sleep_tuple) as sleep:
+            with mock.patch.object(CrossSync._Sync_Impl, "event_wait") as sleep:
                 sleep.side_effect = asyncio.CancelledError
                 try:
                     client = self._make_client(project="project-id")
@@ -406,7 +383,7 @@ class TestBigtableDataClient:
                 except asyncio.CancelledError:
                     pass
                 sleep.assert_called_once()
-                call_time = sleep.call_args[0][0]
+                call_time = sleep.call_args[0][1]
                 assert (
                     abs(call_time - expected_sleep) < 0.1
                 ), f"refresh_interval: {refresh_interval}, wait_time: {wait_time}, expected_sleep: {expected_sleep}"
@@ -431,7 +408,7 @@ class TestBigtableDataClient:
         )
         with mock.patch.object(*sleep_tuple):
             client_mock.transport.replace_channel.side_effect = asyncio.CancelledError
-            ping_and_warm = client_mock._ping_and_warm_instances = AsyncMock()
+            ping_and_warm = client_mock._ping_and_warm_instances = mock.Mock()
             try:
                 channel_idx = 1
                 self._get_target_class()._manage_channel(client_mock, channel_idx, 10)
@@ -486,7 +463,9 @@ class TestBigtableDataClient:
                         except asyncio.CancelledError:
                             pass
                     assert sleep.call_count == num_cycles
-                    total_sleep = sum([call[0][0] for call in sleep.call_args_list])
+                    total_sleep = sum(
+                        [call[1]["timeout"] for call in sleep.call_args_list]
+                    )
                     assert (
                         abs(total_sleep - expected_sleep) < 0.1
                     ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
@@ -536,7 +515,7 @@ class TestBigtableDataClient:
         grpc_lib = grpc.aio if CrossSync._Sync_Impl.is_async else grpc
         new_channel = grpc_lib.insecure_channel("localhost:8080")
         with mock.patch.object(
-            PooledBigtableGrpcAsyncIOTransport, "replace_channel"
+            PooledBigtableGrpcTransport, "replace_channel"
         ) as replace_channel:
             sleep_tuple = (
                 (asyncio, "sleep")
@@ -548,7 +527,7 @@ class TestBigtableDataClient:
                     asyncio.CancelledError
                 ]
                 with mock.patch.object(
-                    grpc_helpers_async, "create_channel"
+                    grpc_helpers, "create_channel"
                 ) as create_channel:
                     create_channel.return_value = new_channel
                     with mock.patch.object(
@@ -591,7 +570,7 @@ class TestBigtableDataClient:
         )
         mock_channels = [mock.Mock() for i in range(5)]
         client_mock.transport.channels = mock_channels
-        client_mock._ping_and_warm_instances = AsyncMock()
+        client_mock._ping_and_warm_instances = mock.Mock()
         table_mock = mock.Mock()
         self._get_target_class()._register_instance(
             client_mock, "instance-1", table_mock
@@ -667,7 +646,7 @@ class TestBigtableDataClient:
         )
         mock_channels = [mock.Mock() for i in range(5)]
         client_mock.transport.channels = mock_channels
-        client_mock._ping_and_warm_instances = AsyncMock()
+        client_mock._ping_and_warm_instances = mock.Mock()
         table_mock = mock.Mock()
         for instance, table, profile in insert_instances:
             table_mock.table_name = table
@@ -814,7 +793,7 @@ class TestBigtableDataClient:
             expected_instance_id, expected_table_id, expected_app_profile_id
         )
         asyncio.sleep(0)
-        assert isinstance(table, TestTableAsync._get_target_class())
+        assert isinstance(table, TestTable._get_target_class())
         assert table.table_id == expected_table_id
         assert (
             table.table_name
@@ -838,7 +817,7 @@ class TestBigtableDataClient:
         """All arguments passed in get_table should be sent to constructor"""
         with self._make_client(project="project-id") as client:
             with mock.patch.object(
-                TestTableAsync._get_target_class(), "__init__"
+                TestTable._get_target_class(), "__init__"
             ) as mock_constructor:
                 mock_constructor.return_value = None
                 assert not client._active_instances
@@ -870,15 +849,13 @@ class TestBigtableDataClient:
         expected_instance_id = "instance-id"
         expected_app_profile_id = "app-profile-id"
         expected_project_id = "project-id"
-        with mock.patch.object(
-            TestTableAsync._get_target_class(), "close"
-        ) as close_mock:
+        with mock.patch.object(TestTable._get_target_class(), "close") as close_mock:
             with self._make_client(project=expected_project_id) as client:
                 with client.get_table(
                     expected_instance_id, expected_table_id, expected_app_profile_id
                 ) as table:
                     asyncio.sleep(0)
-                    assert isinstance(table, TestTableAsync._get_target_class())
+                    assert isinstance(table, TestTable._get_target_class())
                     assert table.table_id == expected_table_id
                     assert (
                         table.table_name
@@ -923,11 +900,12 @@ class TestBigtableDataClient:
         for task in client._channel_refresh_tasks:
             assert not task.done()
         with mock.patch.object(
-            PooledBigtableGrpcAsyncIOTransport, "close", AsyncMock()
+            PooledBigtableGrpcTransport, "close", mock.Mock()
         ) as close_mock:
             client.close()
             close_mock.assert_called_once()
-            close_mock.assert_awaited()
+            if CrossSync._Sync_Impl.is_async:
+                close_mock.assert_awaited()
         for task in tasks_list:
             assert task.done()
         assert client._channel_refresh_tasks == []
@@ -938,17 +916,18 @@ class TestBigtableDataClient:
         client = self._make_client(project="project-id", pool_size=pool_size)
         tasks = list(client._channel_refresh_tasks)
         with mock.patch.object(
-            CrossSync._Sync_Impl, "wait", AsyncMock()
+            CrossSync._Sync_Impl, "wait", mock.Mock()
         ) as wait_for_mock:
             client.close(timeout=expected_timeout)
             wait_for_mock.assert_called_once()
-            wait_for_mock.assert_awaited()
+            if CrossSync._Sync_Impl.is_async:
+                wait_for_mock.assert_awaited()
             assert wait_for_mock.call_args[1]["timeout"] == expected_timeout
         client._channel_refresh_tasks = tasks
         client.close()
 
     def test_context_manager(self):
-        close_mock = AsyncMock()
+        close_mock = mock.Mock()
         true_close = None
         with self._make_client(project="project-id") as client:
             true_close = client.close()
@@ -959,7 +938,8 @@ class TestBigtableDataClient:
             assert client._active_instances == set()
             close_mock.assert_not_called()
         close_mock.assert_called_once()
-        close_mock.assert_awaited()
+        if CrossSync._Sync_Impl.is_async:
+            close_mock.assert_awaited()
         true_close
 
 
