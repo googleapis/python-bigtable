@@ -275,3 +275,33 @@ class CrossSync:
         @staticmethod
         def yield_to_event_loop() -> None:
             pass
+
+import ast
+
+class CrossSyncTransformer(ast.NodeTransformer):
+    pass
+
+if __name__ == "__main__":
+    import os
+    import glob
+    import importlib
+    import inspect
+    import itertools
+    import black
+    import autoflake
+    # find all cross_sync decorated classes
+    search_root = sys.argv[1]
+    found_files = [path.replace("/", ".")[:-3] for path in glob.glob(search_root + "/**/*.py", recursive=True)]
+    found_classes = itertools.chain.from_iterable([inspect.getmembers(importlib.import_module(path), inspect.isclass) for path in found_files])
+    cross_sync_classes = [(name, cls) for name, cls in found_classes if hasattr(cls, "cross_sync_enabled")]
+    # convert files
+    file_buffers = {}
+    for cls_name, cls in cross_sync_classes:
+        ast_tree = ast.parse(inspect.getsource(cls))
+        transformed_tree = CrossSyncTransformer().visit(ast_tree)
+        file_buffers[cls.cross_sync_file_path] = file_buffers.get(cls.cross_sync_file_path, "") + ast.unparse(transformed_tree)
+    # write to disk
+    for file_path, buffer in file_buffers.items():
+        # cleaned = black.format_str(autoflake.fix_code(buffer, remove_all_unused_imports=True), mode=black.FileMode())
+        with open(file_path, "w") as f:
+            f.write(buffer)
