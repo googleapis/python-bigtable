@@ -279,7 +279,43 @@ class CrossSync:
 import ast
 
 class CrossSyncTransformer(ast.NodeTransformer):
-    pass
+
+    def visit_Await(self, node):
+        return self.visit(node.value)
+
+    def visit_AsyncFor(self, node):
+        return ast.copy_location(
+            ast.For(
+                self.visit(node.target),
+                self.visit(node.iter),
+                [self.visit(stmt) for stmt in node.body],
+                [self.visit(stmt) for stmt in node.orelse],
+            ),
+            node,
+        )
+
+    def visit_AsyncWith(self, node):
+        return ast.copy_location(
+            ast.With(
+                [self.visit(item) for item in node.items],
+                [self.visit(stmt) for stmt in node.body],
+            ),
+            node,
+        )
+
+    def visit_AsyncFunctionDef(self, node):
+        return ast.copy_location(
+            ast.FunctionDef(
+                node.name,
+                self.visit(node.args),
+                [self.visit(stmt) for stmt in node.body],
+                [self.visit(decorator) for decorator in node.decorator_list],
+                node.returns and self.visit(node.returns),
+            ),
+            node,
+        )
+
+
 
 if __name__ == "__main__":
     import os
