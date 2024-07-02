@@ -63,9 +63,11 @@ class CrossSync:
         sync_path: str,
         replace_symbols: dict["str", "str" | None ] | None = None,
         mypy_ignore: list[str] | None = None,
+        include_file_imports: bool = True,
     ):
         replace_symbols = replace_symbols or {}
         mypy_ignore = mypy_ignore or []
+        include_file_imports = include_file_imports
 
         # return the async class unchanged
         def decorator(async_cls):
@@ -76,6 +78,7 @@ class CrossSync:
             async_cls.cross_sync_file_path = "/".join(sync_path.split(".")[:-1]) + ".py"
             async_cls.cross_sync_replace_symbols = replace_symbols
             async_cls.cross_sync_mypy_ignore = mypy_ignore
+            async_cls.include_file_imports = include_file_imports
             return async_cls
 
         return decorator
@@ -344,11 +347,17 @@ if __name__ == "__main__":
     # find all cross_sync decorated classes
     search_root = sys.argv[1]
     found_files = [path.replace("/", ".")[:-3] for path in glob.glob(search_root + "/**/*.py", recursive=True)]
-    found_classes = itertools.chain.from_iterable([inspect.getmembers(importlib.import_module(path), inspect.isclass) for path in found_files])
-    cross_sync_classes = [(name, cls) for name, cls in found_classes if hasattr(cls, "cross_sync_enabled")]
+    found_classes = list(itertools.chain.from_iterable([inspect.getmembers(importlib.import_module(path), inspect.isclass) for path in found_files]))
+    cross_sync_classes = {name for name, cls in found_classes if hasattr(cls, "cross_sync_enabled")}
     # convert files
     file_buffers = {}
-    for cls_name, cls in cross_sync_classes:
+    for cls_name, cls in [entry for entry in found_classes if entry[0] in cross_sync_classes]:
+        if cls.include_file_imports:
+            # add imports if requested
+            with open(inspect.getfile(cls)) as f:
+                full_ast = ast.parse(f.read())
+                imports = [node for node in full_ast.body if isinstance(node, (ast.Import, ast.ImportFrom, ast.If))]
+                file_buffers[cls.cross_sync_file_path] = file_buffers.get(cls.cross_sync_file_path, header) + "\n".join([ast.unparse(node) for node in imports]) + "\n"
         ast_tree = ast.parse(inspect.getsource(cls))
         transformed_tree = CrossSyncTransformer().visit(ast_tree)
         file_buffers[cls.cross_sync_file_path] = file_buffers.get(cls.cross_sync_file_path, header) + ast.unparse(transformed_tree) + "\n"
