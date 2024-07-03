@@ -64,6 +64,14 @@ class CrossSync:
         return func
 
     @classmethod
+    def Mock(cls, *args, **kwargs):
+        try:
+            from unittest.mock import AsyncMock  # type: ignore
+        except ImportError:  # pragma: NO COVER
+            from mock import AsyncMock  # type: ignore
+        return AsyncMock(*args, **kwargs)
+
+    @classmethod
     def sync_output(
         cls,
         sync_path: str,
@@ -208,6 +216,15 @@ class CrossSync:
         Generator: TypeAlias = Generator
 
         generated_replacements: dict[type, str] = {}
+
+        @classmethod
+        def Mock(cls, *args, **kwargs):
+            # try/except added for compatibility with python < 3.8
+            try:
+                from unittest.mock import Mock
+            except ImportError:  # pragma: NO COVER
+                from mock import Mock  # type: ignore
+            return Mock(*args, **kwargs)
 
         @staticmethod
         def wait(

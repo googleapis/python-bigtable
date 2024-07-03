@@ -32,10 +32,8 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock
 except ImportError:
     import mock
-    from mock import AsyncMock
 if CrossSync._Sync_Impl.is_async:
     pass
 else:
@@ -181,7 +179,7 @@ class TestBigtableDataClient:
     def test_channel_pool_creation(self):
         pool_size = 14
         with mock.patch.object(
-            grpc_helpers, "create_channel", mock.Mock()
+            grpc_helpers, "create_channel", CrossSync._Sync_Impl.Mock()
         ) as create_channel:
             client = self._make_client(project="project-id", pool_size=pool_size)
             assert create_channel.call_count == pool_size
@@ -257,7 +255,9 @@ class TestBigtableDataClient:
         import concurrent.futures
 
         with mock.patch.object(
-            self._get_target_class(), "_ping_and_warm_instances", mock.Mock()
+            self._get_target_class(),
+            "_ping_and_warm_instances",
+            CrossSync._Sync_Impl.Mock(),
         ) as ping_and_warm:
             client = self._make_client(
                 project="project-id", pool_size=pool_size, use_emulator=False
@@ -285,7 +285,7 @@ class TestBigtableDataClient:
             )
         )
         with mock.patch.object(
-            CrossSync._Sync_Impl, "gather_partials", mock.Mock()
+            CrossSync._Sync_Impl, "gather_partials", CrossSync._Sync_Impl.Mock()
         ) as gather:
             gather.side_effect = lambda partials, **kwargs: [None for _ in partials]
             channel = mock.Mock()
@@ -337,7 +337,7 @@ class TestBigtableDataClient:
             )
         )
         with mock.patch.object(
-            CrossSync._Sync_Impl, "gather_partials", mock.Mock()
+            CrossSync._Sync_Impl, "gather_partials", CrossSync._Sync_Impl.Mock()
         ) as gather:
             gather.side_effect = lambda *args, **kwargs: [fn() for fn in args[0]]
             channel = mock.Mock()
@@ -405,7 +405,9 @@ class TestBigtableDataClient:
         )
         with mock.patch.object(*sleep_tuple):
             client_mock.transport.replace_channel.side_effect = asyncio.CancelledError
-            ping_and_warm = client_mock._ping_and_warm_instances = mock.Mock()
+            ping_and_warm = (
+                client_mock._ping_and_warm_instances
+            ) = CrossSync._Sync_Impl.Mock()
             try:
                 channel_idx = 1
                 self._get_target_class()._manage_channel(client_mock, channel_idx, 10)
@@ -570,7 +572,7 @@ class TestBigtableDataClient:
         )
         mock_channels = [mock.Mock() for i in range(5)]
         client_mock.transport.channels = mock_channels
-        client_mock._ping_and_warm_instances = mock.Mock()
+        client_mock._ping_and_warm_instances = CrossSync._Sync_Impl.Mock()
         table_mock = mock.Mock()
         self._get_target_class()._register_instance(
             client_mock, "instance-1", table_mock
@@ -646,7 +648,7 @@ class TestBigtableDataClient:
         )
         mock_channels = [mock.Mock() for i in range(5)]
         client_mock.transport.channels = mock_channels
-        client_mock._ping_and_warm_instances = mock.Mock()
+        client_mock._ping_and_warm_instances = CrossSync._Sync_Impl.Mock()
         table_mock = mock.Mock()
         for instance, table, profile in insert_instances:
             table_mock.table_name = table
@@ -908,7 +910,7 @@ class TestBigtableDataClient:
         for task in client._channel_refresh_tasks:
             assert not task.done()
         with mock.patch.object(
-            PooledBigtableGrpcTransport, "close", mock.Mock()
+            PooledBigtableGrpcTransport, "close", CrossSync._Sync_Impl.Mock()
         ) as close_mock:
             client.close()
             close_mock.assert_called_once()
@@ -924,7 +926,7 @@ class TestBigtableDataClient:
         client = self._make_client(project="project-id", pool_size=pool_size)
         tasks = list(client._channel_refresh_tasks)
         with mock.patch.object(
-            CrossSync._Sync_Impl, "wait", mock.Mock()
+            CrossSync._Sync_Impl, "wait", CrossSync._Sync_Impl.Mock()
         ) as wait_for_mock:
             client.close(timeout=expected_timeout)
             wait_for_mock.assert_called_once()
@@ -935,7 +937,7 @@ class TestBigtableDataClient:
         client.close()
 
     def test_context_manager(self):
-        close_mock = mock.Mock()
+        close_mock = CrossSync._Sync_Impl.Mock()
         true_close = None
         with self._make_client(project="project-id") as client:
             true_close = client.close()
@@ -1168,7 +1170,9 @@ class TestTable:
     def test_call_metadata(self, include_app_profile, fn_name, fn_args, gapic_fn):
         """check that all requests attach proper metadata headers"""
         profile = "profile" if include_app_profile else None
-        with mock.patch.object(BigtableClient, gapic_fn, mock.Mock()) as gapic_mock:
+        with mock.patch.object(
+            BigtableClient, gapic_fn, CrossSync._Sync_Impl.Mock()
+        ) as gapic_mock:
             gapic_mock.side_effect = RuntimeError("stop early")
             with self._make_client() as client:
                 table = Table(client, "instance-id", "table-id", profile)
@@ -1268,9 +1272,6 @@ class TestReadRows:
                 return self
 
             def __anext__(self):
-                return self.__next__()
-
-            def __next__(self):
                 self.idx += 1
                 if len(self.chunk_list) > self.idx:
                     if sleep_time:
@@ -1281,6 +1282,9 @@ class TestReadRows:
                     else:
                         return ReadRowsResponse(chunks=[chunk])
                 raise CrossSync._Sync_Impl.StopIteration
+
+            def __next__(self):
+                return self.__anext__()
 
             def cancel(self):
                 pass
@@ -1861,7 +1865,9 @@ class TestSampleRowKeys:
         with self._make_client() as client:
             with client.get_table("instance", "table") as table:
                 with mock.patch.object(
-                    table.client._gapic_client, "sample_row_keys", mock.Mock()
+                    table.client._gapic_client,
+                    "sample_row_keys",
+                    CrossSync._Sync_Impl.Mock(),
                 ) as sample_row_keys:
                     sample_row_keys.return_value = self._make_gapic_stream(samples)
                     result = table.sample_row_keys()
@@ -1895,7 +1901,9 @@ class TestSampleRowKeys:
                 default_attempt_timeout=expected_timeout,
             ) as table:
                 with mock.patch.object(
-                    table.client._gapic_client, "sample_row_keys", mock.Mock()
+                    table.client._gapic_client,
+                    "sample_row_keys",
+                    CrossSync._Sync_Impl.Mock(),
                 ) as sample_row_keys:
                     sample_row_keys.return_value = self._make_gapic_stream([])
                     result = table.sample_row_keys()
@@ -1915,7 +1923,9 @@ class TestSampleRowKeys:
                 instance, table_id, app_profile_id=expected_profile
             ) as table:
                 with mock.patch.object(
-                    table.client._gapic_client, "sample_row_keys", mock.Mock()
+                    table.client._gapic_client,
+                    "sample_row_keys",
+                    CrossSync._Sync_Impl.Mock(),
                 ) as sample_row_keys:
                     sample_row_keys.return_value = self._make_gapic_stream([])
                     table.sample_row_keys(attempt_timeout=expected_timeout)
@@ -1940,7 +1950,9 @@ class TestSampleRowKeys:
         with self._make_client() as client:
             with client.get_table("instance", "table") as table:
                 with mock.patch.object(
-                    table.client._gapic_client, "sample_row_keys", mock.Mock()
+                    table.client._gapic_client,
+                    "sample_row_keys",
+                    CrossSync._Sync_Impl.Mock(),
                 ) as sample_row_keys:
                     sample_row_keys.side_effect = retryable_exception("mock")
                     with pytest.raises(DeadlineExceeded) as e:
@@ -1966,7 +1978,9 @@ class TestSampleRowKeys:
         with self._make_client() as client:
             with client.get_table("instance", "table") as table:
                 with mock.patch.object(
-                    table.client._gapic_client, "sample_row_keys", mock.Mock()
+                    table.client._gapic_client,
+                    "sample_row_keys",
+                    CrossSync._Sync_Impl.Mock(),
                 ) as sample_row_keys:
                     sample_row_keys.side_effect = non_retryable_exception("mock")
                     with pytest.raises(non_retryable_exception):
@@ -2100,7 +2114,7 @@ class TestMutateRow:
         with self._make_client() as client:
             with client.get_table("i", "t", app_profile_id=profile) as table:
                 with mock.patch.object(
-                    client._gapic_client, "mutate_row", AsyncMock()
+                    client._gapic_client, "mutate_row", CrossSync._Sync_Impl.Mock()
                 ) as read_rows:
                     table.mutate_row("rk", mock.Mock())
                 kwargs = read_rows.call_args_list[0].kwargs
