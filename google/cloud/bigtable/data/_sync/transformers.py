@@ -79,30 +79,9 @@ class AsyncToSync(ast.NodeTransformer):
 
     def visit_ListComp(self, node):
         # replace [x async for ...] with [x for ...]
-        new_generators = []
         for generator in node.generators:
-            if generator.is_async:
-                new_generators.append(
-                    ast.copy_location(
-                        ast.comprehension(
-                            self.visit(generator.target),
-                            self.visit(generator.iter),
-                            [self.visit(i) for i in generator.ifs],
-                            False,
-                        ),
-                        generator,
-                    )
-                )
-            else:
-                new_generators.append(generator)
-        node.generators = new_generators
-        return ast.copy_location(
-            ast.ListComp(
-                self.visit(node.elt),
-                [self.visit(gen) for gen in node.generators],
-            ),
-            node,
-        )
+            generator.is_async = False
+        return self.generic_visit(node)
 
 class HandleCrossSyncDecorators(ast.NodeTransformer):
 
