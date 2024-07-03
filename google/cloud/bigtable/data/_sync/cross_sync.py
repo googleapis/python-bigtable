@@ -47,7 +47,7 @@ class CrossSync:
     generated_replacements: dict[type, str] = {}
 
     @staticmethod
-    def rename_sync(*args, **kwargs):
+    def convert(*, sync_name: str|None=None, replace_symbols: dict[str, str]|None=None):
         def decorator(func):
             return func
 

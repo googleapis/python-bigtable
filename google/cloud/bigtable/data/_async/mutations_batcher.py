@@ -441,12 +441,12 @@ class MutationsBatcherAsync:
                 entry_count=entry_count,
             )
 
-    @CrossSync.rename_sync("__enter__")
+    @CrossSync.convert(sync_name="__enter__")
     async def __aenter__(self):
         """Allow use of context manager API"""
         return self
 
-    @CrossSync.rename_sync("__exit__")
+    @CrossSync.convert(sync_name="__exit__")
     async def __aexit__(self, exc_type, exc, tb):
         """
         Allow use of context manager API.

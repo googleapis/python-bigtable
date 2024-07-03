@@ -113,8 +113,6 @@ if TYPE_CHECKING:
 @CrossSync.sync_output(
     "google.cloud.bigtable.data._sync.client.BigtableDataClient",
     replace_symbols={
-        "__aenter__": "__enter__",
-        "__aexit__": "__exit__",
         "TableAsync": "Table",
         "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
         "BigtableAsyncClient": "BigtableClient",
@@ -478,12 +476,12 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
-    @CrossSync.rename_sync("__enter__")
+    @CrossSync.convert(sync_name="__enter__")
     async def __aenter__(self):
         self._start_background_channel_refresh()
         return self
 
-    @CrossSync.rename_sync("__exit__")
+    @CrossSync.convert(sync_name="__exit__", replace_symbols={"__aexit__": "__exit__"})
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
@@ -1298,7 +1296,7 @@ class TableAsync:
             self._register_instance_future.cancel()
         await self.client._remove_instance_registration(self.instance_id, self)
 
-    @CrossSync.rename_sync("__enter__")
+    @CrossSync.convert(sync_name="__enter__")
     async def __aenter__(self):
         """
         Implement async context manager protocol
@@ -1310,7 +1308,7 @@ class TableAsync:
             await self._register_instance_future
         return self
 
-    @CrossSync.rename_sync("__exit__")
+    @CrossSync.convert(sync_name="__exit__")
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
         Implement async context manager protocol

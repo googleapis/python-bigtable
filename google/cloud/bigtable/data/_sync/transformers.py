@@ -96,8 +96,13 @@ class HandleCrossSyncDecorators(ast.NodeTransformer):
             for decorator in found_list:
                 if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute) and isinstance(decorator.func.value, ast.Name) and "CrossSync" in decorator.func.value.id:
                     decorator_type = decorator.func.attr
-                    if decorator_type == "rename_sync":
-                        node.name = decorator.args[0].value
+                    if decorator_type == "convert":
+                        for subcommand in decorator.keywords:
+                            if subcommand.arg == "sync_name":
+                                node.name = subcommand.value.s
+                            if subcommand.arg == "replace_symbols":
+                                replacements = {subcommand.value.keys[i].s: subcommand.value.values[i].s for i in range(len(subcommand.value.keys))}
+                                node = SymbolReplacer(replacements).visit(node)
                 else:
                     # add non-crosssync decorators back
                     node.decorator_list.append(decorator)
