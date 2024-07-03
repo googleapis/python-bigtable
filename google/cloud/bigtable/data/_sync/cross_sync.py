@@ -300,7 +300,7 @@ from google.cloud.bigtable.data._sync import transformers
 @dataclass
 class CrossSyncArtifact:
     file_path: str
-    imports: list[ast.Import | ast.ImportFrom] = field(default_factory=list)
+    imports: list[ast.Import | ast.ImportFrom | ast.If | ast.Try] = field(default_factory=list)
     converted_classes: dict[str, ast.ClassDef] = field(default_factory=dict)
     mypy_ignores: list[str] = field(default_factory=list)
     _instances: ClassVar[dict[str, CrossSyncArtifact]] = {}
@@ -366,7 +366,7 @@ class CrossSyncArtifact:
             with open(inspect.getfile(cls)) as f:
                 full_ast = ast.parse(f.read())
                 for node in full_ast.body:
-                    if isinstance(node, (ast.Import, ast.ImportFrom, ast.If)):
+                    if isinstance(node, (ast.Import, ast.ImportFrom, ast.If, ast.Try)):
                         self.imports.append(crosssync_converter.visit(node))
         # add mypy ignore if required
         if cls.cross_sync_mypy_ignore:

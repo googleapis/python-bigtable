@@ -16,6 +16,11 @@
 import pytest
 import asyncio
 import time
+import google.api_core.exceptions as core_exceptions
+import google.api_core.retry
+from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
+from google.cloud.bigtable.data import TABLE_DEFAULT
+from google.cloud.bigtable.data import TableAsync
 
 try:
     from unittest import mock
@@ -23,11 +28,6 @@ try:
 except ImportError:
     import mock
     from mock import AsyncMock
-import google.api_core.exceptions as core_exceptions
-import google.api_core.retry
-from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
-from google.cloud.bigtable.data import TABLE_DEFAULT
-from google.cloud.bigtable.data import TableAsync
 
 
 class TestMutationsBatcher:

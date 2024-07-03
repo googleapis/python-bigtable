@@ -17,14 +17,6 @@ from __future__ import annotations
 import grpc
 import asyncio
 import re
-
-try:
-    from unittest import mock
-    from unittest.mock import AsyncMock
-except ImportError:
-    import mock
-    from mock import AsyncMock
-
 import sys
 import pytest
 from google.cloud.bigtable.data import mutations
@@ -39,6 +31,12 @@ from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+try:
+    from unittest import mock
+    from unittest.mock import AsyncMock
+except ImportError:
+    import mock
+    from mock import AsyncMock
 if CrossSync._Sync_Impl.is_async:
     pass
 else:
