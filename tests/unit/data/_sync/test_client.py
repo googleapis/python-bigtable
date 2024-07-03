@@ -1027,7 +1027,9 @@ class TestTable:
         expected_instance_id = "instance-id"
         client = self._make_client()
         assert not client._active_instances
-        table = Table(client, expected_instance_id, expected_table_id)
+        table = self._get_target_class()(
+            client, expected_instance_id, expected_table_id
+        )
         CrossSync._Sync_Impl.yield_to_event_loop()
         assert table.table_id == expected_table_id
         assert table.instance_id == expected_instance_id
@@ -1057,10 +1059,10 @@ class TestTable:
         ]
         for operation_timeout, attempt_timeout in timeout_pairs:
             with pytest.raises(ValueError) as e:
-                Table(client, "", "", **{attempt_timeout: -1})
+                self._get_target_class()(client, "", "", **{attempt_timeout: -1})
             assert "attempt_timeout must be greater than 0" in str(e.value)
             with pytest.raises(ValueError) as e:
-                Table(client, "", "", **{operation_timeout: -1})
+                self._get_target_class()(client, "", "", **{operation_timeout: -1})
             assert "operation_timeout must be greater than 0" in str(e.value)
         client.close()
 
@@ -1175,7 +1177,9 @@ class TestTable:
         ) as gapic_mock:
             gapic_mock.side_effect = RuntimeError("stop early")
             with self._make_client() as client:
-                table = Table(client, "instance-id", "table-id", profile)
+                table = self._get_target_class()(
+                    client, "instance-id", "table-id", profile
+                )
                 try:
                     test_fn = table.__getattribute__(fn_name)
                     maybe_stream = test_fn(*fn_args)
