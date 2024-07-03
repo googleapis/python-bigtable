@@ -33,7 +33,6 @@ if TYPE_CHECKING:
         pass
     else:
         from google.cloud.bigtable.data._sync.client import Table
-        from typing import Iterable
 if not CrossSync._Sync_Impl.is_async:
     from google.cloud.bigtable.data._async._read_rows import _ResetRow
 
@@ -95,7 +94,7 @@ class _ReadRowsOperation:
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
 
-    def start_operation(self) -> Iterable[Row]:
+    def start_operation(self) -> CrossSync._Sync_Impl.Iterable[Row]:
         """Start the read_rows operation, retrying on retryable errors.
 
         Yields:
@@ -108,7 +107,7 @@ class _ReadRowsOperation:
             exception_factory=_helpers._retry_exception_factory,
         )
 
-    def _read_rows_attempt(self) -> Iterable[Row]:
+    def _read_rows_attempt(self) -> CrossSync._Sync_Impl.Iterable[Row]:
         """Attempt a single read_rows rpc call.
         This function is intended to be wrapped by retry logic,
         which will call this function until it succeeds or
@@ -138,8 +137,11 @@ class _ReadRowsOperation:
         return self.merge_rows(chunked_stream)
 
     def chunk_stream(
-        self, stream: CrossSync._Sync_Impl.Awaitable[Iterable[ReadRowsResponsePB]]
-    ) -> Iterable[ReadRowsResponsePB.CellChunk]:
+        self,
+        stream: CrossSync._Sync_Impl.Awaitable[
+            CrossSync._Sync_Impl.Iterable[ReadRowsResponsePB]
+        ],
+    ) -> CrossSync._Sync_Impl.Iterable[ReadRowsResponsePB.CellChunk]:
         """process chunks out of raw read_rows stream
 
         Args:
@@ -179,8 +181,8 @@ class _ReadRowsOperation:
 
     @staticmethod
     def merge_rows(
-        chunks: Iterable[ReadRowsResponsePB.CellChunk] | None,
-    ) -> Iterable[Row]:
+        chunks: CrossSync._Sync_Impl.Iterable[ReadRowsResponsePB.CellChunk] | None,
+    ) -> CrossSync._Sync_Impl.Iterable[Row]:
         """Merge chunks into rows
 
         Args:
@@ -193,7 +195,7 @@ class _ReadRowsOperation:
         while True:
             try:
                 c = it.__next__()
-            except StopIteration:
+            except CrossSync._Sync_Impl.StopIteration:
                 return
             row_key = c.row_key
             if not row_key:
@@ -273,7 +275,7 @@ class _ReadRowsOperation:
                 ):
                     raise InvalidChunk("reset row with data")
                 continue
-            except StopIteration:
+            except CrossSync._Sync_Impl.StopIteration:
                 raise InvalidChunk("premature end of stream")
 
     @staticmethod

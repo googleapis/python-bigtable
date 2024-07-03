@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    AsyncIterable,
     Awaitable,
     Sequence,
 )
@@ -44,7 +43,6 @@ if TYPE_CHECKING:
         from google.cloud.bigtable.data._async.client import TableAsync
     else:
         from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
-        from typing import Iterable  # noqa: F401
 
 
 class _ResetRow(Exception):
@@ -56,13 +54,6 @@ if not CrossSync.is_async:
 
 @CrossSync.sync_output(
     "google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
-    replace_symbols={
-        "AsyncIterable": "Iterable",
-        "StopAsyncIteration": "StopIteration",
-        "TableAsync": "Table",
-        "__aiter__": "__iter__",
-        "__anext__": "__next__",
-    },
 )
 class _ReadRowsOperationAsync:
     """
@@ -95,6 +86,7 @@ class _ReadRowsOperationAsync:
         "_remaining_count",
     )
 
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     def __init__(
         self,
         query: ReadRowsQuery,
@@ -124,7 +116,7 @@ class _ReadRowsOperationAsync:
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
 
-    def start_operation(self) -> AsyncIterable[Row]:
+    def start_operation(self) -> CrossSync.Iterable[Row]:
         """
         Start the read_rows operation, retrying on retryable errors.
 
@@ -139,7 +131,7 @@ class _ReadRowsOperationAsync:
             exception_factory=_helpers._retry_exception_factory,
         )
 
-    def _read_rows_attempt(self) -> AsyncIterable[Row]:
+    def _read_rows_attempt(self) -> CrossSync.Iterable[Row]:
         """
         Attempt a single read_rows rpc call.
         This function is intended to be wrapped by retry logic,
@@ -176,8 +168,8 @@ class _ReadRowsOperationAsync:
         return self.merge_rows(chunked_stream)
 
     async def chunk_stream(
-        self, stream: CrossSync.Awaitable[AsyncIterable[ReadRowsResponsePB]]
-    ) -> AsyncIterable[ReadRowsResponsePB.CellChunk]:
+        self, stream: CrossSync.Awaitable[CrossSync.Iterable[ReadRowsResponsePB]]
+    ) -> CrossSync.Iterable[ReadRowsResponsePB.CellChunk]:
         """
         process chunks out of raw read_rows stream
 
@@ -227,9 +219,10 @@ class _ReadRowsOperationAsync:
                     current_key = None
 
     @staticmethod
+    @CrossSync.convert(replace_symbols={"__aiter__": "__iter__", "__anext__": "__next__"})
     async def merge_rows(
-        chunks: AsyncIterable[ReadRowsResponsePB.CellChunk] | None,
-    ) -> AsyncIterable[Row]:
+        chunks: CrossSync.Iterable[ReadRowsResponsePB.CellChunk] | None,
+    ) -> CrossSync.Iterable[Row]:
         """
         Merge chunks into rows
 
@@ -245,7 +238,7 @@ class _ReadRowsOperationAsync:
         while True:
             try:
                 c = await it.__anext__()
-            except StopAsyncIteration:
+            except CrossSync.StopIteration:
                 # stream complete
                 return
             row_key = c.row_key
@@ -338,7 +331,7 @@ class _ReadRowsOperationAsync:
                 ):
                     raise InvalidChunk("reset row with data")
                 continue
-            except StopAsyncIteration:
+            except CrossSync.StopIteration:
                 raise InvalidChunk("premature end of stream")
 
     @staticmethod

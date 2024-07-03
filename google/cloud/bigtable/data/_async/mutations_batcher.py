@@ -27,13 +27,17 @@ from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import _MB_SIZE
 
-from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data.mutations import (
     _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
 )
 from google.cloud.bigtable.data.mutations import Mutation
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+
+if CrossSync.is_async:
+    from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
+else:
+    from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
 
 
 if TYPE_CHECKING:
@@ -43,9 +47,6 @@ if TYPE_CHECKING:
         from google.cloud.bigtable.data._async.client import TableAsync
     else:
         from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
-        from google.cloud.bigtable.data._sync._mutate_rows import (  # noqa: F401
-            _MutateRowsOperation,
-        )
 
 
 @CrossSync.sync_output(
@@ -179,11 +180,6 @@ class _FlowControlAsync:
 
 @CrossSync.sync_output(
     "google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher",
-    replace_symbols={
-        "TableAsync": "Table",
-        "_FlowControlAsync": "_FlowControl",
-        "_MutateRowsOperationAsync": "_MutateRowsOperation",
-    },
     mypy_ignore=["unreachable"],
 )
 class MutationsBatcherAsync:
@@ -217,6 +213,7 @@ class MutationsBatcherAsync:
             Defaults to the Table's default_mutate_rows_retryable_errors.
     """
 
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table", "_FlowControlAsync": "_FlowControl"})
     def __init__(
         self,
         table: TableAsync,
@@ -361,6 +358,7 @@ class MutationsBatcherAsync:
         self._entries_processed_since_last_raise += len(new_entries)
         self._add_exceptions(found_exceptions)
 
+    @CrossSync.convert(replace_symbols={"_MutateRowsOperationAsync": "_MutateRowsOperation"})
     async def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]
     ) -> list[FailedMutationEntryError]:

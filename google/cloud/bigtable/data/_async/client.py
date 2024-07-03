@@ -112,14 +112,13 @@ if TYPE_CHECKING:
 
 @CrossSync.sync_output(
     "google.cloud.bigtable.data._sync.client.BigtableDataClient",
-    replace_symbols={
-        "TableAsync": "Table",
-        "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
-        "BigtableAsyncClient": "BigtableClient",
-        "AsyncPooledChannel": "PooledChannel",
-    },
 )
 class BigtableDataClientAsync(ClientWithProject):
+    @CrossSync.convert(replace_symbols={
+        "BigtableAsyncClient": "BigtableClient", 
+        "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
+        "AsyncPooledChannel": "PooledChannel",
+    })
     def __init__(
         self,
         *,
@@ -375,6 +374,7 @@ class BigtableDataClientAsync(ClientWithProject):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.monotonic() - start_timestamp)
 
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     async def _register_instance(self, instance_id: str, owner: TableAsync) -> None:
         """
         Registers an instance with the client, and warms the channel pool
@@ -405,6 +405,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 # refresh tasks aren't active. start them as background tasks
                 self._start_background_channel_refresh()
 
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     async def _remove_instance_registration(
         self, instance_id: str, owner: TableAsync
     ) -> bool:
@@ -435,6 +436,7 @@ class BigtableDataClientAsync(ClientWithProject):
         except KeyError:
             return False
 
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> TableAsync:
         """
         Returns a table instance for making data API requests. All arguments are passed
@@ -487,16 +489,7 @@ class BigtableDataClientAsync(ClientWithProject):
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
-@CrossSync.sync_output(
-    "google.cloud.bigtable.data._sync.client.Table",
-    replace_symbols={
-        "AsyncIterable": "Iterable",
-        "MutationsBatcherAsync": "MutationsBatcher",
-        "BigtableDataClientAsync": "BigtableDataClient",
-        "_ReadRowsOperationAsync": "_ReadRowsOperation",
-        "_MutateRowsOperationAsync": "_MutateRowsOperation",
-    },
-)
+@CrossSync.sync_output("google.cloud.bigtable.data._sync.client.Table")
 class TableAsync:
     """
     Main Data API surface
@@ -505,6 +498,7 @@ class TableAsync:
     each call
     """
 
+    @CrossSync.convert(replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"})
     def __init__(
         self,
         client: BigtableDataClientAsync,
@@ -625,6 +619,7 @@ class TableAsync:
                 f"{self.__class__.__name__} must be created within an async event loop context."
             ) from e
 
+    @CrossSync.convert(replace_symbols={"AsyncIterable": "Iterable", "_ReadRowsOperationAsync": "_ReadRowsOperation"})
     async def read_rows_stream(
         self,
         query: ReadRowsQuery,
@@ -990,6 +985,7 @@ class TableAsync:
             exception_factory=_helpers._retry_exception_factory,
         )
 
+    @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
     def mutations_batcher(
         self,
         *,
@@ -1117,6 +1113,7 @@ class TableAsync:
             exception_factory=_helpers._retry_exception_factory,
         )
 
+    @CrossSync.convert(replace_symbols={"_MutateRowsOperationAsync": "_MutateRowsOperation"})
     async def bulk_mutate_rows(
         self,
         mutation_entries: list[RowMutationEntry],

@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import TypeVar, Any, Awaitable, Callable, Coroutine, Sequence, Union, TYPE_CHECKING
+from typing import TypeVar, Any, Awaitable, Callable, Coroutine, Sequence, Union, AsyncIterable, AsyncIterator, AsyncGenerator, Iterable, Iterator, Generator, TYPE_CHECKING
 
 import asyncio
 import sys
@@ -43,7 +43,12 @@ class CrossSync:
     Task: TypeAlias = asyncio.Task
     Event: TypeAlias = asyncio.Event
     Semaphore: TypeAlias = asyncio.Semaphore
+    StopIteration: TypeAlias = StopAsyncIteration
+    # type annotations
     Awaitable: TypeAlias = Awaitable
+    Iterable: TypeAlias = AsyncIterable
+    Iterator: TypeAlias = AsyncIterator
+    Generator: TypeAlias = AsyncGenerator
 
     generated_replacements: dict[type, str] = {}
 
@@ -202,7 +207,12 @@ class CrossSync:
         Task: TypeAlias = concurrent.futures.Future
         Event: TypeAlias = threading.Event
         Semaphore: TypeAlias = threading.Semaphore
+        StopIteration: TypeAlias = StopAsyncIteration
+        # type annotations
         Awaitable: TypeAlias = Union[T]
+        Iterable: TypeAlias = Iterable
+        Iterator: TypeAlias = Iterator
+        Generator: TypeAlias = Generator
 
         generated_replacements: dict[type, str] = {}
 

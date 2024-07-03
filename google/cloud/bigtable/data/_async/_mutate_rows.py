@@ -63,10 +63,6 @@ if not CrossSync.is_async:
 
 @CrossSync.sync_output(
     "google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
-    replace_symbols={
-        "BigtableAsyncClient": "BigtableClient",
-        "TableAsync": "Table",
-    },
 )
 class _MutateRowsOperationAsync:
     """
@@ -87,6 +83,10 @@ class _MutateRowsOperationAsync:
             If not specified, the request will run until operation_timeout is reached.
     """
 
+    @CrossSync.convert(replace_symbols={
+        "BigtableAsyncClient": "BigtableClient",
+        "TableAsync": "Table",
+    })
     def __init__(
         self,
         gapic_client: "BigtableAsyncClient",
