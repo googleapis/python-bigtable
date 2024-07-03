@@ -20,6 +20,25 @@ class SymbolReplacer(ast.NodeTransformer):
             node,
         )
 
+    def update_docstring(self, docstring):
+        """
+        Update docstring to replace any key words in the replacements dict
+        """
+        if not docstring:
+            return docstring
+        for key_word, replacement in self.replacements.items():
+            docstring = docstring.replace(f" {key_word} ", f" {replacement} ")
+        return docstring
+
+    def visit_FunctionDef(self, node):
+        # replace docstring
+        docstring = self.update_docstring(ast.get_docstring(node))
+        if isinstance(node.body[0], ast.Expr) and isinstance(
+            node.body[0].value, ast.Str
+        ):
+            node.body[0].value.s = docstring
+        return self.generic_visit(node)
+
 
 class AsyncToSync(ast.NodeTransformer):
 
