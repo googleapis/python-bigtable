@@ -38,6 +38,7 @@ from google.api_core.retry import exponential_sleep_generator
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+
 if TYPE_CHECKING:
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.client import TableAsync
@@ -50,6 +51,8 @@ class _ResetRow(Exception):
     def __init__(self, chunk):
         self.chunk = chunk
 
+if not CrossSync.is_async:
+    from google.cloud.bigtable.data._async._read_rows import _ResetRow
 
 @CrossSync.sync_output(
     "google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
@@ -173,7 +176,7 @@ class _ReadRowsOperationAsync:
         return self.merge_rows(chunked_stream)
 
     async def chunk_stream(
-        self, stream: Awaitable[AsyncIterable[ReadRowsResponsePB]]
+        self, stream: CrossSync.Awaitable[AsyncIterable[ReadRowsResponsePB]]
     ) -> AsyncIterable[ReadRowsResponsePB.CellChunk]:
         """
         process chunks out of raw read_rows stream
