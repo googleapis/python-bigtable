@@ -56,7 +56,6 @@ class _ResetRow(Exception):
     replace_symbols={
         "AsyncIterable": "Iterable",
         "StopAsyncIteration": "StopIteration",
-        "Awaitable": None,
         "TableAsync": "Table",
         "__aiter__": "__iter__",
         "__anext__": "__next__",
