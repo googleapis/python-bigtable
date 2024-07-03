@@ -92,8 +92,15 @@ class HandleCrossSyncDecorators(ast.NodeTransformer):
 
     def visit_FunctionDef(self, node):
         if hasattr(node, "decorator_list"):
-            revised_list = [d for d in node.decorator_list if "CrossSync" not in ast.dump(d)]
-            node.decorator_list = revised_list
+            found_list, node.decorator_list = node.decorator_list, []
+            for decorator in found_list:
+                if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute) and isinstance(decorator.func.value, ast.Name) and "CrossSync" in decorator.func.value.id:
+                    decorator_type = decorator.func.attr
+                    if decorator_type == "rename_sync":
+                        node.name = decorator.args[0].value
+                else:
+                    # add non-crosssync decorators back
+                    node.decorator_list.append(decorator)
         return node
 
 

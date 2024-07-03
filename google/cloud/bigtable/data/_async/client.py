@@ -478,10 +478,12 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
+    @CrossSync.rename_sync("__enter__")
     async def __aenter__(self):
         self._start_background_channel_refresh()
         return self
 
+    @CrossSync.rename_sync("__exit__")
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
