@@ -1517,7 +1517,13 @@ class TestReadRowsAsync:
             def __aiter__(self):
                 return self
 
+            def __iter__(self):
+                return self
+
             async def __anext__(self):
+                return self.__next__()
+
+            def __next__(self):
                 self.idx += 1
                 if len(self.chunk_list) > self.idx:
                     if sleep_time:
@@ -1527,7 +1533,7 @@ class TestReadRowsAsync:
                         raise chunk
                     else:
                         return ReadRowsResponse(chunks=[chunk])
-                raise StopAsyncIteration
+                raise CrossSync.StopIteration
 
             def cancel(self):
                 pass
