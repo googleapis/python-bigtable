@@ -75,8 +75,12 @@ class CrossSync:
         # return the async class unchanged
         def decorator(async_cls):
             return async_cls
-
         return decorator
+
+    @staticmethod
+    def pytest(func):
+        import pytest
+        return pytest.mark.asyncio(func)
 
     @staticmethod
     async def gather_partials(

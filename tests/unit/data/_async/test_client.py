@@ -104,7 +104,7 @@ class TestBigtableDataClientAsync:
         with mock.patch.dict(os.environ, env_mask):
             return cls._get_target_class()(*args, **kwargs)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_ctor(self):
         expected_project = "project-id"
         expected_pool_size = 11
@@ -123,7 +123,7 @@ class TestBigtableDataClientAsync:
         assert client.transport._credentials == expected_credentials
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_ctor_super_inits(self):
         from google.cloud.client import ClientWithProject
         from google.api_core import client_options as client_options_lib
@@ -165,7 +165,7 @@ class TestBigtableDataClientAsync:
                 assert kwargs["credentials"] == credentials
                 assert kwargs["client_options"] == options_parsed
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_ctor_dict_options(self):
         from google.api_core.client_options import ClientOptions
 
@@ -189,7 +189,7 @@ class TestBigtableDataClientAsync:
             start_background_refresh.assert_called_once()
             await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_veneer_grpc_headers(self):
         client_component = "data-async" if CrossSync.is_async else "data"
         VENEER_HEADER_REGEX = re.compile(
@@ -220,7 +220,7 @@ class TestBigtableDataClientAsync:
                 ), f"'{wrapped_user_agent_sorted}' does not match {VENEER_HEADER_REGEX}"
             await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_channel_pool_creation(self):
         pool_size = 14
         with mock.patch.object(
@@ -236,7 +236,7 @@ class TestBigtableDataClientAsync:
         assert len(pool_list) == len(pool_set)
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_channel_pool_rotation(self):
         pool_size = 7
 
@@ -260,7 +260,7 @@ class TestBigtableDataClientAsync:
                     unary_unary.reset_mock()
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_channel_pool_replace(self):
         import time
 
@@ -300,7 +300,7 @@ class TestBigtableDataClientAsync:
         with pytest.raises(RuntimeError):
             client._start_background_channel_refresh()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__start_background_channel_refresh_tasks_exist(self):
         # if tasks exist, should do nothing
         client = self._make_client(project="project-id", use_emulator=False)
@@ -310,7 +310,7 @@ class TestBigtableDataClientAsync:
             create_task.assert_not_called()
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize("pool_size", [1, 3, 7])
     async def test__start_background_channel_refresh(self, pool_size):
         import concurrent.futures
@@ -337,7 +337,7 @@ class TestBigtableDataClientAsync:
         await client.close()
 
     @CrossSync.drop_method
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.skipif(
         sys.version_info < (3, 8), reason="Task.name requires python3.8 or higher"
     )
@@ -353,7 +353,7 @@ class TestBigtableDataClientAsync:
             assert "BigtableDataClientAsync channel refresh " in name
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__ping_and_warm_instances(self):
         """
         test ping and warm with mocked asyncio.gather
@@ -411,7 +411,7 @@ class TestBigtableDataClientAsync:
                     == f"name={expected_instance}&app_profile_id={expected_app_profile}"
                 )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__ping_and_warm_single_instance(self):
         """
         should be able to call ping and warm with single instance
@@ -447,7 +447,7 @@ class TestBigtableDataClientAsync:
                 metadata[0][1] == "name=test-instance&app_profile_id=test-app-profile"
             )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "refresh_interval, wait_time, expected_sleep",
         [
@@ -483,7 +483,7 @@ class TestBigtableDataClientAsync:
                 ), f"refresh_interval: {refresh_interval}, wait_time: {wait_time}, expected_sleep: {expected_sleep}"
                 await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__manage_channel_ping_and_warm(self):
         """
         _manage channel should call ping and warm internally
@@ -530,7 +530,7 @@ class TestBigtableDataClientAsync:
                 pass
             ping_and_warm.assert_called_once_with(new_channel)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "refresh_interval, num_cycles, expected_sleep",
         [
@@ -580,7 +580,7 @@ class TestBigtableDataClientAsync:
                     ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__manage_channel_random(self):
         import random
         import threading
@@ -611,7 +611,7 @@ class TestBigtableDataClientAsync:
                     assert found_min == min_val
                     assert found_max == max_val
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize("num_cycles", [0, 1, 10, 100])
     async def test__manage_channel_refresh(self, num_cycles):
         # make sure that channels are properly refreshed
@@ -663,7 +663,7 @@ class TestBigtableDataClientAsync:
                         assert kwargs["new_channel"] == new_channel
                 await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__register_instance(self):
         """
         test instance registration
@@ -734,7 +734,7 @@ class TestBigtableDataClientAsync:
             ]
         )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "insert_instances,expected_active,expected_owner_keys",
         [
@@ -793,7 +793,7 @@ class TestBigtableDataClientAsync:
                 ]
             )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__remove_instance_registration(self):
         client = self._make_client(project="project-id")
         table = mock.Mock()
@@ -824,7 +824,7 @@ class TestBigtableDataClientAsync:
         assert len(client._active_instances) == 1
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__multiple_table_registration(self):
         """
         registering with multiple tables with the same key should
@@ -881,7 +881,7 @@ class TestBigtableDataClientAsync:
             assert instance_1_key not in client._active_instances
             assert len(client._instance_owners[instance_1_key]) == 0
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__multiple_instance_registration(self):
         """
         registering with multiple instance keys should update the key
@@ -928,7 +928,7 @@ class TestBigtableDataClientAsync:
             assert len(client._instance_owners[instance_1_key]) == 0
             assert len(client._instance_owners[instance_2_key]) == 0
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_get_table(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
@@ -963,7 +963,7 @@ class TestBigtableDataClientAsync:
         assert client._instance_owners[instance_key] == {id(table)}
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_get_table_arg_passthrough(self):
         """
         All arguments passed in get_table should be sent to constructor
@@ -996,7 +996,7 @@ class TestBigtableDataClientAsync:
                     **expected_kwargs,
                 )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_get_table_context_manager(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
@@ -1035,7 +1035,7 @@ class TestBigtableDataClientAsync:
                     assert client._instance_owners[instance_key] == {id(table)}
             assert close_mock.call_count == 1
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_multiple_pool_sizes(self):
         # should be able to create multiple clients with different pool sizes without issue
         pool_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256]
@@ -1052,7 +1052,7 @@ class TestBigtableDataClientAsync:
             await client.close()
             await client_duplicate.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_close(self):
         pool_size = 7
         client = self._make_client(
@@ -1073,7 +1073,7 @@ class TestBigtableDataClientAsync:
             assert task.done()
         assert client._channel_refresh_tasks == []
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_close_with_timeout(self):
         pool_size = 7
         expected_timeout = 19
@@ -1088,7 +1088,7 @@ class TestBigtableDataClientAsync:
         client._channel_refresh_tasks = tasks
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_context_manager(self):
         # context manager should close the client cleanly
         close_mock = AsyncMock()
@@ -1134,7 +1134,7 @@ class TestTableAsync:
     def _get_target_class():
         return TableAsync
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_table_ctor(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
@@ -1197,7 +1197,7 @@ class TestTableAsync:
         assert table._register_instance_future.exception() is None
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_table_ctor_defaults(self):
         """
         should provide default timeout values and app_profile_id
@@ -1227,7 +1227,7 @@ class TestTableAsync:
         assert table.default_mutate_rows_attempt_timeout == 60
         await client.close()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_table_ctor_invalid_timeout_values(self):
         """
         bad timeout values should raise ValueError
@@ -1266,7 +1266,7 @@ class TestTableAsync:
             TableAsync(client, "instance-id", "table-id")
         assert e.match("TableAsync must be created within an async event loop context.")
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     # iterate over all retryable rpcs
     @pytest.mark.parametrize(
         "fn_name,fn_args,is_stream,extra_retryables",
@@ -1407,7 +1407,7 @@ class TestTableAsync:
         ],
     )
     @pytest.mark.parametrize("include_app_profile", [True, False])
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_call_metadata(self, include_app_profile, fn_name, fn_args, gapic_fn):
         """check that all requests attach proper metadata headers"""
         from google.cloud.bigtable.data import TableAsync
@@ -1537,7 +1537,7 @@ class TestReadRowsAsync:
     async def execute_fn(self, table, *args, **kwargs):
         return await table.read_rows(*args, **kwargs)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows(self):
         query = ReadRowsQuery()
         chunks = [
@@ -1554,7 +1554,7 @@ class TestReadRowsAsync:
             assert results[0].row_key == b"test_1"
             assert results[1].row_key == b"test_2"
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_stream(self):
         query = ReadRowsQuery()
         chunks = [
@@ -1573,7 +1573,7 @@ class TestReadRowsAsync:
             assert results[1].row_key == b"test_2"
 
     @pytest.mark.parametrize("include_app_profile", [True, False])
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_query_matches_request(self, include_app_profile):
         from google.cloud.bigtable.data import RowRange
         from google.cloud.bigtable.data.row_filters import PassAllFilter
@@ -1600,7 +1600,7 @@ class TestReadRowsAsync:
             assert call_request == query_pb
 
     @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_timeout(self, operation_timeout):
         async with self._make_table() as table:
             read_rows = table.client._gapic_client.read_rows
@@ -1625,7 +1625,7 @@ class TestReadRowsAsync:
             (0.05, 0.24, 5),
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_attempt_timeout(
         self, per_request_t, operation_t, expected_num
     ):
@@ -1688,7 +1688,7 @@ class TestReadRowsAsync:
             core_exceptions.ServiceUnavailable,
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_retryable_error(self, exc_type):
         async with self._make_table() as table:
             read_rows = table.client._gapic_client.read_rows
@@ -1719,7 +1719,7 @@ class TestReadRowsAsync:
             InvalidChunk,
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_non_retryable_error(self, exc_type):
         async with self._make_table() as table:
             read_rows = table.client._gapic_client.read_rows
@@ -1733,7 +1733,7 @@ class TestReadRowsAsync:
             except exc_type as e:
                 assert e == expected_error
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_revise_request(self):
         """
         Ensure that _revise_request is called between retries
@@ -1767,7 +1767,7 @@ class TestReadRowsAsync:
                     revised_call = read_rows.call_args_list[1].args[0]
                     assert revised_call.rows == return_val
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_default_timeouts(self):
         """
         Ensure that the default timeouts are set on the read rows operation when not overridden
@@ -1788,7 +1788,7 @@ class TestReadRowsAsync:
                 assert kwargs["operation_timeout"] == operation_timeout
                 assert kwargs["attempt_timeout"] == attempt_timeout
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_default_timeout_override(self):
         """
         When timeouts are passed, they overwrite default values
@@ -1812,7 +1812,7 @@ class TestReadRowsAsync:
                 assert kwargs["operation_timeout"] == operation_timeout
                 assert kwargs["attempt_timeout"] == attempt_timeout
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_row(self):
         """Test reading a single row"""
         async with self._make_client() as client:
@@ -1840,7 +1840,7 @@ class TestReadRowsAsync:
                 assert query.row_ranges == []
                 assert query.limit == 1
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_row_w_filter(self):
         """Test reading a single row with an added filter"""
         async with self._make_client() as client:
@@ -1873,7 +1873,7 @@ class TestReadRowsAsync:
                 assert query.limit == 1
                 assert query.filter == expected_filter
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_row_no_response(self):
         """should return None if row does not exist"""
         async with self._make_client() as client:
@@ -1908,7 +1908,7 @@ class TestReadRowsAsync:
             ([object(), object()], True),
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_row_exists(self, return_value, expected_result):
         """Test checking for row existence"""
         async with self._make_client() as client:
@@ -1953,7 +1953,7 @@ class TestReadRowsShardedAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_sharded_empty_query(self):
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
@@ -1961,7 +1961,7 @@ class TestReadRowsShardedAsync:
                     await table.read_rows_sharded([])
                 assert "empty sharded_query" in str(exc.value)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_sharded_multiple_queries(self):
         """
         Test with multiple queries. Should return results from both
@@ -1987,7 +1987,7 @@ class TestReadRowsShardedAsync:
                     assert result[1].row_key == b"test_2"
 
     @pytest.mark.parametrize("n_queries", [1, 2, 5, 11, 24])
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_sharded_multiple_queries_calls(self, n_queries):
         """
         Each query should trigger a separate read_rows call
@@ -1999,7 +1999,7 @@ class TestReadRowsShardedAsync:
                     await table.read_rows_sharded(query_list)
                     assert read_rows.call_count == n_queries
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_sharded_errors(self):
         """
         Errors should be exposed as ShardedReadRowsExceptionGroups
@@ -2027,7 +2027,7 @@ class TestReadRowsShardedAsync:
                     assert exc.value.exceptions[1].index == 1
                     assert exc.value.exceptions[1].query == query_2
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_sharded_concurrent(self):
         """
         Ensure sharded requests are concurrent
@@ -2051,7 +2051,7 @@ class TestReadRowsShardedAsync:
                     # if run in sequence, we would expect this to take 1 second
                     assert call_time < 0.2
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_sharded_concurrency_limit(self):
         """
         Only 10 queries should be processed concurrently. Others should be queued
@@ -2100,7 +2100,7 @@ class TestReadRowsShardedAsync:
                         idx = i + _CONCURRENCY_LIMIT
                         assert rpc_start_list[idx] - (i * increment_time) < eps
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_sharded_expirary(self):
         """
         If the operation times out before all shards complete, should raise
@@ -2140,7 +2140,7 @@ class TestReadRowsShardedAsync:
                     # should keep successful queries
                     assert len(exc.value.successful_rows) == _CONCURRENCY_LIMIT
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_sharded_negative_batch_timeout(self):
         """
         try to run with batch that starts after operation timeout
@@ -2183,7 +2183,7 @@ class TestSampleRowKeysAsync:
         for value in sample_list:
             yield SampleRowKeysResponse(row_key=value[0], offset_bytes=value[1])
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_sample_row_keys(self):
         """
         Test that method returns the expected key samples
@@ -2208,7 +2208,7 @@ class TestSampleRowKeysAsync:
                     assert result[1] == samples[1]
                     assert result[2] == samples[2]
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_sample_row_keys_bad_timeout(self):
         """
         should raise error if timeout is negative
@@ -2222,7 +2222,7 @@ class TestSampleRowKeysAsync:
                     await table.sample_row_keys(attempt_timeout=-1)
                     assert "attempt_timeout must be greater than 0" in str(e.value)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_sample_row_keys_default_timeout(self):
         """Should fallback to using table default operation_timeout"""
         expected_timeout = 99
@@ -2243,7 +2243,7 @@ class TestSampleRowKeysAsync:
                     assert result == []
                     assert kwargs["retry"] is None
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_sample_row_keys_gapic_params(self):
         """
         make sure arguments are propagated to gapic call as expected
@@ -2277,7 +2277,7 @@ class TestSampleRowKeysAsync:
             core_exceptions.ServiceUnavailable,
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_sample_row_keys_retryable_errors(self, retryable_exception):
         """
         retryable errors should be retried until timeout
@@ -2309,7 +2309,7 @@ class TestSampleRowKeysAsync:
             core_exceptions.Aborted,
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_sample_row_keys_non_retryable_errors(self, non_retryable_exception):
         """
         non-retryable errors should cause a raise
@@ -2332,7 +2332,7 @@ class TestMutateRowAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "mutation_arg",
         [
@@ -2388,7 +2388,7 @@ class TestMutateRowAsync:
             core_exceptions.ServiceUnavailable,
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mutate_row_retryable_errors(self, retryable_exception):
         from google.api_core.exceptions import DeadlineExceeded
         from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
@@ -2416,7 +2416,7 @@ class TestMutateRowAsync:
             core_exceptions.ServiceUnavailable,
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mutate_row_non_idempotent_retryable_errors(
         self, retryable_exception
     ):
@@ -2449,7 +2449,7 @@ class TestMutateRowAsync:
             core_exceptions.Aborted,
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mutate_row_non_retryable_errors(self, non_retryable_exception):
         async with self._make_client(project="project") as client:
             async with client.get_table("instance", "table") as table:
@@ -2470,7 +2470,7 @@ class TestMutateRowAsync:
                         )
 
     @pytest.mark.parametrize("include_app_profile", [True, False])
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mutate_row_metadata(self, include_app_profile):
         """request should attach metadata headers"""
         profile = "profile" if include_app_profile else None
@@ -2494,7 +2494,7 @@ class TestMutateRowAsync:
                     assert "app_profile_id=" not in goog_metadata
 
     @pytest.mark.parametrize("mutations", [[], None])
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mutate_row_no_mutations(self, mutations):
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
@@ -2535,8 +2535,8 @@ class TestBulkMutateRowsAsync:
 
         return generator()
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
+    @CrossSync.pytest
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "mutation_arg",
         [
@@ -2580,7 +2580,7 @@ class TestBulkMutateRowsAsync:
                     assert kwargs["timeout"] == expected_attempt_timeout
                     assert kwargs["retry"] is None
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_bulk_mutate_rows_multiple_entries(self):
         """Test mutations with no errors"""
         async with self._make_client(project="project") as client:
@@ -2604,7 +2604,7 @@ class TestBulkMutateRowsAsync:
                     assert kwargs["entries"][0] == entry_1._to_pb()
                     assert kwargs["entries"][1] == entry_2._to_pb()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "exception",
         [
@@ -2649,7 +2649,7 @@ class TestBulkMutateRowsAsync:
                         cause.exceptions[-1], core_exceptions.DeadlineExceeded
                     )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "exception",
         [
@@ -2697,7 +2697,7 @@ class TestBulkMutateRowsAsync:
             core_exceptions.ServiceUnavailable,
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_bulk_mutate_idempotent_retryable_request_errors(
         self, retryable_exception
     ):
@@ -2731,7 +2731,7 @@ class TestBulkMutateRowsAsync:
                     assert isinstance(cause, RetryExceptionGroup)
                     assert isinstance(cause.exceptions[0], retryable_exception)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "retryable_exception",
         [
@@ -2780,7 +2780,7 @@ class TestBulkMutateRowsAsync:
             ValueError,
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_bulk_mutate_rows_non_retryable_errors(self, non_retryable_exception):
         """
         If the request fails with a non-retryable error, mutations should not be retried
@@ -2810,7 +2810,7 @@ class TestBulkMutateRowsAsync:
                     cause = failed_exception.__cause__
                     assert isinstance(cause, non_retryable_exception)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_bulk_mutate_error_index(self):
         """
         Test partial failure, partial success. Errors should be associated with the correct index
@@ -2861,7 +2861,7 @@ class TestBulkMutateRowsAsync:
                     assert isinstance(cause.exceptions[1], DeadlineExceeded)
                     assert isinstance(cause.exceptions[2], FailedPrecondition)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_bulk_mutate_error_recovery(self):
         """
         If an error occurs, then resolves, no exception should be raised
@@ -2895,7 +2895,7 @@ class TestCheckAndMutateRowAsync:
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
     @pytest.mark.parametrize("gapic_result", [True, False])
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_check_and_mutate(self, gapic_result):
         from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
 
@@ -2937,7 +2937,7 @@ class TestCheckAndMutateRowAsync:
                     assert kwargs["timeout"] == operation_timeout
                     assert kwargs["retry"] is None
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_check_and_mutate_bad_timeout(self):
         """Should raise error if operation_timeout < 0"""
         async with self._make_client() as client:
@@ -2952,7 +2952,7 @@ class TestCheckAndMutateRowAsync:
                     )
                 assert str(e.value) == "operation_timeout must be greater than 0"
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_check_and_mutate_single_mutations(self):
         """if single mutations are passed, they should be internally wrapped in a list"""
         from google.cloud.bigtable.data.mutations import SetCell
@@ -2978,7 +2978,7 @@ class TestCheckAndMutateRowAsync:
                     assert kwargs["true_mutations"] == [true_mutation._to_pb()]
                     assert kwargs["false_mutations"] == [false_mutation._to_pb()]
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_check_and_mutate_predicate_object(self):
         """predicate filter should be passed to gapic request"""
         from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
@@ -3004,7 +3004,7 @@ class TestCheckAndMutateRowAsync:
                     assert mock_predicate._to_pb.call_count == 1
                     assert kwargs["retry"] is None
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_check_and_mutate_mutations_parsing(self):
         """mutations objects should be converted to protos"""
         from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
@@ -3070,7 +3070,7 @@ class TestReadModifyWriteRowAsync:
             ),
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_modify_write_call_rule_args(self, call_rules, expected_rules):
         """
         Test that the gapic call is called with given rules
@@ -3087,7 +3087,7 @@ class TestReadModifyWriteRowAsync:
                 assert found_kwargs["retry"] is None
 
     @pytest.mark.parametrize("rules", [[], None])
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_modify_write_no_rules(self, rules):
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
@@ -3095,7 +3095,7 @@ class TestReadModifyWriteRowAsync:
                     await table.read_modify_write_row("key", rules=rules)
                     assert e.value.args[0] == "rules must contain at least one item"
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_modify_write_call_defaults(self):
         instance = "instance1"
         table_id = "table1"
@@ -3117,7 +3117,7 @@ class TestReadModifyWriteRowAsync:
                     assert kwargs["row_key"] == row_key.encode()
                     assert kwargs["timeout"] > 1
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_modify_write_call_overrides(self):
         row_key = b"row_key1"
         expected_timeout = 12345
@@ -3140,7 +3140,7 @@ class TestReadModifyWriteRowAsync:
                     assert kwargs["row_key"] == row_key
                     assert kwargs["timeout"] == expected_timeout
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_modify_write_string_key(self):
         row_key = "string_row_key1"
         async with self._make_client() as client:
@@ -3153,7 +3153,7 @@ class TestReadModifyWriteRowAsync:
                     kwargs = mock_gapic.call_args_list[0][1]
                     assert kwargs["row_key"] == row_key.encode()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_modify_write_row_building(self):
         """
         results from gapic call should be used to construct row

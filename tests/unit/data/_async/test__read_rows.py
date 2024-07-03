@@ -245,7 +245,7 @@ class TestReadRowsOperation:
             (4, 2, 2),
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_revise_limit(self, start_limit, emit_num, expected_limit):
         """
         revise_limit should revise the request's limit field
@@ -286,7 +286,7 @@ class TestReadRowsOperation:
         assert instance._remaining_count == expected_limit
 
     @pytest.mark.parametrize("start_limit,emit_num", [(5, 10), (3, 9), (1, 10)])
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_revise_limit_over_limit(self, start_limit, emit_num):
         """
         Should raise runtime error if we get in state where emit_num > start_num
@@ -325,7 +325,7 @@ class TestReadRowsOperation:
                 pass
         assert "emit count exceeds row limit" in str(e.value)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_aclose(self):
         """
         should be able to close a stream safely with aclose.
@@ -354,7 +354,7 @@ class TestReadRowsOperation:
             with pytest.raises(StopAsyncIteration):
                 await wrapped_gen.__anext__()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_retryable_ignore_repeated_rows(self):
         """
         Duplicate rows should cause an invalid chunk error

@@ -117,7 +117,7 @@ class TestReadRowsAcceptanceAsync:
     @pytest.mark.parametrize(
         "test_case", parse_readrows_acceptance_tests(), ids=lambda t: t.description
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_row_merger_scenario(self, test_case: ReadRowsTest):
         async def _scenerio_stream():
             for chunk in test_case.chunks:
@@ -151,7 +151,7 @@ class TestReadRowsAcceptanceAsync:
     @pytest.mark.parametrize(
         "test_case", parse_readrows_acceptance_tests(), ids=lambda t: t.description
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_read_rows_scenario(self, test_case: ReadRowsTest):
         async def _make_gapic_stream(chunk_list: list[ReadRowsResponse]):
             from google.cloud.bigtable_v2 import ReadRowsResponse
@@ -207,7 +207,7 @@ class TestReadRowsAcceptanceAsync:
         for expected, actual in zip_longest(test_case.results, results):
             assert actual == expected
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_out_of_order_rows(self):
         async def _row_stream():
             yield ReadRowsResponse(last_scanned_row_key=b"a")
@@ -223,7 +223,7 @@ class TestReadRowsAcceptanceAsync:
             async for _ in merger:
                 pass
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_bare_reset(self):
         first_chunk = ReadRowsResponse.CellChunk(
             ReadRowsResponse.CellChunk(
@@ -273,7 +273,7 @@ class TestReadRowsAcceptanceAsync:
                 ),
             )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_missing_family(self):
         with pytest.raises(InvalidChunk):
             await self._process_chunks(
@@ -286,7 +286,7 @@ class TestReadRowsAcceptanceAsync:
                 )
             )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mid_cell_row_key_change(self):
         with pytest.raises(InvalidChunk):
             await self._process_chunks(
@@ -301,7 +301,7 @@ class TestReadRowsAcceptanceAsync:
                 ReadRowsResponse.CellChunk(row_key=b"b", value=b"v", commit_row=True),
             )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mid_cell_family_change(self):
         with pytest.raises(InvalidChunk):
             await self._process_chunks(
@@ -318,7 +318,7 @@ class TestReadRowsAcceptanceAsync:
                 ),
             )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mid_cell_qualifier_change(self):
         with pytest.raises(InvalidChunk):
             await self._process_chunks(
@@ -335,7 +335,7 @@ class TestReadRowsAcceptanceAsync:
                 ),
             )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mid_cell_timestamp_change(self):
         with pytest.raises(InvalidChunk):
             await self._process_chunks(
@@ -352,7 +352,7 @@ class TestReadRowsAcceptanceAsync:
                 ),
             )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mid_cell_labels_change(self):
         with pytest.raises(InvalidChunk):
             await self._process_chunks(

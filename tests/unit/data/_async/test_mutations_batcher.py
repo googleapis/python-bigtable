@@ -122,7 +122,7 @@ class Test_FlowControl:
         instance._in_flight_mutation_bytes = existing_size
         assert instance._has_capacity(new_count, new_size) == expected
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "existing_count,existing_size,added_count,added_size,new_count,new_size",
         [
@@ -155,7 +155,7 @@ class Test_FlowControl:
         assert instance._in_flight_mutation_count == new_count
         assert instance._in_flight_mutation_bytes == new_size
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__remove_from_flow_unlock(self):
         """capacity condition should notify after mutation is complete"""
         import inspect
@@ -210,7 +210,7 @@ class Test_FlowControl:
         # task should be complete
         assert task_alive() is False
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "mutations,count_cap,size_cap,expected_results",
         [
@@ -251,7 +251,7 @@ class Test_FlowControl:
             i += 1
         assert i == len(expected_results)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize(
         "mutations,max_limit,expected_results",
         [
@@ -295,7 +295,7 @@ class Test_FlowControl:
                 i += 1
             assert i == len(expected_results)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_add_to_flow_oversize(self):
         """
         mutations over the flow control limits should still be accepted
@@ -349,7 +349,7 @@ class TestMutationsBatcherAsync:
         mutation.mutations = [mock.Mock()] * count
         return mutation
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_ctor_defaults(self):
         with mock.patch.object(
             self._get_target_class(), "_timer_routine", return_value=asyncio.Future()
@@ -389,7 +389,7 @@ class TestMutationsBatcherAsync:
                 assert flush_timer_mock.call_args[0][0] == 5
                 assert isinstance(instance._flush_timer, asyncio.Future)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_ctor_explicit(self):
         """Test with explicit parameters"""
         with mock.patch.object(
@@ -441,7 +441,7 @@ class TestMutationsBatcherAsync:
                 assert flush_timer_mock.call_args[0][0] == flush_interval
                 assert isinstance(instance._flush_timer, asyncio.Future)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_ctor_no_flush_limits(self):
         """Test with None for flush limits"""
         with mock.patch.object(
@@ -475,7 +475,7 @@ class TestMutationsBatcherAsync:
                 assert flush_timer_mock.call_args[0][0] is None
                 assert isinstance(instance._flush_timer, asyncio.Future)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_ctor_invalid_values(self):
         """Test that timeout values are positive, and fit within expected limits"""
         with pytest.raises(ValueError) as e:
@@ -513,7 +513,7 @@ class TestMutationsBatcherAsync:
                 == batcher_init_signature[arg_name].default
             )
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize("input_val", [None, 0, -1])
     async def test__start_flush_timer_w_empty_input(self, input_val):
         """Empty/invalid timer should return immediately"""
@@ -532,7 +532,7 @@ class TestMutationsBatcherAsync:
                     assert flush_mock.call_count == 0
                     assert result is None
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test__start_flush_timer_call_when_closed(
         self,
@@ -554,7 +554,7 @@ class TestMutationsBatcherAsync:
                     assert sleep_mock.call_count == 0
                     assert flush_mock.call_count == 0
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.parametrize("num_staged", [0, 1, 10])
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test__flush_timer(self, num_staged):
@@ -581,7 +581,7 @@ class TestMutationsBatcherAsync:
                     assert sleep_kwargs["timeout"] == expected_sleep
                     assert flush_mock.call_count == (0 if num_staged == 0 else loop_num)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__flush_timer_close(self):
         """Timer should continue terminate after close"""
         with mock.patch.object(self._get_target_class(), "_schedule_flush"):
@@ -596,7 +596,7 @@ class TestMutationsBatcherAsync:
                     # task should be complete
                     assert instance._flush_timer.done() is True
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_append_closed(self):
         """Should raise exception"""
         instance = self._make_one()
@@ -604,7 +604,7 @@ class TestMutationsBatcherAsync:
         with pytest.raises(RuntimeError):
             await instance.append(mock.Mock())
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_append_wrong_mutation(self):
         """
         Mutation objects should raise an exception.
@@ -618,7 +618,7 @@ class TestMutationsBatcherAsync:
                 await instance.append(DeleteAllFromRow())
             assert str(e.value) == expected_error
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_append_outside_flow_limits(self):
         """entries larger than mutation limits are still processed"""
         async with self._make_one(
@@ -640,7 +640,7 @@ class TestMutationsBatcherAsync:
             assert instance._staged_bytes == 0
             instance._staged_entries = []
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_append_flush_runs_after_limit_hit(self):
         """
         If the user appends a bunch of entries above the flush limits back-to-back,
@@ -682,7 +682,7 @@ class TestMutationsBatcherAsync:
             (1, 1, 0, 0, False),
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test_append(
         self, flush_count, flush_bytes, mutation_count, mutation_bytes, expect_flush
@@ -703,7 +703,7 @@ class TestMutationsBatcherAsync:
             assert instance._staged_entries == [mutation]
             instance._staged_entries = []
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_append_multiple_sequentially(self):
         """Append multiple mutations"""
         async with self._make_one(
@@ -731,7 +731,7 @@ class TestMutationsBatcherAsync:
                 assert len(instance._staged_entries) == 3
             instance._staged_entries = []
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_flush_flow_control_concurrent_requests(self):
         """
         requests should happen in parallel if flow control breaks up single flush into batches
@@ -770,7 +770,7 @@ class TestMutationsBatcherAsync:
                 assert duration < 0.5
                 assert op_mock.call_count == num_calls
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_schedule_flush_no_mutations(self):
         """schedule flush should return None if no staged mutations"""
         async with self._make_one() as instance:
@@ -779,7 +779,7 @@ class TestMutationsBatcherAsync:
                     assert instance._schedule_flush() is None
                     assert flush_mock.call_count == 0
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test_schedule_flush_with_mutations(self):
         """if new mutations exist, should add a new flush task to _flush_jobs"""
@@ -801,7 +801,7 @@ class TestMutationsBatcherAsync:
                     assert flush_mock.call_count == 1
                     flush_mock.reset_mock()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__flush_internal(self):
         """
         _flush_internal should:
@@ -829,7 +829,7 @@ class TestMutationsBatcherAsync:
                     instance._oldest_exceptions.clear()
                     instance._newest_exceptions.clear()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_flush_clears_job_list(self):
         """
         a job should be added to _flush_jobs when _schedule_flush is called,
@@ -865,7 +865,7 @@ class TestMutationsBatcherAsync:
             (10, 20, 20),  # should cap at 20
         ],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__flush_internal_with_errors(
         self, num_starting, num_new_errors, expected_total_errors
     ):
@@ -920,7 +920,7 @@ class TestMutationsBatcherAsync:
 
         return gen(num)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_timer_flush_end_to_end(self):
         """Flush should automatically trigger after flush_interval"""
         num_nutations = 10
@@ -942,7 +942,7 @@ class TestMutationsBatcherAsync:
                 await asyncio.sleep(0.1)
                 assert instance._entries_processed_since_last_raise == num_nutations
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__execute_mutate_rows(self):
         if self.is_async():
             mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
@@ -969,7 +969,7 @@ class TestMutationsBatcherAsync:
                 kwargs["attempt_timeout"] == 13
                 assert result == []
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__execute_mutate_rows_returns_errors(self):
         """Errors from operation should be retruned as list"""
         from google.cloud.bigtable.data.exceptions import (
@@ -1001,7 +1001,7 @@ class TestMutationsBatcherAsync:
                 assert result[0].index is None
                 assert result[1].index is None
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__raise_exceptions(self):
         """Raise exceptions and reset error state"""
         from google.cloud.bigtable.data import exceptions
@@ -1021,13 +1021,13 @@ class TestMutationsBatcherAsync:
             # try calling again
             instance._raise_exceptions()
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test___aenter__(self):
         """Should return self"""
         async with self._make_one() as instance:
             assert await instance.__aenter__() == instance
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test___aexit__(self):
         """aexit should call close"""
         async with self._make_one() as instance:
@@ -1035,7 +1035,7 @@ class TestMutationsBatcherAsync:
                 await instance.__aexit__(None, None, None)
                 assert close_mock.call_count == 1
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_close(self):
         """Should clean up all resources"""
         async with self._make_one() as instance:
@@ -1048,7 +1048,7 @@ class TestMutationsBatcherAsync:
                     assert flush_mock.call_count == 1
                     assert raise_mock.call_count == 1
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_close_w_exceptions(self):
         """Raise exceptions on close"""
         from google.cloud.bigtable.data import exceptions
@@ -1067,7 +1067,7 @@ class TestMutationsBatcherAsync:
             # clear out exceptions
             instance._oldest_exceptions, instance._newest_exceptions = ([], [])
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test__on_exit(self, recwarn):
         """Should raise warnings if unflushed mutations exist"""
         async with self._make_one() as instance:
@@ -1089,7 +1089,7 @@ class TestMutationsBatcherAsync:
             # reset staged mutations for cleanup
             instance._staged_entries = []
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_atexit_registration(self):
         """Should run _on_exit on program termination"""
         import atexit
@@ -1099,7 +1099,7 @@ class TestMutationsBatcherAsync:
             async with self._make_one():
                 assert register_mock.call_count == 1
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_timeout_args_passed(self):
         """
         batch_operation_timeout and batch_attempt_timeout should be used
@@ -1186,7 +1186,7 @@ class TestMutationsBatcherAsync:
         for i in range(1, newest_list_diff + 1):
             assert mock_batcher._newest_exceptions[-i] == input_list[-i]
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     # test different inputs for retryable exceptions
     @pytest.mark.parametrize(
         "input_retryables,expected_retryables",

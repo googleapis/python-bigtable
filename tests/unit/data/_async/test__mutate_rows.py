@@ -162,7 +162,7 @@ class TestMutateRowsOperation:
         )
         assert "Found 100001" in str(e.value)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mutate_rows_operation(self):
         """
         Test successful case of mutate_rows_operation
@@ -184,7 +184,7 @@ class TestMutateRowsOperation:
     @pytest.mark.parametrize(
         "exc_type", [RuntimeError, ZeroDivisionError, Forbidden]
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mutate_rows_attempt_exception(self, exc_type):
         """
         exceptions raised from attempt should be raised in MutationsExceptionGroup
@@ -212,7 +212,7 @@ class TestMutateRowsOperation:
     @pytest.mark.parametrize(
         "exc_type", [RuntimeError, ZeroDivisionError, Forbidden]
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mutate_rows_exception(self, exc_type):
         """
         exceptions raised from retryable should be raised in MutationsExceptionGroup
@@ -250,7 +250,7 @@ class TestMutateRowsOperation:
         "exc_type",
         [DeadlineExceeded, RuntimeError],
     )
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mutate_rows_exception_retryable_eventually_pass(self, exc_type):
         """
         If an exception fails but eventually passes, it should not raise an exception
@@ -279,7 +279,7 @@ class TestMutateRowsOperation:
             await instance.start()
             assert attempt_mock.call_count == num_retries + 1
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_mutate_rows_incomplete_ignored(self):
         """
         MutateRowsIncomplete exceptions should not be added to error list
@@ -310,7 +310,7 @@ class TestMutateRowsOperation:
             assert len(found_exc.exceptions) == 1
             assert isinstance(found_exc.exceptions[0].__cause__, DeadlineExceeded)
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_run_attempt_single_entry_success(self):
         """Test mutating a single entry"""
         mutation = self._make_mutation()
@@ -328,7 +328,7 @@ class TestMutateRowsOperation:
         assert kwargs["timeout"] == expected_timeout
         assert kwargs["entries"] == [mutation._to_pb()]
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_run_attempt_empty_request(self):
         """Calling with no mutations should result in no API calls"""
         mock_gapic_fn = self._make_mock_gapic([])
@@ -338,7 +338,7 @@ class TestMutateRowsOperation:
         await instance._run_attempt()
         assert mock_gapic_fn.call_count == 0
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_run_attempt_partial_success_retryable(self):
         """Some entries succeed, but one fails. Should report the proper index, and raise incomplete exception"""
         from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
@@ -361,7 +361,7 @@ class TestMutateRowsOperation:
         assert instance.errors[1][0].grpc_status_code == 300
         assert 2 not in instance.errors
 
-    @pytest.mark.asyncio
+    @CrossSync.pytest
     async def test_run_attempt_partial_success_non_retryable(self):
         """Some entries succeed, but one fails. Exception marked as non-retryable. Do not raise incomplete error"""
         success_mutation = self._make_mutation()

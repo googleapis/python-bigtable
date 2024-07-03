@@ -96,8 +96,8 @@ class HandleCrossSyncDecorators(ast.NodeTransformer):
         if hasattr(node, "decorator_list"):
             found_list, node.decorator_list = node.decorator_list, []
             for decorator in found_list:
-                if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute) and isinstance(decorator.func.value, ast.Name) and "CrossSync" in decorator.func.value.id:
-                    decorator_type = decorator.func.attr
+                if "CrossSync" in ast.dump(decorator):
+                    decorator_type = decorator.func.attr if hasattr(decorator, "func") else decorator.attr
                     if decorator_type == "convert":
                         for subcommand in decorator.keywords:
                             if subcommand.arg == "sync_name":
@@ -105,6 +105,12 @@ class HandleCrossSyncDecorators(ast.NodeTransformer):
                             if subcommand.arg == "replace_symbols":
                                 replacements = {subcommand.value.keys[i].s: subcommand.value.values[i].s for i in range(len(subcommand.value.keys))}
                                 node = SymbolReplacer(replacements).visit(node)
+                    elif decorator_type == "pytest":
+                        pass
+                    elif decorator_type == "drop_method":
+                        return None
+                    else:
+                        raise ValueError(f"Unsupported CrossSync decorator: {decorator_type}")
                 else:
                     # add non-crosssync decorators back
                     node.decorator_list.append(decorator)
