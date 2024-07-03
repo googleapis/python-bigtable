@@ -34,12 +34,10 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     if CrossSync._Sync_Impl.is_async:
-        from google.cloud.bigtable.data._async.client import TableAsync
-        from google.cloud.bigtable_v2.services.bigtable.async_client import (
-            BigtableAsyncClient,
-        )
-    else:
         pass
+    else:
+        from google.cloud.bigtable.data._sync.client import Table
+        from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
 
 
 class _MutateRowsOperation:

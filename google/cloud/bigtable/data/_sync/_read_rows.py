@@ -30,8 +30,9 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if TYPE_CHECKING:
     if CrossSync._Sync_Impl.is_async:
-        from google.cloud.bigtable.data._async.client import TableAsync
+        pass
     else:
+        from google.cloud.bigtable.data._sync.client import Table
         from typing import Iterable
 
 
