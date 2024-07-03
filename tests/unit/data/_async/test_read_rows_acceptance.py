@@ -17,6 +17,7 @@ import os
 import warnings
 import pytest
 import mock
+import proto
 
 from itertools import zip_longest
 
@@ -25,9 +26,31 @@ from google.cloud.bigtable_v2 import ReadRowsResponse
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.row import Row
 
-from tests.unit.v2_client.test_row_merger import ReadRowsTest, TestFile
-
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+
+
+# TODO: autogenerate protos from
+#  https://github.com/googleapis/conformance-tests/blob/main/bigtable/v2/proto/google/cloud/conformance/bigtable/v2/tests.proto
+class ReadRowsTest(proto.Message):
+    class Result(proto.Message):
+        row_key = proto.Field(proto.STRING, number=1)
+        family_name = proto.Field(proto.STRING, number=2)
+        qualifier = proto.Field(proto.STRING, number=3)
+        timestamp_micros = proto.Field(proto.INT64, number=4)
+        value = proto.Field(proto.STRING, number=5)
+        label = proto.Field(proto.STRING, number=6)
+        error = proto.Field(proto.BOOL, number=7)
+
+    description = proto.Field(proto.STRING, number=1)
+    chunks = proto.RepeatedField(
+        proto.MESSAGE, number=2, message=ReadRowsResponse.CellChunk
+    )
+    results = proto.RepeatedField(proto.MESSAGE, number=3, message=Result)
+
+
+class TestFile(proto.Message):
+    __test__ = False
+    read_rows_tests = proto.RepeatedField(proto.MESSAGE, number=1, message=ReadRowsTest)
 
 
 @CrossSync.sync_output(

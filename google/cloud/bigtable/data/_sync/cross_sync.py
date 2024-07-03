@@ -301,7 +301,7 @@ from google.cloud.bigtable.data._sync import transformers
 class CrossSyncArtifact:
     file_path: str
     imports: list[ast.Import | ast.ImportFrom] = field(default_factory=list)
-    converted_classes: dict[type, ast.ClassDef] = field(default_factory=dict)
+    converted_classes: dict[str, ast.ClassDef] = field(default_factory=dict)
     mypy_ignores: list[str] = field(default_factory=list)
     _instances: ClassVar[dict[str, CrossSyncArtifact]] = {}
 
@@ -344,7 +344,7 @@ class CrossSyncArtifact:
         return cls._instances[path]
 
     def add_class(self, cls):
-        if cls in self.converted_classes:
+        if cls.cross_sync_class_name in self.converted_classes:
             return
         crosssync_converter = transformers.SymbolReplacer({"CrossSync": "CrossSync._Sync_Impl"})
         # convert class
@@ -360,7 +360,7 @@ class CrossSyncArtifact:
             converted = transformers.SymbolReplacer(cls.cross_sync_replace_symbols).visit(converted)
         converted = crosssync_converter.visit(converted)
         converted = transformers.HandleCrossSyncDecorators().visit(converted)
-        self.converted_classes[cls] = converted
+        self.converted_classes[cls.cross_sync_class_name] = converted
         # add imports for added class if required
         if cls.include_file_imports and not self.imports:
             with open(inspect.getfile(cls)) as f:
@@ -382,7 +382,13 @@ if __name__ == "__main__":
     import autoflake
     # find all cross_sync decorated classes
     search_root = sys.argv[1]
-    found_files = [path.replace("/", ".")[:-3] for path in glob.glob(search_root + "/**/*.py", recursive=True)]
+    # change directory to the root of the project
+    orig_dir = os.getcwd()
+    os.chdir(search_root)
+    # find all python files rooted here
+    found_files = [path.replace("/", ".")[:-3] for path in glob.glob("**/*.py", recursive=True)]
+    # add to path
+    sys.path.append(".")
     found_classes = list(itertools.chain.from_iterable([inspect.getmembers(importlib.import_module(path), inspect.isclass) for path in found_files]))
     file_obj_set = set()
     for name, cls in found_classes:
@@ -390,6 +396,8 @@ if __name__ == "__main__":
             file_obj = CrossSyncArtifact.get_for_path(cls.cross_sync_file_path)
             file_obj.add_class(cls)
             file_obj_set.add(file_obj)
+    # write out the files
+    os.chdir(orig_dir)
     for file_obj in file_obj_set:
         with open(file_obj.file_path, "w") as f:
             f.write(file_obj.render())
