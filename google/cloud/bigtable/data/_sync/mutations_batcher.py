@@ -45,6 +45,115 @@ if TYPE_CHECKING:
         from google.cloud.bigtable.data._sync.client import Table
 
 
+class _FlowControl:
+    """
+    Manages flow control for batched mutations. Mutations are registered against
+    the FlowControl object before being sent, which will block if size or count
+    limits have reached capacity. As mutations completed, they are removed from
+    the FlowControl object, which will notify any blocked requests that there
+    is additional capacity.
+
+    Flow limits are not hard limits. If a single mutation exceeds the configured
+    limits, it will be allowed as a single batch when the capacity is available.
+
+    Args:
+        max_mutation_count: maximum number of mutations to send in a single rpc.
+            This corresponds to individual mutations in a single RowMutationEntry.
+        max_mutation_bytes: maximum number of bytes to send in a single rpc.
+    Raises:
+        ValueError: if max_mutation_count or max_mutation_bytes is less than 0
+    """
+
+    def __init__(self, max_mutation_count: int, max_mutation_bytes: int):
+        self._max_mutation_count = max_mutation_count
+        self._max_mutation_bytes = max_mutation_bytes
+        if self._max_mutation_count < 1:
+            raise ValueError("max_mutation_count must be greater than 0")
+        if self._max_mutation_bytes < 1:
+            raise ValueError("max_mutation_bytes must be greater than 0")
+        self._capacity_condition = CrossSync._Sync_Impl.Condition()
+        self._in_flight_mutation_count = 0
+        self._in_flight_mutation_bytes = 0
+
+    def _has_capacity(self, additional_count: int, additional_size: int) -> bool:
+        """Checks if there is capacity to send a new entry with the given size and count
+
+        FlowControl limits are not hard limits. If a single mutation exceeds
+        the configured flow limits, it will be sent in a single batch when
+        previous batches have completed.
+
+        Args:
+            additional_count: number of mutations in the pending entry
+            additional_size: size of the pending entry
+        Returns:
+            bool: True if there is capacity to send the pending entry, False otherwise
+        """
+        acceptable_size = max(self._max_mutation_bytes, additional_size)
+        acceptable_count = max(self._max_mutation_count, additional_count)
+        new_size = self._in_flight_mutation_bytes + additional_size
+        new_count = self._in_flight_mutation_count + additional_count
+        return new_size <= acceptable_size and new_count <= acceptable_count
+
+    def remove_from_flow(
+        self, mutations: RowMutationEntry | list[RowMutationEntry]
+    ) -> None:
+        """Removes mutations from flow control. This method should be called once
+        for each mutation that was sent to add_to_flow, after the corresponding
+        operation is complete.
+
+        Args:
+            mutations: mutation or list of mutations to remove from flow control"""
+        if not isinstance(mutations, list):
+            mutations = [mutations]
+        total_count = sum((len(entry.mutations) for entry in mutations))
+        total_size = sum((entry.size() for entry in mutations))
+        self._in_flight_mutation_count -= total_count
+        self._in_flight_mutation_bytes -= total_size
+        with self._capacity_condition:
+            self._capacity_condition.notify_all()
+
+    def add_to_flow(self, mutations: RowMutationEntry | list[RowMutationEntry]):
+        """Generator function that registers mutations with flow control. As mutations
+        are accepted into the flow control, they are yielded back to the caller,
+        to be sent in a batch. If the flow control is at capacity, the generator
+        will block until there is capacity available.
+
+        Args:
+            mutations: list mutations to break up into batches
+        Yields:
+            list[RowMutationEntry]:
+                list of mutations that have reserved space in the flow control.
+                Each batch contains at least one mutation."""
+        if not isinstance(mutations, list):
+            mutations = [mutations]
+        start_idx = 0
+        end_idx = 0
+        while end_idx < len(mutations):
+            start_idx = end_idx
+            batch_mutation_count = 0
+            with self._capacity_condition:
+                while end_idx < len(mutations):
+                    next_entry = mutations[end_idx]
+                    next_size = next_entry.size()
+                    next_count = len(next_entry.mutations)
+                    if (
+                        self._has_capacity(next_count, next_size)
+                        and batch_mutation_count + next_count
+                        <= _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+                    ):
+                        end_idx += 1
+                        batch_mutation_count += next_count
+                        self._in_flight_mutation_bytes += next_size
+                        self._in_flight_mutation_count += next_count
+                    elif start_idx != end_idx:
+                        break
+                    else:
+                        self._capacity_condition.wait_for(
+                            lambda: self._has_capacity(next_count, next_size)
+                        )
+            yield mutations[start_idx:end_idx]
+
+
 class MutationsBatcher:
     """
     Allows users to send batches using context manager API:
@@ -340,112 +449,3 @@ class MutationsBatcher:
             except Exception as e:
                 exceptions.append(e)
         return exceptions
-
-
-class _FlowControl:
-    """
-    Manages flow control for batched mutations. Mutations are registered against
-    the FlowControl object before being sent, which will block if size or count
-    limits have reached capacity. As mutations completed, they are removed from
-    the FlowControl object, which will notify any blocked requests that there
-    is additional capacity.
-
-    Flow limits are not hard limits. If a single mutation exceeds the configured
-    limits, it will be allowed as a single batch when the capacity is available.
-
-    Args:
-        max_mutation_count: maximum number of mutations to send in a single rpc.
-            This corresponds to individual mutations in a single RowMutationEntry.
-        max_mutation_bytes: maximum number of bytes to send in a single rpc.
-    Raises:
-        ValueError: if max_mutation_count or max_mutation_bytes is less than 0
-    """
-
-    def __init__(self, max_mutation_count: int, max_mutation_bytes: int):
-        self._max_mutation_count = max_mutation_count
-        self._max_mutation_bytes = max_mutation_bytes
-        if self._max_mutation_count < 1:
-            raise ValueError("max_mutation_count must be greater than 0")
-        if self._max_mutation_bytes < 1:
-            raise ValueError("max_mutation_bytes must be greater than 0")
-        self._capacity_condition = CrossSync._Sync_Impl.Condition()
-        self._in_flight_mutation_count = 0
-        self._in_flight_mutation_bytes = 0
-
-    def _has_capacity(self, additional_count: int, additional_size: int) -> bool:
-        """Checks if there is capacity to send a new entry with the given size and count
-
-        FlowControl limits are not hard limits. If a single mutation exceeds
-        the configured flow limits, it will be sent in a single batch when
-        previous batches have completed.
-
-        Args:
-            additional_count: number of mutations in the pending entry
-            additional_size: size of the pending entry
-        Returns:
-            bool: True if there is capacity to send the pending entry, False otherwise
-        """
-        acceptable_size = max(self._max_mutation_bytes, additional_size)
-        acceptable_count = max(self._max_mutation_count, additional_count)
-        new_size = self._in_flight_mutation_bytes + additional_size
-        new_count = self._in_flight_mutation_count + additional_count
-        return new_size <= acceptable_size and new_count <= acceptable_count
-
-    def remove_from_flow(
-        self, mutations: RowMutationEntry | list[RowMutationEntry]
-    ) -> None:
-        """Removes mutations from flow control. This method should be called once
-        for each mutation that was sent to add_to_flow, after the corresponding
-        operation is complete.
-
-        Args:
-            mutations: mutation or list of mutations to remove from flow control"""
-        if not isinstance(mutations, list):
-            mutations = [mutations]
-        total_count = sum((len(entry.mutations) for entry in mutations))
-        total_size = sum((entry.size() for entry in mutations))
-        self._in_flight_mutation_count -= total_count
-        self._in_flight_mutation_bytes -= total_size
-        with self._capacity_condition:
-            self._capacity_condition.notify_all()
-
-    def add_to_flow(self, mutations: RowMutationEntry | list[RowMutationEntry]):
-        """Generator function that registers mutations with flow control. As mutations
-        are accepted into the flow control, they are yielded back to the caller,
-        to be sent in a batch. If the flow control is at capacity, the generator
-        will block until there is capacity available.
-
-        Args:
-            mutations: list mutations to break up into batches
-        Yields:
-            list[RowMutationEntry]:
-                list of mutations that have reserved space in the flow control.
-                Each batch contains at least one mutation."""
-        if not isinstance(mutations, list):
-            mutations = [mutations]
-        start_idx = 0
-        end_idx = 0
-        while end_idx < len(mutations):
-            start_idx = end_idx
-            batch_mutation_count = 0
-            with self._capacity_condition:
-                while end_idx < len(mutations):
-                    next_entry = mutations[end_idx]
-                    next_size = next_entry.size()
-                    next_count = len(next_entry.mutations)
-                    if (
-                        self._has_capacity(next_count, next_size)
-                        and batch_mutation_count + next_count
-                        <= _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
-                    ):
-                        end_idx += 1
-                        batch_mutation_count += next_count
-                        self._in_flight_mutation_bytes += next_size
-                        self._in_flight_mutation_count += next_count
-                    elif start_idx != end_idx:
-                        break
-                    else:
-                        self._capacity_condition.wait_for(
-                            lambda: self._has_capacity(next_count, next_size)
-                        )
-            yield mutations[start_idx:end_idx]
