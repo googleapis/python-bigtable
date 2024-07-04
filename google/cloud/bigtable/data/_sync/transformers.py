@@ -1,10 +1,25 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+from __future__ import annotations
+
 import ast
 
 from dataclasses import dataclass, field
 
 
 class SymbolReplacer(ast.NodeTransformer):
-    def __init__(self, replacements):
+    def __init__(self, replacements:dict[str, str]):
         self.replacements = replacements
 
     def visit_Name(self, node):
@@ -190,7 +205,7 @@ class CrossSyncFileArtifact:
 class CrossSyncClassParser(ast.NodeTransformer):
     def __init__(self, file_path):
         self.in_path = file_path
-        self._artifact_dict = {}
+        self._artifact_dict: dict[str, CrossSyncFileArtifact] = {}
         self.imports: list[ast.Import | ast.ImportFrom | ast.Try | ast.If] = []
         self.cross_sync_converter = SymbolReplacer(
             {"CrossSync": "CrossSync._Sync_Impl"}
@@ -207,7 +222,7 @@ class CrossSyncClassParser(ast.NodeTransformer):
         self._artifact_dict = {f.file_path: f for f in artifacts or []}
         self.imports = self._get_imports(tree)
         self.visit(tree)
-        found = self._artifact_dict.values()
+        found = set(self._artifact_dict.values())
         if artifacts is not None:
             artifacts.update(found)
         return found
@@ -253,7 +268,7 @@ class CrossSyncClassParser(ast.NodeTransformer):
         return node
 
     def _transform_class(
-        self, cls_ast: ast.ClassDef, new_name: str, replace_symbols=None, **kwargs
+            self, cls_ast: ast.ClassDef, new_name: str, replace_symbols:dict[str, str]|None=None, **kwargs
     ) -> ast.ClassDef:
         """
         Transform async class into sync one, by running through a series of transformers

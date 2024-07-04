@@ -37,7 +37,9 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 if CrossSync.is_async:
     from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 else:
-    from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
+    from google.cloud.bigtable.data._sync._mutate_rows import (  # noqa: F401
+        _MutateRowsOperation,
+    )
 
 
 if TYPE_CHECKING:

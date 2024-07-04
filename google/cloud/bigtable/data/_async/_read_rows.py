@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Awaitable,
     Sequence,
 )
 
@@ -37,6 +36,8 @@ from google.api_core.retry import exponential_sleep_generator
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+if not CrossSync.is_async:
+    from google.cloud.bigtable.data._async._read_rows import _ResetRow
 
 if TYPE_CHECKING:
     if CrossSync.is_async:
@@ -45,13 +46,9 @@ if TYPE_CHECKING:
         from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
 
 
-class _ResetRow(Exception):
+class _ResetRow(Exception):  # noqa: F811
     def __init__(self, chunk):
         self.chunk = chunk
-
-
-if not CrossSync.is_async:
-    from google.cloud.bigtable.data._async._read_rows import _ResetRow
 
 
 @CrossSync.sync_output(

@@ -17,7 +17,6 @@ from __future__ import annotations
 from typing import (
     TypeVar,
     Any,
-    Awaitable,
     Callable,
     Coroutine,
     Sequence,
@@ -25,11 +24,9 @@ from typing import (
     AsyncIterable,
     AsyncIterator,
     AsyncGenerator,
-    Iterable,
-    Iterator,
-    Generator,
     TYPE_CHECKING,
 )
+import typing
 
 import asyncio
 import sys
@@ -60,7 +57,7 @@ class CrossSync:
     Semaphore: TypeAlias = asyncio.Semaphore
     StopIteration: TypeAlias = StopAsyncIteration
     # type annotations
-    Awaitable: TypeAlias = Awaitable
+    Awaitable: TypeAlias = typing.Awaitable
     Iterable: TypeAlias = AsyncIterable
     Iterator: TypeAlias = AsyncIterator
     Generator: TypeAlias = AsyncGenerator
@@ -227,12 +224,12 @@ class CrossSync:
         Task: TypeAlias = concurrent.futures.Future
         Event: TypeAlias = threading.Event
         Semaphore: TypeAlias = threading.Semaphore
-        StopIteration: TypeAlias = StopAsyncIteration
+        StopIteration: TypeAlias = StopIteration
         # type annotations
         Awaitable: TypeAlias = Union[T]
-        Iterable: TypeAlias = Iterable
-        Iterator: TypeAlias = Iterator
-        Generator: TypeAlias = Generator
+        Iterable: TypeAlias = typing.Iterable
+        Iterator: TypeAlias = typing.Iterator
+        Generator: TypeAlias = typing.Generator
 
         generated_replacements: dict[type, str] = {}
 
@@ -321,22 +318,15 @@ class CrossSync:
             pass
 
 
-from google.cloud.bigtable.data._sync import transformers
-
 if __name__ == "__main__":
-    import os
     import glob
-    import importlib
-    import inspect
-    import itertools
-    import black
-    import autoflake
+    from google.cloud.bigtable.data._sync import transformers
 
     # find all cross_sync decorated classes
     search_root = sys.argv[1]
     # cross_sync_classes = load_classes_from_dir(search_root)\
     files = glob.glob(search_root + "/**/*.py", recursive=True)
-    artifacts = set()
+    artifacts: set[transformers.CrossSyncFileArtifact] = set()
     for file in files:
         converter = transformers.CrossSyncClassParser(file)
         converter.convert_file(artifacts)

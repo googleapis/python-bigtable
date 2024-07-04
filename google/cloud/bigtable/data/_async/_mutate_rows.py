@@ -34,6 +34,9 @@ from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_L
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+if not CrossSync.is_async:
+    from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
+
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
@@ -50,17 +53,13 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class _EntryWithProto:
+class _EntryWithProto:  # noqa: F811
     """
     A dataclass to hold a RowMutationEntry and its corresponding proto representation.
     """
 
     entry: RowMutationEntry
     proto: types_pb.MutateRowsRequest.Entry
-
-
-if not CrossSync.is_async:
-    from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
 
 
 @CrossSync.sync_output(

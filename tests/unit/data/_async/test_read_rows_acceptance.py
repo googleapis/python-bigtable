@@ -28,10 +28,14 @@ from google.cloud.bigtable.data.row import Row
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+if not CrossSync.is_async:
+    from .._async.test_read_rows_acceptance import ReadRowsTest  # noqa: F401
+    from .._async.test_read_rows_acceptance import TestFile  # noqa: F401
+
 
 # TODO: autogenerate protos from
 #  https://github.com/googleapis/conformance-tests/blob/main/bigtable/v2/proto/google/cloud/conformance/bigtable/v2/tests.proto
-class ReadRowsTest(proto.Message):
+class ReadRowsTest(proto.Message):  # noqa: F811
     class Result(proto.Message):
         row_key = proto.Field(proto.STRING, number=1)
         family_name = proto.Field(proto.STRING, number=2)
@@ -48,14 +52,9 @@ class ReadRowsTest(proto.Message):
     results = proto.RepeatedField(proto.MESSAGE, number=3, message=Result)
 
 
-class TestFile(proto.Message):
+class TestFile(proto.Message):  # noqa: F811
     __test__ = False
     read_rows_tests = proto.RepeatedField(proto.MESSAGE, number=1, message=ReadRowsTest)
-
-
-if not CrossSync.is_async:
-    from .._async.test_read_rows_acceptance import ReadRowsTest
-    from .._async.test_read_rows_acceptance import TestFile
 
 
 @CrossSync.sync_output(

@@ -57,16 +57,23 @@ if CrossSync.is_async:
         BigtableDataClientAsync,
     )
 else:
-    from google.api_core import grpc_helpers
-    from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+    from google.api_core import grpc_helpers  # noqa: F401
+    from google.cloud.bigtable_v2.services.bigtable.client import (  # noqa: F401
+        BigtableClient,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (  # noqa: F401
         PooledBigtableGrpcTransport,
     )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (  # noqa: F401
         PooledChannel,
     )
-    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
-    from google.cloud.bigtable.data._sync.client import Table, BigtableDataClient
+    from google.cloud.bigtable.data._sync._read_rows import (  # noqa: F401
+        _ReadRowsOperation,
+    )
+    from google.cloud.bigtable.data._sync.client import (  # noqa: F401
+        Table,
+        BigtableDataClient,
+    )
 
 
 @CrossSync.sync_output(
@@ -468,7 +475,6 @@ class TestBigtableDataClientAsync:
         self, refresh_interval, wait_time, expected_sleep
     ):
         # first sleep time should be `refresh_interval` seconds after client init
-        import threading
         import time
 
         with mock.patch.object(time, "monotonic") as monotonic:
