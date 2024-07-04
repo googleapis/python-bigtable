@@ -18,7 +18,9 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 if CrossSync.is_async:
     from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 else:
-    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
+    from google.cloud.bigtable.data._sync._read_rows import (  # noqa: F401
+        _ReadRowsOperation,
+    )
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -43,7 +45,9 @@ class TestReadRowsOperationAsync:
     """
 
     @staticmethod
-    @CrossSync.convert(replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"})
+    @CrossSync.convert(
+        replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"}
+    )
     def _get_target_class():
         return _ReadRowsOperationAsync
 
@@ -328,7 +332,10 @@ class TestReadRowsOperationAsync:
         assert "emit count exceeds row limit" in str(e.value)
 
     @CrossSync.pytest
-    @CrossSync.convert(sync_name="test_close", replace_symbols={"aclose": "close", "__anext__": "__next__"})
+    @CrossSync.convert(
+        sync_name="test_close",
+        replace_symbols={"aclose": "close", "__anext__": "__next__"},
+    )
     async def test_aclose(self):
         """
         should be able to close a stream safely with aclose.

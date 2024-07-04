@@ -159,7 +159,10 @@ class Test_FlowControl:
 
         if CrossSync._Sync_Impl.is_async:
             task = asyncio.create_task(task_routine())
-            task_alive = lambda: not task.done()
+
+            def task_alive():
+                return not task.done()
+
         else:
             import threading
 
@@ -1089,7 +1092,7 @@ class TestMutationsBatcher:
                     table, batch_retryable_errors=input_retryables
                 ) as instance:
                     assert instance._retryable_errors == expected_retryables
-                    expected_predicate = lambda a: a in expected_retryables
+                    expected_predicate = expected_retryables.__contains__
                     predicate_builder_mock.return_value = expected_predicate
                     retry_fn_mock.side_effect = RuntimeError("stop early")
                     mutation = self._make_mutation(count=1, size=1)

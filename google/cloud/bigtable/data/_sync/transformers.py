@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 
 
 class SymbolReplacer(ast.NodeTransformer):
-    def __init__(self, replacements:dict[str, str]):
+    def __init__(self, replacements: dict[str, str]):
         self.replacements = replacements
 
     def visit_Name(self, node):
@@ -268,7 +268,11 @@ class CrossSyncClassParser(ast.NodeTransformer):
         return node
 
     def _transform_class(
-            self, cls_ast: ast.ClassDef, new_name: str, replace_symbols:dict[str, str]|None=None, **kwargs
+        self,
+        cls_ast: ast.ClassDef,
+        new_name: str,
+        replace_symbols: dict[str, str] | None = None,
+        **kwargs,
     ) -> ast.ClassDef:
         """
         Transform async class into sync one, by running through a series of transformers

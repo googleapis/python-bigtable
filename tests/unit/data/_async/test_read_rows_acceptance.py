@@ -34,7 +34,9 @@ if CrossSync.is_async:
 else:
     from .._async.test_read_rows_acceptance import ReadRowsTest  # noqa: F401
     from .._async.test_read_rows_acceptance import TestFile  # noqa: F401
-    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation  # noqa: F401
+    from google.cloud.bigtable.data._sync._read_rows import (  # noqa: F401
+        _ReadRowsOperation,
+    )
     from google.cloud.bigtable.data._sync.client import BigtableDataClient  # noqa: F401
 
 
@@ -67,12 +69,16 @@ class TestFile(proto.Message):  # noqa: F811
 )
 class TestReadRowsAcceptanceAsync:
     @staticmethod
-    @CrossSync.convert(replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"})
+    @CrossSync.convert(
+        replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"}
+    )
     def _get_operation_class():
         return _ReadRowsOperationAsync
 
     @staticmethod
-    @CrossSync.convert(replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"})
+    @CrossSync.convert(
+        replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"}
+    )
     def _get_client_class():
         return BigtableDataClientAsync
 

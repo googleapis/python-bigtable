@@ -29,8 +29,11 @@ if CrossSync.is_async:
         MutationsBatcherAsync,
     )
 else:
-    from google.cloud.bigtable.data._sync.client import Table
-    from google.cloud.bigtable.data._sync.mutations_batcher import _FlowControl, MutationsBatcher
+    from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
+    from google.cloud.bigtable.data._sync.mutations_batcher import (  # noqa: F401
+        _FlowControl,
+        MutationsBatcher,
+    )
 
 
 # try/except added for compatibility with python < 3.8
@@ -174,7 +177,10 @@ class Test_FlowControl:
         if CrossSync.is_async:
             # for async class, build task to test flow unlock
             task = asyncio.create_task(task_routine())
-            task_alive = lambda: not task.done()  # noqa
+
+            def task_alive():
+                return not task.done()
+
         else:
             # this branch will be tested in sync version of this test
             import threading
@@ -317,7 +323,6 @@ class Test_FlowControl:
     "tests.unit.data._sync.test_mutations_batcher.TestMutationsBatcher"
 )
 class TestMutationsBatcherAsync:
-
     @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
     def _get_target_class(self):
         return MutationsBatcherAsync
@@ -1016,14 +1021,18 @@ class TestMutationsBatcherAsync:
             instance._raise_exceptions()
 
     @CrossSync.pytest
-    @CrossSync.convert(sync_name="test___enter__", replace_symbols={"__aenter__": "__enter__"})
+    @CrossSync.convert(
+        sync_name="test___enter__", replace_symbols={"__aenter__": "__enter__"}
+    )
     async def test___aenter__(self):
         """Should return self"""
         async with self._make_one() as instance:
             assert await instance.__aenter__() == instance
 
     @CrossSync.pytest
-    @CrossSync.convert(sync_name="test___exit__", replace_symbols={"__aexit__": "__exit__"})
+    @CrossSync.convert(
+        sync_name="test___exit__", replace_symbols={"__aexit__": "__exit__"}
+    )
     async def test___aexit__(self):
         """aexit should call close"""
         async with self._make_one() as instance:
@@ -1226,7 +1235,7 @@ class TestMutationsBatcherAsync:
                     table, batch_retryable_errors=input_retryables
                 ) as instance:
                     assert instance._retryable_errors == expected_retryables
-                    expected_predicate = lambda a: a in expected_retryables  # noqa
+                    expected_predicate = expected_retryables.__contains__
                     predicate_builder_mock.return_value = expected_predicate
                     retry_fn_mock.side_effect = RuntimeError("stop early")
                     mutation = self._make_mutation(count=1, size=1)

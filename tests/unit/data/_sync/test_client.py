@@ -1130,7 +1130,7 @@ class TestTable:
         ) as retry_fn_mock:
             with self._make_client() as client:
                 table = client.get_table("instance-id", "table-id")
-                expected_predicate = lambda a: a in expected_retryables
+                expected_predicate = expected_retryables.__contains__
                 retry_fn_mock.side_effect = RuntimeError("stop early")
                 with mock.patch(
                     "google.api_core.retry.if_exception_type"
