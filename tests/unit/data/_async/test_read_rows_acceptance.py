@@ -52,9 +52,11 @@ class TestFile(proto.Message):
     __test__ = False
     read_rows_tests = proto.RepeatedField(proto.MESSAGE, number=1, message=ReadRowsTest)
 
+
 if not CrossSync.is_async:
     from .._async.test_read_rows_acceptance import ReadRowsTest
     from .._async.test_read_rows_acceptance import TestFile
+
 
 @CrossSync.sync_output(
     "tests.unit.data._sync.test_read_rows_acceptance.TestReadRowsAcceptance",

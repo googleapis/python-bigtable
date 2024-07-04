@@ -48,6 +48,7 @@ if TYPE_CHECKING:
             BigtableClient,
         )
 
+
 @dataclass
 class _EntryWithProto:
     """
@@ -56,6 +57,7 @@ class _EntryWithProto:
 
     entry: RowMutationEntry
     proto: types_pb.MutateRowsRequest.Entry
+
 
 if not CrossSync.is_async:
     from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
@@ -83,10 +85,12 @@ class _MutateRowsOperationAsync:
             If not specified, the request will run until operation_timeout is reached.
     """
 
-    @CrossSync.convert(replace_symbols={
-        "BigtableAsyncClient": "BigtableClient",
-        "TableAsync": "Table",
-    })
+    @CrossSync.convert(
+        replace_symbols={
+            "BigtableAsyncClient": "BigtableClient",
+            "TableAsync": "Table",
+        }
+    )
     def __init__(
         self,
         gapic_client: "BigtableAsyncClient",

@@ -32,9 +32,7 @@ except ImportError:  # pragma: NO COVER
     from mock import AsyncMock  # type: ignore
 
 
-@CrossSync.sync_output(
-    "tests.unit.data._sync.test_mutations_batcher.Test_FlowControl"
-)
+@CrossSync.sync_output("tests.unit.data._sync.test_mutations_batcher.Test_FlowControl")
 class Test_FlowControl:
     @staticmethod
     def _target_class():
@@ -310,6 +308,7 @@ class Test_FlowControl:
             out async for out in instance.add_to_flow(large_count_mutation)
         ]
         assert len(count_results) == 1
+
 
 @CrossSync.sync_output(
     "tests.unit.data._sync.test_mutations_batcher.TestMutationsBatcher"

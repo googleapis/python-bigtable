@@ -213,7 +213,9 @@ class MutationsBatcherAsync:
             Defaults to the Table's default_mutate_rows_retryable_errors.
     """
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table", "_FlowControlAsync": "_FlowControl"})
+    @CrossSync.convert(
+        replace_symbols={"TableAsync": "Table", "_FlowControlAsync": "_FlowControl"}
+    )
     def __init__(
         self,
         table: TableAsync,
@@ -358,7 +360,9 @@ class MutationsBatcherAsync:
         self._entries_processed_since_last_raise += len(new_entries)
         self._add_exceptions(found_exceptions)
 
-    @CrossSync.convert(replace_symbols={"_MutateRowsOperationAsync": "_MutateRowsOperation"})
+    @CrossSync.convert(
+        replace_symbols={"_MutateRowsOperationAsync": "_MutateRowsOperation"}
+    )
     async def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]
     ) -> list[FailedMutationEntryError]:

@@ -42,7 +42,9 @@ class TestMutateRowsOperation:
 
             return _MutateRowsOperationAsync
         else:
-            from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
+            from google.cloud.bigtable.data._sync._mutate_rows import (
+                _MutateRowsOperation,
+            )
 
             return _MutateRowsOperation
 
@@ -181,9 +183,7 @@ class TestMutateRowsOperation:
             await instance.start()
             assert attempt_mock.call_count == 1
 
-    @pytest.mark.parametrize(
-        "exc_type", [RuntimeError, ZeroDivisionError, Forbidden]
-    )
+    @pytest.mark.parametrize("exc_type", [RuntimeError, ZeroDivisionError, Forbidden])
     @CrossSync.pytest
     async def test_mutate_rows_attempt_exception(self, exc_type):
         """
@@ -209,9 +209,7 @@ class TestMutateRowsOperation:
         assert len(instance.errors) == 2
         assert len(instance.remaining_indices) == 0
 
-    @pytest.mark.parametrize(
-        "exc_type", [RuntimeError, ZeroDivisionError, Forbidden]
-    )
+    @pytest.mark.parametrize("exc_type", [RuntimeError, ZeroDivisionError, Forbidden])
     @CrossSync.pytest
     async def test_mutate_rows_exception(self, exc_type):
         """

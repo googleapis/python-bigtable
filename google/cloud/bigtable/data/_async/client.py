@@ -114,11 +114,13 @@ if TYPE_CHECKING:
     "google.cloud.bigtable.data._sync.client.BigtableDataClient",
 )
 class BigtableDataClientAsync(ClientWithProject):
-    @CrossSync.convert(replace_symbols={
-        "BigtableAsyncClient": "BigtableClient", 
-        "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
-        "AsyncPooledChannel": "PooledChannel",
-    })
+    @CrossSync.convert(
+        replace_symbols={
+            "BigtableAsyncClient": "BigtableClient",
+            "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
+            "AsyncPooledChannel": "PooledChannel",
+        }
+    )
     def __init__(
         self,
         *,
@@ -498,7 +500,9 @@ class TableAsync:
     each call
     """
 
-    @CrossSync.convert(replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"})
+    @CrossSync.convert(
+        replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"}
+    )
     def __init__(
         self,
         client: BigtableDataClientAsync,
@@ -619,7 +623,12 @@ class TableAsync:
                 f"{self.__class__.__name__} must be created within an async event loop context."
             ) from e
 
-    @CrossSync.convert(replace_symbols={"AsyncIterable": "Iterable", "_ReadRowsOperationAsync": "_ReadRowsOperation"})
+    @CrossSync.convert(
+        replace_symbols={
+            "AsyncIterable": "Iterable",
+            "_ReadRowsOperationAsync": "_ReadRowsOperation",
+        }
+    )
     async def read_rows_stream(
         self,
         query: ReadRowsQuery,
@@ -1113,7 +1122,9 @@ class TableAsync:
             exception_factory=_helpers._retry_exception_factory,
         )
 
-    @CrossSync.convert(replace_symbols={"_MutateRowsOperationAsync": "_MutateRowsOperation"})
+    @CrossSync.convert(
+        replace_symbols={"_MutateRowsOperationAsync": "_MutateRowsOperation"}
+    )
     async def bulk_mutate_rows(
         self,
         mutation_entries: list[RowMutationEntry],

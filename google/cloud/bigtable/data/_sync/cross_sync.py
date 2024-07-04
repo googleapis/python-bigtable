@@ -14,7 +14,22 @@
 #
 from __future__ import annotations
 
-from typing import TypeVar, Any, Awaitable, Callable, Coroutine, Sequence, Union, AsyncIterable, AsyncIterator, AsyncGenerator, Iterable, Iterator, Generator, TYPE_CHECKING
+from typing import (
+    TypeVar,
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Sequence,
+    Union,
+    AsyncIterable,
+    AsyncIterator,
+    AsyncGenerator,
+    Iterable,
+    Iterator,
+    Generator,
+    TYPE_CHECKING,
+)
 
 import asyncio
 import sys
@@ -53,7 +68,9 @@ class CrossSync:
     generated_replacements: dict[type, str] = {}
 
     @staticmethod
-    def convert(*, sync_name: str|None=None, replace_symbols: dict[str, str]|None=None):
+    def convert(
+        *, sync_name: str | None = None, replace_symbols: dict[str, str] | None = None
+    ):
         def decorator(func):
             return func
 
@@ -76,18 +93,20 @@ class CrossSync:
         cls,
         sync_path: str,
         *,
-        replace_symbols: dict["str", "str" | None ] | None = None,
+        replace_symbols: dict["str", "str" | None] | None = None,
         mypy_ignore: list[str] | None = None,
         include_file_imports: bool = False,
     ):
         # return the async class unchanged
         def decorator(async_cls):
             return async_cls
+
         return decorator
 
     @staticmethod
     def pytest(func):
         import pytest
+
         return pytest.mark.asyncio(func)
 
     @staticmethod
@@ -301,6 +320,7 @@ class CrossSync:
         def yield_to_event_loop() -> None:
             pass
 
+
 from google.cloud.bigtable.data._sync import transformers
 
 if __name__ == "__main__":
@@ -311,6 +331,7 @@ if __name__ == "__main__":
     import itertools
     import black
     import autoflake
+
     # find all cross_sync decorated classes
     search_root = sys.argv[1]
     # cross_sync_classes = load_classes_from_dir(search_root)\

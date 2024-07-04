@@ -49,8 +49,10 @@ class _ResetRow(Exception):
     def __init__(self, chunk):
         self.chunk = chunk
 
+
 if not CrossSync.is_async:
     from google.cloud.bigtable.data._async._read_rows import _ResetRow
+
 
 @CrossSync.sync_output(
     "google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
@@ -219,7 +221,9 @@ class _ReadRowsOperationAsync:
                     current_key = None
 
     @staticmethod
-    @CrossSync.convert(replace_symbols={"__aiter__": "__iter__", "__anext__": "__next__"})
+    @CrossSync.convert(
+        replace_symbols={"__aiter__": "__iter__", "__anext__": "__next__"}
+    )
     async def merge_rows(
         chunks: CrossSync.Iterable[ReadRowsResponsePB.CellChunk] | None,
     ) -> CrossSync.Iterable[Row]:
