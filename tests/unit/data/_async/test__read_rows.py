@@ -15,13 +15,16 @@ import pytest
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+if CrossSync.is_async:
+    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+else:
+    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
+
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock  # type: ignore
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
-    from mock import AsyncMock  # type: ignore # noqa F401
 
 TEST_FAMILY = "family_name"
 TEST_QUALIFIER = b"qualifier"
@@ -32,7 +35,7 @@ TEST_LABELS = ["label1", "label2"]
 @CrossSync.sync_output(
     "tests.unit.data._sync.test__read_rows.TestReadRowsOperation",
 )
-class TestReadRowsOperation:
+class TestReadRowsOperationAsync:
     """
     Tests helper functions in the ReadRowsOperation class
     in-depth merging logic in merge_row_response_stream and _read_rows_retryable_attempt
@@ -40,9 +43,8 @@ class TestReadRowsOperation:
     """
 
     @staticmethod
+    @CrossSync.convert(replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"})
     def _get_target_class():
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-
         return _ReadRowsOperationAsync
 
     def _make_one(self, *args, **kwargs):
@@ -326,6 +328,7 @@ class TestReadRowsOperation:
         assert "emit count exceeds row limit" in str(e.value)
 
     @CrossSync.pytest
+    @CrossSync.convert(sync_name="test_close", replace_symbols={"aclose": "close", "__anext__": "__next__"})
     async def test_aclose(self):
         """
         should be able to close a stream safely with aclose.
@@ -346,15 +349,16 @@ class TestReadRowsOperation:
             # read one row
             await gen.__anext__()
             await gen.aclose()
-            with pytest.raises(StopAsyncIteration):
+            with pytest.raises(CrossSync.StopIteration):
                 await gen.__anext__()
             # try calling a second time
             await gen.aclose()
             # ensure close was propagated to wrapped generator
-            with pytest.raises(StopAsyncIteration):
+            with pytest.raises(CrossSync.StopIteration):
                 await wrapped_gen.__anext__()
 
     @CrossSync.pytest
+    @CrossSync.convert(replace_symbols={"__anext__": "__next__"})
     async def test_retryable_ignore_repeated_rows(self):
         """
         Duplicate rows should cause an invalid chunk error

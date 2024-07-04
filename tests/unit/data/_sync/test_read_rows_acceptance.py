@@ -24,23 +24,23 @@ from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.row import Row
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
-if not CrossSync._Sync_Impl.is_async:
+if CrossSync._Sync_Impl.is_async:
+    pass
+else:
     from .._async.test_read_rows_acceptance import ReadRowsTest
     from .._async.test_read_rows_acceptance import TestFile
+    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
+    from google.cloud.bigtable.data._sync.client import BigtableDataClient
 
 
 class TestReadRowsAcceptance:
     @staticmethod
     def _get_operation_class():
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-
-        return _ReadRowsOperationAsync
+        return _ReadRowsOperation
 
     @staticmethod
     def _get_client_class():
-        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
-
-        return BigtableDataClientAsync
+        return BigtableDataClient
 
     def parse_readrows_acceptance_tests():
         dirname = os.path.dirname(__file__)
@@ -134,12 +134,18 @@ class TestReadRowsAcceptance:
                 def __aiter__(self):
                     return self
 
+                def __iter__(self):
+                    return self
+
                 def __anext__(self):
                     self.idx += 1
                     if len(self.chunk_list) > self.idx:
                         chunk = self.chunk_list[self.idx]
                         return ReadRowsResponse(chunks=[chunk])
-                    raise StopAsyncIteration
+                    raise CrossSync._Sync_Impl.StopIteration
+
+                def __next__(self):
+                    return self.__anext__()
 
                 def cancel(self):
                     pass

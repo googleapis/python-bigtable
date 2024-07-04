@@ -19,27 +19,32 @@ import google.api_core.exceptions as core_exceptions
 import google.api_core.retry
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data import TABLE_DEFAULT
-from google.cloud.bigtable.data import TableAsync
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+
+if CrossSync.is_async:
+    from google.cloud.bigtable.data._async.client import TableAsync
+    from google.cloud.bigtable.data._async.mutations_batcher import (
+        _FlowControlAsync,
+        MutationsBatcherAsync,
+    )
+else:
+    from google.cloud.bigtable.data._sync.client import Table
+    from google.cloud.bigtable.data._sync.mutations_batcher import _FlowControl, MutationsBatcher
+
 
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
-    from mock import AsyncMock  # type: ignore
 
 
 @CrossSync.sync_output("tests.unit.data._sync.test_mutations_batcher.Test_FlowControl")
 class Test_FlowControl:
     @staticmethod
+    @CrossSync.convert(replace_symbols={"_FlowControlAsync": "_FlowControl"})
     def _target_class():
-        from google.cloud.bigtable.data._async.mutations_batcher import (
-            _FlowControlAsync,
-        )
-
         return _FlowControlAsync
 
     def _make_one(self, max_mutation_count=10, max_mutation_bytes=100):
@@ -60,7 +65,7 @@ class Test_FlowControl:
         assert instance._max_mutation_bytes == max_mutation_bytes
         assert instance._in_flight_mutation_count == 0
         assert instance._in_flight_mutation_bytes == 0
-        assert isinstance(instance._capacity_condition, asyncio.Condition)
+        assert isinstance(instance._capacity_condition, CrossSync.Condition)
 
     def test_ctor_invalid_values(self):
         """Test that values are positive, and fit within expected limits"""
@@ -156,8 +161,6 @@ class Test_FlowControl:
     @CrossSync.pytest
     async def test__remove_from_flow_unlock(self):
         """capacity condition should notify after mutation is complete"""
-        import inspect
-
         instance = self._make_one(10, 10)
         instance._in_flight_mutation_count = 10
         instance._in_flight_mutation_bytes = 10
@@ -168,7 +171,7 @@ class Test_FlowControl:
                     lambda: instance._has_capacity(1, 1)
                 )
 
-        if inspect.iscoroutinefunction(task_routine):
+        if CrossSync.is_async:
             # for async class, build task to test flow unlock
             task = asyncio.create_task(task_routine())
             task_alive = lambda: not task.done()  # noqa
@@ -179,14 +182,14 @@ class Test_FlowControl:
             thread = threading.Thread(target=task_routine)
             thread.start()
             task_alive = thread.is_alive
-        await asyncio.sleep(0.05)
+        await CrossSync.sleep(0.05)
         # should be blocked due to capacity
         assert task_alive() is True
         # try changing size
         mutation = self._make_mutation(count=0, size=5)
 
         await instance.remove_from_flow([mutation])
-        await asyncio.sleep(0.05)
+        await CrossSync.sleep(0.05)
         assert instance._in_flight_mutation_count == 10
         assert instance._in_flight_mutation_bytes == 5
         assert task_alive() is True
@@ -194,7 +197,7 @@ class Test_FlowControl:
         instance._in_flight_mutation_bytes = 10
         mutation = self._make_mutation(count=5, size=0)
         await instance.remove_from_flow([mutation])
-        await asyncio.sleep(0.05)
+        await CrossSync.sleep(0.05)
         assert instance._in_flight_mutation_count == 5
         assert instance._in_flight_mutation_bytes == 10
         assert task_alive() is True
@@ -202,7 +205,7 @@ class Test_FlowControl:
         instance._in_flight_mutation_count = 10
         mutation = self._make_mutation(count=5, size=5)
         await instance.remove_from_flow([mutation])
-        await asyncio.sleep(0.05)
+        await CrossSync.sleep(0.05)
         assert instance._in_flight_mutation_count == 5
         assert instance._in_flight_mutation_bytes == 5
         # task should be complete
@@ -270,7 +273,7 @@ class Test_FlowControl:
             max_limit,
         )
         sync_patch = mock.patch(
-            "google.cloud.bigtable.data.mutations._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
+            "google.cloud.bigtable.data._sync.mutations_batcher._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
             max_limit,
         )
         with async_patch, sync_patch:
@@ -314,17 +317,10 @@ class Test_FlowControl:
     "tests.unit.data._sync.test_mutations_batcher.TestMutationsBatcher"
 )
 class TestMutationsBatcherAsync:
+
+    @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
     def _get_target_class(self):
-        from google.cloud.bigtable.data._async.mutations_batcher import (
-            MutationsBatcherAsync,
-        )
-
         return MutationsBatcherAsync
-
-    @staticmethod
-    def is_async():
-        # helepr function for changing tests between sync and async versions
-        return True
 
     def _make_one(self, table=None, **kwargs):
         from google.api_core.exceptions import DeadlineExceeded
@@ -351,7 +347,7 @@ class TestMutationsBatcherAsync:
     @CrossSync.pytest
     async def test_ctor_defaults(self):
         with mock.patch.object(
-            self._get_target_class(), "_timer_routine", return_value=asyncio.Future()
+            self._get_target_class(), "_timer_routine", return_value=CrossSync.Future()
         ) as flush_timer_mock:
             table = mock.Mock()
             table.default_mutate_rows_operation_timeout = 10
@@ -383,16 +379,16 @@ class TestMutationsBatcherAsync:
                     instance._retryable_errors
                     == table.default_mutate_rows_retryable_errors
                 )
-                await asyncio.sleep(0)
+                await CrossSync.yield_to_event_loop()
                 assert flush_timer_mock.call_count == 1
                 assert flush_timer_mock.call_args[0][0] == 5
-                assert isinstance(instance._flush_timer, asyncio.Future)
+                assert isinstance(instance._flush_timer, CrossSync.Future)
 
     @CrossSync.pytest
     async def test_ctor_explicit(self):
         """Test with explicit parameters"""
         with mock.patch.object(
-            self._get_target_class(), "_timer_routine", return_value=asyncio.Future()
+            self._get_target_class(), "_timer_routine", return_value=CrossSync.Future()
         ) as flush_timer_mock:
             table = mock.Mock()
             flush_interval = 20
@@ -435,16 +431,16 @@ class TestMutationsBatcherAsync:
                 assert instance._operation_timeout == operation_timeout
                 assert instance._attempt_timeout == attempt_timeout
                 assert instance._retryable_errors == retryable_errors
-                await asyncio.sleep(0)
+                await CrossSync.yield_to_event_loop()
                 assert flush_timer_mock.call_count == 1
                 assert flush_timer_mock.call_args[0][0] == flush_interval
-                assert isinstance(instance._flush_timer, asyncio.Future)
+                assert isinstance(instance._flush_timer, CrossSync.Future)
 
     @CrossSync.pytest
     async def test_ctor_no_flush_limits(self):
         """Test with None for flush limits"""
         with mock.patch.object(
-            self._get_target_class(), "_timer_routine", return_value=asyncio.Future()
+            self._get_target_class(), "_timer_routine", return_value=CrossSync.Future()
         ) as flush_timer_mock:
             table = mock.Mock()
             table.default_mutate_rows_operation_timeout = 10
@@ -469,10 +465,10 @@ class TestMutationsBatcherAsync:
                 assert instance._flow_control._in_flight_mutation_count == 0
                 assert instance._flow_control._in_flight_mutation_bytes == 0
                 assert instance._entries_processed_since_last_raise == 0
-                await asyncio.sleep(0)
+                await CrossSync.yield_to_event_loop()
                 assert flush_timer_mock.call_count == 1
                 assert flush_timer_mock.call_args[0][0] is None
-                assert isinstance(instance._flush_timer, asyncio.Future)
+                assert isinstance(instance._flush_timer, CrossSync.Future)
 
     @CrossSync.pytest
     async def test_ctor_invalid_values(self):
@@ -484,6 +480,7 @@ class TestMutationsBatcherAsync:
             self._make_one(batch_attempt_timeout=-1)
         assert "attempt_timeout must be greater than 0" in str(e.value)
 
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     def test_default_argument_consistency(self):
         """
         We supply default arguments in MutationsBatcherAsync.__init__, and in
@@ -521,7 +518,7 @@ class TestMutationsBatcherAsync:
         ) as flush_mock:
             # mock different method depending on sync vs async
             async with self._make_one() as instance:
-                if self.is_async():
+                if CrossSync.is_async:
                     sleep_obj, sleep_method = asyncio, "wait_for"
                 else:
                     sleep_obj, sleep_method = instance._closed, "wait"
@@ -544,7 +541,7 @@ class TestMutationsBatcherAsync:
                 await instance.close()
                 flush_mock.reset_mock()
                 # mock different method depending on sync vs async
-                if self.is_async():
+                if CrossSync.is_async:
                     sleep_obj, sleep_method = asyncio, "wait_for"
                 else:
                     sleep_obj, sleep_method = instance._closed, "wait"
@@ -573,8 +570,9 @@ class TestMutationsBatcherAsync:
                         await self._get_target_class()._timer_routine(
                             instance, expected_sleep
                         )
-                    # replace with np-op so there are no issues on close
-                    instance._flush_timer = asyncio.Future()
+                    if CrossSync.is_async:
+                        # replace with np-op so there are no issues on close
+                        instance._flush_timer = CrossSync.Future()
                     assert sleep_mock.call_count == loop_num + 1
                     sleep_kwargs = sleep_mock.call_args[1]
                     assert sleep_kwargs["timeout"] == expected_sleep
@@ -585,15 +583,12 @@ class TestMutationsBatcherAsync:
         """Timer should continue terminate after close"""
         with mock.patch.object(self._get_target_class(), "_schedule_flush"):
             async with self._make_one() as instance:
-                with mock.patch("asyncio.sleep"):
-                    # let task run in background
-                    await asyncio.sleep(0.5)
-                    assert instance._flush_timer.done() is False
-                    # close the batcher
-                    await instance.close()
-                    await asyncio.sleep(0.1)
-                    # task should be complete
-                    assert instance._flush_timer.done() is True
+                # let task run in background
+                assert instance._flush_timer.done() is False
+                # close the batcher
+                await instance.close()
+                # task should be complete
+                assert instance._flush_timer.done() is True
 
     @CrossSync.pytest
     async def test_append_closed(self):
@@ -741,11 +736,11 @@ class TestMutationsBatcherAsync:
         fake_mutations = [self._make_mutation(count=1) for _ in range(num_calls)]
         async with self._make_one(flow_control_max_mutation_count=1) as instance:
             with mock.patch.object(
-                instance, "_execute_mutate_rows", AsyncMock()
+                instance, "_execute_mutate_rows", CrossSync.Mock()
             ) as op_mock:
                 # mock network calls
                 async def mock_call(*args, **kwargs):
-                    await asyncio.sleep(0.1)
+                    await CrossSync.sleep(0.1)
                     return []
 
                 op_mock.side_effect = mock_call
@@ -753,13 +748,13 @@ class TestMutationsBatcherAsync:
                 # flush one large batch, that will be broken up into smaller batches
                 instance._staged_entries = fake_mutations
                 instance._schedule_flush()
-                await asyncio.sleep(0.01)
+                await CrossSync.sleep(0.01)
                 # make room for new mutations
                 for i in range(num_calls):
                     await instance._flow_control.remove_from_flow(
                         [self._make_mutation(count=1)]
                     )
-                    await asyncio.sleep(0.01)
+                    await CrossSync.sleep(0.01)
                 # allow flushes to complete
                 await instance._wait_for_batch_results(*instance._flush_jobs)
                 duration = time.monotonic() - start_time
@@ -784,7 +779,7 @@ class TestMutationsBatcherAsync:
         """if new mutations exist, should add a new flush task to _flush_jobs"""
         async with self._make_one() as instance:
             with mock.patch.object(instance, "_flush_internal") as flush_mock:
-                if not self.is_async():
+                if not CrossSync.is_async:
                     # simulate operation
                     flush_mock.side_effect = lambda x: time.sleep(0.1)
                 for i in range(1, 4):
@@ -836,9 +831,9 @@ class TestMutationsBatcherAsync:
         """
         async with self._make_one() as instance:
             with mock.patch.object(
-                instance, "_flush_internal", AsyncMock()
+                instance, "_flush_internal", CrossSync.Mock()
             ) as flush_mock:
-                if not self.is_async():
+                if not CrossSync.is_async:
                     # simulate operation
                     flush_mock.side_effect = lambda x: time.sleep(0.1)
                 mutations = [self._make_mutation(count=1, size=1)]
@@ -846,7 +841,7 @@ class TestMutationsBatcherAsync:
                 assert instance._flush_jobs == set()
                 new_job = instance._schedule_flush()
                 assert instance._flush_jobs == {new_job}
-                if self.is_async():
+                if CrossSync.is_async:
                     await new_job
                 else:
                     new_job.result()
@@ -922,8 +917,8 @@ class TestMutationsBatcherAsync:
     @CrossSync.pytest
     async def test_timer_flush_end_to_end(self):
         """Flush should automatically trigger after flush_interval"""
-        num_nutations = 10
-        mutations = [self._make_mutation(count=2, size=2)] * num_nutations
+        num_mutations = 10
+        mutations = [self._make_mutation(count=2, size=2)] * num_mutations
 
         async with self._make_one(flush_interval=0.05) as instance:
             instance._table.default_operation_timeout = 10
@@ -932,23 +927,23 @@ class TestMutationsBatcherAsync:
                 instance._table.client._gapic_client, "mutate_rows"
             ) as gapic_mock:
                 gapic_mock.side_effect = (
-                    lambda *args, **kwargs: self._mock_gapic_return(num_nutations)
+                    lambda *args, **kwargs: self._mock_gapic_return(num_mutations)
                 )
                 for m in mutations:
                     await instance.append(m)
                 assert instance._entries_processed_since_last_raise == 0
                 # let flush trigger due to timer
-                await asyncio.sleep(0.1)
-                assert instance._entries_processed_since_last_raise == num_nutations
+                await CrossSync.sleep(0.1)
+                assert instance._entries_processed_since_last_raise == num_mutations
 
     @CrossSync.pytest
     async def test__execute_mutate_rows(self):
-        if self.is_async():
+        if CrossSync.is_async:
             mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
         else:
-            mutate_path = "_sync._mutate_rows._MutateRowsOperation"
+            mutate_path = "_sync.mutations_batcher._MutateRowsOperation"
         with mock.patch(f"google.cloud.bigtable.data.{mutate_path}") as mutate_rows:
-            mutate_rows.return_value = AsyncMock()
+            mutate_rows.return_value = CrossSync.Mock()
             start_operation = mutate_rows().start
             table = mock.Mock()
             table.table_name = "test-table"
@@ -976,10 +971,10 @@ class TestMutationsBatcherAsync:
             FailedMutationEntryError,
         )
 
-        if self.is_async():
+        if CrossSync.is_async:
             mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
         else:
-            mutate_path = "_sync._mutate_rows._MutateRowsOperation"
+            mutate_path = "_sync.mutations_batcher._MutateRowsOperation"
         with mock.patch(
             f"google.cloud.bigtable.data.{mutate_path}.start"
         ) as mutate_rows:
@@ -1021,12 +1016,14 @@ class TestMutationsBatcherAsync:
             instance._raise_exceptions()
 
     @CrossSync.pytest
+    @CrossSync.convert(sync_name="test___enter__", replace_symbols={"__aenter__": "__enter__"})
     async def test___aenter__(self):
         """Should return self"""
         async with self._make_one() as instance:
             assert await instance.__aenter__() == instance
 
     @CrossSync.pytest
+    @CrossSync.convert(sync_name="test___exit__", replace_symbols={"__aexit__": "__exit__"})
     async def test___aexit__(self):
         """aexit should call close"""
         async with self._make_one() as instance:
@@ -1104,12 +1101,12 @@ class TestMutationsBatcherAsync:
         batch_operation_timeout and batch_attempt_timeout should be used
         in api calls
         """
-        if self.is_async():
+        if CrossSync.is_async:
             mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
         else:
-            mutate_path = "_sync._mutate_rows._MutateRowsOperation"
+            mutate_path = "_sync.mutations_batcher._MutateRowsOperation"
         with mock.patch(
-            f"google.cloud.bigtable.data.{mutate_path}", return_value=AsyncMock()
+            f"google.cloud.bigtable.data.{mutate_path}", return_value=CrossSync.Mock()
         ) as mutate_rows:
             expected_operation_timeout = 17
             expected_attempt_timeout = 13
@@ -1210,6 +1207,7 @@ class TestMutationsBatcherAsync:
             ([4], [core_exceptions.DeadlineExceeded]),
         ],
     )
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     async def test_customizable_retryable_errors(
         self, input_retryables, expected_retryables
     ):
@@ -1217,15 +1215,10 @@ class TestMutationsBatcherAsync:
         Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
         down to the gapic layer.
         """
-        retryn_fn = (
-            "google.cloud.bigtable.data._sync.cross_sync.CrossSync.retry_target"
-            if "Async" in self._get_target_class().__name__
-            else "google.api_core.retry.retry_target"
-        )
         with mock.patch.object(
             google.api_core.retry, "if_exception_type"
         ) as predicate_builder_mock:
-            with mock.patch(retryn_fn) as retry_fn_mock:
+            with mock.patch.object(CrossSync, "retry_target") as retry_fn_mock:
                 table = None
                 with mock.patch("asyncio.create_task"):
                     table = TableAsync(mock.Mock(), "instance", "table")

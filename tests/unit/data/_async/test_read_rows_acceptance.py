@@ -28,9 +28,14 @@ from google.cloud.bigtable.data.row import Row
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
-if not CrossSync.is_async:
+if CrossSync.is_async:
+    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+    from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
+else:
     from .._async.test_read_rows_acceptance import ReadRowsTest  # noqa: F401
     from .._async.test_read_rows_acceptance import TestFile  # noqa: F401
+    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation  # noqa: F401
+    from google.cloud.bigtable.data._sync.client import BigtableDataClient  # noqa: F401
 
 
 # TODO: autogenerate protos from
@@ -62,15 +67,13 @@ class TestFile(proto.Message):  # noqa: F811
 )
 class TestReadRowsAcceptanceAsync:
     @staticmethod
+    @CrossSync.convert(replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"})
     def _get_operation_class():
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-
         return _ReadRowsOperationAsync
 
     @staticmethod
+    @CrossSync.convert(replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"})
     def _get_client_class():
-        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
-
         return BigtableDataClientAsync
 
     def parse_readrows_acceptance_tests():
@@ -168,12 +171,18 @@ class TestReadRowsAcceptanceAsync:
                 def __aiter__(self):
                     return self
 
+                def __iter__(self):
+                    return self
+
                 async def __anext__(self):
                     self.idx += 1
                     if len(self.chunk_list) > self.idx:
                         chunk = self.chunk_list[self.idx]
                         return ReadRowsResponse(chunks=[chunk])
-                    raise StopAsyncIteration
+                    raise CrossSync.StopIteration
+
+                def __next__(self):
+                    return self.__anext__()
 
                 def cancel(self):
                     pass
