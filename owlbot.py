@@ -212,6 +212,10 @@ def mypy(session):
         "tests/unit/v2_client",
     )
 
+@nox.session(python=DEFAULT_PYTHON_VERSION)
+def lint_setup_py(session):
+''',
+)
 
 # add customization to docfx
 docfx_postprocess = """
@@ -226,12 +230,6 @@ place_before(
     "def prerelease_deps(session):",
     docfx_postprocess,
     escape="()"
-)
-
-
-@nox.session(python=DEFAULT_PYTHON_VERSION)
-def lint_setup_py(session):
-''',
 )
 
 
