@@ -23,7 +23,7 @@ from google.api_core.exceptions import from_grpc_status
 from dataclasses import dataclass
 
 
-FLUSH_COUNT = 100  # after this many elements, send out the batch
+FLUSH_COUNT = 1000  # after this many elements, send out the batch
 
 MAX_MUTATION_SIZE = 20 * 1024 * 1024  # 20MB # after this many bytes, send out the batch
 
