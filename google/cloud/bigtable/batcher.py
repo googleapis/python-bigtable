@@ -25,7 +25,7 @@ from dataclasses import dataclass
 
 FLUSH_COUNT = 1000  # after this many elements, send out the batch
 
-MAX_MUTATION_SIZE = 20 * 1024 * 1024  # 20MB # after this many bytes, send out the batch
+MAX_MUTATION_SIZE = 5 * 1024 * 1024  # 5MB # after this many bytes, send out the batch
 
 MAX_OUTSTANDING_BYTES = 100 * 1024 * 1024  # 100MB # max inflight byte size.
 
