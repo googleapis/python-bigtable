@@ -199,9 +199,7 @@ class BigtableDataClient(ClientWithProject):
                 )
 
     def close(self, timeout: float | None = None):
-        """
-        Cancel all background tasks
-        """
+        """Cancel all background tasks"""
         self._is_closed.set()
         for task in self._channel_refresh_tasks:
             task.cancel()
@@ -213,8 +211,7 @@ class BigtableDataClient(ClientWithProject):
     def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None
     ) -> list[BaseException | None]:
-        """
-        Prepares the backend for requests on a channel
+        """Prepares the backend for requests on a channel
 
         Pings each Bigtable instance registered in `_active_instances` on the client
 
@@ -257,8 +254,7 @@ class BigtableDataClient(ClientWithProject):
         refresh_interval_max: float = 60 * 45,
         grace_period: float = 60 * 10,
     ) -> None:
-        """
-        Background coroutine that periodically refreshes and warms a grpc channel
+        """Background coroutine that periodically refreshes and warms a grpc channel
 
         The backend will automatically close channels after 60 minutes, so
         `refresh_interval` + `grace_period` should be < 60 minutes
@@ -274,8 +270,7 @@ class BigtableDataClient(ClientWithProject):
                 process in seconds. Actual interval will be a random value
                 between `refresh_interval_min` and `refresh_interval_max`
             grace_period: time to allow previous channel to serve existing
-                requests before closing, in seconds
-        """
+                requests before closing, in seconds"""
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
@@ -579,8 +574,7 @@ class Table:
         retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> list[Row]:
-        """
-        Read a set of rows from the table, based on the specified query.
+        """Read a set of rows from the table, based on the specified query.
         Retruns results as a list of Row objects when the request is complete.
         For streamed results, use read_rows_stream.
 
@@ -627,8 +621,7 @@ class Table:
         retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> Row | None:
-        """
-        Read a single row from the table, based on the specified key.
+        """Read a single row from the table, based on the specified key.
 
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
@@ -675,8 +668,7 @@ class Table:
         retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> list[Row]:
-        """
-        Runs a sharded query in parallel, then return the results in a single list.
+        """Runs a sharded query in parallel, then return the results in a single list.
         Results will be returned in the order of the input queries.
 
         This function is intended to be run on the results on a query.shard() call.
@@ -703,8 +695,7 @@ class Table:
             list[Row]: a list of Rows returned by the query
         Raises:
             ShardedReadRowsExceptionGroup: if any of the queries failed
-            ValueError: if the query_list is empty
-        """
+            ValueError: if the query_list is empty"""
         if not sharded_query:
             raise ValueError("empty sharded_query")
         operation_timeout, attempt_timeout = _helpers._get_timeouts(
@@ -766,8 +757,7 @@ class Table:
         retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> bool:
-        """
-        Return a boolean indicating whether the specified row exists in the table.
+        """Return a boolean indicating whether the specified row exists in the table.
         uses the filters: chain(limit cells per row = 1, strip value)
 
         Args:
@@ -812,8 +802,7 @@ class Table:
         retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
     ) -> RowKeySamples:
-        """
-        Return a set of RowKeySamples that delimit contiguous sections of the table of
+        """Return a set of RowKeySamples that delimit contiguous sections of the table of
         approximately equal size
 
         RowKeySamples output can be used with ReadRowsQuery.shard() to create a sharded query that
@@ -929,8 +918,7 @@ class Table:
         retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
     ):
-        """
-        Mutates a row atomically.
+        """Mutates a row atomically.
 
         Cells already present in the row are left unchanged unless explicitly changed
         by ``mutation``.
@@ -958,8 +946,7 @@ class Table:
                 GoogleAPIError exceptions from any retries that failed
             google.api_core.exceptions.GoogleAPIError: raised on non-idempotent operations that cannot be
                 safely retried.
-            ValueError: if invalid arguments are provided
-        """
+            ValueError: if invalid arguments are provided"""
         operation_timeout, attempt_timeout = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
@@ -1052,8 +1039,7 @@ class Table:
         false_case_mutations: Mutation | list[Mutation] | None = None,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
     ) -> bool:
-        """
-        Mutates a row atomically based on the output of a predicate filter
+        """Mutates a row atomically based on the output of a predicate filter
 
         Non-idempotent operation: will not be retried
 
@@ -1082,8 +1068,7 @@ class Table:
         Returns:
             bool indicating whether the predicate was true or false
         Raises:
-            google.api_core.exceptions.GoogleAPIError: exceptions from grpc call
-        """
+            google.api_core.exceptions.GoogleAPIError: exceptions from grpc call"""
         operation_timeout, _ = _helpers._get_timeouts(operation_timeout, None, self)
         if true_case_mutations is not None and (
             not isinstance(true_case_mutations, list)
@@ -1116,8 +1101,7 @@ class Table:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
     ) -> Row:
-        """
-        Reads and modifies a row atomically according to input ReadModifyWriteRules,
+        """Reads and modifies a row atomically according to input ReadModifyWriteRules,
         and returns the contents of all modified cells
 
         The new value for the timestamp is the greater of the existing timestamp or
@@ -1137,8 +1121,7 @@ class Table:
             Row: a Row containing cell data that was modified as part of the operation
         Raises:
             google.api_core.exceptions.GoogleAPIError: exceptions from grpc call
-            ValueError: if invalid arguments are provided
-        """
+            ValueError: if invalid arguments are provided"""
         operation_timeout, _ = _helpers._get_timeouts(operation_timeout, None, self)
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
@@ -1159,29 +1142,23 @@ class Table:
         return Row._from_pb(result.row)
 
     def close(self):
-        """
-        Called to close the Table instance and release any resources held by it.
-        """
+        """Called to close the Table instance and release any resources held by it."""
         if self._register_instance_future:
             self._register_instance_future.cancel()
         self.client._remove_instance_registration(self.instance_id, self)
 
     def __enter__(self):
-        """
-        Implement async context manager protocol
+        """Implement async context manager protocol
 
         Ensure registration task has time to run, so that
-        grpc channels will be warmed for the specified instance
-        """
+        grpc channels will be warmed for the specified instance"""
         if self._register_instance_future:
             self._register_instance_future
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """
-        Implement async context manager protocol
+        """Implement async context manager protocol
 
         Unregister this instance with the client, so that
-        grpc channels will no longer be warmed
-        """
+        grpc channels will no longer be warmed"""
         self.close()

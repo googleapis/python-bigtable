@@ -19,6 +19,11 @@ from dataclasses import dataclass, field
 
 
 class SymbolReplacer(ast.NodeTransformer):
+    """
+    Replaces all instances of a symbol in an AST with a replacement
+
+    Works for function signatures, method calls, docstrings, and type annotations
+    """
     def __init__(self, replacements: dict[str, str]):
         self.replacements = replacements
 
@@ -37,36 +42,46 @@ class SymbolReplacer(ast.NodeTransformer):
             node,
         )
 
-    def update_docstring(self, docstring):
+    def visit_AsyncFunctionDef(self, node):
         """
-        Update docstring to replace any key words in the replacements dict
+        Replace async function docstrings
         """
-        if not docstring:
-            return docstring
-        for key_word, replacement in self.replacements.items():
-            docstring = docstring.replace(f" {key_word} ", f" {replacement} ")
-        return docstring
+        # use same logic as FunctionDef
+        return self.visit_FunctionDef(node)
 
     def visit_FunctionDef(self, node):
-        # replace docstring
-        docstring = self.update_docstring(ast.get_docstring(node))
-        if isinstance(node.body[0], ast.Expr) and isinstance(
+        """
+        Replace function docstrings
+        """
+        docstring = ast.get_docstring(node)
+        if docstring and isinstance(node.body[0], ast.Expr) and isinstance(
             node.body[0].value, ast.Str
         ):
+            for key_word, replacement in self.replacements.items():
+                docstring = docstring.replace(f" {key_word} ", f" {replacement} ")
             node.body[0].value.s = docstring
         return self.generic_visit(node)
 
     def visit_Str(self, node):
-        """Used to replace string type annotations"""
+        """Replace string type annotations"""
         node.s = self.replacements.get(node.s, node.s)
         return node
 
 
 class AsyncToSync(ast.NodeTransformer):
+    """
+    Replaces or strips all async keywords from a given AST
+    """
     def visit_Await(self, node):
+        """
+        Strips await keyword
+        """
         return self.visit(node.value)
 
     def visit_AsyncFor(self, node):
+        """
+        Replaces `async for` with `for`
+        """
         return ast.copy_location(
             ast.For(
                 self.visit(node.target),
@@ -78,6 +93,9 @@ class AsyncToSync(ast.NodeTransformer):
         )
 
     def visit_AsyncWith(self, node):
+        """
+        Replaces `async with` with `with`
+        """
         return ast.copy_location(
             ast.With(
                 [self.visit(item) for item in node.items],
@@ -87,6 +105,9 @@ class AsyncToSync(ast.NodeTransformer):
         )
 
     def visit_AsyncFunctionDef(self, node):
+        """
+        Replaces `async def` with `def`
+        """
         return ast.copy_location(
             ast.FunctionDef(
                 node.name,
@@ -99,13 +120,18 @@ class AsyncToSync(ast.NodeTransformer):
         )
 
     def visit_ListComp(self, node):
-        # replace [x async for ...] with [x for ...]
+        """
+        Replaces `async for` with `for` in list comprehensions
+        """
         for generator in node.generators:
             generator.is_async = False
         return self.generic_visit(node)
 
 
-class HandleCrossSyncDecorators(ast.NodeTransformer):
+class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
+    """
+    Visits each method in a class, and handles any CrossSync decorators found
+    """
 
     def visit_FunctionDef(self, node):
         return self.visit_AsyncFunctionDef(node)
@@ -213,14 +239,20 @@ class CrossSyncFileArtifact:
         return full_str
 
 
-class CrossSyncClassParser(ast.NodeTransformer):
+class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
+    """
+    Visits each class in the file, and if it has a CrossSync decorator, it will be transformed.
+
+    Uses CrossSyncMethodDecoratorHandler to visit and (potentially) convert each method in the class
+    """
     def __init__(self, file_path):
         self.in_path = file_path
         self._artifact_dict: dict[str, CrossSyncFileArtifact] = {}
         self.imports: list[ast.Import | ast.ImportFrom | ast.Try | ast.If] = []
-        self.cross_sync_converter = SymbolReplacer(
+        self.cross_sync_symbol_transformer = SymbolReplacer(
             {"CrossSync": "CrossSync._Sync_Impl"}
         )
+        self.cross_sync_method_handler = CrossSyncMethodDecoratorHandler()
 
     def convert_file(
         self, artifacts: set[CrossSyncFileArtifact] | None = None
@@ -296,10 +328,10 @@ class CrossSyncClassParser(ast.NodeTransformer):
                 d for d in cls_ast.decorator_list if "CrossSync" not in ast.dump(d)
             ]
         # convert class contents
-        cls_ast = self.cross_sync_converter.visit(cls_ast)
+        cls_ast = self.cross_sync_symbol_transformer.visit(cls_ast)
         if replace_symbols:
             cls_ast = SymbolReplacer(replace_symbols).visit(cls_ast)
-        cls_ast = HandleCrossSyncDecorators().visit(cls_ast)
+        cls_ast = self.cross_sync_method_handler.visit(cls_ast)
         return cls_ast
 
     def _get_imports(
@@ -311,7 +343,7 @@ class CrossSyncClassParser(ast.NodeTransformer):
         imports = []
         for node in tree.body:
             if isinstance(node, (ast.Import, ast.ImportFrom, ast.Try, ast.If)):
-                imports.append(self.cross_sync_converter.visit(node))
+                imports.append(self.cross_sync_symbol_transformer.visit(node))
         return imports
 
     def _convert_ast_to_py(self, ast_node):

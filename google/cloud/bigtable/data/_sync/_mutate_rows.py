@@ -100,12 +100,10 @@ class _MutateRowsOperation:
         self.errors: dict[int, list[Exception]] = {}
 
     def start(self):
-        """
-        Start the operation, and run until completion
+        """Start the operation, and run until completion
 
         Raises:
-            MutationsExceptionGroup: if any mutations failed
-        """
+            MutationsExceptionGroup: if any mutations failed"""
         try:
             self._operation()
         except Exception as exc:
@@ -129,14 +127,12 @@ class _MutateRowsOperation:
                 raise MutationsExceptionGroup(all_errors, len(self.mutations))
 
     def _run_attempt(self):
-        """
-        Run a single attempt of the mutate_rows rpc.
+        """Run a single attempt of the mutate_rows rpc.
 
         Raises:
             _MutateRowsIncomplete: if there are failed mutations eligible for
                 retry after the attempt is complete
-            GoogleAPICallError: if the gapic rpc fails
-        """
+            GoogleAPICallError: if the gapic rpc fails"""
         request_entries = [self.mutations[idx].proto for idx in self.remaining_indices]
         active_request_indices = {
             req_idx: orig_idx for req_idx, orig_idx in enumerate(self.remaining_indices)

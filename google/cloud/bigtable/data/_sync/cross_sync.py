@@ -348,7 +348,7 @@ if __name__ == "__main__":
     files = glob.glob(search_root + "/**/*.py", recursive=True)
     artifacts: set[transformers.CrossSyncFileArtifact] = set()
     for file in files:
-        converter = transformers.CrossSyncClassParser(file)
+        converter = transformers.CrossSyncClassDecoratorHandler(file)
         converter.convert_file(artifacts)
     print(artifacts)
     for artifact in artifacts:
