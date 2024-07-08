@@ -166,6 +166,7 @@ class _ReadRowsOperationAsync:
         chunked_stream = self.chunk_stream(gapic_stream)
         return self.merge_rows(chunked_stream)
 
+    @CrossSync.convert
     async def chunk_stream(
         self, stream: CrossSync.Awaitable[CrossSync.Iterable[ReadRowsResponsePB]]
     ) -> CrossSync.Iterable[ReadRowsResponsePB.CellChunk]:

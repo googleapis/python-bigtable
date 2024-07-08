@@ -28,13 +28,13 @@ from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+if not CrossSync._Sync_Impl.is_async:
+    from google.cloud.bigtable.data._async._read_rows import _ResetRow
 if TYPE_CHECKING:
     if CrossSync._Sync_Impl.is_async:
         pass
     else:
         from google.cloud.bigtable.data._sync.client import Table
-if not CrossSync._Sync_Impl.is_async:
-    from google.cloud.bigtable.data._async._read_rows import _ResetRow
 
 
 class _ReadRowsOperation:
@@ -142,12 +142,14 @@ class _ReadRowsOperation:
             CrossSync._Sync_Impl.Iterable[ReadRowsResponsePB]
         ],
     ) -> CrossSync._Sync_Impl.Iterable[ReadRowsResponsePB.CellChunk]:
-        """process chunks out of raw read_rows stream
+        """
+        process chunks out of raw read_rows stream
 
         Args:
             stream: the raw read_rows stream from the gapic client
         Yields:
-            ReadRowsResponsePB.CellChunk: the next chunk in the stream"""
+            ReadRowsResponsePB.CellChunk: the next chunk in the stream
+        """
         for resp in stream:
             resp = resp._pb
             if resp.last_scanned_row_key:

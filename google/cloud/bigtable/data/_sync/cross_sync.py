@@ -67,8 +67,12 @@ class CrossSync:
 
     @staticmethod
     def convert(
-        *, sync_name: str | None = None, replace_symbols: dict[str, str] | None = None
+        *args, sync_name: str | None = None, replace_symbols: dict[str, str] | None = None
     ):
+        if args:
+            # only positional argument should be the function to wrap. Return it directly
+            return args[0]
+
         def decorator(func):
             return func
 

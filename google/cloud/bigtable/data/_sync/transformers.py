@@ -106,7 +106,11 @@ class AsyncToSync(ast.NodeTransformer):
 
 
 class HandleCrossSyncDecorators(ast.NodeTransformer):
+
     def visit_FunctionDef(self, node):
+        return self.visit_AsyncFunctionDef(node)
+
+    def visit_AsyncFunctionDef(self, node):
         if hasattr(node, "decorator_list"):
             found_list, node.decorator_list = node.decorator_list, []
             for decorator in found_list:
@@ -117,7 +121,9 @@ class HandleCrossSyncDecorators(ast.NodeTransformer):
                         else decorator.attr
                     )
                     if decorator_type == "convert":
-                        for subcommand in decorator.keywords:
+                        # convert async to sync
+                        node = AsyncToSync().visit(node)
+                        for subcommand in getattr(decorator, "keywords", []):
                             if subcommand.arg == "sync_name":
                                 node.name = subcommand.value.s
                             if subcommand.arg == "replace_symbols":
@@ -290,7 +296,6 @@ class CrossSyncClassParser(ast.NodeTransformer):
                 d for d in cls_ast.decorator_list if "CrossSync" not in ast.dump(d)
             ]
         # convert class contents
-        cls_ast = AsyncToSync().visit(cls_ast)
         cls_ast = self.cross_sync_converter.visit(cls_ast)
         if replace_symbols:
             cls_ast = SymbolReplacer(replace_symbols).visit(cls_ast)

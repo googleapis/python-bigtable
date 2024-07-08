@@ -97,12 +97,14 @@ class _FlowControl:
     def remove_from_flow(
         self, mutations: RowMutationEntry | list[RowMutationEntry]
     ) -> None:
-        """Removes mutations from flow control. This method should be called once
+        """
+        Removes mutations from flow control. This method should be called once
         for each mutation that was sent to add_to_flow, after the corresponding
         operation is complete.
 
         Args:
-            mutations: mutation or list of mutations to remove from flow control"""
+            mutations: mutation or list of mutations to remove from flow control
+        """
         if not isinstance(mutations, list):
             mutations = [mutations]
         total_count = sum((len(entry.mutations) for entry in mutations))
@@ -113,7 +115,8 @@ class _FlowControl:
             self._capacity_condition.notify_all()
 
     def add_to_flow(self, mutations: RowMutationEntry | list[RowMutationEntry]):
-        """Generator function that registers mutations with flow control. As mutations
+        """
+        Generator function that registers mutations with flow control. As mutations
         are accepted into the flow control, they are yielded back to the caller,
         to be sent in a batch. If the flow control is at capacity, the generator
         will block until there is capacity available.
@@ -123,7 +126,8 @@ class _FlowControl:
         Yields:
             list[RowMutationEntry]:
                 list of mutations that have reserved space in the flow control.
-                Each batch contains at least one mutation."""
+                Each batch contains at least one mutation.
+        """
         if not isinstance(mutations, list):
             mutations = [mutations]
         start_idx = 0
@@ -237,13 +241,15 @@ class MutationsBatcher:
         atexit.register(self._on_exit)
 
     def _timer_routine(self, interval: float | None) -> None:
-        """Set up a background task to flush the batcher every interval seconds
+        """
+        Set up a background task to flush the batcher every interval seconds
 
         If interval is None, an empty future is returned
 
         Args:
             flush_interval: Automatically flush every flush_interval seconds.
-                If None, no time-based flushing is performed."""
+                If None, no time-based flushing is performed.
+        """
         if not interval or interval <= 0:
             return None
         while not self._closed.is_set():
@@ -254,13 +260,15 @@ class MutationsBatcher:
                 self._schedule_flush()
 
     def append(self, mutation_entry: RowMutationEntry):
-        """Add a new set of mutations to the internal queue
+        """
+        Add a new set of mutations to the internal queue
 
         Args:
             mutation_entry: new entry to add to flush queue
         Raises:
             RuntimeError: if batcher is closed
-            ValueError: if an invalid mutation type is added"""
+            ValueError: if an invalid mutation type is added
+        """
         if self._closed.is_set():
             raise RuntimeError("Cannot append to closed MutationsBatcher")
         if isinstance(mutation_entry, Mutation):
@@ -296,10 +304,12 @@ class MutationsBatcher:
         return None
 
     def _flush_internal(self, new_entries: list[RowMutationEntry]):
-        """Flushes a set of mutations to the server, and updates internal state
+        """
+        Flushes a set of mutations to the server, and updates internal state
 
         Args:
-            new_entries list of RowMutationEntry objects to flush"""
+            new_entries list of RowMutationEntry objects to flush
+        """
         in_process_requests: list[
             CrossSync._Sync_Impl.Future[list[FailedMutationEntryError]]
         ] = []
@@ -387,9 +397,11 @@ class MutationsBatcher:
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        """Allow use of context manager API.
+        """
+        Allow use of context manager API.
 
-        Flushes the batcher and cleans up resources."""
+        Flushes the batcher and cleans up resources.
+        """
         self.close()
 
     @property
@@ -399,7 +411,9 @@ class MutationsBatcher:
         return self._closed.is_set()
 
     def close(self):
-        """Flush queue and clean up resources"""
+        """
+        Flush queue and clean up resources
+        """
         self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
@@ -422,7 +436,8 @@ class MutationsBatcher:
         *tasks: CrossSync._Sync_Impl.Future[list[FailedMutationEntryError]]
         | CrossSync._Sync_Impl.Future[None],
     ) -> list[Exception]:
-        """Takes in a list of futures representing _execute_mutate_rows tasks,
+        """
+        Takes in a list of futures representing _execute_mutate_rows tasks,
         waits for them to complete, and returns a list of errors encountered.
 
         Args:

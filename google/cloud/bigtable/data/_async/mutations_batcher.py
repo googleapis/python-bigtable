@@ -110,6 +110,7 @@ class _FlowControlAsync:
         new_count = self._in_flight_mutation_count + additional_count
         return new_size <= acceptable_size and new_count <= acceptable_count
 
+    @CrossSync.convert
     async def remove_from_flow(
         self, mutations: RowMutationEntry | list[RowMutationEntry]
     ) -> None:
@@ -131,6 +132,7 @@ class _FlowControlAsync:
         async with self._capacity_condition:
             self._capacity_condition.notify_all()
 
+    @CrossSync.convert
     async def add_to_flow(self, mutations: RowMutationEntry | list[RowMutationEntry]):
         """
         Generator function that registers mutations with flow control. As mutations
@@ -273,6 +275,7 @@ class MutationsBatcherAsync:
         # clean up on program exit
         atexit.register(self._on_exit)
 
+    @CrossSync.convert
     async def _timer_routine(self, interval: float | None) -> None:
         """
         Set up a background task to flush the batcher every interval seconds
@@ -293,6 +296,7 @@ class MutationsBatcherAsync:
             if not self._closed.is_set() and self._staged_entries:
                 self._schedule_flush()
 
+    @CrossSync.convert
     async def append(self, mutation_entry: RowMutationEntry):
         """
         Add a new set of mutations to the internal queue
@@ -342,6 +346,7 @@ class MutationsBatcherAsync:
             return new_task
         return None
 
+    @CrossSync.convert
     async def _flush_internal(self, new_entries: list[RowMutationEntry]):
         """
         Flushes a set of mutations to the server, and updates internal state
@@ -467,6 +472,7 @@ class MutationsBatcherAsync:
         """
         return self._closed.is_set()
 
+    @CrossSync.convert
     async def close(self):
         """
         Flush queue and clean up resources
@@ -494,6 +500,7 @@ class MutationsBatcherAsync:
             )
 
     @staticmethod
+    @CrossSync.convert
     async def _wait_for_batch_results(
         *tasks: CrossSync.Future[list[FailedMutationEntryError]]
         | CrossSync.Future[None],

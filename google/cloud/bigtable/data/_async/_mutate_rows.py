@@ -141,6 +141,7 @@ class _MutateRowsOperationAsync:
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
 
+    @CrossSync.convert
     async def start(self):
         """
         Start the operation, and run until completion
@@ -173,6 +174,7 @@ class _MutateRowsOperationAsync:
             if all_errors:
                 raise MutationsExceptionGroup(all_errors, len(self.mutations))
 
+    @CrossSync.convert
     async def _run_attempt(self):
         """
         Run a single attempt of the mutate_rows rpc.

@@ -266,6 +266,7 @@ class BigtableDataClientAsync(ClientWithProject):
                     lambda _: self._channel_refresh_tasks.remove(refresh_task) if refresh_task in self._channel_refresh_tasks else None
                 )
 
+    @CrossSync.convert
     async def close(self, timeout: float | None = None):
         """
         Cancel all background tasks
@@ -278,6 +279,7 @@ class BigtableDataClientAsync(ClientWithProject):
             self._executor.shutdown(wait=False)
         await CrossSync.wait(self._channel_refresh_tasks, timeout=timeout)
 
+    @CrossSync.convert
     async def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None
     ) -> list[BaseException | None]:
@@ -319,6 +321,7 @@ class BigtableDataClientAsync(ClientWithProject):
         )
         return [r or None for r in result_list]
 
+    @CrossSync.convert
     async def _manage_channel(
         self,
         channel_idx: int,
@@ -678,6 +681,7 @@ class TableAsync:
         )
         return row_merger.start_operation()
 
+    @CrossSync.convert
     async def read_rows(
         self,
         query: ReadRowsQuery,
@@ -725,6 +729,7 @@ class TableAsync:
         )
         return [row async for row in row_generator]
 
+    @CrossSync.convert
     async def read_row(
         self,
         row_key: str | bytes,
@@ -774,6 +779,7 @@ class TableAsync:
             return None
         return results[0]
 
+    @CrossSync.convert
     async def read_rows_sharded(
         self,
         sharded_query: ShardedQuery,
@@ -873,6 +879,7 @@ class TableAsync:
             )
         return results_list
 
+    @CrossSync.convert
     async def row_exists(
         self,
         row_key: str | bytes,
@@ -921,6 +928,7 @@ class TableAsync:
         )
         return len(results) > 0
 
+    @CrossSync.convert
     async def sample_row_keys(
         self,
         *,
@@ -1043,6 +1051,7 @@ class TableAsync:
             batch_retryable_errors=batch_retryable_errors,
         )
 
+    @CrossSync.convert
     async def mutate_row(
         self,
         row_key: str | bytes,
@@ -1179,6 +1188,7 @@ class TableAsync:
         )
         await operation.start()
 
+    @CrossSync.convert
     async def check_and_mutate_row(
         self,
         row_key: str | bytes,
@@ -1245,6 +1255,7 @@ class TableAsync:
         )
         return result.predicate_matched
 
+    @CrossSync.convert
     async def read_modify_write_row(
         self,
         row_key: str | bytes,
@@ -1295,6 +1306,7 @@ class TableAsync:
         # construct Row from result
         return Row._from_pb(result.row)
 
+    @CrossSync.convert
     async def close(self):
         """
         Called to close the Table instance and release any resources held by it.
