@@ -49,6 +49,7 @@ class CrossSync:
     sleep = asyncio.sleep
     retry_target = retries.retry_target_async
     retry_target_stream = retries.retry_target_stream_async
+    Retry = retries.AsyncRetry
     Queue: TypeAlias = asyncio.Queue
     Condition: TypeAlias = asyncio.Condition
     Future: TypeAlias = asyncio.Future
@@ -105,6 +106,13 @@ class CrossSync:
         import pytest
 
         return pytest.mark.asyncio(func)
+
+    @staticmethod
+    def pytest_fixture(*args, **kwargs):
+        import pytest_asyncio
+        def decorator(func):
+            return pytest_asyncio.fixture(*args, **kwargs)(func)
+        return decorator
 
     @staticmethod
     async def gather_partials(
@@ -218,6 +226,7 @@ class CrossSync:
         sleep = time.sleep
         retry_target = retries.retry_target
         retry_target_stream = retries.retry_target_stream
+        Retry = retries.Retry
         Queue: TypeAlias = queue.Queue
         Condition: TypeAlias = threading.Condition
         Future: TypeAlias = concurrent.futures.Future
@@ -272,6 +281,13 @@ class CrossSync:
             async_break_early: bool = True,
         ) -> None:
             event.wait(timeout=timeout)
+
+        @staticmethod
+        def pytest_fixture(*args, **kwargs):
+            import pytest
+            def decorator(func):
+                return pytest.fixture(*args, **kwargs)(func)
+            return decorator
 
         @staticmethod
         def gather_partials(

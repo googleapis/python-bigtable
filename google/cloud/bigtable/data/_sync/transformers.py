@@ -130,6 +130,11 @@ class HandleCrossSyncDecorators(ast.NodeTransformer):
                                 node = SymbolReplacer(replacements).visit(node)
                     elif decorator_type == "pytest":
                         pass
+                    elif decorator_type == "pytest_fixture":
+                        # keep decorator
+                        node.decorator_list.append(decorator)
+                    elif decorator_type == "Retry":
+                        node.decorator_list.append(decorator)
                     elif decorator_type == "drop_method":
                         return None
                     else:
@@ -185,12 +190,12 @@ class CrossSyncFileArtifact:
             full_str += (
                 f'\n# mypy: disable-error-code="{",".join(self.mypy_ignore)}"\n\n'
             )
-        full_str += "\n".join([ast.unparse(node) for node in self.imports])
+        full_str += "\n".join([ast.unparse(node) for node in self.imports])  # type: ignore
         full_str += "\n\n"
-        full_str += "\n".join([ast.unparse(node) for node in self.converted_classes])
+        full_str += "\n".join([ast.unparse(node) for node in self.converted_classes])  # type: ignore
         if with_black:
-            import black
-            import autoflake
+            import black  # type: ignore
+            import autoflake  # type: ignore
 
             full_str = black.format_str(
                 autoflake.fix_code(full_str, remove_all_unused_imports=True),
