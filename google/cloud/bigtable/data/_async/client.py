@@ -263,7 +263,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 )
                 self._channel_refresh_tasks.append(refresh_task)
                 refresh_task.add_done_callback(
-                    lambda _: self._channel_refresh_tasks.remove(refresh_task)
+                    lambda _: self._channel_refresh_tasks.remove(refresh_task) if refresh_task in self._channel_refresh_tasks else None
                 )
 
     async def close(self, timeout: float | None = None):
@@ -277,7 +277,6 @@ class BigtableDataClientAsync(ClientWithProject):
         if self._executor:
             self._executor.shutdown(wait=False)
         await CrossSync.wait(self._channel_refresh_tasks, timeout=timeout)
-        self._channel_refresh_tasks = []
 
     async def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None
