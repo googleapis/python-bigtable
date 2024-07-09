@@ -23,6 +23,8 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyn
 
 from google.cloud.bigtable_v2.types.bigtable import CheckAndMutateRowRequest
 from google.cloud.bigtable_v2.types.bigtable import CheckAndMutateRowResponse
+from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryRequest
+from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from google.cloud.bigtable_v2.types.bigtable import GenerateInitialChangeStreamPartitionsRequest
 from google.cloud.bigtable_v2.types.bigtable import GenerateInitialChangeStreamPartitionsResponse
 from google.cloud.bigtable_v2.types.bigtable import MutateRowRequest
@@ -40,12 +42,19 @@ from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.bigtable_v2.types.bigtable import SampleRowKeysRequest
 from google.cloud.bigtable_v2.types.bigtable import SampleRowKeysResponse
+from google.cloud.bigtable_v2.types.data import ArrayValue
 from google.cloud.bigtable_v2.types.data import Cell
 from google.cloud.bigtable_v2.types.data import Column
+from google.cloud.bigtable_v2.types.data import ColumnMetadata
 from google.cloud.bigtable_v2.types.data import ColumnRange
 from google.cloud.bigtable_v2.types.data import Family
 from google.cloud.bigtable_v2.types.data import Mutation
+from google.cloud.bigtable_v2.types.data import PartialResultSet
+from google.cloud.bigtable_v2.types.data import ProtoFormat
+from google.cloud.bigtable_v2.types.data import ProtoRowsBatch
+from google.cloud.bigtable_v2.types.data import ProtoSchema
 from google.cloud.bigtable_v2.types.data import ReadModifyWriteRule
+from google.cloud.bigtable_v2.types.data import ResultSetMetadata
 from google.cloud.bigtable_v2.types.data import Row
 from google.cloud.bigtable_v2.types.data import RowFilter
 from google.cloud.bigtable_v2.types.data import RowRange
@@ -62,11 +71,14 @@ from google.cloud.bigtable_v2.types.request_stats import ReadIterationStats
 from google.cloud.bigtable_v2.types.request_stats import RequestLatencyStats
 from google.cloud.bigtable_v2.types.request_stats import RequestStats
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
+from google.cloud.bigtable_v2.types.types import Type
 
 __all__ = ('BigtableClient',
     'BigtableAsyncClient',
     'CheckAndMutateRowRequest',
     'CheckAndMutateRowResponse',
+    'ExecuteQueryRequest',
+    'ExecuteQueryResponse',
     'GenerateInitialChangeStreamPartitionsRequest',
     'GenerateInitialChangeStreamPartitionsResponse',
     'MutateRowRequest',
@@ -84,12 +96,19 @@ __all__ = ('BigtableClient',
     'ReadRowsResponse',
     'SampleRowKeysRequest',
     'SampleRowKeysResponse',
+    'ArrayValue',
     'Cell',
     'Column',
+    'ColumnMetadata',
     'ColumnRange',
     'Family',
     'Mutation',
+    'PartialResultSet',
+    'ProtoFormat',
+    'ProtoRowsBatch',
+    'ProtoSchema',
     'ReadModifyWriteRule',
+    'ResultSetMetadata',
     'Row',
     'RowFilter',
     'RowRange',
@@ -106,4 +125,5 @@ __all__ = ('BigtableClient',
     'RequestLatencyStats',
     'RequestStats',
     'ResponseParams',
+    'Type',
 )
