@@ -43,7 +43,7 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
-@CrossSync.sync_output("tests.unit.data._sync.test_mutations_batcher.Test_FlowControl")
+@CrossSync.sync_output(path="tests.unit.data._sync.test_mutations_batcher.Test_FlowControl")
 class Test_FlowControl:
     @staticmethod
     @CrossSync.convert(replace_symbols={"_FlowControlAsync": "_FlowControl"})
@@ -320,7 +320,7 @@ class Test_FlowControl:
 
 
 @CrossSync.sync_output(
-    "tests.unit.data._sync.test_mutations_batcher.TestMutationsBatcher"
+    path="tests.unit.data._sync.test_mutations_batcher.TestMutationsBatcher"
 )
 class TestMutationsBatcherAsync:
     @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})

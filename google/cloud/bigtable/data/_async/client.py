@@ -111,7 +111,7 @@ if TYPE_CHECKING:
 
 
 @CrossSync.sync_output(
-    "google.cloud.bigtable.data._sync.client.BigtableDataClient",
+    path="google.cloud.bigtable.data._sync.client.BigtableDataClient",
 )
 class BigtableDataClientAsync(ClientWithProject):
     @CrossSync.convert(
@@ -493,7 +493,7 @@ class BigtableDataClientAsync(ClientWithProject):
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
-@CrossSync.sync_output("google.cloud.bigtable.data._sync.client.Table")
+@CrossSync.sync_output(path="google.cloud.bigtable.data._sync.client.Table")
 class TableAsync:
     """
     Main Data API surface

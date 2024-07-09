@@ -77,7 +77,7 @@ else:
 
 
 @CrossSync.sync_output(
-    "tests.unit.data._sync.test_client.TestBigtableDataClient",
+    path="tests.unit.data._sync.test_client.TestBigtableDataClient",
     replace_symbols={
         "TestTableAsync": "TestTable",
         "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
@@ -1142,7 +1142,7 @@ class TestBigtableDataClientAsync:
         assert client._channel_refresh_tasks == []
 
 
-@CrossSync.sync_output("tests.unit.data._sync.test_client.TestTable")
+@CrossSync.sync_output(path="tests.unit.data._sync.test_client.TestTable")
 class TestTableAsync:
     @CrossSync.convert(
         replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
@@ -1456,7 +1456,7 @@ class TestTableAsync:
                     assert "app_profile_id=" not in goog_metadata
 
 
-@CrossSync.sync_output("tests.unit.data._sync.test_client.TestReadRows")
+@CrossSync.sync_output(path="tests.unit.data._sync.test_client.TestReadRows")
 class TestReadRowsAsync:
     """
     Tests for table.read_rows and related methods.
@@ -1972,7 +1972,7 @@ class TestReadRowsAsync:
                 assert query.filter._to_dict() == expected_filter
 
 
-@CrossSync.sync_output("tests.unit.data._sync.test_client.TestReadRowsSharded")
+@CrossSync.sync_output(path="tests.unit.data._sync.test_client.TestReadRowsSharded")
 class TestReadRowsShardedAsync:
     @CrossSync.convert(
         replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
@@ -2197,7 +2197,7 @@ class TestReadRowsShardedAsync:
                     )
 
 
-@CrossSync.sync_output("tests.unit.data._sync.test_client.TestSampleRowKeys")
+@CrossSync.sync_output(path="tests.unit.data._sync.test_client.TestSampleRowKeys")
 class TestSampleRowKeysAsync:
     @CrossSync.convert(
         replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
@@ -2353,7 +2353,7 @@ class TestSampleRowKeysAsync:
 
 
 @CrossSync.sync_output(
-    "tests.unit.data._sync.test_client.TestMutateRow",
+    path="tests.unit.data._sync.test_client.TestMutateRow",
 )
 class TestMutateRowAsync:
     @CrossSync.convert(
@@ -2534,7 +2534,7 @@ class TestMutateRowAsync:
 
 
 @CrossSync.sync_output(
-    "tests.unit.data._sync.test_client.TestBulkMutateRows",
+    path="tests.unit.data._sync.test_client.TestBulkMutateRows",
 )
 class TestBulkMutateRowsAsync:
     @CrossSync.convert(
@@ -2918,7 +2918,7 @@ class TestBulkMutateRowsAsync:
                 await table.bulk_mutate_rows(entries, operation_timeout=1000)
 
 
-@CrossSync.sync_output("tests.unit.data._sync.test_client.TestCheckAndMutateRow")
+@CrossSync.sync_output(path="tests.unit.data._sync.test_client.TestCheckAndMutateRow")
 class TestCheckAndMutateRowAsync:
     @CrossSync.convert(
         replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
@@ -3073,7 +3073,7 @@ class TestCheckAndMutateRowAsync:
                     )
 
 
-@CrossSync.sync_output("tests.unit.data._sync.test_client.TestReadModifyWriteRow")
+@CrossSync.sync_output(path="tests.unit.data._sync.test_client.TestReadModifyWriteRow")
 class TestReadModifyWriteRowAsync:
     @CrossSync.convert(
         replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}

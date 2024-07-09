@@ -41,9 +41,88 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+class AstDecorator:
+    """
+    Helper class for CrossSync decorators used for guiding ast transformations.
 
-class CrossSync:
-    SyncImports = False
+    These decorators provide arguments that are used during the code generation process,
+    but act as no-ops when encountered in live code
+    """
+
+    def __init__(self, name, required_keywords=(), **default_kwargs):
+        self.name = name
+        self.required_kwargs = required_keywords
+        self.default_kwargs = default_kwargs
+        self.all_valid_keys = [*required_keywords, *default_kwargs.keys()]
+
+    def __call__(self, *args, **kwargs):
+        for kwarg in kwargs:
+            if kwarg not in self.all_valid_keys:
+                raise ValueError(f"Invalid keyword argument: {kwarg}")
+        if len(args) == 1 and callable(args[0]):
+            return args[0]
+        def decorator(func):
+            return func
+        return decorator
+
+    def parse_ast_keywords(self, node):
+        got_kwargs = {
+            kw.arg: self._convert_ast_to_py(kw.value)
+            for kw in node.keywords
+        } if hasattr(node, "keywords") else {}
+        for key in got_kwargs.keys():
+            if key not in self.all_valid_keys:
+                raise ValueError(f"Invalid keyword argument: {key}")
+        for key in self.required_kwargs:
+            if key not in got_kwargs:
+                raise ValueError(f"Missing required keyword argument: {key}")
+        return {**self.default_kwargs, **got_kwargs}
+
+    def _convert_ast_to_py(self, ast_node):
+        """
+        Helper to convert ast primitives to python primitives. Used when unwrapping kwargs
+        """
+        import ast
+        if isinstance(ast_node, ast.Constant):
+            return ast_node.value
+        if isinstance(ast_node, ast.List):
+            return [self._convert_ast_to_py(node) for node in ast_node.elts]
+        if isinstance(ast_node, ast.Dict):
+            return {
+                self._convert_ast_to_py(k): self._convert_ast_to_py(v)
+                for k, v in zip(ast_node.keys, ast_node.values)
+            }
+        raise ValueError(f"Unsupported type {type(ast_node)}")
+
+    def _node_eq(self, node: ast.Node):
+        import ast
+        if "CrossSync" in ast.dump(node):
+            decorator_type = (
+                node.func.attr
+                if hasattr(node, "func")
+                else node.attr
+            )
+            if decorator_type == self.name:
+                return True
+        return False
+
+    def __eq__(self, other):
+        return self._node_eq(other)
+
+
+class _DecoratorMeta(type):
+    """
+    Metaclass to attach AstDecorator objects in internal self._decorators
+    as attributes
+    """
+
+    def __getattr__(self, name):
+        for decorator in self._decorators:
+            if name == decorator.name:
+                return decorator
+        return super().__getattr__(name)
+
+class CrossSync(metaclass=_DecoratorMeta):
     is_async = True
 
     sleep = asyncio.sleep
@@ -63,24 +142,19 @@ class CrossSync:
     Iterator: TypeAlias = AsyncIterator
     Generator: TypeAlias = AsyncGenerator
 
-    generated_replacements: dict[type, str] = {}
-
-    @staticmethod
-    def convert(
-        *args, sync_name: str | None = None, replace_symbols: dict[str, str] | None = None
-    ):
-        if args:
-            # only positional argument should be the function to wrap. Return it directly
-            return args[0]
-
-        def decorator(func):
-            return func
-
-        return decorator
-
-    @staticmethod
-    def drop_method(func):
-        return func
+    _decorators: list[AstDecorator] = [
+        AstDecorator("sync_output",  # decorate classes to convert
+            required_keywords=["path"],  # otput path for generated sync class
+            replace_symbols={},  # replace specific symbols across entire class
+            mypy_ignore=(),  # set of mypy error codes to ignore in output file
+            include_file_imports=True  # when True, import statements from top of file will be included in output file
+        ),
+        AstDecorator("convert",  # decorate methods to convert from async to sync
+            sync_name=None,  # use a new name for the sync class
+            replace_symbols={}  # replace specific symbols within the function
+        ),
+        AstDecorator("drop_method"),  # decorate methods to drop in sync version of class
+    ]
 
     @classmethod
     def Mock(cls, *args, **kwargs):
@@ -89,21 +163,6 @@ class CrossSync:
         except ImportError:  # pragma: NO COVER
             from mock import AsyncMock  # type: ignore
         return AsyncMock(*args, **kwargs)
-
-    @classmethod
-    def sync_output(
-        cls,
-        sync_path: str,
-        *,
-        replace_symbols: dict["str", "str" | None] | None = None,
-        mypy_ignore: list[str] | None = None,
-        include_file_imports: bool = False,
-    ):
-        # return the async class unchanged
-        def decorator(async_cls):
-            return async_cls
-
-        return decorator
 
     @staticmethod
     def pytest(func):

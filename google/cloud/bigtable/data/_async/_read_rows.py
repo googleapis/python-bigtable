@@ -52,7 +52,7 @@ class _ResetRow(Exception):  # noqa: F811
 
 
 @CrossSync.sync_output(
-    "google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
+    path="google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
 )
 class _ReadRowsOperationAsync:
     """

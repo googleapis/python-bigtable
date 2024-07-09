@@ -35,7 +35,7 @@ TEST_LABELS = ["label1", "label2"]
 
 
 @CrossSync.sync_output(
-    "tests.unit.data._sync.test__read_rows.TestReadRowsOperation",
+    path="tests.unit.data._sync.test__read_rows.TestReadRowsOperation",
 )
 class TestReadRowsOperationAsync:
     """

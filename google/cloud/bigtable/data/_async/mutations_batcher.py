@@ -52,7 +52,7 @@ if TYPE_CHECKING:
 
 
 @CrossSync.sync_output(
-    "google.cloud.bigtable.data._sync.mutations_batcher._FlowControl"
+    path="google.cloud.bigtable.data._sync.mutations_batcher._FlowControl"
 )
 class _FlowControlAsync:
     """
@@ -183,7 +183,7 @@ class _FlowControlAsync:
 
 
 @CrossSync.sync_output(
-    "google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher",
+    path="google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher",
     mypy_ignore=["unreachable"],
 )
 class MutationsBatcherAsync:

@@ -16,6 +16,7 @@ from __future__ import annotations
 import ast
 
 from dataclasses import dataclass, field
+from .cross_sync import CrossSync
 
 
 class SymbolReplacer(ast.NodeTransformer):
@@ -137,46 +138,25 @@ class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
         return self.visit_AsyncFunctionDef(node)
 
     def visit_AsyncFunctionDef(self, node):
-        if hasattr(node, "decorator_list"):
-            found_list, node.decorator_list = node.decorator_list, []
-            for decorator in found_list:
-                if "CrossSync" in ast.dump(decorator):
-                    decorator_type = (
-                        decorator.func.attr
-                        if hasattr(decorator, "func")
-                        else decorator.attr
-                    )
-                    if decorator_type == "convert":
+        try:
+            if hasattr(node, "decorator_list"):
+                found_list, node.decorator_list = node.decorator_list, []
+                for decorator in found_list:
+                    if decorator == CrossSync.convert:
+                        kwargs = CrossSync.convert.parse_ast_keywords(decorator)
                         # convert async to sync
                         node = AsyncToSync().visit(node)
-                        for subcommand in getattr(decorator, "keywords", []):
-                            if subcommand.arg == "sync_name":
-                                node.name = subcommand.value.s
-                            if subcommand.arg == "replace_symbols":
-                                replacements = {
-                                    subcommand.value.keys[i]
-                                    .s: subcommand.value.values[i]
-                                    .s
-                                    for i in range(len(subcommand.value.keys))
-                                }
-                                node = SymbolReplacer(replacements).visit(node)
-                    elif decorator_type == "pytest":
-                        pass
-                    elif decorator_type == "pytest_fixture":
-                        # keep decorator
-                        node.decorator_list.append(decorator)
-                    elif decorator_type == "Retry":
-                        node.decorator_list.append(decorator)
-                    elif decorator_type == "drop_method":
+                        if kwargs["sync_name"] is not None:
+                            node.name = kwargs["sync_name"]
+                        if kwargs["replace_symbols"]:
+                            node = SymbolReplacer(kwargs["replace_symbols"]).visit(node)
+                    elif decorator == CrossSync.drop_method:
                         return None
                     else:
-                        raise ValueError(
-                            f"Unsupported CrossSync decorator: {decorator_type}"
-                        )
-                else:
-                    # add non-crosssync decorators back
-                    node.decorator_list.append(decorator)
-        return node
+                        node.decorator_list.append(decorator)
+            return node
+        except ValueError as e:
+            raise ValueError(f"node {node.name} failed") from e
 
 
 @dataclass
@@ -275,40 +255,36 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
         Called for each class in file. If class has a CrossSync decorator, it will be transformed
         according to the decorator arguments
         """
-        for decorator in node.decorator_list:
-            if "CrossSync" in ast.dump(decorator):
-                kwargs = {
-                    kw.arg: self._convert_ast_to_py(kw.value)
-                    for kw in decorator.keywords
-                }
-                # find the path to write the sync class to
-                sync_path = kwargs.pop("sync_path", None)
-                if not sync_path:
-                    sync_path = decorator.args[0].s
-                out_file = "/".join(sync_path.rsplit(".")[:-1]) + ".py"
-                sync_cls_name = sync_path.rsplit(".", 1)[-1]
-                # find the artifact file for the save location
-                output_artifact = self._artifact_dict.get(
-                    out_file, CrossSyncFileArtifact(out_file)
-                )
-                # write converted class details if not already present
-                if sync_cls_name not in output_artifact.contained_classes:
-                    converted = self._transform_class(node, sync_cls_name, **kwargs)
-                    output_artifact.converted_classes.append(converted)
-                    # handle file-level mypy ignores
-                    mypy_ignores = [
-                        s
-                        for s in kwargs.get("mypy_ignore", [])
-                        if s not in output_artifact.mypy_ignore
-                    ]
-                    output_artifact.mypy_ignore.extend(mypy_ignores)
-                    # handle file-level imports
-                    if not output_artifact.imports and kwargs.get(
-                        "include_file_imports", True
-                    ):
-                        output_artifact.imports = self.imports
-                self._artifact_dict[out_file] = output_artifact
-        return node
+        try:
+            for decorator in node.decorator_list:
+                if decorator == CrossSync.sync_output:
+                    kwargs = CrossSync.sync_output.parse_ast_keywords(decorator)
+                    # find the path to write the sync class to
+                    sync_path = kwargs["path"]
+                    out_file = "/".join(sync_path.rsplit(".")[:-1]) + ".py"
+                    sync_cls_name = sync_path.rsplit(".", 1)[-1]
+                    # find the artifact file for the save location
+                    output_artifact = self._artifact_dict.get(
+                        out_file, CrossSyncFileArtifact(out_file)
+                    )
+                    # write converted class details if not already present
+                    if sync_cls_name not in output_artifact.contained_classes:
+                        converted = self._transform_class(node, sync_cls_name, **kwargs)
+                        output_artifact.converted_classes.append(converted)
+                        # handle file-level mypy ignores
+                        mypy_ignores = [
+                            s
+                            for s in kwargs["mypy_ignore"]
+                            if s not in output_artifact.mypy_ignore
+                        ]
+                        output_artifact.mypy_ignore.extend(mypy_ignores)
+                        # handle file-level imports
+                        if not output_artifact.imports and kwargs["include_file_imports"]:
+                            output_artifact.imports = self.imports
+                    self._artifact_dict[out_file] = output_artifact
+            return node
+        except ValueError as e:
+            raise ValueError(f"failed for class: {node.name}") from e
 
     def _transform_class(
         self,
@@ -346,17 +322,4 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
                 imports.append(self.cross_sync_symbol_transformer.visit(node))
         return imports
 
-    def _convert_ast_to_py(self, ast_node):
-        """
-        Helper to convert ast primitives to python primitives. Used when unwrapping kwargs
-        """
-        if isinstance(ast_node, ast.Constant):
-            return ast_node.value
-        if isinstance(ast_node, ast.List):
-            return [self._convert_ast_to_py(node) for node in ast_node.elts]
-        if isinstance(ast_node, ast.Dict):
-            return {
-                self._convert_ast_to_py(k): self._convert_ast_to_py(v)
-                for k, v in zip(ast_node.keys, ast_node.values)
-            }
-        raise ValueError(f"Unsupported type {type(ast_node)}")
+

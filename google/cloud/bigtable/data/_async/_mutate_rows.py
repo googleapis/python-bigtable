@@ -63,7 +63,7 @@ class _EntryWithProto:  # noqa: F811
 
 
 @CrossSync.sync_output(
-    "google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
+    path="google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
 )
 class _MutateRowsOperationAsync:
     """

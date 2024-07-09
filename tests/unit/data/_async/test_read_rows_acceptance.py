@@ -65,7 +65,7 @@ class TestFile(proto.Message):  # noqa: F811
 
 
 @CrossSync.sync_output(
-    "tests.unit.data._sync.test_read_rows_acceptance.TestReadRowsAcceptance",
+    path="tests.unit.data._sync.test_read_rows_acceptance.TestReadRowsAcceptance",
 )
 class TestReadRowsAcceptanceAsync:
     @staticmethod
