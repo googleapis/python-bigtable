@@ -282,7 +282,9 @@ class Test_FlowControl:
             "google.cloud.bigtable.data._sync.mutations_batcher._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
             max_limit,
         )
-        with async_patch, sync_patch:
+        subpath = "_async" if CrossSync.is_async else "_sync"
+        path = f"google.cloud.bigtable.data.{subpath}.mutations_batcher._MUTATE_ROWS_REQUEST_MUTATION_LIMIT"
+        with mock.patch(path, max_limit):
             mutation_objs = [
                 self._make_mutation(count=m[0], size=m[1]) for m in mutations
             ]
