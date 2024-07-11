@@ -26,43 +26,18 @@ from google.cloud.bigtable_v2 import ReadRowsResponse
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.row import Row
 
+from ...v2_client.test_row_merger import ReadRowsTest, TestFile
+
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if CrossSync.is_async:
     from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
     from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 else:
-    from .._async.test_read_rows_acceptance import ReadRowsTest  # noqa: F401
-    from .._async.test_read_rows_acceptance import TestFile  # noqa: F401
     from google.cloud.bigtable.data._sync._read_rows import (  # noqa: F401
         _ReadRowsOperation,
     )
     from google.cloud.bigtable.data._sync.client import BigtableDataClient  # noqa: F401
-
-
-# TODO: autogenerate protos from
-#  https://github.com/googleapis/conformance-tests/blob/main/bigtable/v2/proto/google/cloud/conformance/bigtable/v2/tests.proto
-class ReadRowsTest(proto.Message):  # noqa: F811
-    class Result(proto.Message):
-        row_key = proto.Field(proto.STRING, number=1)
-        family_name = proto.Field(proto.STRING, number=2)
-        qualifier = proto.Field(proto.STRING, number=3)
-        timestamp_micros = proto.Field(proto.INT64, number=4)
-        value = proto.Field(proto.STRING, number=5)
-        label = proto.Field(proto.STRING, number=6)
-        error = proto.Field(proto.BOOL, number=7)
-
-    description = proto.Field(proto.STRING, number=1)
-    chunks = proto.RepeatedField(
-        proto.MESSAGE, number=2, message=ReadRowsResponse.CellChunk
-    )
-    results = proto.RepeatedField(proto.MESSAGE, number=3, message=Result)
-
-
-class TestFile(proto.Message):  # noqa: F811
-    __test__ = False
-    read_rows_tests = proto.RepeatedField(proto.MESSAGE, number=1, message=ReadRowsTest)
-
 
 @CrossSync.export_sync(
     path="tests.unit.data._sync.test_read_rows_acceptance.TestReadRowsAcceptance",

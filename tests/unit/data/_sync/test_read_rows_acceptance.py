@@ -22,13 +22,12 @@ from itertools import zip_longest
 from google.cloud.bigtable_v2 import ReadRowsResponse
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.row import Row
+from ...v2_client.test_row_merger import ReadRowsTest, TestFile
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if CrossSync._Sync_Impl.is_async:
     pass
 else:
-    from .._async.test_read_rows_acceptance import ReadRowsTest
-    from .._async.test_read_rows_acceptance import TestFile
     from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
     from google.cloud.bigtable.data._sync.client import BigtableDataClient
 
