@@ -52,7 +52,7 @@ def pytest_mark_asyncio(func):
 
 
 def pytest_asyncio_fixture(*args, **kwargs):
-    import pytest_asyncio
+    import pytest_asyncio  # type: ignore
 
     def decorator(func):
         return pytest_asyncio.fixture(*args, **kwargs)(func)
