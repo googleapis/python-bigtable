@@ -20,10 +20,10 @@ from google.cloud.bigtable.data._async.client import TableAsync
 
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
 
-# from google.cloud.bigtable.data._sync.client import BigtableDataClient
-# from google.cloud.bigtable.data._sync.client import Table
+from google.cloud.bigtable.data._sync.client import BigtableDataClient
+from google.cloud.bigtable.data._sync.client import Table
 
-# from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
+from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
 
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.read_rows_query import RowRange
@@ -53,9 +53,9 @@ from google.cloud.bigtable.data._helpers import ShardedQuery
 __version__: str = package_version.__version__
 
 __all__ = (
-    # "BigtableDataClient",
-    # "Table",
-    # "MutationsBatcher",
+    "BigtableDataClient",
+    "Table",
+    "MutationsBatcher",
     "BigtableDataClientAsync",
     "TableAsync",
     "MutationsBatcherAsync",
