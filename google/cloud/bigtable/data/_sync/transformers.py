@@ -152,6 +152,9 @@ class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
                             node = SymbolReplacer(kwargs["replace_symbols"]).visit(node)
                     elif decorator == CrossSync.drop_method:
                         return None
+                    elif decorator == CrossSync.pytest:
+                        # also convert pytest methods to sync
+                        node = AsyncToSync().visit(node)
                     else:
                         node.decorator_list.append(decorator)
             return node

@@ -41,6 +41,13 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+def pytest_mark_asyncio(func):
+    try:
+        import pytest
+        return pytest.mark.asyncio(func)
+    except ImportError:
+        return func
+
 class AstDecorator:
     """
     Helper class for CrossSync decorators used for guiding ast transformations.
@@ -49,16 +56,19 @@ class AstDecorator:
     but act as no-ops when encountered in live code
     """
 
-    def __init__(self, name, required_keywords=(), **default_kwargs):
+    def __init__(self, name, required_keywords=(), inner_decorator=None, **default_kwargs):
         self.name = name
         self.required_kwargs = required_keywords
         self.default_kwargs = default_kwargs
         self.all_valid_keys = [*required_keywords, *default_kwargs.keys()]
+        self.inner_decorator = inner_decorator
 
     def __call__(self, *args, **kwargs):
         for kwarg in kwargs:
             if kwarg not in self.all_valid_keys:
                 raise ValueError(f"Invalid keyword argument: {kwarg}")
+        if self.inner_decorator:
+            return self.inner_decorator(*args, **kwargs)
         if len(args) == 1 and callable(args[0]):
             return args[0]
         def decorator(func):
@@ -154,6 +164,7 @@ class CrossSync(metaclass=_DecoratorMeta):
             replace_symbols={}  # replace specific symbols within the function
         ),
         AstDecorator("drop_method"),  # decorate methods to drop in sync version of class
+        AstDecorator("pytest", inner_decorator=pytest_mark_asyncio)
     ]
 
     @classmethod
@@ -163,12 +174,6 @@ class CrossSync(metaclass=_DecoratorMeta):
         except ImportError:  # pragma: NO COVER
             from mock import AsyncMock  # type: ignore
         return AsyncMock(*args, **kwargs)
-
-    @staticmethod
-    def pytest(func):
-        import pytest
-
-        return pytest.mark.asyncio(func)
 
     @staticmethod
     def pytest_fixture(*args, **kwargs):
