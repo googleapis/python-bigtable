@@ -94,7 +94,6 @@ class TestSystemAsync:
         ) as table:
             yield table
 
-    @CrossSync.drop_method
     @pytest.fixture(scope="session")
     def event_loop(self):
         loop = asyncio.get_event_loop()
