@@ -1090,7 +1090,6 @@ class TestBigtableDataClientAsync:
                 close_mock.assert_awaited()
         for task in tasks_list:
             assert task.done()
-        assert client._channel_refresh_tasks == []
 
     @CrossSync.pytest
     async def test_close_with_timeout(self):

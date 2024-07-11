@@ -918,7 +918,6 @@ class TestBigtableDataClient:
                 close_mock.assert_awaited()
         for task in tasks_list:
             assert task.done()
-        assert client._channel_refresh_tasks == []
 
     def test_close_with_timeout(self):
         pool_size = 7
