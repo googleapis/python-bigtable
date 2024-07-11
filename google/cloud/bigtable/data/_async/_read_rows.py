@@ -51,9 +51,6 @@ class _ResetRow(Exception):  # noqa: F811
         self.chunk = chunk
 
 
-@CrossSync.export_sync(
-    path="google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
-)
 class _ReadRowsOperationAsync:
     """
     ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream
@@ -85,7 +82,6 @@ class _ReadRowsOperationAsync:
         "_remaining_count",
     )
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     def __init__(
         self,
         query: ReadRowsQuery,
@@ -166,7 +162,6 @@ class _ReadRowsOperationAsync:
         chunked_stream = self.chunk_stream(gapic_stream)
         return self.merge_rows(chunked_stream)
 
-    @CrossSync.convert
     async def chunk_stream(
         self, stream: CrossSync.Awaitable[CrossSync.Iterable[ReadRowsResponsePB]]
     ) -> CrossSync.Iterable[ReadRowsResponsePB.CellChunk]:
@@ -219,9 +214,6 @@ class _ReadRowsOperationAsync:
                     current_key = None
 
     @staticmethod
-    @CrossSync.convert(
-        replace_symbols={"__aiter__": "__iter__", "__anext__": "__next__"}
-    )
     async def merge_rows(
         chunks: CrossSync.Iterable[ReadRowsResponsePB.CellChunk] | None,
     ) -> CrossSync.Iterable[Row]:

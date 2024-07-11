@@ -62,9 +62,6 @@ class _EntryWithProto:  # noqa: F811
     proto: types_pb.MutateRowsRequest.Entry
 
 
-@CrossSync.export_sync(
-    path="google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
-)
 class _MutateRowsOperationAsync:
     """
     MutateRowsOperation manages the logic of sending a set of row mutations,
@@ -84,12 +81,6 @@ class _MutateRowsOperationAsync:
             If not specified, the request will run until operation_timeout is reached.
     """
 
-    @CrossSync.convert(
-        replace_symbols={
-            "BigtableAsyncClient": "BigtableClient",
-            "TableAsync": "Table",
-        }
-    )
     def __init__(
         self,
         gapic_client: "BigtableAsyncClient",
@@ -141,7 +132,6 @@ class _MutateRowsOperationAsync:
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
 
-    @CrossSync.convert
     async def start(self):
         """
         Start the operation, and run until completion
@@ -174,7 +164,6 @@ class _MutateRowsOperationAsync:
             if all_errors:
                 raise MutationsExceptionGroup(all_errors, len(self.mutations))
 
-    @CrossSync.convert
     async def _run_attempt(self):
         """
         Run a single attempt of the mutate_rows rpc.

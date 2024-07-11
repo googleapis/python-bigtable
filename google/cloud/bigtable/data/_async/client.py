@@ -110,17 +110,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import ShardedQuery
 
 
-@CrossSync.export_sync(
-    path="google.cloud.bigtable.data._sync.client.BigtableDataClient",
-)
 class BigtableDataClientAsync(ClientWithProject):
-    @CrossSync.convert(
-        replace_symbols={
-            "BigtableAsyncClient": "BigtableClient",
-            "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
-            "AsyncPooledChannel": "PooledChannel",
-        }
-    )
     def __init__(
         self,
         *,
@@ -266,7 +256,6 @@ class BigtableDataClientAsync(ClientWithProject):
                     lambda _: self._channel_refresh_tasks.remove(refresh_task) if refresh_task in self._channel_refresh_tasks else None
                 )
 
-    @CrossSync.convert
     async def close(self, timeout: float | None = None):
         """
         Cancel all background tasks
@@ -279,7 +268,6 @@ class BigtableDataClientAsync(ClientWithProject):
             self._executor.shutdown(wait=False)
         await CrossSync.wait(self._channel_refresh_tasks, timeout=timeout)
 
-    @CrossSync.convert
     async def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None
     ) -> list[BaseException | None]:
@@ -321,7 +309,6 @@ class BigtableDataClientAsync(ClientWithProject):
         )
         return [r or None for r in result_list]
 
-    @CrossSync.convert
     async def _manage_channel(
         self,
         channel_idx: int,
@@ -378,7 +365,6 @@ class BigtableDataClientAsync(ClientWithProject):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.monotonic() - start_timestamp)
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     async def _register_instance(self, instance_id: str, owner: TableAsync) -> None:
         """
         Registers an instance with the client, and warms the channel pool
@@ -409,7 +395,6 @@ class BigtableDataClientAsync(ClientWithProject):
                 # refresh tasks aren't active. start them as background tasks
                 self._start_background_channel_refresh()
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     async def _remove_instance_registration(
         self, instance_id: str, owner: TableAsync
     ) -> bool:
@@ -440,7 +425,6 @@ class BigtableDataClientAsync(ClientWithProject):
         except KeyError:
             return False
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> TableAsync:
         """
         Returns a table instance for making data API requests. All arguments are passed
@@ -482,18 +466,15 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
-    @CrossSync.convert(sync_name="__enter__")
     async def __aenter__(self):
         self._start_background_channel_refresh()
         return self
 
-    @CrossSync.convert(sync_name="__exit__", replace_symbols={"__aexit__": "__exit__"})
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
-@CrossSync.export_sync(path="google.cloud.bigtable.data._sync.client.Table")
 class TableAsync:
     """
     Main Data API surface
@@ -502,9 +483,6 @@ class TableAsync:
     each call
     """
 
-    @CrossSync.convert(
-        replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"}
-    )
     def __init__(
         self,
         client: BigtableDataClientAsync,
@@ -625,12 +603,6 @@ class TableAsync:
                 f"{self.__class__.__name__} must be created within an async event loop context."
             ) from e
 
-    @CrossSync.convert(
-        replace_symbols={
-            "AsyncIterable": "Iterable",
-            "_ReadRowsOperationAsync": "_ReadRowsOperation",
-        }
-    )
     async def read_rows_stream(
         self,
         query: ReadRowsQuery,
@@ -681,7 +653,6 @@ class TableAsync:
         )
         return row_merger.start_operation()
 
-    @CrossSync.convert
     async def read_rows(
         self,
         query: ReadRowsQuery,
@@ -729,7 +700,6 @@ class TableAsync:
         )
         return [row async for row in row_generator]
 
-    @CrossSync.convert
     async def read_row(
         self,
         row_key: str | bytes,
@@ -779,7 +749,6 @@ class TableAsync:
             return None
         return results[0]
 
-    @CrossSync.convert
     async def read_rows_sharded(
         self,
         sharded_query: ShardedQuery,
@@ -879,7 +848,6 @@ class TableAsync:
             )
         return results_list
 
-    @CrossSync.convert
     async def row_exists(
         self,
         row_key: str | bytes,
@@ -928,7 +896,6 @@ class TableAsync:
         )
         return len(results) > 0
 
-    @CrossSync.convert
     async def sample_row_keys(
         self,
         *,
@@ -1001,7 +968,6 @@ class TableAsync:
             exception_factory=_helpers._retry_exception_factory,
         )
 
-    @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
     def mutations_batcher(
         self,
         *,
@@ -1051,7 +1017,6 @@ class TableAsync:
             batch_retryable_errors=batch_retryable_errors,
         )
 
-    @CrossSync.convert
     async def mutate_row(
         self,
         row_key: str | bytes,
@@ -1130,9 +1095,6 @@ class TableAsync:
             exception_factory=_helpers._retry_exception_factory,
         )
 
-    @CrossSync.convert(
-        replace_symbols={"_MutateRowsOperationAsync": "_MutateRowsOperation"}
-    )
     async def bulk_mutate_rows(
         self,
         mutation_entries: list[RowMutationEntry],
@@ -1188,7 +1150,6 @@ class TableAsync:
         )
         await operation.start()
 
-    @CrossSync.convert
     async def check_and_mutate_row(
         self,
         row_key: str | bytes,
@@ -1255,7 +1216,6 @@ class TableAsync:
         )
         return result.predicate_matched
 
-    @CrossSync.convert
     async def read_modify_write_row(
         self,
         row_key: str | bytes,
@@ -1306,7 +1266,6 @@ class TableAsync:
         # construct Row from result
         return Row._from_pb(result.row)
 
-    @CrossSync.convert
     async def close(self):
         """
         Called to close the Table instance and release any resources held by it.
@@ -1315,7 +1274,6 @@ class TableAsync:
             self._register_instance_future.cancel()
         await self.client._remove_instance_registration(self.instance_id, self)
 
-    @CrossSync.convert(sync_name="__enter__")
     async def __aenter__(self):
         """
         Implement async context manager protocol
@@ -1327,7 +1285,6 @@ class TableAsync:
             await self._register_instance_future
         return self
 
-    @CrossSync.convert(sync_name="__exit__")
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
         Implement async context manager protocol

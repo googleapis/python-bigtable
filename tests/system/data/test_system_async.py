@@ -34,7 +34,6 @@ else:
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
 
-@CrossSync.export_sync(path="tests.system.data.test_system.TempRowBuilder")
 class TempRowBuilderAsync:
     """
     Used to add rows to a table for testing purposes.
@@ -44,7 +43,6 @@ class TempRowBuilderAsync:
         self.rows = []
         self.table = table
 
-    @CrossSync.convert
     async def add_row(
         self, row_key, *, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
     ):
@@ -68,7 +66,6 @@ class TempRowBuilderAsync:
         await self.table.client._gapic_client.mutate_row(request)
         self.rows.append(row_key)
 
-    @CrossSync.convert
     async def delete_rows(self):
         if self.rows:
             request = {
@@ -81,17 +78,14 @@ class TempRowBuilderAsync:
             await self.table.client._gapic_client.mutate_rows(request)
 
 
-@CrossSync.export_sync(path="tests.system.data.test_system.TestSystem")
 class TestSystemAsync:
 
-    @CrossSync.convert(replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"})
     @CrossSync.pytest_fixture(scope="session")
     async def client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
         async with BigtableDataClientAsync(project=project, pool_size=4) as client:
             yield client
 
-    @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
     async def table(self, client, table_id, instance_id):
         async with client.get_table(
@@ -139,7 +133,6 @@ class TestSystemAsync:
         }
         return cluster
 
-    @CrossSync.convert
     @pytest.mark.usefixtures("table")
     async def _retrieve_cell_value(self, table, row_key):
         """
@@ -153,7 +146,6 @@ class TestSystemAsync:
         cell = row.cells[0]
         return cell.value
 
-    @CrossSync.convert
     async def _create_row_and_mutation(
         self, table, temp_rows, *, start_value=b"start", new_value=b"new_value"
     ):
@@ -174,7 +166,6 @@ class TestSystemAsync:
         mutation = SetCell(family=TEST_FAMILY, qualifier=qualifier, new_value=new_value)
         return row_key, mutation
 
-    @CrossSync.convert(replace_symbols={"TempRowBuilderAsync": "TempRowBuilder"})
     @CrossSync.pytest_fixture(scope="function")
     async def temp_rows(self, table):
         builder = TempRowBuilderAsync(table)
@@ -665,7 +656,6 @@ class TestSystemAsync:
         assert "No mutations provided" in str(e.value)
 
     @pytest.mark.usefixtures("table")
-    @CrossSync.convert(replace_symbols={"__anext__": "__next__"})
     @CrossSync.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
     )
@@ -854,7 +844,6 @@ class TestSystemAsync:
             assert row[0].labels == [expected_label]
 
     @pytest.mark.usefixtures("table")
-    @CrossSync.convert(replace_symbols={"__anext__": "__next__", "aclose": "close"})
     @CrossSync.pytest
     async def test_read_rows_stream_close(self, table, temp_rows):
         """

@@ -76,21 +76,8 @@ else:
     )
 
 
-@CrossSync.export_sync(
-    path="tests.unit.data._sync.test_client.TestBigtableDataClient",
-    replace_symbols={
-        "TestTableAsync": "TestTable",
-        "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
-        "grpc_helpers_async": "grpc_helpers",
-        "PooledChannelAsync": "PooledChannel",
-        "BigtableAsyncClient": "BigtableClient",
-    },
-)
 class TestBigtableDataClientAsync:
     @staticmethod
-    @CrossSync.convert(
-        replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"}
-    )
     def _get_target_class():
         return BigtableDataClientAsync
 
@@ -300,7 +287,6 @@ class TestBigtableDataClientAsync:
                         assert client.transport._grpc_channel._pool[i] != start_pool[i]
             await client.close()
 
-    @CrossSync.drop_method
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test__start_background_channel_refresh_sync(self):
         # should raise RuntimeError if called in a sync context
@@ -344,7 +330,6 @@ class TestBigtableDataClientAsync:
                 ping_and_warm.assert_any_call(channel)
         await client.close()
 
-    @CrossSync.drop_method
     @CrossSync.pytest
     @pytest.mark.skipif(
         sys.version_info < (3, 8), reason="Task.name requires python3.8 or higher"
@@ -1125,7 +1110,6 @@ class TestBigtableDataClientAsync:
         # actually close the client
         await true_close
 
-    @CrossSync.drop_method
     def test_client_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
 
@@ -1141,16 +1125,11 @@ class TestBigtableDataClientAsync:
         assert client._channel_refresh_tasks == []
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestTable")
 class TestTableAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
     @staticmethod
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     def _get_target_class():
         return TableAsync
 
@@ -1272,7 +1251,6 @@ class TestTableAsync:
             assert "operation_timeout must be greater than 0" in str(e.value)
         await client.close()
 
-    @CrossSync.drop_method
     def test_table_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
         client = mock.Mock()
@@ -1422,7 +1400,6 @@ class TestTableAsync:
     )
     @pytest.mark.parametrize("include_app_profile", [True, False])
     @CrossSync.pytest
-    @CrossSync.convert(replace_symbols={"BigtableAsyncClient": "BigtableClient"})
     async def test_call_metadata(self, include_app_profile, fn_name, fn_args, gapic_fn):
         """check that all requests attach proper metadata headers"""
         profile = "profile" if include_app_profile else None
@@ -1455,26 +1432,18 @@ class TestTableAsync:
                     assert "app_profile_id=" not in goog_metadata
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestReadRows")
 class TestReadRowsAsync:
     """
     Tests for table.read_rows and related methods.
     """
 
     @staticmethod
-    @CrossSync.convert(
-        replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"}
-    )
     def _get_operation_class():
         return _ReadRowsOperationAsync
 
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
-    @CrossSync.convert(replace_symbols={"TestTableAsync": "TestTable"})
     def _make_table(self, *args, **kwargs):
         client_mock = mock.Mock()
         client_mock._register_instance.side_effect = (
@@ -1522,7 +1491,6 @@ class TestReadRowsAsync:
         return ReadRowsResponse.CellChunk(*args, **kwargs)
 
     @staticmethod
-    @CrossSync.convert
     async def _make_gapic_stream(
         chunk_list: list[ReadRowsResponse.CellChunk | Exception],
         sleep_time=0,
@@ -1561,7 +1529,6 @@ class TestReadRowsAsync:
 
         return mock_stream(chunk_list, sleep_time)
 
-    @CrossSync.convert
     async def execute_fn(self, table, *args, **kwargs):
         return await table.read_rows(*args, **kwargs)
 
@@ -1973,11 +1940,7 @@ class TestReadRowsAsync:
                 assert query.filter._to_dict() == expected_filter
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestReadRowsSharded")
 class TestReadRowsShardedAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
@@ -1990,7 +1953,6 @@ class TestReadRowsShardedAsync:
                 assert "empty sharded_query" in str(exc.value)
 
     @CrossSync.pytest
-    @CrossSync.convert(replace_symbols={"TestReadRowsAsync": "TestReadRows"})
     async def test_read_rows_sharded_multiple_queries(self):
         """
         Test with multiple queries. Should return results from both
@@ -2198,15 +2160,10 @@ class TestReadRowsShardedAsync:
                     )
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestSampleRowKeys")
 class TestSampleRowKeysAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
-    @CrossSync.convert
     async def _make_gapic_stream(self, sample_list: list[tuple[bytes, int]]):
         from google.cloud.bigtable_v2.types import SampleRowKeysResponse
 
@@ -2354,13 +2311,7 @@ class TestSampleRowKeysAsync:
                         await table.sample_row_keys()
 
 
-@CrossSync.export_sync(
-    path="tests.unit.data._sync.test_client.TestMutateRow",
-)
 class TestMutateRowAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
@@ -2535,17 +2486,10 @@ class TestMutateRowAsync:
                     assert e.value.args[0] == "No mutations provided"
 
 
-@CrossSync.export_sync(
-    path="tests.unit.data._sync.test_client.TestBulkMutateRows",
-)
 class TestBulkMutateRowsAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
-    @CrossSync.convert
     async def _mock_response(self, response_list):
         from google.cloud.bigtable_v2.types import MutateRowsResponse
         from google.rpc import status_pb2
@@ -2921,11 +2865,7 @@ class TestBulkMutateRowsAsync:
                 await table.bulk_mutate_rows(entries, operation_timeout=1000)
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestCheckAndMutateRow")
 class TestCheckAndMutateRowAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
@@ -3076,11 +3016,7 @@ class TestCheckAndMutateRowAsync:
                     )
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestReadModifyWriteRow")
 class TestReadModifyWriteRowAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 

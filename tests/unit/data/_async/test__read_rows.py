@@ -34,9 +34,6 @@ TEST_TIMESTAMP = 123456789
 TEST_LABELS = ["label1", "label2"]
 
 
-@CrossSync.export_sync(
-    path="tests.unit.data._sync.test__read_rows.TestReadRowsOperation",
-)
 class TestReadRowsOperationAsync:
     """
     Tests helper functions in the ReadRowsOperation class
@@ -45,9 +42,6 @@ class TestReadRowsOperationAsync:
     """
 
     @staticmethod
-    @CrossSync.convert(
-        replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"}
-    )
     def _get_target_class():
         return _ReadRowsOperationAsync
 
@@ -332,10 +326,6 @@ class TestReadRowsOperationAsync:
         assert "emit count exceeds row limit" in str(e.value)
 
     @CrossSync.pytest
-    @CrossSync.convert(
-        sync_name="test_close",
-        replace_symbols={"aclose": "close", "__anext__": "__next__"},
-    )
     async def test_aclose(self):
         """
         should be able to close a stream safely with aclose.
@@ -365,7 +355,6 @@ class TestReadRowsOperationAsync:
                 await wrapped_gen.__anext__()
 
     @CrossSync.pytest
-    @CrossSync.convert(replace_symbols={"__anext__": "__next__"})
     async def test_retryable_ignore_repeated_rows(self):
         """
         Duplicate rows should cause an invalid chunk error
