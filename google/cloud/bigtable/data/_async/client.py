@@ -110,7 +110,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import ShardedQuery
 
 
-@CrossSync.sync_output(
+@CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync.client.BigtableDataClient",
 )
 class BigtableDataClientAsync(ClientWithProject):
@@ -493,7 +493,7 @@ class BigtableDataClientAsync(ClientWithProject):
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
-@CrossSync.sync_output(path="google.cloud.bigtable.data._sync.client.Table")
+@CrossSync.export_sync(path="google.cloud.bigtable.data._sync.client.Table")
 class TableAsync:
     """
     Main Data API surface

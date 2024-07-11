@@ -51,7 +51,7 @@ class _ResetRow(Exception):  # noqa: F811
         self.chunk = chunk
 
 
-@CrossSync.sync_output(
+@CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
 )
 class _ReadRowsOperationAsync:

@@ -64,7 +64,7 @@ class TestFile(proto.Message):  # noqa: F811
     read_rows_tests = proto.RepeatedField(proto.MESSAGE, number=1, message=ReadRowsTest)
 
 
-@CrossSync.sync_output(
+@CrossSync.export_sync(
     path="tests.unit.data._sync.test_read_rows_acceptance.TestReadRowsAcceptance",
 )
 class TestReadRowsAcceptanceAsync:

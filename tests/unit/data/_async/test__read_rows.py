@@ -34,7 +34,7 @@ TEST_TIMESTAMP = 123456789
 TEST_LABELS = ["label1", "label2"]
 
 
-@CrossSync.sync_output(
+@CrossSync.export_sync(
     path="tests.unit.data._sync.test__read_rows.TestReadRowsOperation",
 )
 class TestReadRowsOperationAsync:

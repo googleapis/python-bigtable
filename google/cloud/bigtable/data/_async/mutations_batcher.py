@@ -51,7 +51,7 @@ if TYPE_CHECKING:
         from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
 
 
-@CrossSync.sync_output(
+@CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync.mutations_batcher._FlowControl"
 )
 class _FlowControlAsync:
@@ -182,7 +182,7 @@ class _FlowControlAsync:
             yield mutations[start_idx:end_idx]
 
 
-@CrossSync.sync_output(
+@CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher",
     mypy_ignore=["unreachable"],
 )

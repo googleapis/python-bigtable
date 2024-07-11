@@ -34,7 +34,7 @@ else:
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
 
-@CrossSync.sync_output(path="tests.system.data.test_system.TempRowBuilder")
+@CrossSync.export_sync(path="tests.system.data.test_system.TempRowBuilder")
 class TempRowBuilderAsync:
     """
     Used to add rows to a table for testing purposes.
@@ -81,7 +81,7 @@ class TempRowBuilderAsync:
             await self.table.client._gapic_client.mutate_rows(request)
 
 
-@CrossSync.sync_output(path="tests.system.data.test_system.TestSystem")
+@CrossSync.export_sync(path="tests.system.data.test_system.TestSystem")
 class TestSystemAsync:
 
     @CrossSync.convert(replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"})

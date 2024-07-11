@@ -269,8 +269,8 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
         """
         try:
             for decorator in node.decorator_list:
-                if decorator == CrossSync.sync_output:
-                    kwargs = CrossSync.sync_output.parse_ast_keywords(decorator)
+                if decorator == CrossSync.export_sync:
+                    kwargs = CrossSync.export_sync.parse_ast_keywords(decorator)
                     # find the path to write the sync class to
                     sync_path = kwargs["path"]
                     out_file = "/".join(sync_path.rsplit(".")[:-1]) + ".py"

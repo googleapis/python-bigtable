@@ -62,7 +62,7 @@ class _EntryWithProto:  # noqa: F811
     proto: types_pb.MutateRowsRequest.Entry
 
 
-@CrossSync.sync_output(
+@CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
 )
 class _MutateRowsOperationAsync:

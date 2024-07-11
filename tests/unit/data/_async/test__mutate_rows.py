@@ -28,7 +28,7 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
-@CrossSync.sync_output(
+@CrossSync.export_sync(
     path="tests.unit.data._sync.test__mutate_rows.TestMutateRowsOperation",
 )
 class TestMutateRowsOperation:

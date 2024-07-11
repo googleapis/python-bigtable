@@ -136,7 +136,7 @@ class _DecoratorMeta(type):
         for decorator in self._decorators:
             if name == decorator.name:
                 return decorator
-        return super().__getattr__(name)
+        raise AttributeError(f"CrossSync has no attribute {name}")
 
 class CrossSync(metaclass=_DecoratorMeta):
     is_async = True
@@ -159,7 +159,7 @@ class CrossSync(metaclass=_DecoratorMeta):
     Generator: TypeAlias = AsyncGenerator
 
     _decorators: list[AstDecorator] = [
-        AstDecorator("sync_output",  # decorate classes to convert
+        AstDecorator("export_sync",  # decorate classes to convert
             required_keywords=["path"],  # otput path for generated sync class
             replace_symbols={},  # replace specific symbols across entire class
             mypy_ignore=(),  # set of mypy error codes to ignore in output file
