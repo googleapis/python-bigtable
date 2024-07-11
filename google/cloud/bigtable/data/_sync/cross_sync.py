@@ -389,20 +389,3 @@ class CrossSync(metaclass=_DecoratorMeta):
         @staticmethod
         def yield_to_event_loop() -> None:
             pass
-
-
-if __name__ == "__main__":
-    import glob
-    from google.cloud.bigtable.data._sync import transformers
-
-    # find all cross_sync decorated classes
-    search_root = sys.argv[1]
-    # cross_sync_classes = load_classes_from_dir(search_root)\
-    files = glob.glob(search_root + "/**/*.py", recursive=True)
-    artifacts: set[transformers.CrossSyncFileArtifact] = set()
-    for file in files:
-        converter = transformers.CrossSyncClassDecoratorHandler(file)
-        converter.convert_file(artifacts)
-    print(artifacts)
-    for artifact in artifacts:
-        artifact.render(save_to_disk=True)
