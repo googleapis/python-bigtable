@@ -143,19 +143,28 @@ class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
                 found_list, node.decorator_list = node.decorator_list, []
                 for decorator in found_list:
                     if decorator == CrossSync.convert:
-                        kwargs = CrossSync.convert.parse_ast_keywords(decorator)
                         # convert async to sync
+                        kwargs = CrossSync.convert.parse_ast_keywords(decorator)
                         node = AsyncToSync().visit(node)
+                        # replace method name if specified
                         if kwargs["sync_name"] is not None:
                             node.name = kwargs["sync_name"]
+                        # replace symbols if specified
                         if kwargs["replace_symbols"]:
                             node = SymbolReplacer(kwargs["replace_symbols"]).visit(node)
                     elif decorator == CrossSync.drop_method:
+                        # drop method entirely from class
                         return None
                     elif decorator == CrossSync.pytest:
                         # also convert pytest methods to sync
                         node = AsyncToSync().visit(node)
+                    elif decorator == CrossSync.pytest_fixture:
+                        # add pytest.fixture decorator
+                        decorator.func.value = ast.Name(id="pytest", ctx=ast.Load())
+                        decorator.func.attr = "fixture"
+                        node.decorator_list.append(decorator)
                     else:
+                        # keep unknown decorators
                         node.decorator_list.append(decorator)
             return node
         except ValueError as e:

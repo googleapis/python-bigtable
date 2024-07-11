@@ -48,6 +48,12 @@ def pytest_mark_asyncio(func):
     except ImportError:
         return func
 
+def pytest_asyncio_fixture(*args, **kwargs):
+    import pytest_asyncio
+    def decorator(func):
+        return pytest_asyncio.fixture(*args, **kwargs)(func)
+    return decorator
+
 class AstDecorator:
     """
     Helper class for CrossSync decorators used for guiding ast transformations.
@@ -56,8 +62,8 @@ class AstDecorator:
     but act as no-ops when encountered in live code
     """
 
-    def __init__(self, name, required_keywords=(), inner_decorator=None, **default_kwargs):
-        self.name = name
+    def __init__(self, decorator_name, required_keywords=(), inner_decorator=None, **default_kwargs):
+        self.name = decorator_name
         self.required_kwargs = required_keywords
         self.default_kwargs = default_kwargs
         self.all_valid_keys = [*required_keywords, *default_kwargs.keys()]
@@ -161,10 +167,18 @@ class CrossSync(metaclass=_DecoratorMeta):
         ),
         AstDecorator("convert",  # decorate methods to convert from async to sync
             sync_name=None,  # use a new name for the sync class
-            replace_symbols={}  # replace specific symbols within the function
+            replace_symbols={},  # replace specific symbols within the function
         ),
         AstDecorator("drop_method"),  # decorate methods to drop in sync version of class
-        AstDecorator("pytest", inner_decorator=pytest_mark_asyncio)
+        AstDecorator("pytest", inner_decorator=pytest_mark_asyncio),  # decorate test methods to run with pytest-asyncio
+        AstDecorator("pytest_fixture",  # decorate test methods to run with pytest fixture
+            inner_decorator=pytest_asyncio_fixture,
+            scope="function",
+            params=None,
+            autouse=False,
+            ids=None,
+            name=None,
+        ),
     ]
 
     @classmethod
@@ -174,13 +188,6 @@ class CrossSync(metaclass=_DecoratorMeta):
         except ImportError:  # pragma: NO COVER
             from mock import AsyncMock  # type: ignore
         return AsyncMock(*args, **kwargs)
-
-    @staticmethod
-    def pytest_fixture(*args, **kwargs):
-        import pytest_asyncio
-        def decorator(func):
-            return pytest_asyncio.fixture(*args, **kwargs)(func)
-        return decorator
 
     @staticmethod
     async def gather_partials(
@@ -349,13 +356,6 @@ class CrossSync(metaclass=_DecoratorMeta):
             async_break_early: bool = True,
         ) -> None:
             event.wait(timeout=timeout)
-
-        @staticmethod
-        def pytest_fixture(*args, **kwargs):
-            import pytest
-            def decorator(func):
-                return pytest.fixture(*args, **kwargs)(func)
-            return decorator
 
         @staticmethod
         def gather_partials(

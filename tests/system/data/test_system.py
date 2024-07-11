@@ -74,13 +74,13 @@ class TempRowBuilder:
 
 
 class TestSystem:
-    @CrossSync._Sync_Impl.pytest_fixture(scope="session")
+    @pytest.fixture(scope="session")
     def client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
         with BigtableDataClient(project=project, pool_size=4) as client:
             yield client
 
-    @CrossSync._Sync_Impl.pytest_fixture(scope="session")
+    @pytest.fixture(scope="session")
     def table(self, client, table_id, instance_id):
         with client.get_table(instance_id, table_id) as table:
             yield table
@@ -136,7 +136,7 @@ class TestSystem:
         mutation = SetCell(family=TEST_FAMILY, qualifier=qualifier, new_value=new_value)
         return (row_key, mutation)
 
-    @CrossSync._Sync_Impl.pytest_fixture(scope="function")
+    @pytest.fixture(scope="function")
     def temp_rows(self, table):
         builder = TempRowBuilder(table)
         yield builder
