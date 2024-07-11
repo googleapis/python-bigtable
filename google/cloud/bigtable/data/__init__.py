@@ -48,9 +48,6 @@ from google.cloud.bigtable.data._helpers import ShardedQuery
 __version__: str = package_version.__version__
 
 __all__ = (
-    "BigtableDataClient",
-    "Table",
-    "MutationsBatcher",
     "BigtableDataClientAsync",
     "TableAsync",
     "MutationsBatcherAsync",
