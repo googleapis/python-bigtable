@@ -31,9 +31,6 @@ from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_L
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
-if not CrossSync.is_async:
-    from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
-
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
@@ -41,11 +38,6 @@ if TYPE_CHECKING:
         from google.cloud.bigtable.data._async.client import TableAsync
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
             BigtableAsyncClient,
-        )
-    else:
-        from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
-        from google.cloud.bigtable_v2.services.bigtable.client import (  # noqa: F401
-            BigtableClient,
         )
 
 

@@ -38,14 +38,10 @@ from google.api_core.retry import exponential_sleep_generator
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
-if not CrossSync.is_async:
-    from google.cloud.bigtable.data._async._read_rows import _ResetRow
 
 if TYPE_CHECKING:
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.client import TableAsync
-    else:
-        from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
 
 
 class _ResetRow(Exception):  # noqa: F811

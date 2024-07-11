@@ -126,7 +126,7 @@ class AstDecorator:
             }
         raise ValueError(f"Unsupported type {type(ast_node)}")
 
-    def _node_eq(self, node: ast.Node):
+    def _node_eq(self, node):
         import ast
 
         if "CrossSync" in ast.dump(node):

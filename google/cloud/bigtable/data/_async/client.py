@@ -91,26 +91,6 @@ if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
         BigtableAsyncClient,
     )
-else:
-    from google.cloud.bigtable.data._sync._mutate_rows import (  # noqa: F401
-        _MutateRowsOperation,
-    )
-    from google.cloud.bigtable.data._sync.mutations_batcher import (  # noqa: F401
-        MutationsBatcher,
-    )
-    from google.cloud.bigtable.data._sync._read_rows import (  # noqa: F401
-        _ReadRowsOperation,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (  # noqa: F401
-        PooledBigtableGrpcTransport,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (  # noqa: F401
-        PooledChannel,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.client import (  # noqa: F401
-        BigtableClient,
-    )
-    from typing import Iterable  # noqa: F401
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
