@@ -34,6 +34,7 @@ else:
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
 
+
 class TempRowBuilderAsync:
     """
     Used to add rows to a table for testing purposes.
@@ -79,7 +80,6 @@ class TempRowBuilderAsync:
 
 
 class TestSystemAsync:
-
     @CrossSync.pytest_fixture(scope="session")
     async def client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None

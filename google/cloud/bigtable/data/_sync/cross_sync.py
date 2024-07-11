@@ -41,18 +41,24 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+
 def pytest_mark_asyncio(func):
     try:
         import pytest
+
         return pytest.mark.asyncio(func)
     except ImportError:
         return func
 
+
 def pytest_asyncio_fixture(*args, **kwargs):
     import pytest_asyncio
+
     def decorator(func):
         return pytest_asyncio.fixture(*args, **kwargs)(func)
+
     return decorator
+
 
 class AstDecorator:
     """
@@ -62,7 +68,13 @@ class AstDecorator:
     but act as no-ops when encountered in live code
     """
 
-    def __init__(self, decorator_name, required_keywords=(), inner_decorator=None, **default_kwargs):
+    def __init__(
+        self,
+        decorator_name,
+        required_keywords=(),
+        inner_decorator=None,
+        **default_kwargs,
+    ):
         self.name = decorator_name
         self.required_kwargs = required_keywords
         self.default_kwargs = default_kwargs
@@ -77,15 +89,18 @@ class AstDecorator:
             return self.inner_decorator(*args, **kwargs)
         if len(args) == 1 and callable(args[0]):
             return args[0]
+
         def decorator(func):
             return func
+
         return decorator
 
     def parse_ast_keywords(self, node):
-        got_kwargs = {
-            kw.arg: self._convert_ast_to_py(kw.value)
-            for kw in node.keywords
-        } if hasattr(node, "keywords") else {}
+        got_kwargs = (
+            {kw.arg: self._convert_ast_to_py(kw.value) for kw in node.keywords}
+            if hasattr(node, "keywords")
+            else {}
+        )
         for key in got_kwargs.keys():
             if key not in self.all_valid_keys:
                 raise ValueError(f"Invalid keyword argument: {key}")
@@ -99,6 +114,7 @@ class AstDecorator:
         Helper to convert ast primitives to python primitives. Used when unwrapping kwargs
         """
         import ast
+
         if isinstance(ast_node, ast.Constant):
             return ast_node.value
         if isinstance(ast_node, ast.List):
@@ -112,12 +128,9 @@ class AstDecorator:
 
     def _node_eq(self, node: ast.Node):
         import ast
+
         if "CrossSync" in ast.dump(node):
-            decorator_type = (
-                node.func.attr
-                if hasattr(node, "func")
-                else node.attr
-            )
+            decorator_type = node.func.attr if hasattr(node, "func") else node.attr
             if decorator_type == self.name:
                 return True
         return False
@@ -137,6 +150,7 @@ class _DecoratorMeta(type):
             if name == decorator.name:
                 return decorator
         raise AttributeError(f"CrossSync has no attribute {name}")
+
 
 class CrossSync(metaclass=_DecoratorMeta):
     is_async = True
@@ -159,8 +173,11 @@ class CrossSync(metaclass=_DecoratorMeta):
     Generator: TypeAlias = AsyncGenerator
 
     _decorators: list[AstDecorator] = [
-        AstDecorator("pytest", inner_decorator=pytest_mark_asyncio),  # decorate test methods to run with pytest-asyncio
-        AstDecorator("pytest_fixture",  # decorate test methods to run with pytest fixture
+        AstDecorator(
+            "pytest", inner_decorator=pytest_mark_asyncio
+        ),  # decorate test methods to run with pytest-asyncio
+        AstDecorator(
+            "pytest_fixture",  # decorate test methods to run with pytest fixture
             inner_decorator=pytest_asyncio_fixture,
             scope="function",
             params=None,

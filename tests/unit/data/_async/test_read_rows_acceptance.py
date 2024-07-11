@@ -39,6 +39,7 @@ else:
     )
     from google.cloud.bigtable.data._sync.client import BigtableDataClient  # noqa: F401
 
+
 class TestReadRowsAcceptanceAsync:
     @staticmethod
     def _get_operation_class():

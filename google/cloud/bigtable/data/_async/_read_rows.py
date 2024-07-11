@@ -29,7 +29,9 @@ from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
-from google.cloud.bigtable.data import _helpers
+from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
+from google.cloud.bigtable.data._helpers import _make_metadata
+from google.cloud.bigtable.data._helpers import _retry_exception_factory
 
 from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
@@ -90,7 +92,7 @@ class _ReadRowsOperationAsync:
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
     ):
-        self.attempt_timeout_gen = _helpers._attempt_timeout_generator(
+        self.attempt_timeout_gen = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
         )
         self.operation_timeout = operation_timeout
@@ -104,7 +106,7 @@ class _ReadRowsOperationAsync:
             self.request = query._to_pb(table)
         self.table = table
         self._predicate = retries.if_exception_type(*retryable_exceptions)
-        self._metadata = _helpers._make_metadata(
+        self._metadata = _make_metadata(
             table.table_name,
             table.app_profile_id,
         )
@@ -123,7 +125,7 @@ class _ReadRowsOperationAsync:
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
-            exception_factory=_helpers._retry_exception_factory,
+            exception_factory=_retry_exception_factory,
         )
 
     def _read_rows_attempt(self) -> CrossSync.Iterable[Row]:
