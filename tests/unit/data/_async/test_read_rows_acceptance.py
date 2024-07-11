@@ -108,9 +108,11 @@ class TestReadRowsAcceptanceAsync:
         return results
 
     @staticmethod
+    @CrossSync.convert
     async def _coro_wrapper(stream):
         return stream
 
+    @CrossSync.convert
     async def _process_chunks(self, *chunks):
         async def _row_stream():
             yield ReadRowsResponse(chunks=chunks)

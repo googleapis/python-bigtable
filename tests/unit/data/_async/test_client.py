@@ -1523,6 +1523,7 @@ class TestReadRowsAsync:
         return ReadRowsResponse.CellChunk(*args, **kwargs)
 
     @staticmethod
+    @CrossSync.convert
     async def _make_gapic_stream(
         chunk_list: list[ReadRowsResponse.CellChunk | Exception],
         sleep_time=0,
@@ -1561,6 +1562,7 @@ class TestReadRowsAsync:
 
         return mock_stream(chunk_list, sleep_time)
 
+    @CrossSync.convert
     async def execute_fn(self, table, *args, **kwargs):
         return await table.read_rows(*args, **kwargs)
 
@@ -2205,6 +2207,7 @@ class TestSampleRowKeysAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
+    @CrossSync.convert
     async def _make_gapic_stream(self, sample_list: list[tuple[bytes, int]]):
         from google.cloud.bigtable_v2.types import SampleRowKeysResponse
 
@@ -2543,6 +2546,7 @@ class TestBulkMutateRowsAsync:
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
+    @CrossSync.convert
     async def _mock_response(self, response_list):
         from google.cloud.bigtable_v2.types import MutateRowsResponse
         from google.rpc import status_pb2

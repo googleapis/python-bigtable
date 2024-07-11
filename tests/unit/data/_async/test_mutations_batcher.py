@@ -906,6 +906,7 @@ class TestMutationsBatcherAsync:
             instance._oldest_exceptions.clear()
             instance._newest_exceptions.clear()
 
+    @CrossSync.convert
     async def _mock_gapic_return(self, num=5):
         from google.cloud.bigtable_v2.types import MutateRowsResponse
         from google.rpc import status_pb2

@@ -44,6 +44,7 @@ class TempRowBuilderAsync:
         self.rows = []
         self.table = table
 
+    @CrossSync.convert
     async def add_row(
         self, row_key, *, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
     ):
@@ -67,6 +68,7 @@ class TempRowBuilderAsync:
         await self.table.client._gapic_client.mutate_row(request)
         self.rows.append(row_key)
 
+    @CrossSync.convert
     async def delete_rows(self):
         if self.rows:
             request = {
@@ -89,6 +91,7 @@ class TestSystemAsync:
         async with BigtableDataClientAsync(project=project, pool_size=4) as client:
             yield client
 
+    @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
     async def table(self, client, table_id, instance_id):
         async with client.get_table(
@@ -136,6 +139,7 @@ class TestSystemAsync:
         }
         return cluster
 
+    @CrossSync.convert
     @pytest.mark.usefixtures("table")
     async def _retrieve_cell_value(self, table, row_key):
         """
@@ -149,6 +153,7 @@ class TestSystemAsync:
         cell = row.cells[0]
         return cell.value
 
+    @CrossSync.convert
     async def _create_row_and_mutation(
         self, table, temp_rows, *, start_value=b"start", new_value=b"new_value"
     ):
