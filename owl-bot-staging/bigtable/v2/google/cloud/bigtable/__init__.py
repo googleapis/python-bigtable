@@ -51,6 +51,7 @@ from google.cloud.bigtable_v2.types.data import Family
 from google.cloud.bigtable_v2.types.data import Mutation
 from google.cloud.bigtable_v2.types.data import PartialResultSet
 from google.cloud.bigtable_v2.types.data import ProtoFormat
+from google.cloud.bigtable_v2.types.data import ProtoRows
 from google.cloud.bigtable_v2.types.data import ProtoRowsBatch
 from google.cloud.bigtable_v2.types.data import ProtoSchema
 from google.cloud.bigtable_v2.types.data import ReadModifyWriteRule
@@ -105,6 +106,7 @@ __all__ = ('BigtableClient',
     'Mutation',
     'PartialResultSet',
     'ProtoFormat',
+    'ProtoRows',
     'ProtoRowsBatch',
     'ProtoSchema',
     'ReadModifyWriteRule',

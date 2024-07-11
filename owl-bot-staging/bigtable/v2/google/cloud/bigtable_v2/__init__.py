@@ -51,6 +51,7 @@ from .types.data import Family
 from .types.data import Mutation
 from .types.data import PartialResultSet
 from .types.data import ProtoFormat
+from .types.data import ProtoRows
 from .types.data import ProtoRowsBatch
 from .types.data import ProtoSchema
 from .types.data import ReadModifyWriteRule
@@ -99,6 +100,7 @@ __all__ = (
 'PingAndWarmRequest',
 'PingAndWarmResponse',
 'ProtoFormat',
+'ProtoRows',
 'ProtoRowsBatch',
 'ProtoSchema',
 'RateLimitInfo',
