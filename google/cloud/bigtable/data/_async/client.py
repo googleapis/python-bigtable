@@ -210,10 +210,10 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         Helper function to return the client version string for this client
         """
+        version_str = f"{google.cloud.bigtable.__version__}-data"
         if CrossSync.is_async:
-            return f"{google.cloud.bigtable.__version__}-data-async"
-        else:
-            return f"{google.cloud.bigtable.__version__}-data"
+            version_str += "-async"
+        return version_str
 
     def _start_background_channel_refresh(self) -> None:
         """
