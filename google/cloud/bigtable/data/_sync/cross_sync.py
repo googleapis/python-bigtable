@@ -43,6 +43,12 @@ T = TypeVar("T")
 
 
 def pytest_mark_asyncio(func):
+    """
+    Applies pytest.mark.asyncio to a function if pytest is installed, otherwise
+    returns the function as is
+
+    Used to support CrossSync.pytest decorator, without requiring pytest to be installed
+    """
     try:
         import pytest
 
@@ -52,6 +58,12 @@ def pytest_mark_asyncio(func):
 
 
 def pytest_asyncio_fixture(*args, **kwargs):
+    """
+    Applies pytest.fixture to a function if pytest is installed, otherwise
+    returns the function as is
+
+    Used to support CrossSync.pytest_fixture decorator, without requiring pytest to be installed
+    """
     import pytest_asyncio  # type: ignore
 
     def decorator(func):
@@ -66,36 +78,63 @@ class AstDecorator:
 
     These decorators provide arguments that are used during the code generation process,
     but act as no-ops when encountered in live code
+
+    Args:
+        attr_name: name of the attribute to attach to the CrossSync class 
+            e.g. pytest for CrossSync.pytest
+        required_keywords: list of required keyword arguments for the decorator.
+            If the decorator is used without these arguments, a ValueError is
+            raised during code generation
+        async_impl: If given, the async code will apply this decorator to its
+            wrapped function at runtime. If not given, the decorator will be a no-op
+        **default_kwargs: any kwargs passed define the valid arguments when using the decorator.
+            The value of each kwarg is the default value for the argument.
     """
 
     def __init__(
         self,
-        decorator_name,
+        attr_name,
         required_keywords=(),
-        inner_decorator=None,
+        async_impl=None,
         **default_kwargs,
     ):
-        self.name = decorator_name
+        self.name = attr_name
         self.required_kwargs = required_keywords
         self.default_kwargs = default_kwargs
         self.all_valid_keys = [*required_keywords, *default_kwargs.keys()]
-        self.inner_decorator = inner_decorator
+        self.async_impl = async_impl
 
     def __call__(self, *args, **kwargs):
+        """
+        Called when the decorator is used in code.
+
+        Returns a no-op decorator function, or applies the async_impl decorator
+        """
+        # raise error if invalid kwargs are passed
         for kwarg in kwargs:
             if kwarg not in self.all_valid_keys:
                 raise ValueError(f"Invalid keyword argument: {kwarg}")
-        if self.inner_decorator:
-            return self.inner_decorator(*args, **kwargs)
+        # if async_impl is provided, use the given decorator function
+        if self.async_impl:
+            return self.async_impl(**{**self.default_kwargs, **kwargs})
+        # if no arguments, args[0] will hold the function to be decorated
+        # return the function as is
         if len(args) == 1 and callable(args[0]):
             return args[0]
 
+        # if arguments are provided, return a no-op decorator function
         def decorator(func):
             return func
 
         return decorator
 
     def parse_ast_keywords(self, node):
+        """
+        When this decorator is encountered in the ast during sync generation, parse the
+        keyword arguments back from ast nodes to python primitives
+
+        Return a full set of kwargs, using default values for missing arguments
+        """
         got_kwargs = (
             {kw.arg: self._convert_ast_to_py(kw.value) for kw in node.keywords}
             if hasattr(node, "keywords")
@@ -127,6 +166,9 @@ class AstDecorator:
         raise ValueError(f"Unsupported type {type(ast_node)}")
 
     def _node_eq(self, node):
+        """
+        Check if the given ast node is a call to this decorator
+        """
         import ast
 
         if "CrossSync" in ast.dump(node):
@@ -136,6 +178,9 @@ class AstDecorator:
         return False
 
     def __eq__(self, other):
+        """
+        Helper to support == comparison with ast nodes
+        """
         return self._node_eq(other)
 
 
@@ -153,8 +198,10 @@ class _DecoratorMeta(type):
 
 
 class CrossSync(metaclass=_DecoratorMeta):
+    # support CrossSync.is_async to check if the current environment is async
     is_async = True
 
+    # provide aliases for common async functions and types
     sleep = asyncio.sleep
     retry_target = retries.retry_target_async
     retry_target_stream = retries.retry_target_stream_async
@@ -166,7 +213,7 @@ class CrossSync(metaclass=_DecoratorMeta):
     Event: TypeAlias = asyncio.Event
     Semaphore: TypeAlias = asyncio.Semaphore
     StopIteration: TypeAlias = StopAsyncIteration
-    # type annotations
+    # provide aliases for common async type annotations
     Awaitable: TypeAlias = typing.Awaitable
     Iterable: TypeAlias = AsyncIterable
     Iterator: TypeAlias = AsyncIterator
@@ -174,11 +221,11 @@ class CrossSync(metaclass=_DecoratorMeta):
 
     _decorators: list[AstDecorator] = [
         AstDecorator(
-            "pytest", inner_decorator=pytest_mark_asyncio
+            "pytest", async_impl=pytest_mark_asyncio
         ),  # decorate test methods to run with pytest-asyncio
         AstDecorator(
             "pytest_fixture",  # decorate test methods to run with pytest fixture
-            inner_decorator=pytest_asyncio_fixture,
+            async_impl=pytest_asyncio_fixture,
             scope="function",
             params=None,
             autouse=False,
@@ -189,6 +236,9 @@ class CrossSync(metaclass=_DecoratorMeta):
 
     @classmethod
     def Mock(cls, *args, **kwargs):
+        """
+        Alias for AsyncMock, importing at runtime to avoid hard dependency on mock
+        """
         try:
             from unittest.mock import AsyncMock  # type: ignore
         except ImportError:  # pragma: NO COVER
@@ -309,6 +359,9 @@ class CrossSync(metaclass=_DecoratorMeta):
         asyncio.get_running_loop()
 
     class _Sync_Impl:
+        """
+        Provide sync versions of the async functions and types in CrossSync
+        """
         is_async = False
 
         sleep = time.sleep
@@ -327,8 +380,6 @@ class CrossSync(metaclass=_DecoratorMeta):
         Iterable: TypeAlias = typing.Iterable
         Iterator: TypeAlias = typing.Iterator
         Generator: TypeAlias = typing.Generator
-
-        generated_replacements: dict[type, str] = {}
 
         @classmethod
         def Mock(cls, *args, **kwargs):
@@ -412,8 +463,14 @@ class CrossSync(metaclass=_DecoratorMeta):
 
         @staticmethod
         def yield_to_event_loop() -> None:
+            """
+            No-op for sync version
+            """
             pass
 
         @staticmethod
         def verify_async_event_loop() -> None:
+            """
+            No-op for sync version
+            """
             pass
