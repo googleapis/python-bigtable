@@ -16,6 +16,7 @@ from __future__ import annotations
 import ast
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from generate import CrossSyncFileArtifact
 
 
 class SymbolReplacer(ast.NodeTransformer):
