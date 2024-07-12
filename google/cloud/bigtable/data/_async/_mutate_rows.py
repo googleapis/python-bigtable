@@ -15,12 +15,10 @@
 from __future__ import annotations
 
 from typing import Sequence, TYPE_CHECKING
-from dataclasses import dataclass
 import functools
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
-import google.cloud.bigtable_v2.types.bigtable as types_pb
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
@@ -28,6 +26,7 @@ from google.cloud.bigtable.data._helpers import _retry_exception_factory
 
 # mutate_rows requests are limited to this number of mutations
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+from google.cloud.bigtable.data.mutations import _EntryWithProto
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
@@ -39,16 +38,6 @@ if TYPE_CHECKING:
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
             BigtableAsyncClient,
         )
-
-
-@dataclass
-class _EntryWithProto:  # noqa: F811
-    """
-    A dataclass to hold a RowMutationEntry and its corresponding proto representation.
-    """
-
-    entry: RowMutationEntry
-    proto: types_pb.MutateRowsRequest.Entry
 
 
 class _MutateRowsOperationAsync:
@@ -104,8 +93,6 @@ class _MutateRowsOperationAsync:
             bt_exceptions._MutateRowsIncomplete,
         )
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-        # Note: _operation could be a raw coroutine, but using a lambda
-        # wrapper helps unify with sync code
         self._operation = lambda: CrossSync.retry_target(
             self._run_attempt,
             self.is_retryable,

@@ -29,6 +29,7 @@ from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
+from google.cloud.bigtable.data.exceptions import _ResetRow
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
@@ -42,11 +43,6 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 if TYPE_CHECKING:
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.client import TableAsync
-
-
-class _ResetRow(Exception):  # noqa: F811
-    def __init__(self, chunk):
-        self.chunk = chunk
 
 
 class _ReadRowsOperationAsync:

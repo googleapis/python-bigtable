@@ -137,7 +137,7 @@ def _retry_exception_factory(
 def _get_timeouts(
     operation: float | TABLE_DEFAULT,
     attempt: float | None | TABLE_DEFAULT,
-    table: "TableAsync"
+    table: "TableAsync",
 ) -> tuple[float, float]:
     """
     Convert passed in timeout values to floats, using table defaults if necessary.

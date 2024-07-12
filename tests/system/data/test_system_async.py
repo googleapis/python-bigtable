@@ -25,14 +25,13 @@ from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+from . import TEST_FAMILY, TEST_FAMILY_2
+
 if CrossSync.is_async:
     from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 else:
     from google.cloud.bigtable.data._sync.client import BigtableDataClient
     from .test_system_async import TEST_FAMILY, TEST_FAMILY_2
-
-TEST_FAMILY = "test-family"
-TEST_FAMILY_2 = "test-family-2"
 
 
 class TempRowBuilderAsync:
