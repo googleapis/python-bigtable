@@ -301,6 +301,13 @@ class CrossSync(metaclass=_DecoratorMeta):
         """
         await asyncio.sleep(0)
 
+    @staticmethod
+    def verify_async_event_loop() -> None:
+        """
+        Raises RuntimeError if the event loop is not running
+        """
+        asyncio.get_running_loop()
+
     class _Sync_Impl:
         is_async = False
 
@@ -405,4 +412,8 @@ class CrossSync(metaclass=_DecoratorMeta):
 
         @staticmethod
         def yield_to_event_loop() -> None:
+            pass
+
+        @staticmethod
+        def verify_async_event_loop() -> None:
             pass

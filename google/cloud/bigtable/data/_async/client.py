@@ -227,9 +227,8 @@ class BigtableDataClientAsync(ClientWithProject):
             and not self._emulator_host
             and not self._is_closed.is_set()
         ):
-            if CrossSync.is_async:
-                # raise error if not in an event loop
-                asyncio.get_running_loop()
+            # raise error if not in an event loop in async client
+            CrossSync.verify_async_event_loop()
             for channel_idx in range(self.transport.pool_size):
                 refresh_task = CrossSync.create_task(
                     self._manage_channel,
