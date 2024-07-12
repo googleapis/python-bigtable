@@ -116,7 +116,7 @@ class AstDecorator:
                 raise ValueError(f"Invalid keyword argument: {kwarg}")
         # if async_impl is provided, use the given decorator function
         if self.async_impl:
-            return self.async_impl(**{**self.default_kwargs, **kwargs})
+            return self.async_impl(*args, **{**self.default_kwargs, **kwargs})
         # if no arguments, args[0] will hold the function to be decorated
         # return the function as is
         if len(args) == 1 and callable(args[0]):
