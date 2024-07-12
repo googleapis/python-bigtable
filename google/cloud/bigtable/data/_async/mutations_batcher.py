@@ -36,7 +36,6 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if CrossSync.is_async:
     from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-    CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
@@ -46,7 +45,8 @@ if TYPE_CHECKING:
 
 
 @CrossSync.export_sync(
-    path="google.cloud.bigtable.data._sync.mutations_batcher._FlowControl"
+    path="google.cloud.bigtable.data._sync.mutations_batcher._FlowControl",
+    add_mapping_for_name="_FlowControl"
 )
 class _FlowControlAsync:
     """
@@ -179,6 +179,7 @@ class _FlowControlAsync:
 @CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher",
     mypy_ignore=["unreachable"],
+    add_mapping_for_name="MutationsBatcher",
 )
 class MutationsBatcherAsync:
     """
@@ -211,9 +212,7 @@ class MutationsBatcherAsync:
             Defaults to the Table's default_mutate_rows_retryable_errors.
     """
 
-    @CrossSync.convert(
-        replace_symbols={"TableAsync": "Table", "_FlowControlAsync": "_FlowControl"}
-    )
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     def __init__(
         self,
         table: TableAsync,
@@ -239,7 +238,7 @@ class MutationsBatcherAsync:
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = 0, 0
-        self._flow_control = _FlowControlAsync(
+        self._flow_control = CrossSync._FlowControl(
             flow_control_max_mutation_count, flow_control_max_bytes
         )
         self._flush_limit_bytes = flush_limit_bytes

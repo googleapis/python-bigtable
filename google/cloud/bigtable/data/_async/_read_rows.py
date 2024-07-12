@@ -43,11 +43,11 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 if TYPE_CHECKING:
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.client import TableAsync
-        CrossSync.add_mapping("Table", TableAsync)
 
 
 @CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
+    add_mapping_for_name="_ReadRowsOperation",
 )
 class _ReadRowsOperationAsync:
     """

@@ -95,8 +95,6 @@ if CrossSync.is_async:
     CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
     CrossSync.add_mapping("PooledTransport", PooledBigtableGrpcAsyncIOTransport)
     CrossSync.add_mapping("PooledChannel", AsyncPooledChannel)
-    CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
-    CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
 
 
 if TYPE_CHECKING:
@@ -106,6 +104,7 @@ if TYPE_CHECKING:
 
 @CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync.client.BigtableDataClient",
+    add_mapping_for_name="DataClient",
 )
 class BigtableDataClientAsync(ClientWithProject):
     @CrossSync.convert
@@ -480,7 +479,7 @@ class BigtableDataClientAsync(ClientWithProject):
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
-@CrossSync.export_sync(path="google.cloud.bigtable.data._sync.client.Table")
+@CrossSync.export_sync(path="google.cloud.bigtable.data._sync.client.Table", add_mapping_for_name="Table")
 class TableAsync:
     """
     Main Data API surface

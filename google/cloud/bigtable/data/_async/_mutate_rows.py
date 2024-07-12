@@ -38,12 +38,12 @@ if TYPE_CHECKING:
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
             BigtableAsyncClient,
         )
-        CrossSync.add_mapping("Table", TableAsync)
         CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
 
 
 @CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
+    add_mapping_for_name="_MutateRowsOperation",
 )
 class _MutateRowsOperationAsync:
     """

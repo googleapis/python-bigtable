@@ -72,6 +72,22 @@ def pytest_asyncio_fixture(*args, **kwargs):
     return decorator
 
 
+def export_sync_impl(*args, **kwargs):
+    """
+    Decorator implementation for CrossSync.export_sync
+
+    When a called with add_mapping_for_name, CrossSync.add_mapping is called to
+    register the name as a CrossSync attribute
+    """
+    new_mapping = kwargs.pop("add_mapping_for_name", None)
+    def decorator(cls):
+        if new_mapping:
+            # add class to mappings if requested
+            CrossSync.add_mapping(new_mapping, cls)
+        return cls
+    return decorator
+
+
 class AstDecorator:
     """
     Helper class for CrossSync decorators used for guiding ast transformations.
@@ -237,9 +253,11 @@ class CrossSync(metaclass=_DecoratorMeta):
     _decorators: list[AstDecorator] = [
         AstDecorator("export_sync",  # decorate classes to convert
             required_keywords=["path"],  # otput path for generated sync class
+            async_impl=export_sync_impl,  # apply this decorator to the function at runtime
             replace_symbols={},  # replace specific symbols across entire class
             mypy_ignore=(),  # set of mypy error codes to ignore in output file
-            include_file_imports=True  # when True, import statements from top of file will be included in output file
+            include_file_imports=True,  # when True, import statements from top of file will be included in output file
+            add_mapping_for_name=None,  # add a new attribute to CrossSync class with the given name
         ),
         AstDecorator("convert",  # decorate methods to convert from async to sync
             sync_name=None,  # use a new name for the sync class
