@@ -28,6 +28,9 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
+@CrossSync.export_sync(
+    path="tests.unit.data._sync.test__mutate_rows.TestMutateRowsOperation",
+)
 class TestMutateRowsOperation:
     def _target_class(self):
         if CrossSync.is_async:
@@ -59,6 +62,7 @@ class TestMutateRowsOperation:
         mutation.mutations = [mock.Mock()] * count
         return mutation
 
+    @CrossSync.convert
     async def _mock_stream(self, mutation_list, error_dict):
         for idx, entry in enumerate(mutation_list):
             code = error_dict.get(idx, 0)

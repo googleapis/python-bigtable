@@ -220,6 +220,17 @@ class CrossSync(metaclass=_DecoratorMeta):
     Generator: TypeAlias = AsyncGenerator
 
     _decorators: list[AstDecorator] = [
+        AstDecorator("export_sync",  # decorate classes to convert
+            required_keywords=["path"],  # otput path for generated sync class
+            replace_symbols={},  # replace specific symbols across entire class
+            mypy_ignore=(),  # set of mypy error codes to ignore in output file
+            include_file_imports=True  # when True, import statements from top of file will be included in output file
+        ),
+        AstDecorator("convert",  # decorate methods to convert from async to sync
+            sync_name=None,  # use a new name for the sync class
+            replace_symbols={},  # replace specific symbols within the function
+        ),
+        AstDecorator("drop_method"),  # decorate methods to drop in sync version of class
         AstDecorator(
             "pytest", async_impl=pytest_mark_asyncio
         ),  # decorate test methods to run with pytest-asyncio

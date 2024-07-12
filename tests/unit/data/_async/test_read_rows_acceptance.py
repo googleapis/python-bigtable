@@ -39,12 +39,21 @@ else:
     from google.cloud.bigtable.data._sync.client import BigtableDataClient  # noqa: F401
 
 
+@CrossSync.export_sync(
+    path="tests.unit.data._sync.test_read_rows_acceptance.TestReadRowsAcceptance",
+)
 class TestReadRowsAcceptanceAsync:
     @staticmethod
+    @CrossSync.convert(
+        replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"}
+    )
     def _get_operation_class():
         return _ReadRowsOperationAsync
 
     @staticmethod
+    @CrossSync.convert(
+        replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"}
+    )
     def _get_client_class():
         return BigtableDataClientAsync
 
@@ -74,9 +83,11 @@ class TestReadRowsAcceptanceAsync:
         return results
 
     @staticmethod
+    @CrossSync.convert
     async def _coro_wrapper(stream):
         return stream
 
+    @CrossSync.convert
     async def _process_chunks(self, *chunks):
         async def _row_stream():
             yield ReadRowsResponse(chunks=chunks)
