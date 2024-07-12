@@ -91,6 +91,13 @@ if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
         BigtableAsyncClient,
     )
+    # define file-specific cross-sync replacements
+    CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
+    CrossSync.add_mapping("PooledTransport", PooledBigtableGrpcAsyncIOTransport)
+    CrossSync.add_mapping("PooledChannel", AsyncPooledChannel)
+    CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
+    CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
+
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -101,13 +108,7 @@ if TYPE_CHECKING:
     path="google.cloud.bigtable.data._sync.client.BigtableDataClient",
 )
 class BigtableDataClientAsync(ClientWithProject):
-    @CrossSync.convert(
-        replace_symbols={
-            "BigtableAsyncClient": "BigtableClient",
-            "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
-            "AsyncPooledChannel": "PooledChannel",
-        }
-    )
+    @CrossSync.convert
     def __init__(
         self,
         *,
@@ -143,7 +144,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         # set up transport in registry
         transport_str = f"bt-{self._client_version()}-{pool_size}"
-        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
+        transport = CrossSync.PooledTransport.with_fixed_size(pool_size)
         BigtableClientMeta._transport_registry[transport_str] = transport
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
@@ -168,7 +169,7 @@ class BigtableDataClientAsync(ClientWithProject):
             project=project,
             client_options=client_options,
         )
-        self._gapic_client = BigtableAsyncClient(
+        self._gapic_client = CrossSync.GapicClient(
             transport=transport_str,
             credentials=credentials,
             client_options=client_options,
@@ -176,7 +177,7 @@ class BigtableDataClientAsync(ClientWithProject):
         )
         self._is_closed = CrossSync.Event()
         self.transport = cast(
-            PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
+            CrossSync.PooledTransport, self._gapic_client.transport
         )
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[_WarmedInstanceKey] = set()
@@ -195,7 +196,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self.transport._grpc_channel = AsyncPooledChannel(
+            self.transport._grpc_channel = CrossSync.PooledChannel(
                 pool_size=pool_size,
                 host=self._emulator_host,
                 insecure=True,
@@ -611,12 +612,7 @@ class TableAsync:
                 f"{self.__class__.__name__} must be created within an async event loop context."
             ) from e
 
-    @CrossSync.convert(
-        replace_symbols={
-            "AsyncIterable": "Iterable",
-            "_ReadRowsOperationAsync": "_ReadRowsOperation",
-        }
-    )
+    @CrossSync.convert(replace_symbols={"AsyncIterable": "Iterable"})
     async def read_rows_stream(
         self,
         query: ReadRowsQuery,
@@ -658,7 +654,7 @@ class TableAsync:
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
-        row_merger = _ReadRowsOperationAsync(
+        row_merger = CrossSync._ReadRowsOperation(
             query,
             self,
             operation_timeout=operation_timeout,
@@ -1116,9 +1112,7 @@ class TableAsync:
             exception_factory=_retry_exception_factory,
         )
 
-    @CrossSync.convert(
-        replace_symbols={"_MutateRowsOperationAsync": "_MutateRowsOperation"}
-    )
+    @CrossSync.convert
     async def bulk_mutate_rows(
         self,
         mutation_entries: list[RowMutationEntry],
@@ -1164,7 +1158,7 @@ class TableAsync:
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
-        operation = _MutateRowsOperationAsync(
+        operation = CrossSync._MutateRowsOperation(
             self.client._gapic_client,
             self,
             mutation_entries,

@@ -36,7 +36,7 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if CrossSync.is_async:
     from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-
+    CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
@@ -361,9 +361,7 @@ class MutationsBatcherAsync:
         self._entries_processed_since_last_raise += len(new_entries)
         self._add_exceptions(found_exceptions)
 
-    @CrossSync.convert(
-        replace_symbols={"_MutateRowsOperationAsync": "_MutateRowsOperation"}
-    )
+    @CrossSync.convert
     async def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]
     ) -> list[FailedMutationEntryError]:
@@ -380,7 +378,7 @@ class MutationsBatcherAsync:
                 FailedMutationEntryError objects will not contain index information
         """
         try:
-            operation = _MutateRowsOperationAsync(
+            operation = CrossSync._MutateRowsOperation(
                 self._table.client._gapic_client,
                 self._table,
                 batch,

@@ -938,11 +938,7 @@ class TestMutationsBatcherAsync:
 
     @CrossSync.pytest
     async def test__execute_mutate_rows(self):
-        if CrossSync.is_async:
-            mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
-        else:
-            mutate_path = "_sync.mutations_batcher._MutateRowsOperation"
-        with mock.patch(f"google.cloud.bigtable.data.{mutate_path}") as mutate_rows:
+        with mock.patch.object(CrossSync, "_MutateRowsOperation") as mutate_rows:
             mutate_rows.return_value = CrossSync.Mock()
             start_operation = mutate_rows().start
             table = mock.Mock()
@@ -1105,13 +1101,7 @@ class TestMutationsBatcherAsync:
         batch_operation_timeout and batch_attempt_timeout should be used
         in api calls
         """
-        if CrossSync.is_async:
-            mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
-        else:
-            mutate_path = "_sync.mutations_batcher._MutateRowsOperation"
-        with mock.patch(
-            f"google.cloud.bigtable.data.{mutate_path}", return_value=CrossSync.Mock()
-        ) as mutate_rows:
+        with mock.patch.object(CrossSync, "_MutateRowsOperation", return_value=CrossSync.Mock()) as mutate_rows:
             expected_operation_timeout = 17
             expected_attempt_timeout = 13
             async with self._make_one(

@@ -43,6 +43,7 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 if TYPE_CHECKING:
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.client import TableAsync
+        CrossSync.add_mapping("Table", TableAsync)
 
 
 @CrossSync.export_sync(
@@ -79,11 +80,10 @@ class _ReadRowsOperationAsync:
         "_remaining_count",
     )
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: "TableAsync",
+        table: "CrossSync.Table",
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),

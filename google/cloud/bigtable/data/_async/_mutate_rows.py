@@ -38,6 +38,8 @@ if TYPE_CHECKING:
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
             BigtableAsyncClient,
         )
+        CrossSync.add_mapping("Table", TableAsync)
+        CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
 
 
 @CrossSync.export_sync(
@@ -62,16 +64,11 @@ class _MutateRowsOperationAsync:
             If not specified, the request will run until operation_timeout is reached.
     """
 
-    @CrossSync.convert(
-        replace_symbols={
-            "BigtableAsyncClient": "BigtableClient",
-            "TableAsync": "Table",
-        }
-    )
+    @CrossSync.convert
     def __init__(
         self,
-        gapic_client: "BigtableAsyncClient",
-        table: "TableAsync",
+        gapic_client: "CrossSync.GapicClient",
+        table: "CrossSync.Table",
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,

@@ -219,6 +219,21 @@ class CrossSync(metaclass=_DecoratorMeta):
     Iterator: TypeAlias = AsyncIterator
     Generator: TypeAlias = AsyncGenerator
 
+    @classmethod
+    def add_mapping(cls, name, value):
+        """
+        Add a new attribute to the CrossSync class, for replacing library-level symbols
+
+        Raises:
+            - AttributeError if the attribute already exists with a different value
+        """
+        if not hasattr(cls, name):
+            cls._runtime_replacements.add(name)
+        elif value != getattr(cls, name):
+            raise AttributeError(f"Conflicting assignments for CrossSync.{name}")
+        setattr(cls, name, value)
+
+    # list of decorators that can be applied to classes and methods to guide code generation
     _decorators: list[AstDecorator] = [
         AstDecorator("export_sync",  # decorate classes to convert
             required_keywords=["path"],  # otput path for generated sync class
@@ -244,6 +259,8 @@ class CrossSync(metaclass=_DecoratorMeta):
             name=None,
         ),
     ]
+    # list of attributes that can be added to the CrossSync class at runtime
+    _runtime_replacements: set[Any] = set()
 
     @classmethod
     def Mock(cls, *args, **kwargs):
