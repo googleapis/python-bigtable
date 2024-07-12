@@ -329,9 +329,12 @@ class BigtableDataClientAsync(ClientWithProject):
         # continuously refresh the channel every `refresh_interval` seconds
         while not self._is_closed.is_set():
             await CrossSync.event_wait(
-                self._is_closed, next_sleep, async_break_early=False
+                self._is_closed,
+                next_sleep,
+                async_break_early=False,  # no need to interrupt sleep. Task will be cancelled on close
             )
             if self._is_closed.is_set():
+                # don't refresh if client is closed
                 break
             # prepare new channel for use
             new_channel = self.transport.grpc_channel._create_channel()
