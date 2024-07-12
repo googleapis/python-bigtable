@@ -18,27 +18,44 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class CrossSyncFileArtifact:
+class CrossSyncOutputFile:
     """
-    Used to track an output file location. Collects a number of converted classes, and then
-    writes them to disk
+    Represents an output file location.
+
+    Multiple decorated async classes may point to the same output location for
+    their generated sync code. This class holds all the information needed to
+    write the output file to disk.
     """
 
+    # The path to the output file
     file_path: str
+    # The import headers to write to the top of the output file
+    # will be populated when CrossSync.export_sync(include_file_imports=True)
     imports: list[ast.Import | ast.ImportFrom | ast.Try | ast.If] = field(
         default_factory=list
     )
+    # The set of sync ast.ClassDef nodes to write to the output file
     converted_classes: list[ast.ClassDef] = field(default_factory=list)
+    # the set of classes contained in the file. Used to prevent duplicates
     contained_classes: set[str] = field(default_factory=set)
+    # the set of mypy error codes to ignore at the file level
+    # configured using CrossSync.export_sync(mypy_ignore=["error_code"])
     mypy_ignore: list[str] = field(default_factory=list)
 
     def __hash__(self):
         return hash(self.file_path)
 
     def __repr__(self):
-        return f"CrossSyncFileArtifact({self.file_path}, classes={[c.name for c in self.converted_classes]})"
+        return f"CrossSyncOutputFile({self.file_path}, classes={[c.name for c in self.converted_classes]})"
 
     def render(self, with_black=True, save_to_disk=False) -> str:
+        """
+        Render the output file as a string.
+
+        Args:
+            with_black: whether to run the output through black before returning
+            save_to_disk: whether to write the output to the file path
+        """
         full_str = (
             "# Copyright 2024 Google LLC\n"
             "#\n"
@@ -77,24 +94,25 @@ class CrossSyncFileArtifact:
         return full_str
 
 
-def convert_files_in_dir(directory: str) -> set[CrossSyncFileArtifact]:
+def convert_files_in_dir(directory: str) -> set[CrossSyncOutputFile]:
     import glob
     from transformers import CrossSyncClassDecoratorHandler
 
     # find all python files in the directory
     files = glob.glob(directory + "/**/*.py", recursive=True)
-    # keep track of the output sync files pointed to by the input files
-    artifacts: set[CrossSyncFileArtifact] = set()
+    # keep track of the output files pointed to by the annotated classes
+    artifacts: set[CrossSyncOutputFile] = set()
     # run each file through ast transformation to find all annotated classes
     for file in files:
         converter = CrossSyncClassDecoratorHandler(file)
-        converter.convert_file(artifacts)
+        new_outputs = converter.convert_file(artifacts)
+        artifacts.update(new_outputs)
     # return set of output artifacts
     return artifacts
 
-def save_artifacts(artifacts: Sequence[CrossSyncFileArtifact]):
-    for artifact in artifacts:
-        artifact.render(save_to_disk=True)
+def save_artifacts(artifacts: Sequence[CrossSyncOutputFile]):
+    for a in artifacts:
+        a.render(save_to_disk=True)
 
 
 if __name__ == "__main__":

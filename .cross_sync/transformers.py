@@ -16,7 +16,7 @@ from __future__ import annotations
 import ast
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
-from generate import CrossSyncFileArtifact
+from generate import CrossSyncOutputFile
 
 
 class SymbolReplacer(ast.NodeTransformer):
@@ -179,7 +179,7 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
     """
     def __init__(self, file_path):
         self.in_path = file_path
-        self._artifact_dict: dict[str, CrossSyncFileArtifact] = {}
+        self._artifact_dict: dict[str, CrossSyncOutputFile] = {}
         self.imports: list[ast.Import | ast.ImportFrom | ast.Try | ast.If] = []
         self.cross_sync_symbol_transformer = SymbolReplacer(
             {"CrossSync": "CrossSync._Sync_Impl"}
@@ -187,25 +187,29 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
         self.cross_sync_method_handler = CrossSyncMethodDecoratorHandler()
 
     def convert_file(
-        self, artifacts: set[CrossSyncFileArtifact] | None = None
-    ) -> set[CrossSyncFileArtifact]:
+        self, artifacts: set[CrossSyncOutputFile] | None = None
+    ) -> set[CrossSyncOutputFile]:
         """
-        Called to run a file through the transformer. If any classes are marked with a CrossSync decorator,
-        they will be transformed and added to an artifact for the output file
+        Called to run a file through the ast transformer.
+
+        If the file contains any classes marked with CrossSync.export_sync, the
+        classes will be processed according to the decorator arguments, and
+        a set of CrossSyncOutputFile objects will be returned for each output file.
+
+        If no CrossSync annotations are found, no changes will occur and an
+        empty set will be returned
         """
         tree = ast.parse(open(self.in_path).read())
         self._artifact_dict = {f.file_path: f for f in artifacts or []}
         self.imports = self._get_imports(tree)
         self.visit(tree)
-        found = set(self._artifact_dict.values())
-        if artifacts is not None:
-            artifacts.update(found)
-        return found
+        # return set of new artifacts
+        return set(self._artifact_dict.values()).difference(artifacts or [])
 
     def visit_ClassDef(self, node):
         """
         Called for each class in file. If class has a CrossSync decorator, it will be transformed
-        according to the decorator arguments
+        according to the decorator arguments. Otherwise, no changes will occur
         """
         try:
             for decorator in node.decorator_list:
@@ -217,7 +221,7 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
                     sync_cls_name = sync_path.rsplit(".", 1)[-1]
                     # find the artifact file for the save location
                     output_artifact = self._artifact_dict.get(
-                        out_file, CrossSyncFileArtifact(out_file)
+                        out_file, CrossSyncOutputFile(out_file)
                     )
                     # write converted class details if not already present
                     if sync_cls_name not in output_artifact.contained_classes:
@@ -246,7 +250,9 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
         **kwargs,
     ) -> ast.ClassDef:
         """
-        Transform async class into sync one, by running through a series of transformers
+        Transform async class into sync one, by applying the following ast transformations:
+        - SymbolReplacer: to replace any class-level symbols specified in CrossSync.export_sync(replace_symbols={}) decorator
+        - CrossSyncMethodDecoratorHandler: to visit each method in the class and apply any CrossSync decorators found
         """
         # update name
         cls_ast.name = new_name
@@ -267,6 +273,8 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
     ) -> list[ast.Import | ast.ImportFrom | ast.Try | ast.If]:
         """
         Grab the imports from the top of the file
+
+        raw imports, as well as try and if statements at the top level are included
         """
         imports = []
         for node in tree.body:
