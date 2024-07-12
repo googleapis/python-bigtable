@@ -17,7 +17,6 @@ import os
 import warnings
 import pytest
 import mock
-import proto
 
 from itertools import zip_longest
 

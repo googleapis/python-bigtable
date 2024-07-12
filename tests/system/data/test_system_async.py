@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import pytest
-import pytest_asyncio
 import asyncio
 import uuid
 import os
@@ -29,9 +28,6 @@ from . import TEST_FAMILY, TEST_FAMILY_2
 
 if CrossSync.is_async:
     from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
-else:
-    from google.cloud.bigtable.data._sync.client import BigtableDataClient
-    from .test_system_async import TEST_FAMILY, TEST_FAMILY_2
 
 
 class TempRowBuilderAsync:

@@ -272,14 +272,6 @@ class Test_FlowControl:
         Test flow control running up against the max API limit
         Should submit request early, even if the flow control has room for more
         """
-        async_patch = mock.patch(
-            "google.cloud.bigtable.data._async.mutations_batcher._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
-            max_limit,
-        )
-        sync_patch = mock.patch(
-            "google.cloud.bigtable.data._sync.mutations_batcher._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
-            max_limit,
-        )
         subpath = "_async" if CrossSync.is_async else "_sync"
         path = f"google.cloud.bigtable.data.{subpath}.mutations_batcher._MUTATE_ROWS_REQUEST_MUTATION_LIMIT"
         with mock.patch(path, max_limit):
