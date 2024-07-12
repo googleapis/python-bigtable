@@ -45,6 +45,9 @@ if TYPE_CHECKING:
         from google.cloud.bigtable.data._async.client import TableAsync
 
 
+@CrossSync.export_sync(
+    path="google.cloud.bigtable.data._sync.mutations_batcher._FlowControl"
+)
 class _FlowControlAsync:
     """
     Manages flow control for batched mutations. Mutations are registered against
@@ -101,6 +104,7 @@ class _FlowControlAsync:
         new_count = self._in_flight_mutation_count + additional_count
         return new_size <= acceptable_size and new_count <= acceptable_count
 
+    @CrossSync.convert
     async def remove_from_flow(
         self, mutations: RowMutationEntry | list[RowMutationEntry]
     ) -> None:
@@ -122,6 +126,7 @@ class _FlowControlAsync:
         async with self._capacity_condition:
             self._capacity_condition.notify_all()
 
+    @CrossSync.convert
     async def add_to_flow(self, mutations: RowMutationEntry | list[RowMutationEntry]):
         """
         Generator function that registers mutations with flow control. As mutations
@@ -171,6 +176,10 @@ class _FlowControlAsync:
             yield mutations[start_idx:end_idx]
 
 
+@CrossSync.export_sync(
+    path="google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher",
+    mypy_ignore=["unreachable"],
+)
 class MutationsBatcherAsync:
     """
     Allows users to send batches using context manager API:
@@ -202,6 +211,9 @@ class MutationsBatcherAsync:
             Defaults to the Table's default_mutate_rows_retryable_errors.
     """
 
+    @CrossSync.convert(
+        replace_symbols={"TableAsync": "Table", "_FlowControlAsync": "_FlowControl"}
+    )
     def __init__(
         self,
         table: TableAsync,
@@ -257,6 +269,7 @@ class MutationsBatcherAsync:
         # clean up on program exit
         atexit.register(self._on_exit)
 
+    @CrossSync.convert
     async def _timer_routine(self, interval: float | None) -> None:
         """
         Set up a background task to flush the batcher every interval seconds
@@ -277,6 +290,7 @@ class MutationsBatcherAsync:
             if not self._closed.is_set() and self._staged_entries:
                 self._schedule_flush()
 
+    @CrossSync.convert
     async def append(self, mutation_entry: RowMutationEntry):
         """
         Add a new set of mutations to the internal queue
@@ -326,6 +340,7 @@ class MutationsBatcherAsync:
             return new_task
         return None
 
+    @CrossSync.convert
     async def _flush_internal(self, new_entries: list[RowMutationEntry]):
         """
         Flushes a set of mutations to the server, and updates internal state
@@ -346,6 +361,9 @@ class MutationsBatcherAsync:
         self._entries_processed_since_last_raise += len(new_entries)
         self._add_exceptions(found_exceptions)
 
+    @CrossSync.convert(
+        replace_symbols={"_MutateRowsOperationAsync": "_MutateRowsOperation"}
+    )
     async def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]
     ) -> list[FailedMutationEntryError]:
@@ -426,10 +444,12 @@ class MutationsBatcherAsync:
                 entry_count=entry_count,
             )
 
+    @CrossSync.convert(sync_name="__enter__")
     async def __aenter__(self):
         """Allow use of context manager API"""
         return self
 
+    @CrossSync.convert(sync_name="__exit__")
     async def __aexit__(self, exc_type, exc, tb):
         """
         Allow use of context manager API.
@@ -446,6 +466,7 @@ class MutationsBatcherAsync:
         """
         return self._closed.is_set()
 
+    @CrossSync.convert
     async def close(self):
         """
         Flush queue and clean up resources
@@ -473,6 +494,7 @@ class MutationsBatcherAsync:
             )
 
     @staticmethod
+    @CrossSync.convert
     async def _wait_for_batch_results(
         *tasks: CrossSync.Future[list[FailedMutationEntryError]]
         | CrossSync.Future[None],

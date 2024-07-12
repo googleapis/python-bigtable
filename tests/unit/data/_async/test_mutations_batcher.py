@@ -43,8 +43,10 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
+@CrossSync.export_sync(path="tests.unit.data._sync.test_mutations_batcher.Test_FlowControl")
 class Test_FlowControl:
     @staticmethod
+    @CrossSync.convert(replace_symbols={"_FlowControlAsync": "_FlowControl"})
     def _target_class():
         return _FlowControlAsync
 
@@ -311,7 +313,11 @@ class Test_FlowControl:
         assert len(count_results) == 1
 
 
+@CrossSync.export_sync(
+    path="tests.unit.data._sync.test_mutations_batcher.TestMutationsBatcher"
+)
 class TestMutationsBatcherAsync:
+    @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
     def _get_target_class(self):
         return MutationsBatcherAsync
 
@@ -473,6 +479,7 @@ class TestMutationsBatcherAsync:
             self._make_one(batch_attempt_timeout=-1)
         assert "attempt_timeout must be greater than 0" in str(e.value)
 
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     def test_default_argument_consistency(self):
         """
         We supply default arguments in MutationsBatcherAsync.__init__, and in
@@ -893,6 +900,7 @@ class TestMutationsBatcherAsync:
             instance._oldest_exceptions.clear()
             instance._newest_exceptions.clear()
 
+    @CrossSync.convert
     async def _mock_gapic_return(self, num=5):
         from google.cloud.bigtable_v2.types import MutateRowsResponse
         from google.rpc import status_pb2
@@ -1008,12 +1016,18 @@ class TestMutationsBatcherAsync:
             instance._raise_exceptions()
 
     @CrossSync.pytest
+    @CrossSync.convert(
+        sync_name="test___enter__", replace_symbols={"__aenter__": "__enter__"}
+    )
     async def test___aenter__(self):
         """Should return self"""
         async with self._make_one() as instance:
             assert await instance.__aenter__() == instance
 
     @CrossSync.pytest
+    @CrossSync.convert(
+        sync_name="test___exit__", replace_symbols={"__aexit__": "__exit__"}
+    )
     async def test___aexit__(self):
         """aexit should call close"""
         async with self._make_one() as instance:
@@ -1197,6 +1211,7 @@ class TestMutationsBatcherAsync:
             ([4], [core_exceptions.DeadlineExceeded]),
         ],
     )
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     async def test_customizable_retryable_errors(
         self, input_retryables, expected_retryables
     ):
