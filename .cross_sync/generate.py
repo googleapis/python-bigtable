@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
+from typing import Sequence
 import ast
 from dataclasses import dataclass, field
 
@@ -75,18 +76,31 @@ class CrossSyncFileArtifact:
                 f.write(full_str)
         return full_str
 
-if __name__ == "__main__":
+
+def convert_files_in_dir(directory: str) -> set[CrossSyncFileArtifact]:
     import glob
-    import sys
     from transformers import CrossSyncClassDecoratorHandler
 
-    # find all cross_sync decorated classes
-    search_root = sys.argv[1]
-    files = glob.glob(search_root + "/**/*.py", recursive=True)
+    # find all python files in the directory
+    files = glob.glob(directory + "/**/*.py", recursive=True)
+    # keep track of the output sync files pointed to by the input files
     artifacts: set[CrossSyncFileArtifact] = set()
+    # run each file through ast transformation to find all annotated classes
     for file in files:
         converter = CrossSyncClassDecoratorHandler(file)
         converter.convert_file(artifacts)
-    print(artifacts)
+    # return set of output artifacts
+    return artifacts
+
+def save_artifacts(artifacts: Sequence[CrossSyncFileArtifact]):
     for artifact in artifacts:
         artifact.render(save_to_disk=True)
+
+
+if __name__ == "__main__":
+    import sys
+
+    search_root = sys.argv[1]
+    outputs = convert_files_in_dir(search_root)
+    print(f"Generated {len(outputs)} artifacts: {[a.file_path for a in outputs]}")
+    save_artifacts(outputs)
