@@ -20,6 +20,7 @@ from typing import (
     Callable,
     Coroutine,
     Sequence,
+    Union,
     AsyncIterable,
     AsyncIterator,
     AsyncGenerator,
@@ -31,6 +32,9 @@ import asyncio
 import sys
 import concurrent.futures
 import google.api_core.retry as retries
+import queue
+import threading
+import time
 
 if TYPE_CHECKING:
     from typing_extensions import TypeAlias
