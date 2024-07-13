@@ -15,23 +15,11 @@ import pytest
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
-if CrossSync.is_async:
-    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-else:
-    from google.cloud.bigtable.data._sync._read_rows import (  # noqa: F401
-        _ReadRowsOperation,
-    )
-
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
-
-TEST_FAMILY = "family_name"
-TEST_QUALIFIER = b"qualifier"
-TEST_TIMESTAMP = 123456789
-TEST_LABELS = ["label1", "label2"]
 
 
 @CrossSync.export_sync(

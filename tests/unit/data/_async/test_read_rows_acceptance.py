@@ -29,15 +29,6 @@ from ...v2_client.test_row_merger import ReadRowsTest, TestFile
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
-if CrossSync.is_async:
-    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-    from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
-else:
-    from google.cloud.bigtable.data._sync._read_rows import (  # noqa: F401
-        _ReadRowsOperation,
-    )
-    from google.cloud.bigtable.data._sync.client import BigtableDataClient  # noqa: F401
-
 
 @CrossSync.export_sync(
     path="tests.unit.data._sync.test_read_rows_acceptance.TestReadRowsAcceptance",

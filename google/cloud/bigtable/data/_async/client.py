@@ -25,7 +25,6 @@ from typing import (
     TYPE_CHECKING,
 )
 
-import asyncio
 import time
 import warnings
 import random
@@ -77,11 +76,6 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if CrossSync.is_async:
-    from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-    from google.cloud.bigtable.data._async.mutations_batcher import (
-        MutationsBatcherAsync,
-    )
-    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
         PooledBigtableGrpcAsyncIOTransport,
     )
@@ -91,10 +85,19 @@ if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
         BigtableAsyncClient,
     )
+    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+    from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
+    from google.cloud.bigtable.data._async.mutations_batcher import (
+        MutationsBatcherAsync,
+    )
+
     # define file-specific cross-sync replacements
     CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
     CrossSync.add_mapping("PooledTransport", PooledBigtableGrpcAsyncIOTransport)
     CrossSync.add_mapping("PooledChannel", AsyncPooledChannel)
+    CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
+    CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
+    CrossSync.add_mapping("MutationsBatcher", MutationsBatcherAsync)
 
 
 if TYPE_CHECKING:
@@ -175,9 +178,7 @@ class BigtableDataClientAsync(ClientWithProject):
             client_info=client_info,
         )
         self._is_closed = CrossSync.Event()
-        self.transport = cast(
-            CrossSync.PooledTransport, self._gapic_client.transport
-        )
+        self.transport = cast(CrossSync.PooledTransport, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[_WarmedInstanceKey] = set()
         # keep track of table objects associated with each instance
@@ -479,7 +480,9 @@ class BigtableDataClientAsync(ClientWithProject):
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
-@CrossSync.export_sync(path="google.cloud.bigtable.data._sync.client.Table", add_mapping_for_name="Table")
+@CrossSync.export_sync(
+    path="google.cloud.bigtable.data._sync.client.Table", add_mapping_for_name="Table"
+)
 class TableAsync:
     """
     Main Data API surface
@@ -1020,7 +1023,7 @@ class TableAsync:
         Returns:
             MutationsBatcherAsync: a MutationsBatcherAsync context manager that can batch requests
         """
-        return MutationsBatcherAsync(
+        return CrossSync.MutationsBatcher(
             self,
             flush_interval=flush_interval,
             flush_limit_mutation_count=flush_limit_mutation_count,

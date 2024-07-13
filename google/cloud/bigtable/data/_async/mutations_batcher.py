@@ -34,9 +34,6 @@ from google.cloud.bigtable.data.mutations import Mutation
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
-if CrossSync.is_async:
-    from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
@@ -46,7 +43,7 @@ if TYPE_CHECKING:
 
 @CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync.mutations_batcher._FlowControl",
-    add_mapping_for_name="_FlowControl"
+    add_mapping_for_name="_FlowControl",
 )
 class _FlowControlAsync:
     """

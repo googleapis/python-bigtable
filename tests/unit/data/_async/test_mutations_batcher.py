@@ -22,20 +22,6 @@ from google.cloud.bigtable.data import TABLE_DEFAULT
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
-if CrossSync.is_async:
-    from google.cloud.bigtable.data._async.client import TableAsync
-    from google.cloud.bigtable.data._async.mutations_batcher import (
-        _FlowControlAsync,
-        MutationsBatcherAsync,
-    )
-else:
-    from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
-    from google.cloud.bigtable.data._sync.mutations_batcher import (  # noqa: F401
-        _FlowControl,
-        MutationsBatcher,
-    )
-
-
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
@@ -43,12 +29,14 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_mutations_batcher.Test_FlowControl")
+@CrossSync.export_sync(
+    path="tests.unit.data._sync.test_mutations_batcher.Test_FlowControl"
+)
 class Test_FlowControl:
     @staticmethod
     @CrossSync.convert
     def _target_class():
-        return _FlowControlAsync
+        return CrossSync._FlowControl
 
     def _make_one(self, max_mutation_count=10, max_mutation_bytes=100):
         return self._target_class()(max_mutation_count, max_mutation_bytes)
@@ -967,12 +955,8 @@ class TestMutationsBatcherAsync:
             FailedMutationEntryError,
         )
 
-        if CrossSync.is_async:
-            mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
-        else:
-            mutate_path = "_sync.mutations_batcher._MutateRowsOperation"
-        with mock.patch(
-            f"google.cloud.bigtable.data.{mutate_path}.start"
+        with mock.patch.object(
+            CrossSync._MutateRowsOperation, "start"
         ) as mutate_rows:
             err1 = FailedMutationEntryError(0, mock.Mock(), RuntimeError("test error"))
             err2 = FailedMutationEntryError(1, mock.Mock(), RuntimeError("test error"))
@@ -1101,7 +1085,9 @@ class TestMutationsBatcherAsync:
         batch_operation_timeout and batch_attempt_timeout should be used
         in api calls
         """
-        with mock.patch.object(CrossSync, "_MutateRowsOperation", return_value=CrossSync.Mock()) as mutate_rows:
+        with mock.patch.object(
+            CrossSync, "_MutateRowsOperation", return_value=CrossSync.Mock()
+        ) as mutate_rows:
             expected_operation_timeout = 17
             expected_attempt_timeout = 13
             async with self._make_one(

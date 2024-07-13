@@ -26,11 +26,11 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 from . import TEST_FAMILY, TEST_FAMILY_2
 
-if CrossSync.is_async:
-    from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
-
-@CrossSync.export_sync(path="tests.system.data.test_system.TempRowBuilder", add_mapping_for_name="TempRowBuilder")
+@CrossSync.export_sync(
+    path="tests.system.data.test_system.TempRowBuilder",
+    add_mapping_for_name="TempRowBuilder",
+)
 class TempRowBuilderAsync:
     """
     Used to add rows to a table for testing purposes.

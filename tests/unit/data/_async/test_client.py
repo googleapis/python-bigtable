@@ -42,40 +42,9 @@ except ImportError:  # pragma: NO COVER
 
 if CrossSync.is_async:
     from google.api_core import grpc_helpers_async
-    from google.cloud.bigtable_v2.services.bigtable.async_client import (
-        BigtableAsyncClient,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledBigtableGrpcAsyncIOTransport,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledChannel as PooledChannelAsync,
-    )
-    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-    from google.cloud.bigtable.data._async.client import (
-        TableAsync,
-        BigtableDataClientAsync,
-    )
+    from google.cloud.bigtable.data._async.client import TableAsync
+
     CrossSync.add_mapping("grpc_helpers", grpc_helpers_async)
-else:
-    from google.api_core import grpc_helpers  # noqa: F401
-    from google.cloud.bigtable_v2.services.bigtable.client import (  # noqa: F401
-        BigtableClient,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (  # noqa: F401
-        PooledBigtableGrpcTransport,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (  # noqa: F401
-        PooledChannel,
-    )
-    from google.cloud.bigtable.data._sync._read_rows import (  # noqa: F401
-        _ReadRowsOperation,
-    )
-    from google.cloud.bigtable.data._sync.client import (  # noqa: F401
-        Table,
-        BigtableDataClient,
-    )
-    CrossSync.add_mapping("grpc_helpers", grpc_helpers)
 
 
 @CrossSync.export_sync(
@@ -139,7 +108,9 @@ class TestBigtableDataClientAsync:
         options_parsed = client_options_lib.from_dict(client_options)
         asyncio_portion = "-async" if CrossSync.is_async else ""
         transport_str = f"bt-{bigtable_version}-data{asyncio_portion}-{pool_size}"
-        with mock.patch.object(CrossSync.GapicClient, "__init__") as bigtable_client_init:
+        with mock.patch.object(
+            CrossSync.GapicClient, "__init__"
+        ) as bigtable_client_init:
             bigtable_client_init.return_value = None
             with mock.patch.object(
                 ClientWithProject, "__init__"
@@ -173,7 +144,9 @@ class TestBigtableDataClientAsync:
         from google.api_core.client_options import ClientOptions
 
         client_options = {"api_endpoint": "foo.bar:1234"}
-        with mock.patch.object(CrossSync.GapicClient, "__init__") as bigtable_client_init:
+        with mock.patch.object(
+            CrossSync.GapicClient, "__init__"
+        ) as bigtable_client_init:
             try:
                 self._make_client(client_options=client_options)
             except TypeError:
@@ -1135,7 +1108,9 @@ class TestBigtableDataClientAsync:
         assert client._channel_refresh_tasks == []
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestTable", add_mapping_for_name="TestTable")
+@CrossSync.export_sync(
+    path="tests.unit.data._sync.test_client.TestTable", add_mapping_for_name="TestTable"
+)
 class TestTableAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -1447,7 +1422,10 @@ class TestTableAsync:
                     assert "app_profile_id=" not in goog_metadata
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestReadRows", add_mapping_for_name="TestReadRows")
+@CrossSync.export_sync(
+    path="tests.unit.data._sync.test_client.TestReadRows",
+    add_mapping_for_name="TestReadRows",
+)
 class TestReadRowsAsync:
     """
     Tests for table.read_rows and related methods.
@@ -1985,13 +1963,11 @@ class TestReadRowsShardedAsync:
                 with mock.patch.object(
                     table.client._gapic_client, "read_rows"
                 ) as read_rows:
-                    read_rows.side_effect = (
-                        lambda *args, **kwargs: CrossSync.TestReadRows._make_gapic_stream(
-                            [
-                                CrossSync.TestReadRows._make_chunk(row_key=k)
-                                for k in args[0].rows.row_keys
-                            ]
-                        )
+                    read_rows.side_effect = lambda *args, **kwargs: CrossSync.TestReadRows._make_gapic_stream(
+                        [
+                            CrossSync.TestReadRows._make_chunk(row_key=k)
+                            for k in args[0].rows.row_keys
+                        ]
                     )
                     query_1 = ReadRowsQuery(b"test_1")
                     query_2 = ReadRowsQuery(b"test_2")
