@@ -20,7 +20,6 @@ from typing import (
     Callable,
     Coroutine,
     Sequence,
-    Union,
     AsyncIterable,
     AsyncIterator,
     AsyncGenerator,
@@ -32,9 +31,6 @@ import asyncio
 import sys
 import concurrent.futures
 import google.api_core.retry as retries
-import time
-import threading
-import queue
 
 if TYPE_CHECKING:
     from typing_extensions import TypeAlias
@@ -72,6 +68,24 @@ def pytest_asyncio_fixture(*args, **kwargs):
     return decorator
 
 
+def export_sync_impl(*args, **kwargs):
+    """
+    Decorator implementation for CrossSync.export_sync
+
+    When a called with add_mapping_for_name, CrossSync.add_mapping is called to
+    register the name as a CrossSync attribute
+    """
+    new_mapping = kwargs.pop("add_mapping_for_name", None)
+
+    def decorator(cls):
+        if new_mapping:
+            # add class to mappings if requested
+            CrossSync.add_mapping(new_mapping, cls)
+        return cls
+
+    return decorator
+
+
 class AstDecorator:
     """
     Helper class for CrossSync decorators used for guiding ast transformations.
@@ -80,7 +94,7 @@ class AstDecorator:
     but act as no-ops when encountered in live code
 
     Args:
-        attr_name: name of the attribute to attach to the CrossSync class 
+        attr_name: name of the attribute to attach to the CrossSync class
             e.g. pytest for CrossSync.pytest
         required_keywords: list of required keyword arguments for the decorator.
             If the decorator is used without these arguments, a ValueError is
@@ -219,18 +233,39 @@ class CrossSync(metaclass=_DecoratorMeta):
     Iterator: TypeAlias = AsyncIterator
     Generator: TypeAlias = AsyncGenerator
 
+    @classmethod
+    def add_mapping(cls, name, value):
+        """
+        Add a new attribute to the CrossSync class, for replacing library-level symbols
+
+        Raises:
+            - AttributeError if the attribute already exists with a different value
+        """
+        if not hasattr(cls, name):
+            cls._runtime_replacements.add(name)
+        elif value != getattr(cls, name):
+            raise AttributeError(f"Conflicting assignments for CrossSync.{name}")
+        setattr(cls, name, value)
+
+    # list of decorators that can be applied to classes and methods to guide code generation
     _decorators: list[AstDecorator] = [
-        AstDecorator("export_sync",  # decorate classes to convert
+        AstDecorator(
+            "export_sync",  # decorate classes to convert
             required_keywords=["path"],  # otput path for generated sync class
+            async_impl=export_sync_impl,  # apply this decorator to the function at runtime
             replace_symbols={},  # replace specific symbols across entire class
             mypy_ignore=(),  # set of mypy error codes to ignore in output file
-            include_file_imports=True  # when True, import statements from top of file will be included in output file
+            include_file_imports=True,  # when True, import statements from top of file will be included in output file
+            add_mapping_for_name=None,  # add a new attribute to CrossSync class with the given name
         ),
-        AstDecorator("convert",  # decorate methods to convert from async to sync
+        AstDecorator(
+            "convert",  # decorate methods to convert from async to sync
             sync_name=None,  # use a new name for the sync class
             replace_symbols={},  # replace specific symbols within the function
         ),
-        AstDecorator("drop_method"),  # decorate methods to drop in sync version of class
+        AstDecorator(
+            "drop_method"
+        ),  # decorate methods to drop in sync version of class
         AstDecorator(
             "pytest", async_impl=pytest_mark_asyncio
         ),  # decorate test methods to run with pytest-asyncio
@@ -244,6 +279,8 @@ class CrossSync(metaclass=_DecoratorMeta):
             name=None,
         ),
     ]
+    # list of attributes that can be added to the CrossSync class at runtime
+    _runtime_replacements: set[Any] = set()
 
     @classmethod
     def Mock(cls, *args, **kwargs):
