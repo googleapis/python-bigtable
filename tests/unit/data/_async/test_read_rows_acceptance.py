@@ -44,18 +44,14 @@ else:
 )
 class TestReadRowsAcceptanceAsync:
     @staticmethod
-    @CrossSync.convert(
-        replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"}
-    )
+    @CrossSync.convert
     def _get_operation_class():
-        return _ReadRowsOperationAsync
+        return CrossSync._ReadRowsOperation
 
     @staticmethod
-    @CrossSync.convert(
-        replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"}
-    )
+    @CrossSync.convert
     def _get_client_class():
-        return BigtableDataClientAsync
+        return CrossSync.DataClient
 
     def parse_readrows_acceptance_tests():
         dirname = os.path.dirname(__file__)

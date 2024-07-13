@@ -46,7 +46,7 @@ except ImportError:  # pragma: NO COVER
 @CrossSync.export_sync(path="tests.unit.data._sync.test_mutations_batcher.Test_FlowControl")
 class Test_FlowControl:
     @staticmethod
-    @CrossSync.convert(replace_symbols={"_FlowControlAsync": "_FlowControl"})
+    @CrossSync.convert
     def _target_class():
         return _FlowControlAsync
 
@@ -317,9 +317,9 @@ class Test_FlowControl:
     path="tests.unit.data._sync.test_mutations_batcher.TestMutationsBatcher"
 )
 class TestMutationsBatcherAsync:
-    @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
+    @CrossSync.convert
     def _get_target_class(self):
-        return MutationsBatcherAsync
+        return CrossSync.MutationsBatcher
 
     def _make_one(self, table=None, **kwargs):
         from google.api_core.exceptions import DeadlineExceeded
@@ -479,7 +479,7 @@ class TestMutationsBatcherAsync:
             self._make_one(batch_attempt_timeout=-1)
         assert "attempt_timeout must be greater than 0" in str(e.value)
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
+    @CrossSync.convert
     def test_default_argument_consistency(self):
         """
         We supply default arguments in MutationsBatcherAsync.__init__, and in
@@ -489,7 +489,7 @@ class TestMutationsBatcherAsync:
         import inspect
 
         get_batcher_signature = dict(
-            inspect.signature(TableAsync.mutations_batcher).parameters
+            inspect.signature(CrossSync.Table.mutations_batcher).parameters
         )
         get_batcher_signature.pop("self")
         batcher_init_signature = dict(
@@ -1201,7 +1201,7 @@ class TestMutationsBatcherAsync:
             ([4], [core_exceptions.DeadlineExceeded]),
         ],
     )
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
+    @CrossSync.convert
     async def test_customizable_retryable_errors(
         self, input_retryables, expected_retryables
     ):
@@ -1215,7 +1215,7 @@ class TestMutationsBatcherAsync:
             with mock.patch.object(CrossSync, "retry_target") as retry_fn_mock:
                 table = None
                 with mock.patch("asyncio.create_task"):
-                    table = TableAsync(mock.Mock(), "instance", "table")
+                    table = CrossSync.Table(mock.Mock(), "instance", "table")
                 async with self._make_one(
                     table, batch_retryable_errors=input_retryables
                 ) as instance:

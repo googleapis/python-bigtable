@@ -45,11 +45,9 @@ class TestReadRowsOperationAsync:
     """
 
     @staticmethod
-    @CrossSync.convert(
-        replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"}
-    )
+    @CrossSync.convert
     def _get_target_class():
-        return _ReadRowsOperationAsync
+        return CrossSync._ReadRowsOperation
 
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)

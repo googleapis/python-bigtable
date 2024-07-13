@@ -56,6 +56,7 @@ if CrossSync.is_async:
         TableAsync,
         BigtableDataClientAsync,
     )
+    CrossSync.add_mapping("grpc_helpers", grpc_helpers_async)
 else:
     from google.api_core import grpc_helpers  # noqa: F401
     from google.cloud.bigtable_v2.services.bigtable.client import (  # noqa: F401
@@ -74,25 +75,18 @@ else:
         Table,
         BigtableDataClient,
     )
+    CrossSync.add_mapping("grpc_helpers", grpc_helpers)
 
 
 @CrossSync.export_sync(
     path="tests.unit.data._sync.test_client.TestBigtableDataClient",
-    replace_symbols={
-        "TestTableAsync": "TestTable",
-        "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
-        "grpc_helpers_async": "grpc_helpers",
-        "PooledChannelAsync": "PooledChannel",
-        "BigtableAsyncClient": "BigtableClient",
-    },
+    add_mapping_for_name="TestBigtableDataClient",
 )
 class TestBigtableDataClientAsync:
     @staticmethod
-    @CrossSync.convert(
-        replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"}
-    )
+    @CrossSync.convert
     def _get_target_class():
-        return BigtableDataClientAsync
+        return CrossSync.DataClient
 
     @classmethod
     def _make_client(cls, *args, use_emulator=True, **kwargs):
@@ -145,7 +139,7 @@ class TestBigtableDataClientAsync:
         options_parsed = client_options_lib.from_dict(client_options)
         asyncio_portion = "-async" if CrossSync.is_async else ""
         transport_str = f"bt-{bigtable_version}-data{asyncio_portion}-{pool_size}"
-        with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
+        with mock.patch.object(CrossSync.GapicClient, "__init__") as bigtable_client_init:
             bigtable_client_init.return_value = None
             with mock.patch.object(
                 ClientWithProject, "__init__"
@@ -179,7 +173,7 @@ class TestBigtableDataClientAsync:
         from google.api_core.client_options import ClientOptions
 
         client_options = {"api_endpoint": "foo.bar:1234"}
-        with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
+        with mock.patch.object(CrossSync.GapicClient, "__init__") as bigtable_client_init:
             try:
                 self._make_client(client_options=client_options)
             except TypeError:
@@ -233,7 +227,7 @@ class TestBigtableDataClientAsync:
     async def test_channel_pool_creation(self):
         pool_size = 14
         with mock.patch.object(
-            grpc_helpers_async, "create_channel", CrossSync.Mock()
+            CrossSync.grpc_helpers, "create_channel", CrossSync.Mock()
         ) as create_channel:
             client = self._make_client(project="project-id", pool_size=pool_size)
             assert create_channel.call_count == pool_size
@@ -248,7 +242,7 @@ class TestBigtableDataClientAsync:
     @CrossSync.pytest
     async def test_channel_pool_rotation(self):
         pool_size = 7
-        with mock.patch.object(PooledChannelAsync, "next_channel") as next_channel:
+        with mock.patch.object(CrossSync.PooledChannel, "next_channel") as next_channel:
             client = self._make_client(project="project-id", pool_size=pool_size)
             assert len(client.transport._grpc_channel._pool) == pool_size
             next_channel.reset_mock()
@@ -643,7 +637,7 @@ class TestBigtableDataClientAsync:
         new_channel = grpc_lib.insecure_channel("localhost:8080")
 
         with mock.patch.object(
-            PooledBigtableGrpcAsyncIOTransport, "replace_channel"
+            CrossSync.PooledTransport, "replace_channel"
         ) as replace_channel:
             sleep_tuple = (
                 (asyncio, "sleep") if CrossSync.is_async else (threading.Event, "wait")
@@ -653,7 +647,7 @@ class TestBigtableDataClientAsync:
                     asyncio.CancelledError
                 ]
                 with mock.patch.object(
-                    grpc_helpers_async, "create_channel"
+                    CrossSync.grpc_helpers, "create_channel"
                 ) as create_channel:
                     create_channel.return_value = new_channel
                     with mock.patch.object(
@@ -962,7 +956,7 @@ class TestBigtableDataClientAsync:
             expected_app_profile_id,
         )
         await CrossSync.yield_to_event_loop()
-        assert isinstance(table, TestTableAsync._get_target_class())
+        assert isinstance(table, CrossSync.TestTable._get_target_class())
         assert table.table_id == expected_table_id
         assert (
             table.table_name
@@ -989,7 +983,7 @@ class TestBigtableDataClientAsync:
         """
         async with self._make_client(project="project-id") as client:
             with mock.patch.object(
-                TestTableAsync._get_target_class(), "__init__"
+                CrossSync.TestTable._get_target_class(), "__init__"
             ) as mock_constructor:
                 mock_constructor.return_value = None
                 assert not client._active_instances
@@ -1025,7 +1019,7 @@ class TestBigtableDataClientAsync:
         expected_project_id = "project-id"
 
         with mock.patch.object(
-            TestTableAsync._get_target_class(), "close"
+            CrossSync.TestTable._get_target_class(), "close"
         ) as close_mock:
             async with self._make_client(project=expected_project_id) as client:
                 async with client.get_table(
@@ -1034,7 +1028,7 @@ class TestBigtableDataClientAsync:
                     expected_app_profile_id,
                 ) as table:
                     await CrossSync.yield_to_event_loop()
-                    assert isinstance(table, TestTableAsync._get_target_class())
+                    assert isinstance(table, CrossSync.TestTable._get_target_class())
                     assert table.table_id == expected_table_id
                     assert (
                         table.table_name
@@ -1082,7 +1076,7 @@ class TestBigtableDataClientAsync:
         for task in client._channel_refresh_tasks:
             assert not task.done()
         with mock.patch.object(
-            PooledBigtableGrpcAsyncIOTransport, "close", CrossSync.Mock()
+            CrossSync.PooledTransport, "close", CrossSync.Mock()
         ) as close_mock:
             await client.close()
             close_mock.assert_called_once()
@@ -1141,18 +1135,16 @@ class TestBigtableDataClientAsync:
         assert client._channel_refresh_tasks == []
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestTable")
+@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestTable", add_mapping_for_name="TestTable")
 class TestTableAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
+    @CrossSync.convert
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return CrossSync.TestBigtableDataClient._make_client(*args, **kwargs)
 
     @staticmethod
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
+    @CrossSync.convert
     def _get_target_class():
-        return TableAsync
+        return CrossSync.Table
 
     @CrossSync.pytest
     async def test_table_ctor(self):
@@ -1422,12 +1414,12 @@ class TestTableAsync:
     )
     @pytest.mark.parametrize("include_app_profile", [True, False])
     @CrossSync.pytest
-    @CrossSync.convert(replace_symbols={"BigtableAsyncClient": "BigtableClient"})
+    @CrossSync.convert
     async def test_call_metadata(self, include_app_profile, fn_name, fn_args, gapic_fn):
         """check that all requests attach proper metadata headers"""
         profile = "profile" if include_app_profile else None
         with mock.patch.object(
-            BigtableAsyncClient, gapic_fn, CrossSync.Mock()
+            CrossSync.GapicClient, gapic_fn, CrossSync.Mock()
         ) as gapic_mock:
             gapic_mock.side_effect = RuntimeError("stop early")
             async with self._make_client() as client:
@@ -1455,26 +1447,22 @@ class TestTableAsync:
                     assert "app_profile_id=" not in goog_metadata
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestReadRows")
+@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestReadRows", add_mapping_for_name="TestReadRows")
 class TestReadRowsAsync:
     """
     Tests for table.read_rows and related methods.
     """
 
     @staticmethod
-    @CrossSync.convert(
-        replace_symbols={"_ReadRowsOperationAsync": "_ReadRowsOperation"}
-    )
+    @CrossSync.convert
     def _get_operation_class():
-        return _ReadRowsOperationAsync
+        return CrossSync._ReadRowsOperation
 
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
+    @CrossSync.convert
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return CrossSync.TestBigtableDataClient._make_client(*args, **kwargs)
 
-    @CrossSync.convert(replace_symbols={"TestTableAsync": "TestTable"})
+    @CrossSync.convert
     def _make_table(self, *args, **kwargs):
         client_mock = mock.Mock()
         client_mock._register_instance.side_effect = (
@@ -1491,7 +1479,7 @@ class TestReadRowsAsync:
         )
         client_mock._gapic_client.table_path.return_value = kwargs["table_id"]
         client_mock._gapic_client.instance_path.return_value = kwargs["instance_id"]
-        return TestTableAsync._get_target_class()(client_mock, *args, **kwargs)
+        return CrossSync.TestTable._get_target_class()(client_mock, *args, **kwargs)
 
     def _make_stats(self):
         from google.cloud.bigtable_v2.types import RequestStats
@@ -1975,11 +1963,9 @@ class TestReadRowsAsync:
 
 @CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestReadRowsSharded")
 class TestReadRowsShardedAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
+    @CrossSync.convert
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return CrossSync.TestBigtableDataClient._make_client(*args, **kwargs)
 
     @CrossSync.pytest
     async def test_read_rows_sharded_empty_query(self):
@@ -1990,7 +1976,6 @@ class TestReadRowsShardedAsync:
                 assert "empty sharded_query" in str(exc.value)
 
     @CrossSync.pytest
-    @CrossSync.convert(replace_symbols={"TestReadRowsAsync": "TestReadRows"})
     async def test_read_rows_sharded_multiple_queries(self):
         """
         Test with multiple queries. Should return results from both
@@ -2001,9 +1986,9 @@ class TestReadRowsShardedAsync:
                     table.client._gapic_client, "read_rows"
                 ) as read_rows:
                     read_rows.side_effect = (
-                        lambda *args, **kwargs: TestReadRowsAsync._make_gapic_stream(
+                        lambda *args, **kwargs: CrossSync.TestReadRows._make_gapic_stream(
                             [
-                                TestReadRowsAsync._make_chunk(row_key=k)
+                                CrossSync.TestReadRows._make_chunk(row_key=k)
                                 for k in args[0].rows.row_keys
                             ]
                         )
@@ -2200,11 +2185,9 @@ class TestReadRowsShardedAsync:
 
 @CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestSampleRowKeys")
 class TestSampleRowKeysAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
+    @CrossSync.convert
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return CrossSync.TestBigtableDataClient._make_client(*args, **kwargs)
 
     @CrossSync.convert
     async def _make_gapic_stream(self, sample_list: list[tuple[bytes, int]]):
@@ -2358,11 +2341,9 @@ class TestSampleRowKeysAsync:
     path="tests.unit.data._sync.test_client.TestMutateRow",
 )
 class TestMutateRowAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
+    @CrossSync.convert
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return CrossSync.TestBigtableDataClient._make_client(*args, **kwargs)
 
     @CrossSync.pytest
     @pytest.mark.parametrize(
@@ -2539,11 +2520,9 @@ class TestMutateRowAsync:
     path="tests.unit.data._sync.test_client.TestBulkMutateRows",
 )
 class TestBulkMutateRowsAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
+    @CrossSync.convert
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return CrossSync.TestBigtableDataClient._make_client(*args, **kwargs)
 
     @CrossSync.convert
     async def _mock_response(self, response_list):
@@ -2923,11 +2902,9 @@ class TestBulkMutateRowsAsync:
 
 @CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestCheckAndMutateRow")
 class TestCheckAndMutateRowAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
+    @CrossSync.convert
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return CrossSync.TestBigtableDataClient._make_client(*args, **kwargs)
 
     @pytest.mark.parametrize("gapic_result", [True, False])
     @CrossSync.pytest
@@ -3078,11 +3055,9 @@ class TestCheckAndMutateRowAsync:
 
 @CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestReadModifyWriteRow")
 class TestReadModifyWriteRowAsync:
-    @CrossSync.convert(
-        replace_symbols={"TestBigtableDataClientAsync": "TestBigtableDataClient"}
-    )
+    @CrossSync.convert
     def _make_client(self, *args, **kwargs):
-        return TestBigtableDataClientAsync._make_client(*args, **kwargs)
+        return CrossSync.TestBigtableDataClient._make_client(*args, **kwargs)
 
     @pytest.mark.parametrize(
         "call_rules,expected_rules",

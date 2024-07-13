@@ -30,7 +30,7 @@ if CrossSync.is_async:
     from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
 
-@CrossSync.export_sync(path="tests.system.data.test_system.TempRowBuilder")
+@CrossSync.export_sync(path="tests.system.data.test_system.TempRowBuilder", add_mapping_for_name="TempRowBuilder")
 class TempRowBuilderAsync:
     """
     Used to add rows to a table for testing purposes.
@@ -79,11 +79,11 @@ class TempRowBuilderAsync:
 
 @CrossSync.export_sync(path="tests.system.data.test_system.TestSystem")
 class TestSystemAsync:
-    @CrossSync.convert(replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"})
+    @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
     async def client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        async with BigtableDataClientAsync(project=project, pool_size=4) as client:
+        async with CrossSync.DataClient(project=project, pool_size=4) as client:
             yield client
 
     @CrossSync.convert
@@ -168,10 +168,10 @@ class TestSystemAsync:
         mutation = SetCell(family=TEST_FAMILY, qualifier=qualifier, new_value=new_value)
         return row_key, mutation
 
-    @CrossSync.convert(replace_symbols={"TempRowBuilderAsync": "TempRowBuilder"})
+    @CrossSync.convert
     @CrossSync.pytest_fixture(scope="function")
     async def temp_rows(self, table):
-        builder = TempRowBuilderAsync(table)
+        builder = CrossSync.TempRowBuilder(table)
         yield builder
         await builder.delete_rows()
 

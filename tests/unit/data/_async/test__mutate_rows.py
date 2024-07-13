@@ -33,18 +33,7 @@ except ImportError:  # pragma: NO COVER
 )
 class TestMutateRowsOperation:
     def _target_class(self):
-        if CrossSync.is_async:
-            from google.cloud.bigtable.data._async._mutate_rows import (
-                _MutateRowsOperationAsync,
-            )
-
-            return _MutateRowsOperationAsync
-        else:
-            from google.cloud.bigtable.data._sync._mutate_rows import (
-                _MutateRowsOperation,
-            )
-
-            return _MutateRowsOperation
+        return CrossSync._MutateRowsOperation
 
     def _make_one(self, *args, **kwargs):
         if not args:
