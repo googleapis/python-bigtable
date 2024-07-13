@@ -433,6 +433,29 @@ class CrossSync(metaclass=_DecoratorMeta):
         Iterator: TypeAlias = typing.Iterator
         Generator: TypeAlias = typing.Generator
 
+        _runtime_replacements: set[Any] = set()
+
+        @classmethod
+        def add_mapping_decorator(cls, name):
+            def decorator(wrapped_cls):
+                cls.add_mapping(name, wrapped_cls)
+                return wrapped_cls
+            return decorator
+
+        @classmethod
+        def add_mapping(cls, name, value):
+            """
+            Add a new attribute to the CrossSync class, for replacing library-level symbols
+
+            Raises:
+                - AttributeError if the attribute already exists with a different value
+            """
+            if not hasattr(cls, name):
+                cls._runtime_replacements.add(name)
+            elif value != getattr(cls, name):
+                raise AttributeError(f"Conflicting assignments for CrossSync.{name}")
+            setattr(cls, name, value)
+
         @classmethod
         def Mock(cls, *args, **kwargs):
             # try/except added for compatibility with python < 3.8

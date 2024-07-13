@@ -227,6 +227,14 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
                     if sync_cls_name not in output_artifact.contained_classes:
                         converted = self._transform_class(node, sync_cls_name, **kwargs)
                         output_artifact.converted_classes.append(converted)
+                        # add mapping decorator if specified
+                        mapping_name = kwargs.get("add_mapping_for_name")
+                        if mapping_name:
+                            mapping_decorator = ast.Call(
+                                func=ast.Attribute(value=ast.Name(id='CrossSync._Sync_Impl', ctx=ast.Load()), attr='add_mapping_decorator', ctx=ast.Load()),
+                                args=[ast.Str(s=mapping_name)], keywords=[]
+                            )
+                            converted.decorator_list.append(mapping_decorator)
                         # handle file-level mypy ignores
                         mypy_ignores = [
                             s
