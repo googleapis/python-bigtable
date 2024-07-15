@@ -16,6 +16,7 @@ from __future__ import annotations
 import ast
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._sync.cross_sync_decorators import AstDecorator, ExportSyncDecorator
 from generate import CrossSyncOutputFile
 
 
@@ -142,30 +143,15 @@ class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
             if hasattr(node, "decorator_list"):
                 found_list, node.decorator_list = node.decorator_list, []
                 for decorator in found_list:
-                    if decorator == CrossSync.convert:
-                        # convert async to sync
-                        kwargs = CrossSync.convert.parse_ast_keywords(decorator)
-                        node = AsyncToSync().visit(node)
-                        # replace method name if specified
-                        if kwargs["sync_name"] is not None:
-                            node.name = kwargs["sync_name"]
-                        # replace symbols if specified
-                        if kwargs["replace_symbols"]:
-                            node = SymbolReplacer(kwargs["replace_symbols"]).visit(node)
-                    elif decorator == CrossSync.drop_method:
-                        # drop method entirely from class
-                        return None
-                    elif decorator == CrossSync.pytest:
-                        # also convert pytest methods to sync
-                        node = AsyncToSync().visit(node)
-                    elif decorator == CrossSync.pytest_fixture:
-                        # add pytest.fixture decorator
-                        decorator.func.value = ast.Name(id="pytest", ctx=ast.Load())
-                        decorator.func.attr = "fixture"
-                        node.decorator_list.append(decorator)
-                    else:
+                    try:
+                        handler = AstDecorator.get_for_node(decorator)
+                        node = handler.sync_ast_transform(decorator, node, globals())
+                        if node is None:
+                            return None
+                    except ValueError:
                         # keep unknown decorators
                         node.decorator_list.append(decorator)
+                        continue
             return node
         except ValueError as e:
             raise ValueError(f"node {node.name} failed") from e
@@ -213,39 +199,43 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
         """
         try:
             for decorator in node.decorator_list:
-                if decorator == CrossSync.export_sync:
-                    kwargs = CrossSync.export_sync.parse_ast_keywords(decorator)
-                    # find the path to write the sync class to
-                    sync_path = kwargs["path"]
-                    out_file = "/".join(sync_path.rsplit(".")[:-1]) + ".py"
-                    sync_cls_name = sync_path.rsplit(".", 1)[-1]
-                    # find the artifact file for the save location
-                    output_artifact = self._artifact_dict.get(
-                        out_file, CrossSyncOutputFile(out_file)
-                    )
-                    # write converted class details if not already present
-                    if sync_cls_name not in output_artifact.contained_classes:
-                        converted = self._transform_class(node, sync_cls_name, **kwargs)
-                        output_artifact.converted_classes.append(converted)
-                        # add mapping decorator if specified
-                        mapping_name = kwargs.get("add_mapping_for_name")
-                        if mapping_name:
-                            mapping_decorator = ast.Call(
-                                func=ast.Attribute(value=ast.Name(id='CrossSync._Sync_Impl', ctx=ast.Load()), attr='add_mapping_decorator', ctx=ast.Load()),
-                                args=[ast.Str(s=mapping_name)], keywords=[]
-                            )
-                            converted.decorator_list.append(mapping_decorator)
-                        # handle file-level mypy ignores
-                        mypy_ignores = [
-                            s
-                            for s in kwargs["mypy_ignore"]
-                            if s not in output_artifact.mypy_ignore
-                        ]
-                        output_artifact.mypy_ignore.extend(mypy_ignores)
-                        # handle file-level imports
-                        if not output_artifact.imports and kwargs["include_file_imports"]:
-                            output_artifact.imports = self.imports
-                    self._artifact_dict[out_file] = output_artifact
+                try:
+                    handler = AstDecorator.get_for_node(decorator)
+                    if handler == ExportSyncDecorator:
+                        kwargs = CrossSync.export_sync.parse_ast_keywords(decorator)
+                        # find the path to write the sync class to
+                        sync_path = kwargs["path"]
+                        out_file = "/".join(sync_path.rsplit(".")[:-1]) + ".py"
+                        sync_cls_name = sync_path.rsplit(".", 1)[-1]
+                        # find the artifact file for the save location
+                        output_artifact = self._artifact_dict.get(
+                            out_file, CrossSyncOutputFile(out_file)
+                        )
+                        # write converted class details if not already present
+                        if sync_cls_name not in output_artifact.contained_classes:
+                            converted = self._transform_class(node, sync_cls_name, **kwargs)
+                            output_artifact.converted_classes.append(converted)
+                            # add mapping decorator if specified
+                            mapping_name = kwargs.get("add_mapping_for_name")
+                            if mapping_name:
+                                mapping_decorator = ast.Call(
+                                    func=ast.Attribute(value=ast.Name(id='CrossSync._Sync_Impl', ctx=ast.Load()), attr='add_mapping_decorator', ctx=ast.Load()),
+                                    args=[ast.Str(s=mapping_name)], keywords=[]
+                                )
+                                converted.decorator_list.append(mapping_decorator)
+                            # handle file-level mypy ignores
+                            mypy_ignores = [
+                                s
+                                for s in kwargs["mypy_ignore"]
+                                if s not in output_artifact.mypy_ignore
+                            ]
+                            output_artifact.mypy_ignore.extend(mypy_ignores)
+                            # handle file-level imports
+                            if not output_artifact.imports and kwargs["include_file_imports"]:
+                                output_artifact.imports = self.imports
+                        self._artifact_dict[out_file] = output_artifact
+                except ValueError:
+                    continue
             return node
         except ValueError as e:
             raise ValueError(f"failed for class: {node.name}") from e
