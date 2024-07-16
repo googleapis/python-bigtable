@@ -152,6 +152,50 @@ class ExportSyncDecorator(AstDecorator):
             return cls
         return decorator
 
+    @classmethod
+    def sync_ast_transform(cls, decorator, wrapped_node, transformers):
+        """
+        Transform async class into sync copy
+        """
+        import ast
+        import copy
+        kwargs = cls.parse_ast_keywords(decorator)
+        # copy wrapped node
+        wrapped_node = copy.deepcopy(wrapped_node)
+        # update name
+        sync_path = kwargs["path"]
+        sync_cls_name = sync_path.rsplit(".", 1)[-1]
+        orig_name = wrapped_node.name
+        wrapped_node.name = sync_cls_name
+        # strip CrossSync decorators
+        if hasattr(wrapped_node, "decorator_list"):
+            wrapped_node.decorator_list = [
+                d for d in wrapped_node.decorator_list if "CrossSync" not in ast.dump(d)
+            ]
+        # add mapping decorator if needed
+        if kwargs["add_mapping_for_name"]:
+            wrapped_node.decorator_list.append(
+                ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Name(id="CrossSync", ctx=ast.Load()),
+                        attr="add_mapping",
+                        ctx=ast.Load(),
+                    ),
+                    args=[
+                        ast.Constant(value=kwargs["add_mapping_for_name"]),
+                    ],
+                    keywords=[],
+                )
+            )
+        # convert class contents
+        replace_dict = kwargs["replace_symbols"] or {}
+        replace_dict.update({"CrossSync": f"CrossSync._SyncImpl"})
+        wrapped_node = transformers["SymbolReplacer"](replace_dict).visit(wrapped_node)
+        # visit CrossSync method decorators
+        wrapped_node = transformers["CrossSyncMethodDecoratorHandler"]().visit(wrapped_node)
+        return wrapped_node
+
+
 class ConvertDecorator(AstDecorator):
 
     name = "convert"

@@ -196,6 +196,9 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
         """
         Called for each class in file. If class has a CrossSync decorator, it will be transformed
         according to the decorator arguments. Otherwise, no changes will occur
+
+        Uses a set of CrossSyncOutputFile objects to store the transformed classes
+        and avoid duplicate writes
         """
         try:
             for decorator in node.decorator_list:
@@ -213,16 +216,11 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
                         )
                         # write converted class details if not already present
                         if sync_cls_name not in output_artifact.contained_classes:
-                            converted = self._transform_class(node, sync_cls_name, **kwargs)
+                            # transformation is handled in sync_ast_transform method of the decorator
+                            converted = ExportSyncDecorator.sync_ast_transform(
+                                decorator, node, globals()
+                            )
                             output_artifact.converted_classes.append(converted)
-                            # add mapping decorator if specified
-                            mapping_name = kwargs.get("add_mapping_for_name")
-                            if mapping_name:
-                                mapping_decorator = ast.Call(
-                                    func=ast.Attribute(value=ast.Name(id='CrossSync._Sync_Impl', ctx=ast.Load()), attr='add_mapping_decorator', ctx=ast.Load()),
-                                    args=[ast.Str(s=mapping_name)], keywords=[]
-                                )
-                                converted.decorator_list.append(mapping_decorator)
                             # handle file-level mypy ignores
                             mypy_ignores = [
                                 s
@@ -239,32 +237,6 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
             return node
         except ValueError as e:
             raise ValueError(f"failed for class: {node.name}") from e
-
-    def _transform_class(
-        self,
-        cls_ast: ast.ClassDef,
-        new_name: str,
-        replace_symbols: dict[str, str] | None = None,
-        **kwargs,
-    ) -> ast.ClassDef:
-        """
-        Transform async class into sync one, by applying the following ast transformations:
-        - SymbolReplacer: to replace any class-level symbols specified in CrossSync.export_sync(replace_symbols={}) decorator
-        - CrossSyncMethodDecoratorHandler: to visit each method in the class and apply any CrossSync decorators found
-        """
-        # update name
-        cls_ast.name = new_name
-        # strip CrossSync decorators
-        if hasattr(cls_ast, "decorator_list"):
-            cls_ast.decorator_list = [
-                d for d in cls_ast.decorator_list if "CrossSync" not in ast.dump(d)
-            ]
-        # convert class contents
-        cls_ast = self.cross_sync_symbol_transformer.visit(cls_ast)
-        if replace_symbols:
-            cls_ast = SymbolReplacer(replace_symbols).visit(cls_ast)
-        cls_ast = self.cross_sync_method_handler.visit(cls_ast)
-        return cls_ast
 
     def _get_imports(
         self, tree: ast.Module
