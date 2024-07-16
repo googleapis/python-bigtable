@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Sequence
 
 
 class AstDecorator:
@@ -19,26 +20,7 @@ class AstDecorator:
 
     These decorators provide arguments that are used during the code generation process,
     but act as no-ops when encountered in live code
-
-    Args:
-        attr_name: name of the attribute to attach to the CrossSync class
-            e.g. pytest for CrossSync.pytest
-        required_keywords: list of required keyword arguments for the decorator.
-            If the decorator is used without these arguments, a ValueError is
-            raised during code generation
-        async_impl: If given, the async code will apply this decorator to its
-            wrapped function at runtime. If not given, the decorator will be a no-op
-        **default_kwargs: any kwargs passed define the valid arguments when using the decorator.
-            The value of each kwarg is the default value for the argument.
     """
-
-    name = None
-    required_kwargs = ()
-    default_kwargs = {}
-
-    @classmethod
-    def all_valid_keys(cls):
-        return [*cls.required_kwargs, *cls.default_kwargs.keys()]
 
     def __call__(self, *args, **kwargs):
         """
@@ -46,32 +28,13 @@ class AstDecorator:
 
         Returns a no-op decorator function, or applies the async_impl decorator
         """
-        # raise error if invalid kwargs are passed
-        for kwarg in kwargs:
-            if kwarg not in self.all_valid_keys():
-                raise ValueError(f"Invalid keyword argument: {kwarg}")
-        return self.async_decorator(*args, **kwargs)
-
-    @classmethod
-    def parse_ast_keywords(cls, node):
-        """
-        When this decorator is encountered in the ast during sync generation, parse the
-        keyword arguments back from ast nodes to python primitives
-
-        Return a full set of kwargs, using default values for missing arguments
-        """
-        got_kwargs = (
-            {kw.arg: cls._convert_ast_to_py(kw.value) for kw in node.keywords}
-            if hasattr(node, "keywords")
-            else {}
-        )
-        for key in got_kwargs.keys():
-            if key not in cls.all_valid_keys():
-                raise ValueError(f"Invalid keyword argument: {key}")
-        for key in cls.required_kwargs:
-            if key not in got_kwargs:
-                raise ValueError(f"Missing required keyword argument: {key}")
-        return {**cls.default_kwargs, **got_kwargs}
+        new_instance = self.__class__(**kwargs)
+        wrapper = new_instance.async_decorator()
+        if len(args) == 1 and callable(args[0]):
+            # if decorator is used without arguments, return wrapped function directly
+            return wrapper(args[0])
+        # otherwise, return wrap function
+        return wrapper
 
     @classmethod
     def _convert_ast_to_py(cls, ast_node):
@@ -91,26 +54,18 @@ class AstDecorator:
             }
         raise ValueError(f"Unsupported type {type(ast_node)}")
 
-    @classmethod
-    def async_decorator(cls, *args, **kwargs):
+    def async_decorator(self):
         """
         Decorator to apply the async_impl decorator to the wrapped function
 
         Default implementation is a no-op
         """
-        # if no arguments, args[0] will hold the function to be decorated
-        # return the function as is
-        if len(args) == 1 and callable(args[0]):
-            return args[0]
-
-        # if arguments are provided, return a no-op decorator function
-        def decorator(func):
-            return func
+        def decorator(f):
+            return f
 
         return decorator
 
-    @classmethod
-    def sync_ast_transform(cls, decorator, wrapped_node, transformers):
+    def sync_ast_transform(self, decorator, wrapped_node, transformers):
         """
         When this decorator is encountered in the ast during sync generation, 
         apply this behavior
@@ -124,9 +79,14 @@ class AstDecorator:
         import ast
         if "CrossSync" in ast.dump(node):
             decorator_name = node.func.attr if hasattr(node, "func") else node.attr
+            got_kwargs = (
+                {kw.arg: cls._convert_ast_to_py(kw.value) for kw in node.keywords}
+                if hasattr(node, "keywords")
+                else {}
+            )
             for subclass in cls.__subclasses__():
                 if subclass.name == decorator_name:
-                    return subclass
+                    return subclass(**got_kwargs)
         raise ValueError(f"Unknown decorator encountered")
 
 
@@ -134,37 +94,41 @@ class ExportSyncDecorator(AstDecorator):
 
     name = "export_sync"
 
-    required_kwargs = ("path",)
-    default_kwargs = {
-        "replace_symbols": {},  # replace symbols in the generated sync class
-        "mypy_ignore": (),  # set of mypy errors to ignore
-        "include_file_imports": True,  # include imports from the file in the generated sync class
-        "add_mapping_for_name": None,  # add a new attribute to CrossSync with the given name
-    }
+    def __init__(
+        self,
+        path:str = "",  # path to output the generated sync class
+        replace_symbols:dict|None = None,  # replace symbols in the generated sync class
+        mypy_ignore:Sequence[str] = (),  # set of mypy errors to ignore
+        include_file_imports:bool = True,  # include imports from the file in the generated sync class
+        add_mapping_for_name:str|None = None,  # add a new attribute to CrossSync with the given name
+    ):
+        self.path = path
+        self.replace_symbols = replace_symbols
+        self.mypy_ignore = mypy_ignore
+        self.include_file_imports = include_file_imports
+        self.add_mapping_for_name = add_mapping_for_name
 
-    @classmethod
-    def async_decorator(cls, *args, **kwargs):
+    def async_decorator(self):
         from .cross_sync import CrossSync
-        new_mapping = kwargs.get("add_mapping_for_name")
+        new_mapping = self.add_mapping_for_name
         def decorator(cls):
             if new_mapping:
                 CrossSync.add_mapping(new_mapping, cls)
             return cls
         return decorator
 
-    @classmethod
-    def sync_ast_transform(cls, decorator, wrapped_node, transformers):
+    def sync_ast_transform(self, decorator, wrapped_node, transformers):
         """
         Transform async class into sync copy
         """
         import ast
         import copy
-        kwargs = cls.parse_ast_keywords(decorator)
+        if not self.path:
+            raise ValueError(f"{wrapped_node.name} has no path specified in export_sync decorator")
         # copy wrapped node
         wrapped_node = copy.deepcopy(wrapped_node)
         # update name
-        sync_path = kwargs["path"]
-        sync_cls_name = sync_path.rsplit(".", 1)[-1]
+        sync_cls_name = self.path.rsplit(".", 1)[-1]
         orig_name = wrapped_node.name
         wrapped_node.name = sync_cls_name
         # strip CrossSync decorators
@@ -173,7 +137,7 @@ class ExportSyncDecorator(AstDecorator):
                 d for d in wrapped_node.decorator_list if "CrossSync" not in ast.dump(d)
             ]
         # add mapping decorator if needed
-        if kwargs["add_mapping_for_name"]:
+        if self.add_mapping_for_name:
             wrapped_node.decorator_list.append(
                 ast.Call(
                     func=ast.Attribute(
@@ -182,13 +146,13 @@ class ExportSyncDecorator(AstDecorator):
                         ctx=ast.Load(),
                     ),
                     args=[
-                        ast.Constant(value=kwargs["add_mapping_for_name"]),
+                        ast.Constant(value=self.add_mapping_for_name),
                     ],
                     keywords=[],
                 )
             )
         # convert class contents
-        replace_dict = kwargs["replace_symbols"] or {}
+        replace_dict = self.replace_symbols or {}
         replace_dict.update({"CrossSync": f"CrossSync._SyncImpl"})
         wrapped_node = transformers["SymbolReplacer"](replace_dict).visit(wrapped_node)
         # visit CrossSync method decorators
@@ -200,19 +164,20 @@ class ConvertDecorator(AstDecorator):
 
     name = "convert"
 
-    default_kwargs = {
-        "sync_name": None,  # use a new name for the sync method
-        "replace_symbols": {},  # replace symbols in the generated sync method
-    }
+    def __init__(
+        self,
+        sync_name:str|None = None,  # use a new name for the sync method
+        replace_symbols:dict = {}  # replace symbols in the generated sync method
+    ):
+        self.sync_name = sync_name
+        self.replace_symbols = replace_symbols
 
-    @classmethod
-    def sync_ast_transform(cls, decorator, wrapped_node, transformers):
-        kwargs = cls.parse_ast_keywords(decorator)
-        if kwargs["sync_name"]:
-            wrapped_node.name = kwargs["sync_name"]
-        if kwargs["replace_symbols"]:
+    def sync_ast_transform(self, decorator, wrapped_node, transformers):
+        if self.sync_name:
+            wrapped_node.name = self.sync_name
+        if self.replace_symbols:
             replacer = transformers["SymbolReplacer"]
-            wrapped_node = replacer(kwargs["replace_symbols"]).visit(wrapped_node)
+            wrapped_node = replacer(self.replace_symbols).visit(wrapped_node)
         return wrapped_node
 
 
@@ -220,16 +185,14 @@ class DropMethodDecorator(AstDecorator):
 
     name = "drop_method"
 
-    @classmethod
-    def sync_ast_transform(cls, decorator, wrapped_node, transformers):
+    def sync_ast_transform(self, decorator, wrapped_node, transformers):
         return None
 
 class PytestDecorator(AstDecorator):
 
     name = "pytest"
 
-    @classmethod
-    def async_decorator(cls, *args, **kwargs):
+    def async_decorator(self):
         import pytest
         return pytest.mark.asyncio
 
@@ -237,24 +200,19 @@ class PytestFixtureDecorator(AstDecorator):
 
     name = "pytest_fixture"
 
-    # arguments passed down to pytest(_asyncio).fixture decorator
-    default_kwargs = {
-        "scope": "function",
-        "params": None,
-        "autouse": False,
-        "ids": None,
-        "name": None,
-    }
+    def __init__(
+        self,
+        scope:str = "function",  # passed to pytest.fixture
+    ):
+        self.scope = scope
 
-    @classmethod
-    def async_decorator(cls, *args, **kwargs):
+    def async_decorator(self):
         import pytest_asyncio
         def decorator(func):
-            return pytest_asyncio.fixture(**kwargs)(func)
+            return pytest_asyncio.fixture(scope=self.scope)(func)
         return decorator
 
-    @classmethod
-    def sync_ast_transform(cls, decorator, wrapped_node, transformers):
+    def sync_ast_transform(self, decorator, wrapped_node, transformers):
         import ast
         decorator.func.value = ast.Name(id="pytest", ctx=ast.Load())
         decorator.func.attr = "fixture"
