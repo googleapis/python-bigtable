@@ -16,7 +16,7 @@ from __future__ import annotations
 import ast
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
-from google.cloud.bigtable.data._sync.cross_sync_decorators import AstDecorator, ExportSyncDecorator
+from google.cloud.bigtable.data._sync.cross_sync_decorators import AstDecorator, ExportSync
 from generate import CrossSyncOutputFile
 
 
@@ -204,12 +204,10 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
             for decorator in node.decorator_list:
                 try:
                     handler = AstDecorator.get_for_node(decorator)
-                    if handler == ExportSyncDecorator:
-                        kwargs = CrossSync.export_sync.parse_ast_keywords(decorator)
+                    if isinstance(handler, ExportSync):
                         # find the path to write the sync class to
-                        sync_path = kwargs["path"]
-                        out_file = "/".join(sync_path.rsplit(".")[:-1]) + ".py"
-                        sync_cls_name = sync_path.rsplit(".", 1)[-1]
+                        out_file = "/".join(handler.path.rsplit(".")[:-1]) + ".py"
+                        sync_cls_name = handler.path.rsplit(".", 1)[-1]
                         # find the artifact file for the save location
                         output_artifact = self._artifact_dict.get(
                             out_file, CrossSyncOutputFile(out_file)
@@ -217,19 +215,19 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
                         # write converted class details if not already present
                         if sync_cls_name not in output_artifact.contained_classes:
                             # transformation is handled in sync_ast_transform method of the decorator
-                            converted = ExportSyncDecorator.sync_ast_transform(
+                            converted = handler.sync_ast_transform(
                                 decorator, node, globals()
                             )
                             output_artifact.converted_classes.append(converted)
                             # handle file-level mypy ignores
                             mypy_ignores = [
                                 s
-                                for s in kwargs["mypy_ignore"]
+                                for s in handler.mypy_ignore
                                 if s not in output_artifact.mypy_ignore
                             ]
                             output_artifact.mypy_ignore.extend(mypy_ignores)
                             # handle file-level imports
-                            if not output_artifact.imports and kwargs["include_file_imports"]:
+                            if not output_artifact.imports and handler.include_file_imports:
                                 output_artifact.imports = self.imports
                         self._artifact_dict[out_file] = output_artifact
                 except ValueError:

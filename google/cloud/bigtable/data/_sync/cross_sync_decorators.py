@@ -22,17 +22,24 @@ class AstDecorator:
     but act as no-ops when encountered in live code
     """
 
-    def __call__(self, *args, **kwargs):
+    @classmethod
+    def decorator(cls, *args, **kwargs):
         """
         Called when the decorator is used in code.
 
         Returns a no-op decorator function, or applies the async_impl decorator
         """
-        new_instance = self.__class__(**kwargs)
-        wrapper = new_instance.async_decorator()
+        # check for decorators with no arguments
+        func = None
         if len(args) == 1 and callable(args[0]):
-            # if decorator is used without arguments, return wrapped function directly
-            return wrapper(args[0])
+            func = args[0]
+            args = args[1:]
+        # create new instance from given arguments
+        new_instance = cls(*args, **kwargs)
+        wrapper = new_instance.async_decorator()
+        # if we can, return single wrapped function
+        if func:
+            return wrapper(func)
         # otherwise, return wrap function
         return wrapper
 
@@ -90,13 +97,14 @@ class AstDecorator:
         raise ValueError(f"Unknown decorator encountered")
 
 
-class ExportSyncDecorator(AstDecorator):
+class ExportSync(AstDecorator):
 
     name = "export_sync"
 
     def __init__(
         self,
-        path:str = "",  # path to output the generated sync class
+        path:str,  # path to output the generated sync class
+        *,
         replace_symbols:dict|None = None,  # replace symbols in the generated sync class
         mypy_ignore:Sequence[str] = (),  # set of mypy errors to ignore
         include_file_imports:bool = True,  # include imports from the file in the generated sync class
@@ -160,12 +168,13 @@ class ExportSyncDecorator(AstDecorator):
         return wrapped_node
 
 
-class ConvertDecorator(AstDecorator):
+class Convert(AstDecorator):
 
     name = "convert"
 
     def __init__(
         self,
+        *,
         sync_name:str|None = None,  # use a new name for the sync method
         replace_symbols:dict = {}  # replace symbols in the generated sync method
     ):
@@ -181,14 +190,14 @@ class ConvertDecorator(AstDecorator):
         return wrapped_node
 
 
-class DropMethodDecorator(AstDecorator):
+class DropMethod(AstDecorator):
 
     name = "drop_method"
 
     def sync_ast_transform(self, decorator, wrapped_node, transformers):
         return None
 
-class PytestDecorator(AstDecorator):
+class Pytest(AstDecorator):
 
     name = "pytest"
 
@@ -196,25 +205,24 @@ class PytestDecorator(AstDecorator):
         import pytest
         return pytest.mark.asyncio
 
-class PytestFixtureDecorator(AstDecorator):
+class PytestFixture(AstDecorator):
 
     name = "pytest_fixture"
 
-    def __init__(
-        self,
-        scope:str = "function",  # passed to pytest.fixture
-    ):
-        self.scope = scope
+    def __init__(self, *args, **kwargs):
+        self._args = args
+        self._kwargs = kwargs
 
     def async_decorator(self):
         import pytest_asyncio
-        def decorator(func):
-            return pytest_asyncio.fixture(scope=self.scope)(func)
-        return decorator
+        return lambda f: pytest_asyncio.fixture(*self._args, **self._kwargs)(f)
 
     def sync_ast_transform(self, decorator, wrapped_node, transformers):
         import ast
-        decorator.func.value = ast.Name(id="pytest", ctx=ast.Load())
-        decorator.func.attr = "fixture"
-        wrapped_node.decorator_list.append(decorator)
-        return wrapped_node
+        import copy
+        new_decorator = copy.deepcopy(decorator)
+        new_node = copy.deepcopy(wrapped_node)
+        new_decorator.func.value = ast.Name(id="pytest", ctx=ast.Load())
+        new_decorator.func.attr = "fixture"
+        new_node.decorator_list.append(new_decorator)
+        return new_node
