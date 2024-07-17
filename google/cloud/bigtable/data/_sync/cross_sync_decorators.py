@@ -237,7 +237,7 @@ class ExportSync(AstDecorator):
             )
         # convert class contents
         replace_dict = self.replace_symbols or {}
-        replace_dict.update({"CrossSync": f"CrossSync._SyncImpl"})
+        replace_dict.update({"CrossSync": f"CrossSync._Sync_Impl"})
         wrapped_node = transformers_globals["SymbolReplacer"](replace_dict).visit(
             wrapped_node
         )
