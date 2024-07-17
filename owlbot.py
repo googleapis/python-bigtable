@@ -106,7 +106,9 @@ def place_before(path, text, *before_text, escape=None):
     if escape:
         for c in escape:
             text = text.replace(c, '\\' + c)
-    s.replace([path], text, replacement)
+    num_replacements = s.replace([path], text, replacement)
+    if num_replacements != 1:
+        raise ValueError(f"Expected to find '{text}' once in {path}, but found it {num_replacements} times.")
 
 system_emulated_session = """
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
@@ -226,8 +228,12 @@ docfx_postprocess = """
 
 place_before(
     "noxfile.py",
-    "@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)\n"
-    "def prerelease_deps(session):",
+    "@nox.session(python="3.12")\n"
+    "@nox.parametrize(
+    '    "protobuf_implementation",'
+    '    ["python", "upb", "cpp"],'
+    ')'
+    "def prerelease_deps(session, protobuf_implementation):",
     docfx_postprocess,
     escape="()"
 )
