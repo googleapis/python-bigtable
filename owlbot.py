@@ -101,12 +101,25 @@ s.move(templated_files, excludes=[".coveragerc", "README.rst", ".github/release-
 # Customize noxfile.py
 # ----------------------------------------------------------------------------
 
-def place_before(path, text, *before_text, escape=None):
-    replacement = "\n".join(before_text) + "\n" + text
+def insert(path, text, *added_text, escape=None, insert_after=False):
+    """
+    Args:
+        path (str): The file path to modify.
+        text (str): The text to search for in the file, to serve as an anchor for insertion.
+        added_text (str): The text to add before (or after) the found text.
+        escape (str): A string of characters to escape in the text.
+        insert_after (bool): If True, insert the added text after the found text. Otherwise, insert before.
+    """
+    if insert_after:
+        replacement = text + "\n" + "\n".join(added_text)
+    else:
+        replacement = "\n".join(added_text) + "\n" + text
     if escape:
         for c in escape:
             text = text.replace(c, '\\' + c)
-    s.replace([path], text, replacement)
+    num_replacements = s.replace([path], text, replacement)
+    if num_replacements == 0:
+        raise ValueError(f"Failed to insert text into {path} using anchor '{text}'.")
 
 system_emulated_session = """
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
@@ -137,7 +150,7 @@ def system_emulated(session):
 
 """
 
-place_before(
+insert(
     "noxfile.py",
     "@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)\n"
     "def system(session):",
@@ -165,7 +178,7 @@ def conformance(session):
 
 """
 
-place_before(
+insert(
     "noxfile.py",
     "@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)\n"
     "def system(session):",
@@ -224,59 +237,51 @@ docfx_postprocess = """
     session.run("python", "docs/scripts/patch_devsite_toc.py")
 """
 
-place_before(
+insert(
     "noxfile.py",
-    "@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)\n"
-    "def prerelease_deps(session):",
+    'os.path.join("docs", "_build", "html", ""),\n    )',
     docfx_postprocess,
-    escape="()"
+    escape="()",
+    insert_after=True
 )
 
 
 # ----------------------------------------------------------------------------
 # Customize gapics to include PooledBigtableGrpcAsyncIOTransport
 # ----------------------------------------------------------------------------
-def insert(file, before_line, insert_line, after_line, escape=None):
-    target = before_line + "\n" + after_line
-    if escape:
-        for c in escape:
-            target = target.replace(c, '\\' + c)
-    replacement = before_line + "\n" + insert_line + "\n" + after_line
-    s.replace(file, target, replacement)
-
 
 insert(
     "google/cloud/bigtable_v2/services/bigtable/client.py",
     "from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport",
     "from .transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport",
-    "from .transports.rest import BigtableRestTransport"
+    insert_after=True
 )
 insert(
     "google/cloud/bigtable_v2/services/bigtable/client.py",
     '    _transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport',
     '    _transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport',
-    '    _transport_registry["rest"] = BigtableRestTransport',
-    escape='[]"'
+    escape='[]"',
+    insert_after=True
 )
 insert(
     "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
     '_transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport',
     '_transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport',
-    '_transport_registry["rest"] = BigtableRestTransport',
-    escape='[]"'
+    escape='[]"',
+    insert_after=True
 )
 insert(
     "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
     "from .grpc_asyncio import BigtableGrpcAsyncIOTransport",
     "from .pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport",
-    "from .rest import BigtableRestTransport"
+    insert_after=True
 )
 insert(
     "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
     '    "BigtableGrpcAsyncIOTransport",',
     '    "PooledBigtableGrpcAsyncIOTransport",',
-    '    "BigtableRestTransport",',
-    escape='"'
+    escape='"',
+    insert_after=True
 )
 
 
