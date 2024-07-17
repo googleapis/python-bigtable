@@ -272,8 +272,17 @@ class Convert(AstDecorator):
         """
         Transform async method into sync
         """
+        import ast
+        # replace async function with sync function
+        wrapped_node = ast.copy_location(
+            ast.FunctionDef(wrapped_node.name,  wrapped_node.args,
+                wrapped_node.body, wrapped_node.decorator_list, wrapped_node.returns,
+            ), wrapped_node,
+        )
+        # update name if specified
         if self.sync_name:
             wrapped_node.name = self.sync_name
+        # update arbitrary symbols if specified
         if self.replace_symbols:
             replacer = transformers_globals["SymbolReplacer"]
             wrapped_node = replacer(self.replace_symbols).visit(wrapped_node)
