@@ -226,7 +226,7 @@ class ExportSync(AstDecorator):
                 ast.Call(
                     func=ast.Attribute(
                         value=ast.Name(id="CrossSync", ctx=ast.Load()),
-                        attr="add_mapping",
+                        attr="add_mapping_decorator",
                         ctx=ast.Load(),
                     ),
                     args=[
@@ -237,7 +237,7 @@ class ExportSync(AstDecorator):
             )
         # convert class contents
         replace_dict = self.replace_symbols or {}
-        replace_dict.update({"CrossSync": f"CrossSync._SyncImpl"})
+        replace_dict.update({"CrossSync": f"CrossSync._Sync_Impl"})
         wrapped_node = transformers_globals["SymbolReplacer"](replace_dict).visit(
             wrapped_node
         )
@@ -303,6 +303,14 @@ class Pytest(AstDecorator):
         import pytest
 
         return pytest.mark.asyncio
+
+    def sync_ast_transform(self, wrapped_node, transformers_globals):
+        """
+        convert async to sync
+        """
+        import ast
+        converted = transformers_globals["AsyncToSync"]().visit(wrapped_node)
+        return converted
 
 
 class PytestFixture(AstDecorator):
