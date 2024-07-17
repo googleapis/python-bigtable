@@ -235,7 +235,6 @@ place_before(
     ')\n'
     "def prerelease_deps(session, protobuf_implementation):",
     docfx_postprocess,
-    escape="()"
 )
 
 
