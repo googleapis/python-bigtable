@@ -304,6 +304,14 @@ class Pytest(AstDecorator):
 
         return pytest.mark.asyncio
 
+    def sync_ast_transform(self, wrapped_node, transformers_globals):
+        """
+        convert async to sync
+        """
+        import ast
+        converted = transformers_globals["AsyncToSync"]().visit(wrapped_node)
+        return converted
+
 
 class PytestFixture(AstDecorator):
     """
