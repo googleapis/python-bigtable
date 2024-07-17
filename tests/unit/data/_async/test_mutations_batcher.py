@@ -955,9 +955,7 @@ class TestMutationsBatcherAsync:
             FailedMutationEntryError,
         )
 
-        with mock.patch.object(
-            CrossSync._MutateRowsOperation, "start"
-        ) as mutate_rows:
+        with mock.patch.object(CrossSync._MutateRowsOperation, "start") as mutate_rows:
             err1 = FailedMutationEntryError(0, mock.Mock(), RuntimeError("test error"))
             err2 = FailedMutationEntryError(1, mock.Mock(), RuntimeError("test error"))
             mutate_rows.side_effect = MutationsExceptionGroup([err1, err2], 10)

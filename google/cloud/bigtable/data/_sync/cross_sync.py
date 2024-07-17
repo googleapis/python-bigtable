@@ -35,7 +35,14 @@ import google.api_core.retry as retries
 import queue
 import threading
 import time
-from .cross_sync_decorators import AstDecorator, ExportSync, Convert, DropMethod, Pytest, PytestFixture
+from .cross_sync_decorators import (
+    AstDecorator,
+    ExportSync,
+    Convert,
+    DropMethod,
+    Pytest,
+    PytestFixture,
+)
 
 if TYPE_CHECKING:
     from typing_extensions import TypeAlias
@@ -66,11 +73,13 @@ class CrossSync:
     Generator: TypeAlias = AsyncGenerator
 
     # decorators
-    export_sync = ExportSync.decorator # decorate classes to convert
+    export_sync = ExportSync.decorator  # decorate classes to convert
     convert = Convert.decorator  # decorate methods to convert from async to sync
     drop_method = DropMethod.decorator  # decorate methods to remove from sync version
     pytest = Pytest.decorator  # decorate test methods to run with pytest-asyncio
-    pytest_fixture = PytestFixture.decorator  # decorate test methods to run with pytest fixture
+    pytest_fixture = (
+        PytestFixture.decorator
+    )  # decorate test methods to run with pytest fixture
 
     # list of attributes that can be added to the CrossSync class at runtime
     _runtime_replacements: set[Any] = set()
