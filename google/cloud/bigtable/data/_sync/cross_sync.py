@@ -43,54 +43,6 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-def pytest_mark_asyncio(func):
-    """
-    Applies pytest.mark.asyncio to a function if pytest is installed, otherwise
-    returns the function as is
-
-    Used to support CrossSync.pytest decorator, without requiring pytest to be installed
-    """
-    try:
-        import pytest
-
-        return pytest.mark.asyncio(func)
-    except ImportError:
-        return func
-
-
-def pytest_asyncio_fixture(*args, **kwargs):
-    """
-    Applies pytest.fixture to a function if pytest is installed, otherwise
-    returns the function as is
-
-    Used to support CrossSync.pytest_fixture decorator, without requiring pytest to be installed
-    """
-    import pytest_asyncio  # type: ignore
-
-    def decorator(func):
-        return pytest_asyncio.fixture(*args, **kwargs)(func)
-
-    return decorator
-
-
-def export_sync_impl(*args, **kwargs):
-    """
-    Decorator implementation for CrossSync.export_sync
-
-    When a called with add_mapping_for_name, CrossSync.add_mapping is called to
-    register the name as a CrossSync attribute
-    """
-    new_mapping = kwargs.pop("add_mapping_for_name", None)
-
-    def decorator(cls):
-        if new_mapping:
-            # add class to mappings if requested
-            CrossSync.add_mapping(new_mapping, cls)
-        return cls
-
-    return decorator
-
-
 class CrossSync:
     # support CrossSync.is_async to check if the current environment is async
     is_async = True

@@ -145,7 +145,7 @@ class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
                 for decorator in found_list:
                     try:
                         handler = AstDecorator.get_for_node(decorator)
-                        node = handler.sync_ast_transform(decorator, node, globals())
+                        node = handler.sync_ast_transform(node, globals())
                         if node is None:
                             return None
                     except ValueError:
@@ -215,9 +215,7 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
                         # write converted class details if not already present
                         if sync_cls_name not in output_artifact.contained_classes:
                             # transformation is handled in sync_ast_transform method of the decorator
-                            converted = handler.sync_ast_transform(
-                                decorator, node, globals()
-                            )
+                            converted = handler.sync_ast_transform(node, globals())
                             output_artifact.converted_classes.append(converted)
                             # handle file-level mypy ignores
                             mypy_ignores = [

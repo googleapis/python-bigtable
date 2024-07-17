@@ -11,42 +11,127 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Sequence
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import ast
+    from typing import Sequence, Callable, Any
 
 
 class AstDecorator:
     """
     Helper class for CrossSync decorators used for guiding ast transformations.
 
-    These decorators provide arguments that are used during the code generation process,
-    but act as no-ops when encountered in live code
+    CrossSync decorations are accessed in two ways:
+    1. The decorations are used directly as method decorations in the async client, 
+        wrapping existing classes and methods
+    2. The decorations are read back when processing the AST transformations when
+        generating sync code.
+
+    This class allows the same decorator to be used in both contexts.
+
+    Typically, AstDecorators act as a no-op in async code, and the arguments simply
+    provide configuration guidance for the sync code generation.
     """
 
     @classmethod
-    def decorator(cls, *args, **kwargs):
+    def decorator(cls, *args, **kwargs) -> Callable[..., Any]:
         """
-        Called when the decorator is used in code.
+        Provides a callable that can be used as a decorator function in async code
 
-        Returns a no-op decorator function, or applies the async_impl decorator
+        AstDecorator.decorate is called by CrossSync when attaching decorators to
+        the CrossSync class.
+
+        This method creates a new instance of the class, using the arguments provided
+        to the decorator, and defers to the async_decorator method of the instance
+        to build the wrapper function.
+
+        Arguments:
+            *args: arguments to the decorator
+            **kwargs: keyword arguments to the decorator
         """
-        # check for decorators with no arguments
+        # decorators with no arguments will provide the function to be wrapped
+        # as the first argument. Pull it out if it exists
         func = None
         if len(args) == 1 and callable(args[0]):
             func = args[0]
             args = args[1:]
-        # create new instance from given arguments
+        # create new AstDecorator instance from given decorator arguments
         new_instance = cls(*args, **kwargs)
+        # build wrapper
         wrapper = new_instance.async_decorator()
-        # if we can, return single wrapped function
-        if func:
+        if wrapper is None:
+            # if no wrapper, return no-op decorator
+            return func or (lambda f: f)
+        elif func:
+            # if we can, return single wrapped function
             return wrapper(func)
-        # otherwise, return wrap function
-        return wrapper
+        else:
+            # otherwise, return decorator function
+            return wrapper
+
+    def async_decorator(self) -> Callable[..., Any] | None:
+        """
+        Decorator to apply the async_impl decorator to the wrapped function
+
+        Default implementation is a no-op
+        """
+        return None
+
+    def sync_ast_transform(self, wrapped_node:ast.AST, transformers_globals: dict[str, Any]) -> ast.AST | None:
+        """
+        When this decorator is encountered in the ast during sync generation, this method is called
+        to transform the wrapped node.
+
+        If None is returned, the node will be dropped from the output file.
+
+        Args:
+            wrapped_node: ast node representing the wrapped function or class that is being wrapped
+            transformers_globals: the set of globals() from the transformers module. This is used to access
+                ast transformer classes that live outside the main codebase
+        Returns:
+            transformed ast node, or None if the node should be dropped
+        """
+        return wrapped_node
 
     @classmethod
-    def _convert_ast_to_py(cls, ast_node):
+    def get_for_node(cls, node: ast.Call) -> "AstDecorator":
         """
-        Helper to convert ast primitives to python primitives. Used when unwrapping kwargs
+        Build an AstDecorator instance from an ast decorator node
+
+        The right subclass is found by comparing the string representation of the
+        decorator name to the class name. (Both names are converted to lowercase and
+        underscores are removed for comparison). If a matching subclass is found, 
+        a new instance is created with the provided arguments.
+
+        Args:
+            node: ast.Call node representing the decorator
+        Returns:
+            AstDecorator instance corresponding to the decorator
+        Raises:
+            ValueError: if the decorator cannot be parsed
+        """
+        import ast
+        if "CrossSync" in ast.dump(node):
+            decorator_name = node.func.attr if hasattr(node, "func") else node.attr
+            formatted_name = decorator_name.replace("_", "").lower()
+            got_kwargs = (
+                {kw.arg: cls._convert_ast_to_py(kw.value) for kw in node.keywords}
+                if hasattr(node, "keywords")
+                else {}
+            )
+            got_args = [cls._convert_ast_to_py(arg) for arg in node.args] if hasattr(node, "args") else []
+            for subclass in cls.__subclasses__():
+                if subclass.__name__.lower() == formatted_name:
+                    return subclass(*got_args, **got_kwargs)
+            raise ValueError(f"Unknown decorator encountered: {decorator_name}")
+        raise ValueError("Not a CrossSync decorator")
+
+    @classmethod
+    def _convert_ast_to_py(cls, ast_node: ast.expr) -> Any:
+        """
+        Helper to convert ast primitives to python primitives. Used when unwrapping arguments
         """
         import ast
 
@@ -61,51 +146,24 @@ class AstDecorator:
             }
         raise ValueError(f"Unsupported type {type(ast_node)}")
 
-    def async_decorator(self):
-        """
-        Decorator to apply the async_impl decorator to the wrapped function
-
-        Default implementation is a no-op
-        """
-        def decorator(f):
-            return f
-
-        return decorator
-
-    def sync_ast_transform(self, decorator, wrapped_node, transformers):
-        """
-        When this decorator is encountered in the ast during sync generation, 
-        apply this behavior
-
-        Defaults to no-op
-        """
-        return wrapped_node
-
-    @classmethod
-    def get_for_node(cls, node):
-        import ast
-        if "CrossSync" in ast.dump(node):
-            decorator_name = node.func.attr if hasattr(node, "func") else node.attr
-            got_kwargs = (
-                {kw.arg: cls._convert_ast_to_py(kw.value) for kw in node.keywords}
-                if hasattr(node, "keywords")
-                else {}
-            )
-            for subclass in cls.__subclasses__():
-                if subclass.name == decorator_name:
-                    return subclass(**got_kwargs)
-        raise ValueError(f"Unknown decorator encountered")
-
 
 class ExportSync(AstDecorator):
+    """
+    Class decorator for marking async classes to be converted to sync classes
 
-    name = "export_sync"
+    Args:
+        path: path to output the generated sync class
+        replace_symbols: a dict of symbols and replacements to use when generating sync class
+        mypy_ignore: set of mypy errors to ignore in the generated file
+        include_file_imports: if True, include top-level imports from the file in the generated sync class
+        add_mapping_for_name: when given, will add a new attribute to CrossSync, so the original class and its sync version can be accessed from CrossSync.<name>
+    """
 
     def __init__(
         self,
         path:str,  # path to output the generated sync class
         *,
-        replace_symbols:dict|None = None,  # replace symbols in the generated sync class
+        replace_symbols:dict[str,str]|None = None,  # replace symbols in the generated sync class
         mypy_ignore:Sequence[str] = (),  # set of mypy errors to ignore
         include_file_imports:bool = True,  # include imports from the file in the generated sync class
         add_mapping_for_name:str|None = None,  # add a new attribute to CrossSync with the given name
@@ -117,6 +175,9 @@ class ExportSync(AstDecorator):
         self.add_mapping_for_name = add_mapping_for_name
 
     def async_decorator(self):
+        """
+        Use async decorator as a hook to update CrossSync mappings
+        """
         from .cross_sync import CrossSync
         new_mapping = self.add_mapping_for_name
         def decorator(cls):
@@ -125,7 +186,7 @@ class ExportSync(AstDecorator):
             return cls
         return decorator
 
-    def sync_ast_transform(self, decorator, wrapped_node, transformers):
+    def sync_ast_transform(self, wrapped_node, transformers_globals):
         """
         Transform async class into sync copy
         """
@@ -162,52 +223,72 @@ class ExportSync(AstDecorator):
         # convert class contents
         replace_dict = self.replace_symbols or {}
         replace_dict.update({"CrossSync": f"CrossSync._SyncImpl"})
-        wrapped_node = transformers["SymbolReplacer"](replace_dict).visit(wrapped_node)
+        wrapped_node = transformers_globals["SymbolReplacer"](replace_dict).visit(wrapped_node)
         # visit CrossSync method decorators
-        wrapped_node = transformers["CrossSyncMethodDecoratorHandler"]().visit(wrapped_node)
+        wrapped_node = transformers_globals["CrossSyncMethodDecoratorHandler"]().visit(wrapped_node)
         return wrapped_node
 
 
 class Convert(AstDecorator):
+    """
+    Method decorator to mark async methods to be converted to sync methods
 
-    name = "convert"
+    Args:
+        sync_name: use a new name for the sync method
+        replace_symbols: a dict of symbols and replacements to use when generating sync method
+    """
 
     def __init__(
         self,
         *,
         sync_name:str|None = None,  # use a new name for the sync method
-        replace_symbols:dict = {}  # replace symbols in the generated sync method
+        replace_symbols:dict[str,str] = {}  # replace symbols in the generated sync method
     ):
         self.sync_name = sync_name
         self.replace_symbols = replace_symbols
 
-    def sync_ast_transform(self, decorator, wrapped_node, transformers):
+    def sync_ast_transform(self, wrapped_node, transformers_globals):
+        """
+        Transform async method into sync
+        """
         if self.sync_name:
             wrapped_node.name = self.sync_name
         if self.replace_symbols:
-            replacer = transformers["SymbolReplacer"]
+            replacer = transformers_globals["SymbolReplacer"]
             wrapped_node = replacer(self.replace_symbols).visit(wrapped_node)
         return wrapped_node
 
 
 class DropMethod(AstDecorator):
+    """
+    Method decorator to drop async methods from the sync output
+    """
 
-    name = "drop_method"
-
-    def sync_ast_transform(self, decorator, wrapped_node, transformers):
+    def sync_ast_transform(self, wrapped_node, transformers_globals):
+        """
+        Drop method from sync output
+        """
         return None
 
 class Pytest(AstDecorator):
+    """
+    Used in place of pytest.mark.asyncio to mark tests
 
-    name = "pytest"
+    Will be stripped from sync output
+    """
 
     def async_decorator(self):
         import pytest
         return pytest.mark.asyncio
 
 class PytestFixture(AstDecorator):
+    """
+    Used in place of pytest.fixture or pytest.mark.asyncio to mark fixtures
 
-    name = "pytest_fixture"
+    Args:
+        *args: all arguments to pass to pytest.fixture
+        **kwargs: all keyword arguments to pass to pytest.fixture
+    """
 
     def __init__(self, *args, **kwargs):
         self._args = args
@@ -217,12 +298,23 @@ class PytestFixture(AstDecorator):
         import pytest_asyncio
         return lambda f: pytest_asyncio.fixture(*self._args, **self._kwargs)(f)
 
-    def sync_ast_transform(self, decorator, wrapped_node, transformers):
+    def sync_ast_transform(self, wrapped_node, transformers_globals):
         import ast
         import copy
-        new_decorator = copy.deepcopy(decorator)
         new_node = copy.deepcopy(wrapped_node)
-        new_decorator.func.value = ast.Name(id="pytest", ctx=ast.Load())
-        new_decorator.func.attr = "fixture"
-        new_node.decorator_list.append(new_decorator)
+        new_node.decorator_list.append(
+            ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id="pytest", ctx=ast.Load()),
+                    attr="fixture",
+                    ctx=ast.Load(),
+                ),
+                args=[
+                    ast.Constant(value=a) for a in self._args
+                ],
+                keywords=[
+                    ast.keyword(arg=k, value=ast.Constant(value=v)) for k, v in self._kwargs.items()
+                ]
+            )
+        )
         return new_node
