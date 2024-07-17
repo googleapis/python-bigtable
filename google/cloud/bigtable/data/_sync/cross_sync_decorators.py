@@ -226,7 +226,7 @@ class ExportSync(AstDecorator):
                 ast.Call(
                     func=ast.Attribute(
                         value=ast.Name(id="CrossSync", ctx=ast.Load()),
-                        attr="add_mapping",
+                        attr="add_mapping_decorator",
                         ctx=ast.Load(),
                     ),
                     args=[
