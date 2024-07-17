@@ -20,6 +20,7 @@ from typing import (
     Callable,
     Coroutine,
     Sequence,
+    Union,
     AsyncIterable,
     AsyncIterator,
     AsyncGenerator,
@@ -31,6 +32,10 @@ import asyncio
 import sys
 import concurrent.futures
 import google.api_core.retry as retries
+import queue
+import threading
+import time
+from .cross_sync_decorators import AstDecorator, ExportSync, Convert, DropMethod, Pytest, PytestFixture
 
 if TYPE_CHECKING:
     from typing_extensions import TypeAlias
@@ -38,180 +43,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-def pytest_mark_asyncio(func):
-    """
-    Applies pytest.mark.asyncio to a function if pytest is installed, otherwise
-    returns the function as is
-
-    Used to support CrossSync.pytest decorator, without requiring pytest to be installed
-    """
-    try:
-        import pytest
-
-        return pytest.mark.asyncio(func)
-    except ImportError:
-        return func
-
-
-def pytest_asyncio_fixture(*args, **kwargs):
-    """
-    Applies pytest.fixture to a function if pytest is installed, otherwise
-    returns the function as is
-
-    Used to support CrossSync.pytest_fixture decorator, without requiring pytest to be installed
-    """
-    import pytest_asyncio  # type: ignore
-
-    def decorator(func):
-        return pytest_asyncio.fixture(*args, **kwargs)(func)
-
-    return decorator
-
-
-def export_sync_impl(*args, **kwargs):
-    """
-    Decorator implementation for CrossSync.export_sync
-
-    When a called with add_mapping_for_name, CrossSync.add_mapping is called to
-    register the name as a CrossSync attribute
-    """
-    new_mapping = kwargs.pop("add_mapping_for_name", None)
-
-    def decorator(cls):
-        if new_mapping:
-            # add class to mappings if requested
-            CrossSync.add_mapping(new_mapping, cls)
-        return cls
-
-    return decorator
-
-
-class AstDecorator:
-    """
-    Helper class for CrossSync decorators used for guiding ast transformations.
-
-    These decorators provide arguments that are used during the code generation process,
-    but act as no-ops when encountered in live code
-
-    Args:
-        attr_name: name of the attribute to attach to the CrossSync class
-            e.g. pytest for CrossSync.pytest
-        required_keywords: list of required keyword arguments for the decorator.
-            If the decorator is used without these arguments, a ValueError is
-            raised during code generation
-        async_impl: If given, the async code will apply this decorator to its
-            wrapped function at runtime. If not given, the decorator will be a no-op
-        **default_kwargs: any kwargs passed define the valid arguments when using the decorator.
-            The value of each kwarg is the default value for the argument.
-    """
-
-    def __init__(
-        self,
-        attr_name,
-        required_keywords=(),
-        async_impl=None,
-        **default_kwargs,
-    ):
-        self.name = attr_name
-        self.required_kwargs = required_keywords
-        self.default_kwargs = default_kwargs
-        self.all_valid_keys = [*required_keywords, *default_kwargs.keys()]
-        self.async_impl = async_impl
-
-    def __call__(self, *args, **kwargs):
-        """
-        Called when the decorator is used in code.
-
-        Returns a no-op decorator function, or applies the async_impl decorator
-        """
-        # raise error if invalid kwargs are passed
-        for kwarg in kwargs:
-            if kwarg not in self.all_valid_keys:
-                raise ValueError(f"Invalid keyword argument: {kwarg}")
-        # if async_impl is provided, use the given decorator function
-        if self.async_impl:
-            return self.async_impl(*args, **{**self.default_kwargs, **kwargs})
-        # if no arguments, args[0] will hold the function to be decorated
-        # return the function as is
-        if len(args) == 1 and callable(args[0]):
-            return args[0]
-
-        # if arguments are provided, return a no-op decorator function
-        def decorator(func):
-            return func
-
-        return decorator
-
-    def parse_ast_keywords(self, node):
-        """
-        When this decorator is encountered in the ast during sync generation, parse the
-        keyword arguments back from ast nodes to python primitives
-
-        Return a full set of kwargs, using default values for missing arguments
-        """
-        got_kwargs = (
-            {kw.arg: self._convert_ast_to_py(kw.value) for kw in node.keywords}
-            if hasattr(node, "keywords")
-            else {}
-        )
-        for key in got_kwargs.keys():
-            if key not in self.all_valid_keys:
-                raise ValueError(f"Invalid keyword argument: {key}")
-        for key in self.required_kwargs:
-            if key not in got_kwargs:
-                raise ValueError(f"Missing required keyword argument: {key}")
-        return {**self.default_kwargs, **got_kwargs}
-
-    def _convert_ast_to_py(self, ast_node):
-        """
-        Helper to convert ast primitives to python primitives. Used when unwrapping kwargs
-        """
-        import ast
-
-        if isinstance(ast_node, ast.Constant):
-            return ast_node.value
-        if isinstance(ast_node, ast.List):
-            return [self._convert_ast_to_py(node) for node in ast_node.elts]
-        if isinstance(ast_node, ast.Dict):
-            return {
-                self._convert_ast_to_py(k): self._convert_ast_to_py(v)
-                for k, v in zip(ast_node.keys, ast_node.values)
-            }
-        raise ValueError(f"Unsupported type {type(ast_node)}")
-
-    def _node_eq(self, node):
-        """
-        Check if the given ast node is a call to this decorator
-        """
-        import ast
-
-        if "CrossSync" in ast.dump(node):
-            decorator_type = node.func.attr if hasattr(node, "func") else node.attr
-            if decorator_type == self.name:
-                return True
-        return False
-
-    def __eq__(self, other):
-        """
-        Helper to support == comparison with ast nodes
-        """
-        return self._node_eq(other)
-
-
-class _DecoratorMeta(type):
-    """
-    Metaclass to attach AstDecorator objects in internal self._decorators
-    as attributes
-    """
-
-    def __getattr__(self, name):
-        for decorator in self._decorators:
-            if name == decorator.name:
-                return decorator
-        raise AttributeError(f"CrossSync has no attribute {name}")
-
-
-class CrossSync(metaclass=_DecoratorMeta):
+class CrossSync:
     # support CrossSync.is_async to check if the current environment is async
     is_async = True
 
@@ -233,6 +65,16 @@ class CrossSync(metaclass=_DecoratorMeta):
     Iterator: TypeAlias = AsyncIterator
     Generator: TypeAlias = AsyncGenerator
 
+    # decorators
+    export_sync = ExportSync.decorator # decorate classes to convert
+    convert = Convert.decorator  # decorate methods to convert from async to sync
+    drop_method = DropMethod.decorator  # decorate methods to remove from sync version
+    pytest = Pytest.decorator  # decorate test methods to run with pytest-asyncio
+    pytest_fixture = PytestFixture.decorator  # decorate test methods to run with pytest fixture
+
+    # list of attributes that can be added to the CrossSync class at runtime
+    _runtime_replacements: set[Any] = set()
+
     @classmethod
     def add_mapping(cls, name, value):
         """
@@ -246,41 +88,6 @@ class CrossSync(metaclass=_DecoratorMeta):
         elif value != getattr(cls, name):
             raise AttributeError(f"Conflicting assignments for CrossSync.{name}")
         setattr(cls, name, value)
-
-    # list of decorators that can be applied to classes and methods to guide code generation
-    _decorators: list[AstDecorator] = [
-        AstDecorator(
-            "export_sync",  # decorate classes to convert
-            required_keywords=["path"],  # otput path for generated sync class
-            async_impl=export_sync_impl,  # apply this decorator to the function at runtime
-            replace_symbols={},  # replace specific symbols across entire class
-            mypy_ignore=(),  # set of mypy error codes to ignore in output file
-            include_file_imports=True,  # when True, import statements from top of file will be included in output file
-            add_mapping_for_name=None,  # add a new attribute to CrossSync class with the given name
-        ),
-        AstDecorator(
-            "convert",  # decorate methods to convert from async to sync
-            sync_name=None,  # use a new name for the sync class
-            replace_symbols={},  # replace specific symbols within the function
-        ),
-        AstDecorator(
-            "drop_method"
-        ),  # decorate methods to drop in sync version of class
-        AstDecorator(
-            "pytest", async_impl=pytest_mark_asyncio
-        ),  # decorate test methods to run with pytest-asyncio
-        AstDecorator(
-            "pytest_fixture",  # decorate test methods to run with pytest fixture
-            async_impl=pytest_asyncio_fixture,
-            scope="function",
-            params=None,
-            autouse=False,
-            ids=None,
-            name=None,
-        ),
-    ]
-    # list of attributes that can be added to the CrossSync class at runtime
-    _runtime_replacements: set[Any] = set()
 
     @classmethod
     def Mock(cls, *args, **kwargs):
