@@ -21,9 +21,9 @@ import proto  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.v2',
+    package="google.bigtable.v2",
     manifest={
-        'Type',
+        "Type",
     },
 )
 
@@ -152,17 +152,17 @@ class Type(proto.Message):
 
                 """
 
-            raw: 'Type.Bytes.Encoding.Raw' = proto.Field(
+            raw: "Type.Bytes.Encoding.Raw" = proto.Field(
                 proto.MESSAGE,
                 number=1,
-                oneof='encoding',
-                message='Type.Bytes.Encoding.Raw',
+                oneof="encoding",
+                message="Type.Bytes.Encoding.Raw",
             )
 
-        encoding: 'Type.Bytes.Encoding' = proto.Field(
+        encoding: "Type.Bytes.Encoding" = proto.Field(
             proto.MESSAGE,
             number=1,
-            message='Type.Bytes.Encoding',
+            message="Type.Bytes.Encoding",
         )
 
     class String(proto.Message):
@@ -200,17 +200,17 @@ class Type(proto.Message):
 
                 """
 
-            utf8_bytes: 'Type.String.Encoding.Utf8Bytes' = proto.Field(
+            utf8_bytes: "Type.String.Encoding.Utf8Bytes" = proto.Field(
                 proto.MESSAGE,
                 number=2,
-                oneof='encoding',
-                message='Type.String.Encoding.Utf8Bytes',
+                oneof="encoding",
+                message="Type.String.Encoding.Utf8Bytes",
             )
 
-        encoding: 'Type.String.Encoding' = proto.Field(
+        encoding: "Type.String.Encoding" = proto.Field(
             proto.MESSAGE,
             number=1,
-            message='Type.String.Encoding',
+            message="Type.String.Encoding",
         )
 
     class Int64(proto.Message):
@@ -251,28 +251,27 @@ class Type(proto.Message):
                         Deprecated: ignored if set.
                 """
 
-                bytes_type: 'Type.Bytes' = proto.Field(
+                bytes_type: "Type.Bytes" = proto.Field(
                     proto.MESSAGE,
                     number=1,
-                    message='Type.Bytes',
+                    message="Type.Bytes",
                 )
 
-            big_endian_bytes: 'Type.Int64.Encoding.BigEndianBytes' = proto.Field(
+            big_endian_bytes: "Type.Int64.Encoding.BigEndianBytes" = proto.Field(
                 proto.MESSAGE,
                 number=1,
-                oneof='encoding',
-                message='Type.Int64.Encoding.BigEndianBytes',
+                oneof="encoding",
+                message="Type.Int64.Encoding.BigEndianBytes",
             )
 
-        encoding: 'Type.Int64.Encoding' = proto.Field(
+        encoding: "Type.Int64.Encoding" = proto.Field(
             proto.MESSAGE,
             number=1,
-            message='Type.Int64.Encoding',
+            message="Type.Int64.Encoding",
         )
 
     class Bool(proto.Message):
-        r"""bool Values of type ``Bool`` are stored in ``Value.bool_value``.
-        """
+        r"""bool Values of type ``Bool`` are stored in ``Value.bool_value``."""
 
     class Float32(proto.Message):
         r"""Float32 Values of type ``Float32`` are stored in
@@ -293,8 +292,7 @@ class Type(proto.Message):
         """
 
     class Date(proto.Message):
-        r"""Date Values of type ``Date`` are stored in ``Value.date_value``.
-        """
+        r"""Date Values of type ``Date`` are stored in ``Value.date_value``."""
 
     class Struct(proto.Message):
         r"""A structured data value, consisting of fields which map to
@@ -323,16 +321,16 @@ class Type(proto.Message):
                 proto.STRING,
                 number=1,
             )
-            type_: 'Type' = proto.Field(
+            type_: "Type" = proto.Field(
                 proto.MESSAGE,
                 number=2,
-                message='Type',
+                message="Type",
             )
 
-        fields: MutableSequence['Type.Struct.Field'] = proto.RepeatedField(
+        fields: MutableSequence["Type.Struct.Field"] = proto.RepeatedField(
             proto.MESSAGE,
             number=1,
-            message='Type.Struct.Field',
+            message="Type.Struct.Field",
         )
 
     class Array(proto.Message):
@@ -345,10 +343,10 @@ class Type(proto.Message):
                 ``Array``.
         """
 
-        element_type: 'Type' = proto.Field(
+        element_type: "Type" = proto.Field(
             proto.MESSAGE,
             number=1,
-            message='Type',
+            message="Type",
         )
 
     class Map(proto.Message):
@@ -368,15 +366,15 @@ class Type(proto.Message):
                 The type of the values in a map.
         """
 
-        key_type: 'Type' = proto.Field(
+        key_type: "Type" = proto.Field(
             proto.MESSAGE,
             number=1,
-            message='Type',
+            message="Type",
         )
-        value_type: 'Type' = proto.Field(
+        value_type: "Type" = proto.Field(
             proto.MESSAGE,
             number=2,
-            message='Type',
+            message="Type",
         )
 
     class Aggregate(proto.Message):
@@ -449,111 +447,113 @@ class Type(proto.Message):
 
             """
 
-        input_type: 'Type' = proto.Field(
+        input_type: "Type" = proto.Field(
             proto.MESSAGE,
             number=1,
-            message='Type',
+            message="Type",
         )
-        state_type: 'Type' = proto.Field(
+        state_type: "Type" = proto.Field(
             proto.MESSAGE,
             number=2,
-            message='Type',
+            message="Type",
         )
-        sum: 'Type.Aggregate.Sum' = proto.Field(
+        sum: "Type.Aggregate.Sum" = proto.Field(
             proto.MESSAGE,
             number=4,
-            oneof='aggregator',
-            message='Type.Aggregate.Sum',
+            oneof="aggregator",
+            message="Type.Aggregate.Sum",
         )
-        hllpp_unique_count: 'Type.Aggregate.HyperLogLogPlusPlusUniqueCount' = proto.Field(
-            proto.MESSAGE,
-            number=5,
-            oneof='aggregator',
-            message='Type.Aggregate.HyperLogLogPlusPlusUniqueCount',
+        hllpp_unique_count: "Type.Aggregate.HyperLogLogPlusPlusUniqueCount" = (
+            proto.Field(
+                proto.MESSAGE,
+                number=5,
+                oneof="aggregator",
+                message="Type.Aggregate.HyperLogLogPlusPlusUniqueCount",
+            )
         )
-        max_: 'Type.Aggregate.Max' = proto.Field(
+        max_: "Type.Aggregate.Max" = proto.Field(
             proto.MESSAGE,
             number=6,
-            oneof='aggregator',
-            message='Type.Aggregate.Max',
+            oneof="aggregator",
+            message="Type.Aggregate.Max",
         )
-        min_: 'Type.Aggregate.Min' = proto.Field(
+        min_: "Type.Aggregate.Min" = proto.Field(
             proto.MESSAGE,
             number=7,
-            oneof='aggregator',
-            message='Type.Aggregate.Min',
+            oneof="aggregator",
+            message="Type.Aggregate.Min",
         )
 
     bytes_type: Bytes = proto.Field(
         proto.MESSAGE,
         number=1,
-        oneof='kind',
+        oneof="kind",
         message=Bytes,
     )
     string_type: String = proto.Field(
         proto.MESSAGE,
         number=2,
-        oneof='kind',
+        oneof="kind",
         message=String,
     )
     int64_type: Int64 = proto.Field(
         proto.MESSAGE,
         number=5,
-        oneof='kind',
+        oneof="kind",
         message=Int64,
     )
     float32_type: Float32 = proto.Field(
         proto.MESSAGE,
         number=12,
-        oneof='kind',
+        oneof="kind",
         message=Float32,
     )
     float64_type: Float64 = proto.Field(
         proto.MESSAGE,
         number=9,
-        oneof='kind',
+        oneof="kind",
         message=Float64,
     )
     bool_type: Bool = proto.Field(
         proto.MESSAGE,
         number=8,
-        oneof='kind',
+        oneof="kind",
         message=Bool,
     )
     timestamp_type: Timestamp = proto.Field(
         proto.MESSAGE,
         number=10,
-        oneof='kind',
+        oneof="kind",
         message=Timestamp,
     )
     date_type: Date = proto.Field(
         proto.MESSAGE,
         number=11,
-        oneof='kind',
+        oneof="kind",
         message=Date,
     )
     aggregate_type: Aggregate = proto.Field(
         proto.MESSAGE,
         number=6,
-        oneof='kind',
+        oneof="kind",
         message=Aggregate,
     )
     struct_type: Struct = proto.Field(
         proto.MESSAGE,
         number=7,
-        oneof='kind',
+        oneof="kind",
         message=Struct,
     )
     array_type: Array = proto.Field(
         proto.MESSAGE,
         number=3,
-        oneof='kind',
+        oneof="kind",
         message=Array,
     )
     map_type: Map = proto.Field(
         proto.MESSAGE,
         number=4,
-        oneof='kind',
+        oneof="kind",
         message=Map,
     )
 
