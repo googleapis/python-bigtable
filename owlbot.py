@@ -228,7 +228,7 @@ docfx_postprocess = """
 
 place_before(
     "noxfile.py",
-    "@nox.session(python="3.12")\n"
+    '@nox.session(python="3.12")\n'
     "@nox.parametrize("
     '    "protobuf_implementation",'
     '    ["python", "upb", "cpp"],'
