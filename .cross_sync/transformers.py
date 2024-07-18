@@ -201,6 +201,8 @@ class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
                         node = handler.sync_ast_transform(node, globals())
                         if node is None:
                             return None
+                        # recurse to any nested functions
+                        node = self.generic_visit(node)
                     except ValueError:
                         # keep unknown decorators
                         node.decorator_list.append(decorator)
