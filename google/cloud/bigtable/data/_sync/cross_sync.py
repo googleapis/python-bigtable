@@ -222,6 +222,10 @@ class CrossSync:
         """
         asyncio.get_running_loop()
 
+    @staticmethod
+    def rm_aio(statement: Any) -> Any:
+        return statement
+
     class _Sync_Impl:
         """
         Provide sync versions of the async functions and types in CrossSync

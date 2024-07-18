@@ -236,6 +236,7 @@ class ExportSync(AstDecorator):
                 )
             )
         # convert class contents
+        wrapped_node = transformers_globals["RmAioFunctions"]().visit(wrapped_node)
         replace_dict = self.replace_symbols or {}
         replace_dict.update({"CrossSync": f"CrossSync._Sync_Impl"})
         wrapped_node = transformers_globals["SymbolReplacer"](replace_dict).visit(
@@ -273,11 +274,17 @@ class Convert(AstDecorator):
         Transform async method into sync
         """
         import ast
+
         # replace async function with sync function
         wrapped_node = ast.copy_location(
-            ast.FunctionDef(wrapped_node.name,  wrapped_node.args,
-                wrapped_node.body, wrapped_node.decorator_list, wrapped_node.returns,
-            ), wrapped_node,
+            ast.FunctionDef(
+                wrapped_node.name,
+                wrapped_node.args,
+                wrapped_node.body,
+                wrapped_node.decorator_list,
+                wrapped_node.returns,
+            ),
+            wrapped_node,
         )
         # update name if specified
         if self.sync_name:
@@ -318,6 +325,7 @@ class Pytest(AstDecorator):
         convert async to sync
         """
         import ast
+
         converted = transformers_globals["AsyncToSync"]().visit(wrapped_node)
         return converted
 

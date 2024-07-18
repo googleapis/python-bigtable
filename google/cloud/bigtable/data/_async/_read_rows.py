@@ -164,7 +164,7 @@ class _ReadRowsOperationAsync:
         Yields:
             ReadRowsResponsePB.CellChunk: the next chunk in the stream
         """
-        async for resp in await stream:
+        async for resp in CrossSync.rm_aio(await stream):
             # extract proto from proto-plus wrapper
             resp = resp._pb
 
@@ -225,7 +225,7 @@ class _ReadRowsOperationAsync:
         # For each row
         while True:
             try:
-                c = await it.__anext__()
+                c = CrossSync.rm_aio(await it.__anext__())
             except CrossSync.StopIteration:
                 # stream complete
                 return
@@ -274,7 +274,7 @@ class _ReadRowsOperationAsync:
                         buffer = [value]
                         while c.value_size > 0:
                             # throws when premature end
-                            c = await it.__anext__()
+                            c = CrossSync.rm_aio(await it.__anext__())
 
                             t = c.timestamp_micros
                             cl = c.labels
@@ -306,7 +306,7 @@ class _ReadRowsOperationAsync:
                     if c.commit_row:
                         yield Row(row_key, cells)
                         break
-                    c = await it.__anext__()
+                    c = CrossSync.rm_aio(await it.__anext__())
             except _ResetRow as e:
                 c = e.chunk
                 if (

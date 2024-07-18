@@ -129,6 +129,62 @@ class AsyncToSync(ast.NodeTransformer):
             generator.is_async = False
         return self.generic_visit(node)
 
+class RmAioFunctions(ast.NodeTransformer):
+    """
+    Visits all calls marked with CrossSync.rm_aio, and removes asyncio keywords
+    """
+
+    def __init__(self):
+        self.to_sync = AsyncToSync()
+
+    def visit_Call(self, node):
+        if isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and \
+        node.func.attr == "rm_aio" and "CrossSync" in node.func.value.id:
+            return self.visit(self.to_sync.visit(node.args[0]))
+        return self.generic_visit(node)
+
+    def visit_AsyncWith(self, node):
+        """
+        Async with statements are not fully wrapped by calls
+        """
+        found_rmaio = False
+        new_items = []
+        for item in node.items:
+            if isinstance(item.context_expr, ast.Call) and isinstance(item.context_expr.func, ast.Attribute) and isinstance(item.context_expr.func.value, ast.Name) and \
+            item.context_expr.func.attr == "rm_aio" and "CrossSync" in item.context_expr.func.value.id:
+                found_rmaio = True
+                new_items.append(item.context_expr.args[0])
+            else:
+                new_items.append(item)
+        if found_rmaio:
+            new_node = ast.copy_location(
+                ast.With(
+                    [self.generic_visit(item) for item in new_items],
+                    [self.generic_visit(stmt) for stmt in node.body],
+                ),
+                node,
+            )
+            return self.generic_visit(new_node)
+        return self.generic_visit(node)
+
+    def visit_AsyncFor(self, node):
+        """
+        Async for statements are not fully wrapped by calls
+        """
+        it = node.iter
+        if isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute) and isinstance(it.func.value, ast.Name) and \
+        it.func.attr == "rm_aio" and "CrossSync" in it.func.value.id:
+            return ast.copy_location(
+                ast.For(
+                    self.visit(node.target),
+                    self.visit(node.iter.args[0]),
+                    [self.visit(stmt) for stmt in node.body],
+                    [self.visit(stmt) for stmt in node.orelse],
+                ),
+                node,
+            )
+        return self.generic_visit(node)
+
 
 class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
     """

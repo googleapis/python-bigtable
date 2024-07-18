@@ -120,7 +120,7 @@ class _FlowControlAsync:
         self._in_flight_mutation_count -= total_count
         self._in_flight_mutation_bytes -= total_size
         # notify any blocked requests that there is additional capacity
-        async with self._capacity_condition:
+        async with CrossSync.rm_aio(self._capacity_condition):
             self._capacity_condition.notify_all()
 
     @CrossSync.convert
@@ -146,7 +146,7 @@ class _FlowControlAsync:
             start_idx = end_idx
             batch_mutation_count = 0
             # fill up batch until we hit capacity
-            async with self._capacity_condition:
+            async with CrossSync.rm_aio(self._capacity_condition):
                 while end_idx < len(mutations):
                     next_entry = mutations[end_idx]
                     next_size = next_entry.size()
@@ -167,8 +167,10 @@ class _FlowControlAsync:
                         break
                     else:
                         # batch is empty. Block until we have capacity
-                        await self._capacity_condition.wait_for(
-                            lambda: self._has_capacity(next_count, next_size)
+                        CrossSync.rm_aio(
+                            await self._capacity_condition.wait_for(
+                                lambda: self._has_capacity(next_count, next_size)
+                            )
                         )
             yield mutations[start_idx:end_idx]
 
@@ -280,8 +282,10 @@ class MutationsBatcherAsync:
             return None
         while not self._closed.is_set():
             # wait until interval has passed, or until closed
-            await CrossSync.event_wait(
-                self._closed, timeout=interval, async_break_early=False
+            CrossSync.rm_aio(
+                await CrossSync.event_wait(
+                    self._closed, timeout=interval, async_break_early=False
+                )
             )
             if not self._closed.is_set() and self._staged_entries:
                 self._schedule_flush()
@@ -314,7 +318,7 @@ class MutationsBatcherAsync:
         ):
             self._schedule_flush()
             # yield to the event loop to allow flush to run
-            await CrossSync.yield_to_event_loop()
+            CrossSync.rm_aio(await CrossSync.yield_to_event_loop())
 
     def _schedule_flush(self) -> CrossSync.Future[None] | None:
         """
@@ -346,13 +350,17 @@ class MutationsBatcherAsync:
         """
         # flush new entries
         in_process_requests: list[CrossSync.Future[list[FailedMutationEntryError]]] = []
-        async for batch in self._flow_control.add_to_flow(new_entries):
+        async for batch in CrossSync.rm_aio(
+            self._flow_control.add_to_flow(new_entries)
+        ):
             batch_task = CrossSync.create_task(
                 self._execute_mutate_rows, batch, sync_executor=self._sync_executor
             )
             in_process_requests.append(batch_task)
         # wait for all inflight requests to complete
-        found_exceptions = await self._wait_for_batch_results(*in_process_requests)
+        found_exceptions = CrossSync.rm_aio(
+            await self._wait_for_batch_results(*in_process_requests)
+        )
         # update exception data to reflect any new errors
         self._entries_processed_since_last_raise += len(new_entries)
         self._add_exceptions(found_exceptions)
@@ -382,7 +390,7 @@ class MutationsBatcherAsync:
                 attempt_timeout=self._attempt_timeout,
                 retryable_exceptions=self._retryable_errors,
             )
-            await operation.start()
+            CrossSync.rm_aio(await operation.start())
         except MutationsExceptionGroup as e:
             # strip index information from exceptions, since it is not useful in a batch context
             for subexc in e.exceptions:
@@ -390,7 +398,7 @@ class MutationsBatcherAsync:
             return list(e.exceptions)
         finally:
             # mark batch as complete in flow control
-            await self._flow_control.remove_from_flow(batch)
+            CrossSync.rm_aio(await self._flow_control.remove_from_flow(batch))
         return []
 
     def _add_exceptions(self, excs: list[Exception]):
@@ -450,7 +458,7 @@ class MutationsBatcherAsync:
 
         Flushes the batcher and cleans up resources.
         """
-        await self.close()
+        CrossSync.rm_aio(await self.close())
 
     @property
     def closed(self) -> bool:
@@ -468,7 +476,7 @@ class MutationsBatcherAsync:
         self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
-        await CrossSync.wait([*self._flush_jobs, self._flush_timer])
+        CrossSync.rm_aio(await CrossSync.wait([*self._flush_jobs, self._flush_timer]))
         # shut down executor
         if self._sync_executor:
             with self._sync_executor:
@@ -512,7 +520,7 @@ class MutationsBatcherAsync:
         for task in tasks:
             if CrossSync.is_async:
                 # futures don't need to be awaited in sync mode
-                await task
+                CrossSync.rm_aio(await task)
             try:
                 exc_list = task.result()
                 if exc_list:
