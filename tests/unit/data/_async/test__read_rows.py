@@ -13,19 +13,23 @@
 
 import pytest
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
+    from unittest.mock import AsyncMock  # type: ignore
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
+    from mock import AsyncMock  # type: ignore # noqa F401
+
+TEST_FAMILY = "family_name"
+TEST_QUALIFIER = b"qualifier"
+TEST_TIMESTAMP = 123456789
+TEST_LABELS = ["label1", "label2"]
 
 
-@CrossSync.export_sync(
-    path="tests.unit.data._sync.test__read_rows.TestReadRowsOperation",
-)
-class TestReadRowsOperationAsync:
+class TestReadRowsOperation:
     """
     Tests helper functions in the ReadRowsOperation class
     in-depth merging logic in merge_row_response_stream and _read_rows_retryable_attempt
@@ -33,9 +37,10 @@ class TestReadRowsOperationAsync:
     """
 
     @staticmethod
-    @CrossSync.convert
     def _get_target_class():
-        return CrossSync._ReadRowsOperation
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+
+        return _ReadRowsOperationAsync
 
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
@@ -55,9 +60,8 @@ class TestReadRowsOperationAsync:
         expected_operation_timeout = 42
         expected_request_timeout = 44
         time_gen_mock = mock.Mock()
-        subpath = "_async" if CrossSync.is_async else "_sync"
         with mock.patch(
-            f"google.cloud.bigtable.data.{subpath}._read_rows._attempt_timeout_generator",
+            "google.cloud.bigtable.data._async._read_rows._attempt_timeout_generator",
             time_gen_mock,
         ):
             instance = self._make_one(
@@ -238,7 +242,7 @@ class TestReadRowsOperationAsync:
             (4, 2, 2),
         ],
     )
-    @CrossSync.pytest
+    @pytest.mark.asyncio
     async def test_revise_limit(self, start_limit, emit_num, expected_limit):
         """
         revise_limit should revise the request's limit field
@@ -279,7 +283,7 @@ class TestReadRowsOperationAsync:
         assert instance._remaining_count == expected_limit
 
     @pytest.mark.parametrize("start_limit,emit_num", [(5, 10), (3, 9), (1, 10)])
-    @CrossSync.pytest
+    @pytest.mark.asyncio
     async def test_revise_limit_over_limit(self, start_limit, emit_num):
         """
         Should raise runtime error if we get in state where emit_num > start_num
@@ -318,11 +322,7 @@ class TestReadRowsOperationAsync:
                 pass
         assert "emit count exceeds row limit" in str(e.value)
 
-    @CrossSync.pytest
-    @CrossSync.convert(
-        sync_name="test_close",
-        replace_symbols={"aclose": "close", "__anext__": "__next__"},
-    )
+    @pytest.mark.asyncio
     async def test_aclose(self):
         """
         should be able to close a stream safely with aclose.
@@ -334,7 +334,7 @@ class TestReadRowsOperationAsync:
                 yield 1
 
         with mock.patch.object(
-            self._get_target_class(), "_read_rows_attempt"
+            _ReadRowsOperationAsync, "_read_rows_attempt"
         ) as mock_attempt:
             instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1)
             wrapped_gen = mock_stream()
@@ -343,20 +343,20 @@ class TestReadRowsOperationAsync:
             # read one row
             await gen.__anext__()
             await gen.aclose()
-            with pytest.raises(CrossSync.StopIteration):
+            with pytest.raises(StopAsyncIteration):
                 await gen.__anext__()
             # try calling a second time
             await gen.aclose()
             # ensure close was propagated to wrapped generator
-            with pytest.raises(CrossSync.StopIteration):
+            with pytest.raises(StopAsyncIteration):
                 await wrapped_gen.__anext__()
 
-    @CrossSync.pytest
-    @CrossSync.convert(replace_symbols={"__anext__": "__next__"})
+    @pytest.mark.asyncio
     async def test_retryable_ignore_repeated_rows(self):
         """
         Duplicate rows should cause an invalid chunk error
         """
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
         from google.cloud.bigtable.data.exceptions import InvalidChunk
         from google.cloud.bigtable_v2.types import ReadRowsResponse
 
@@ -381,10 +381,37 @@ class TestReadRowsOperationAsync:
         instance = mock.Mock()
         instance._last_yielded_row_key = None
         instance._remaining_count = None
-        stream = self._get_target_class().chunk_stream(
-            instance, mock_awaitable_stream()
-        )
+        stream = _ReadRowsOperationAsync.chunk_stream(instance, mock_awaitable_stream())
         await stream.__anext__()
         with pytest.raises(InvalidChunk) as exc:
             await stream.__anext__()
         assert "row keys should be strictly increasing" in str(exc.value)
+
+
+class MockStream(_ReadRowsOperationAsync):
+    """
+    Mock a _ReadRowsOperationAsync stream for testing
+    """
+
+    def __init__(self, items=None, errors=None, operation_timeout=None):
+        self.transient_errors = errors
+        self.operation_timeout = operation_timeout
+        self.next_idx = 0
+        if items is None:
+            items = list(range(10))
+        self.items = items
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if self.next_idx >= len(self.items):
+            raise StopAsyncIteration
+        item = self.items[self.next_idx]
+        self.next_idx += 1
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+    async def aclose(self):
+        pass

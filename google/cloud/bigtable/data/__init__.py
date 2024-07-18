@@ -50,10 +50,10 @@ __version__: str = package_version.__version__
 __all__ = (
     "BigtableDataClientAsync",
     "TableAsync",
-    "MutationsBatcherAsync",
     "RowKeySamples",
     "ReadRowsQuery",
     "RowRange",
+    "MutationsBatcherAsync",
     "Mutation",
     "RowMutationEntry",
     "SetCell",
