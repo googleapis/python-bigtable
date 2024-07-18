@@ -148,18 +148,15 @@ class RmAioFunctions(ast.NodeTransformer):
         Async with statements are not fully wrapped by calls
         """
         found_rmaio = False
-        new_items = []
         for item in node.items:
             if isinstance(item.context_expr, ast.Call) and isinstance(item.context_expr.func, ast.Attribute) and isinstance(item.context_expr.func.value, ast.Name) and \
             item.context_expr.func.attr == "rm_aio" and "CrossSync" in item.context_expr.func.value.id:
                 found_rmaio = True
-                new_items.append(item.context_expr.args[0])
-            else:
-                new_items.append(item)
+                break
         if found_rmaio:
             new_node = ast.copy_location(
                 ast.With(
-                    [self.generic_visit(item) for item in new_items],
+                    [self.generic_visit(item) for item in node.items],
                     [self.generic_visit(stmt) for stmt in node.body],
                 ),
                 node,
@@ -177,7 +174,7 @@ class RmAioFunctions(ast.NodeTransformer):
             return ast.copy_location(
                 ast.For(
                     self.visit(node.target),
-                    self.visit(node.iter.args[0]),
+                    self.visit(it),
                     [self.visit(stmt) for stmt in node.body],
                     [self.visit(stmt) for stmt in node.orelse],
                 ),
