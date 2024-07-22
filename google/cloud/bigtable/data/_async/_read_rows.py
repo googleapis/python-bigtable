@@ -75,7 +75,7 @@ class _ReadRowsOperationAsync:
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: "CrossSync.Table",
+        table: CrossSync.Table,
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
