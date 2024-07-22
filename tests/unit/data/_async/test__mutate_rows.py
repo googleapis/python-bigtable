@@ -27,10 +27,6 @@ try:
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
-if not CrossSync.is_async:
-    from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
-    CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperation)
-
 
 @CrossSync.export_sync(
     path="tests.unit.data._sync.test__mutate_rows.TestMutateRowsOperation",

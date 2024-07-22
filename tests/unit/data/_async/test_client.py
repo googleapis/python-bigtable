@@ -48,10 +48,8 @@ if CrossSync.is_async:
 else:
     from google.api_core import grpc_helpers
     from google.cloud.bigtable.data._sync.client import Table
-    from google.cloud.bigtable.data._sync.client import BigtableDataClient
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
-    CrossSync.add_mapping("DataClient", BigtableDataClient)
 
 
 @CrossSync.export_sync(
