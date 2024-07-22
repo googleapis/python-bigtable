@@ -15,6 +15,7 @@ Many Asyncio components have direct, 1:1 threaded counterparts for use in non-as
 provides a compatibility layer that works with both
 
 | CrossSync | Asyncio Version | Sync Version |
+| --- | --- | --- |
 | CrossSync.Queue | asyncio.Queue | queue.Queue |
 | CrossSync.Condition | asyncio.Condition | threading.Condition |
 | CrossSync.Future | asyncio.Future | Concurrent.futures.Future |
@@ -38,7 +39,7 @@ Additionally, CrossSync provides method implementations that work equivalently i
 - `CrossSync.condition_wait()`
 - `CrossSync,event_wait()`
 - `CrossSync.create_task()`
-- `CrossSync.retry_target()``
+- `CrossSync.retry_target()`
 - `CrossSync.retry_target_stream()`
 
 ### Annotations
