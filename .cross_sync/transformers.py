@@ -15,8 +15,10 @@ from __future__ import annotations
 
 import ast
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
-from google.cloud.bigtable.data._sync.cross_sync_decorators import AstDecorator, ExportSync
+import sys
+# add cross_sync to path
+sys.path.append("google/cloud/bigtable/data/_sync")
+from cross_sync_decorators import AstDecorator, ExportSync
 from generate import CrossSyncOutputFile
 
 
