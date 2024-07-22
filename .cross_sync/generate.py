@@ -15,6 +15,13 @@ from __future__ import annotations
 from typing import Sequence
 import ast
 from dataclasses import dataclass, field
+"""
+Entrypoint for initiating an async -> sync conversion using CrossSync
+
+Finds all python files rooted in a given directory, and uses
+transformers.CrossSyncClassDecoratorHandler to handle any CrossSync class
+decorators found in the files.
+"""
 
 
 @dataclass

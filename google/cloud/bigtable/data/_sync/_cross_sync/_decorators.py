@@ -11,6 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Contains a set of AstDecorator classes, which define the behavior of CrossSync decorators.
+Each AstDecorator class is used through @CrossSync.<decorator_name>
+"""
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
@@ -23,7 +27,7 @@ class AstDecorator:
     """
     Helper class for CrossSync decorators used for guiding ast transformations.
 
-    CrossSync decorations are accessed in two ways:
+    AstDecorators are accessed in two ways:
     1. The decorations are used directly as method decorations in the async client,
         wrapping existing classes and methods
     2. The decorations are read back when processing the AST transformations when
