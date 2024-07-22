@@ -71,8 +71,8 @@ class _MutateRowsOperationAsync:
     @CrossSync.convert
     def __init__(
         self,
-        gapic_client: "CrossSync.GapicClient",
-        table: "CrossSync.Table",
+        gapic_client: CrossSync.GapicClient,
+        table: CrossSync.Table,
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
