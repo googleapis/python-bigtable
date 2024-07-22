@@ -17,8 +17,10 @@ from google.cloud.bigtable import gapic_version as package_version
 
 from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 from google.cloud.bigtable.data._async.client import TableAsync
-
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
+from google.cloud.bigtable.data._sync.client import BigtableDataClient
+from google.cloud.bigtable.data._sync.client import Table
+from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
 
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.read_rows_query import RowRange
@@ -51,6 +53,9 @@ __all__ = (
     "BigtableDataClientAsync",
     "TableAsync",
     "MutationsBatcherAsync",
+    "BigtableDataClient",
+    "Table",
+    "MutationsBatcher",
     "RowKeySamples",
     "ReadRowsQuery",
     "RowRange",
