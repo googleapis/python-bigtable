@@ -1508,26 +1508,22 @@ class TestReadRowsAsync:
                 self.idx = -1
                 self.sleep_time = sleep_time
 
+            @CrossSync.convert(sync_name="__iter__")
             def __aiter__(self):
                 return self
 
-            def __iter__(self):
-                return self
-
+            @CrossSync.convert(sync_name="__next__")
             async def __anext__(self):
                 self.idx += 1
                 if len(self.chunk_list) > self.idx:
                     if sleep_time:
-                        await CrossSync.sleep(self.sleep_time)
+                        CrossSync.rm_aio(await CrossSync.sleep(self.sleep_time))
                     chunk = self.chunk_list[self.idx]
                     if isinstance(chunk, Exception):
                         raise chunk
                     else:
                         return ReadRowsResponse(chunks=[chunk])
                 raise CrossSync.StopIteration
-
-            def __next__(self):
-                return self.__anext__()
 
             def cancel(self):
                 pass
@@ -1536,7 +1532,7 @@ class TestReadRowsAsync:
 
     @CrossSync.convert
     async def execute_fn(self, table, *args, **kwargs):
-        return await table.read_rows(*args, **kwargs)
+        return CrossSync.rm_aio(await table.read_rows(*args, **kwargs))
 
     @CrossSync.pytest
     async def test_read_rows(self):
@@ -2032,7 +2028,7 @@ class TestReadRowsShardedAsync:
         import time
 
         async def mock_call(*args, **kwargs):
-            await asyncio.sleep(0.1)
+            await CrossSync.sleep(0.1)
             return [mock.Mock()]
 
         async with self._make_client() as client:
@@ -2527,6 +2523,7 @@ class TestBulkMutateRowsAsync:
             for i in range(len(response_list))
         ]
 
+        @CrossSync.convert
         async def generator():
             yield MutateRowsResponse(entries=entries)
 

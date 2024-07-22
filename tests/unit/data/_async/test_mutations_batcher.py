@@ -897,6 +897,7 @@ class TestMutationsBatcherAsync:
         from google.cloud.bigtable_v2.types import MutateRowsResponse
         from google.rpc import status_pb2
 
+        @CrossSync.convert
         async def gen(num):
             for i in range(num):
                 entry = MutateRowsResponse.Entry(
