@@ -12,6 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+CrossSync provides a toolset for sharing logic between async and sync codebases, including:
+- A set of decorators for annotating async classes and functions 
+    (@CrossSync.export_sync, @CrossSync.convert, @CrossSync.drop_method, ...)
+- A set of wrappers to wrap common objects and types that have corresponding async and sync implementations
+    (CrossSync.Queue, CrossSync.Condition, CrossSync.Future, ...)
+- A set of function implementations for common async operations that can be used in both async and sync codebases
+    (CrossSync.gather_partials, CrossSync.wait, CrossSync.condition_wait, ...)
+- CrossSync.rm_aio(), which is used to annotate regions of the code containing async keywords to strip
+
+A separate module will use CrossSync annotations to generate a corresponding sync
+class based on a decorated async class.
+
+Usage Example:
+```python
+@CrossSync.export_sync(path="path/to/sync_module.py")
+
+    @CrossSync.convert
+    async def async_func(self, arg: int) -> int:
+        await CrossSync.sleep(1)
+        return arg
+```
+"""
+
+
 from __future__ import annotations
 
 from typing import (
@@ -35,8 +60,7 @@ import google.api_core.retry as retries
 import queue
 import threading
 import time
-from .cross_sync_decorators import (
-    AstDecorator,
+from ._decorators import (
     ExportSync,
     Convert,
     DropMethod,
@@ -224,6 +248,12 @@ class CrossSync:
 
     @staticmethod
     def rm_aio(statement: Any) -> Any:
+        """
+        Used to annotate regions of the code containing async keywords to strip
+
+        All async keywords inside an rm_aio call are removed, along with
+        `async with` and `async for` statements containing CrossSync.rm_aio() in the body
+        """
         return statement
 
     class _Sync_Impl:

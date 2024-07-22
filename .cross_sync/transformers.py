@@ -11,12 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Provides a set of ast.NodeTransformer subclasses that are composed to generate
+async code into sync code.
+
+At a high level:
+- The main entrypoint is CrossSyncClassDecoratorHandler, which is used to find classes
+annotated with @CrossSync.export_sync.
+- SymbolReplacer is used to swap out CrossSync.X with CrossSync._Sync_Impl.X
+- RmAioFunctions is then called on the class, to strip out asyncio keywords
+marked with CrossSync.rm_aio (using AsyncToSync to handle the actual transformation)
+- Finally, CrossSyncMethodDecoratorHandler is called to find methods annotated
+with AstDecorators, and call decorator.sync_ast_transform on each one to fully transform the class.
+"""
 from __future__ import annotations
 
 import ast
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
-from google.cloud.bigtable.data._sync.cross_sync_decorators import AstDecorator, ExportSync
+import sys
+# add cross_sync to path
+sys.path.append("google/cloud/bigtable/data/_sync/_cross_sync")
+from _decorators import AstDecorator, ExportSync
 from generate import CrossSyncOutputFile
 
 

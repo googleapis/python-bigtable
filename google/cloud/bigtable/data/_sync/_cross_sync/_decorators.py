@@ -11,6 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Contains a set of AstDecorator classes, which define the behavior of CrossSync decorators.
+Each AstDecorator class is used through @CrossSync.<decorator_name>
+"""
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
@@ -23,7 +27,7 @@ class AstDecorator:
     """
     Helper class for CrossSync decorators used for guiding ast transformations.
 
-    CrossSync decorations are accessed in two ways:
+    AstDecorators are accessed in two ways:
     1. The decorations are used directly as method decorations in the async client,
         wrapping existing classes and methods
     2. The decorations are read back when processing the AST transformations when
@@ -98,7 +102,7 @@ class AstDecorator:
         return wrapped_node
 
     @classmethod
-    def get_for_node(cls, node: ast.Call) -> "AstDecorator":
+    def get_for_node(cls, node: ast.Call | ast.Attribute | ast.Name) -> "AstDecorator":
         """
         Build an AstDecorator instance from an ast decorator node
 
@@ -116,9 +120,14 @@ class AstDecorator:
         """
         import ast
 
-        if "CrossSync" in ast.dump(node):
-            decorator_name = node.func.attr if hasattr(node, "func") else node.attr
-            formatted_name = decorator_name.replace("_", "").lower()
+        # expect decorators in format @CrossSync.<decorator_name>
+        # (i.e. should be an ast.Call or an ast.Attribute)
+        root_attr = node.func if isinstance(node, ast.Call) else node
+        if not isinstance(root_attr, ast.Attribute):
+            raise ValueError("Unexpected decorator format")
+        # extract the module and decorator names
+        if "CrossSync" in ast.dump(root_attr):
+            decorator_name = root_attr.attr
             got_kwargs = (
                 {kw.arg: cls._convert_ast_to_py(kw.value) for kw in node.keywords}
                 if hasattr(node, "keywords")
@@ -129,19 +138,24 @@ class AstDecorator:
                 if hasattr(node, "args")
                 else []
             )
+            # convert to standardized representation
+            formatted_name = decorator_name.replace("_", "").lower()
             for subclass in cls.__subclasses__():
                 if subclass.__name__.lower() == formatted_name:
                     return subclass(*got_args, **got_kwargs)
             raise ValueError(f"Unknown decorator encountered: {decorator_name}")
-        raise ValueError("Not a CrossSync decorator")
+        else:
+            raise ValueError("Not a CrossSync decorator")
 
     @classmethod
-    def _convert_ast_to_py(cls, ast_node: ast.expr) -> Any:
+    def _convert_ast_to_py(cls, ast_node: ast.expr | None) -> Any:
         """
         Helper to convert ast primitives to python primitives. Used when unwrapping arguments
         """
         import ast
 
+        if ast_node is None:
+            return None
         if isinstance(ast_node, ast.Constant):
             return ast_node.value
         if isinstance(ast_node, ast.List):
@@ -213,7 +227,6 @@ class ExportSync(AstDecorator):
         wrapped_node = copy.deepcopy(wrapped_node)
         # update name
         sync_cls_name = self.path.rsplit(".", 1)[-1]
-        orig_name = wrapped_node.name
         wrapped_node.name = sync_cls_name
         # strip CrossSync decorators
         if hasattr(wrapped_node, "decorator_list"):
@@ -238,7 +251,7 @@ class ExportSync(AstDecorator):
         # convert class contents
         wrapped_node = transformers_globals["RmAioFunctions"]().visit(wrapped_node)
         replace_dict = self.replace_symbols or {}
-        replace_dict.update({"CrossSync": f"CrossSync._Sync_Impl"})
+        replace_dict.update({"CrossSync": "CrossSync._Sync_Impl"})
         wrapped_node = transformers_globals["SymbolReplacer"](replace_dict).visit(
             wrapped_node
         )
@@ -312,7 +325,8 @@ class Pytest(AstDecorator):
     """
     Used in place of pytest.mark.asyncio to mark tests
 
-    Will be stripped from sync output
+    When generating sync version, also runs rm_aio to remove async keywords from
+    entire test function
     """
 
     def async_decorator(self):
@@ -324,8 +338,6 @@ class Pytest(AstDecorator):
         """
         convert async to sync
         """
-        import ast
-
         converted = transformers_globals["AsyncToSync"]().visit(wrapped_node)
         return converted
 
@@ -344,7 +356,7 @@ class PytestFixture(AstDecorator):
         self._kwargs = kwargs
 
     def async_decorator(self):
-        import pytest_asyncio
+        import pytest_asyncio  # type: ignore
 
         return lambda f: pytest_asyncio.fixture(*self._args, **self._kwargs)(f)
 
