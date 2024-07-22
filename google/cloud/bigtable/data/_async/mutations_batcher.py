@@ -39,6 +39,8 @@ if TYPE_CHECKING:
 
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.client import TableAsync
+    else:
+        from google.cloud.bigtable.data._sync.client import Table
 
 
 @CrossSync.export_sync(

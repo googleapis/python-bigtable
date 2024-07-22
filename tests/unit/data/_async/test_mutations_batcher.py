@@ -28,6 +28,10 @@ try:
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
+if not CrossSync.is_async:
+    from google.cloud.bigtable.data._sync.client import Table
+    CrossSync.add_mapping("Table", Table)
+
 
 @CrossSync.export_sync(
     path="tests.unit.data._sync.test_mutations_batcher.Test_FlowControl"
