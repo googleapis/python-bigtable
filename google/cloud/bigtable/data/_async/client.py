@@ -830,6 +830,7 @@ class TableAsync:
         # limit the number of concurrent requests using a semaphore
         concurrency_sem = CrossSync.Semaphore(_CONCURRENCY_LIMIT)
 
+        @CrossSync.convert
         async def read_rows_with_semaphore(query):
             async with CrossSync.rm_aio(concurrency_sem):
                 # calculate new timeout based on time left in overall operation
@@ -989,6 +990,7 @@ class TableAsync:
         # prepare request
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
+        @CrossSync.convert
         async def execute_rpc():
             results = CrossSync.rm_aio(
                 await self.client._gapic_client.sample_row_keys(
