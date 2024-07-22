@@ -36,7 +36,6 @@ import queue
 import threading
 import time
 from .cross_sync_decorators import (
-    AstDecorator,
     ExportSync,
     Convert,
     DropMethod,

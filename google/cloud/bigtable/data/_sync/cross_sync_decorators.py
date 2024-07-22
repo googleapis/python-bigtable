@@ -136,12 +136,14 @@ class AstDecorator:
         raise ValueError("Not a CrossSync decorator")
 
     @classmethod
-    def _convert_ast_to_py(cls, ast_node: ast.expr) -> Any:
+    def _convert_ast_to_py(cls, ast_node: ast.expr|None) -> Any:
         """
         Helper to convert ast primitives to python primitives. Used when unwrapping arguments
         """
         import ast
 
+        if ast_node is None:
+            return None
         if isinstance(ast_node, ast.Constant):
             return ast_node.value
         if isinstance(ast_node, ast.List):
@@ -213,7 +215,6 @@ class ExportSync(AstDecorator):
         wrapped_node = copy.deepcopy(wrapped_node)
         # update name
         sync_cls_name = self.path.rsplit(".", 1)[-1]
-        orig_name = wrapped_node.name
         wrapped_node.name = sync_cls_name
         # strip CrossSync decorators
         if hasattr(wrapped_node, "decorator_list"):
@@ -238,7 +239,7 @@ class ExportSync(AstDecorator):
         # convert class contents
         wrapped_node = transformers_globals["RmAioFunctions"]().visit(wrapped_node)
         replace_dict = self.replace_symbols or {}
-        replace_dict.update({"CrossSync": f"CrossSync._Sync_Impl"})
+        replace_dict.update({"CrossSync": "CrossSync._Sync_Impl"})
         wrapped_node = transformers_globals["SymbolReplacer"](replace_dict).visit(
             wrapped_node
         )
@@ -324,8 +325,6 @@ class Pytest(AstDecorator):
         """
         convert async to sync
         """
-        import ast
-
         converted = transformers_globals["AsyncToSync"]().visit(wrapped_node)
         return converted
 
