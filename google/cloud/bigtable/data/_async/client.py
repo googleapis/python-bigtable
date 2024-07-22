@@ -103,7 +103,7 @@ else:
         PooledBigtableGrpcTransport,
     )
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-        PooledChannel
+        PooledChannel,
     )
     from google.cloud.bigtable_v2.services.bigtable.client import (
         BigtableClient,

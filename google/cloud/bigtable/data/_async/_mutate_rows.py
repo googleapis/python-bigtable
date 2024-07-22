@@ -41,6 +41,7 @@ if TYPE_CHECKING:
         CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
     else:
         from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
+
         CrossSync.add_mapping("GapicClient", BigtableClient)
 
 
