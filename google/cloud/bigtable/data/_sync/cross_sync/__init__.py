@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.cloud.bigtable.data._sync._cross_sync.cross_sync import CrossSync
+from .cross_sync import CrossSync
 
 
 __all__ = [
