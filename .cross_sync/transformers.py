@@ -30,7 +30,7 @@ import ast
 
 import sys
 # add cross_sync to path
-sys.path.append("google/cloud/bigtable/data/_sync/_cross_sync")
+sys.path.append("google/cloud/bigtable/data/_sync/cross_sync")
 from _decorators import AstDecorator, ExportSync
 from generate import CrossSyncOutputFile
 

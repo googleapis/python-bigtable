@@ -96,6 +96,9 @@ class CrossSyncOutputFile:
                 mode=black.FileMode(),
             )
         if save_to_disk:
+            # create parent paths if needed
+            import os
+            os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
             with open(self.file_path, "w") as f:
                 f.write(full_str)
         return full_str
