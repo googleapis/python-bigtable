@@ -14,7 +14,7 @@
 #
 """
 CrossSync provides a toolset for sharing logic between async and sync codebases, including:
-- A set of decorators for annotating async classes and functions 
+- A set of decorators for annotating async classes and functions
     (@CrossSync.export_sync, @CrossSync.convert, @CrossSync.drop_method, ...)
 - A set of wrappers to wrap common objects and types that have corresponding async and sync implementations
     (CrossSync.Queue, CrossSync.Condition, CrossSync.Future, ...)
