@@ -182,14 +182,12 @@ class ExportSync(AstDecorator):
 
     def __init__(
         self,
-        path: str,  # path to output the generated sync class
+        path: str,
         *,
-        replace_symbols: dict[str, str]
-        | None = None,  # replace symbols in the generated sync class
-        mypy_ignore: Sequence[str] = (),  # set of mypy errors to ignore
-        include_file_imports: bool = True,  # include imports from the file in the generated sync class
-        add_mapping_for_name: str
-        | None = None,  # add a new attribute to CrossSync with the given name
+        replace_symbols: dict[str, str] | None = None,
+        mypy_ignore: Sequence[str] = (),
+        include_file_imports: bool = True,
+        add_mapping_for_name: str | None = None,
     ):
         self.path = path
         self.replace_symbols = replace_symbols
@@ -269,18 +267,21 @@ class Convert(AstDecorator):
     Args:
         sync_name: use a new name for the sync method
         replace_symbols: a dict of symbols and replacements to use when generating sync method
+        rm_aio: if True, automatically strip all asyncio keywords from method. If False,
+            only the signature `async def` is stripped. Other keywords must be wrapped in
+            CrossSync.rm_aio() calls to be removed.
     """
 
     def __init__(
         self,
         *,
-        sync_name: str | None = None,  # use a new name for the sync method
-        replace_symbols: dict[
-            str, str
-        ] = {},  # replace symbols in the generated sync method
+        sync_name: str | None = None,
+        replace_symbols: dict[str, str] | None = None,
+        rm_aio: bool = False,
     ):
         self.sync_name = sync_name
         self.replace_symbols = replace_symbols
+        self.rm_aio = rm_aio
 
     def sync_ast_transform(self, wrapped_node, transformers_globals):
         """
@@ -302,6 +303,9 @@ class Convert(AstDecorator):
         # update name if specified
         if self.sync_name:
             wrapped_node.name = self.sync_name
+        # strip async keywords if specified
+        if self.rm_aio:
+            wrapped_node = transformers_globals["AsyncToSync"]().visit(wrapped_node)
         # update arbitrary symbols if specified
         if self.replace_symbols:
             replacer = transformers_globals["SymbolReplacer"]
@@ -327,7 +331,14 @@ class Pytest(AstDecorator):
 
     When generating sync version, also runs rm_aio to remove async keywords from
     entire test function
+
+    Args:
+        rm_aio: if True, automatically strip all asyncio keywords from test code.
+            Defaults to True, to simplify test code generation.
     """
+
+    def __init__(self, rm_aio=True):
+        self.rm_aio = rm_aio
 
     def async_decorator(self):
         import pytest
@@ -338,8 +349,9 @@ class Pytest(AstDecorator):
         """
         convert async to sync
         """
-        converted = transformers_globals["AsyncToSync"]().visit(wrapped_node)
-        return converted
+        if self.rm_aio:
+            wrapped_node = transformers_globals["AsyncToSync"]().visit(wrapped_node)
+        return wrapped_node
 
 
 class PytestFixture(AstDecorator):
