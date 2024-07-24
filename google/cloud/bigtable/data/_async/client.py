@@ -76,9 +76,7 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if CrossSync.is_async:
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledBigtableGrpcAsyncIOTransport,
-    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport as PooledTransportType
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
         PooledChannel as AsyncPooledChannel,
     )
@@ -93,30 +91,26 @@ if CrossSync.is_async:
 
     # define file-specific cross-sync replacements
     CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
-    CrossSync.add_mapping("PooledTransport", PooledBigtableGrpcAsyncIOTransport)
     CrossSync.add_mapping("PooledChannel", AsyncPooledChannel)
     CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
     CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
     CrossSync.add_mapping("MutationsBatcher", MutationsBatcherAsync)
 else:
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-        PooledBigtableGrpcTransport,
-    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport as PooledTransportType  # type: ignore
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
         PooledChannel,
     )
     from google.cloud.bigtable_v2.services.bigtable.client import (
         BigtableClient,
     )
-    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
-    from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
-    from google.cloud.bigtable.data._sync.mutations_batcher import (
+    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation  # type: ignore
+    from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation  # type: ignore
+    from google.cloud.bigtable.data._sync.mutations_batcher import (  # type: ignore
         MutationsBatcher,
     )
 
     # define file-specific cross-sync replacements
     CrossSync.add_mapping("GapicClient", BigtableClient)
-    CrossSync.add_mapping("PooledTransport", PooledBigtableGrpcTransport)
     CrossSync.add_mapping("PooledChannel", PooledChannel)
     CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperation)
     CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperation)
@@ -168,7 +162,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         # set up transport in registry
         transport_str = f"bt-{self._client_version()}-{pool_size}"
-        transport = CrossSync.PooledTransport.with_fixed_size(pool_size)
+        transport = PooledTransportType.with_fixed_size(pool_size)
         BigtableClientMeta._transport_registry[transport_str] = transport
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
@@ -200,7 +194,7 @@ class BigtableDataClientAsync(ClientWithProject):
             client_info=client_info,
         )
         self._is_closed = CrossSync.Event()
-        self.transport = cast(CrossSync.PooledTransport, self._gapic_client.transport)
+        self.transport = cast(PooledTransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[_WarmedInstanceKey] = set()
         # keep track of table objects associated with each instance

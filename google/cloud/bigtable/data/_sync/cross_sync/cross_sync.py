@@ -230,7 +230,7 @@ class CrossSync(metaclass=MappingMeta):
         asyncio.get_running_loop()
 
     @staticmethod
-    def rm_aio(statement: Any) -> Any:
+    def rm_aio(statement: T) -> T:
         """
         Used to annotate regions of the code containing async keywords to strip
 

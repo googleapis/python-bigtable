@@ -38,9 +38,9 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     if CrossSync.is_async:
-        from google.cloud.bigtable.data._async.client import TableAsync
+        from google.cloud.bigtable.data._async.client import TableAsync as TableType
     else:
-        from google.cloud.bigtable.data._sync.client import Table
+        from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
 
 
 @CrossSync.export_sync(
@@ -213,10 +213,9 @@ class MutationsBatcherAsync:
             Defaults to the Table's default_mutate_rows_retryable_errors.
     """
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     def __init__(
         self,
-        table: TableAsync,
+        table: TableType,
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
