@@ -77,44 +77,19 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport as PooledTransportType
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledChannel as AsyncPooledChannel,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.async_client import (
-        BigtableAsyncClient,
-    )
     from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
     from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
     from google.cloud.bigtable.data._async.mutations_batcher import (
         MutationsBatcherAsync,
     )
 
-    # define file-specific cross-sync replacements
-    CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
-    CrossSync.add_mapping("PooledChannel", AsyncPooledChannel)
-    CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
-    CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
-    CrossSync.add_mapping("MutationsBatcher", MutationsBatcherAsync)
 else:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport as PooledTransportType  # type: ignore
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-        PooledChannel,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.client import (
-        BigtableClient,
-    )
     from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation  # type: ignore
     from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation  # type: ignore
     from google.cloud.bigtable.data._sync.mutations_batcher import (  # type: ignore
         MutationsBatcher,
     )
-
-    # define file-specific cross-sync replacements
-    CrossSync.add_mapping("GapicClient", BigtableClient)
-    CrossSync.add_mapping("PooledChannel", PooledChannel)
-    CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperation)
-    CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperation)
-    CrossSync.add_mapping("MutationsBatcher", MutationsBatcher)
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples

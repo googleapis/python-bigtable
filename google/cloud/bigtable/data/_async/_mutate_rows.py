@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 
 @CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
-    add_mapping_for_name="_MutateRowsOperation",
 )
 class _MutateRowsOperationAsync:
     """

@@ -45,7 +45,6 @@ if TYPE_CHECKING:
 
 @CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
-    add_mapping_for_name="_ReadRowsOperation",
 )
 class _ReadRowsOperationAsync:
     """
