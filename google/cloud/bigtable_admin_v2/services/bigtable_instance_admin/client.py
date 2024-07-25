@@ -2168,8 +2168,6 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             method=rpc,
             request=request,
             response=response,
-            retry=retry,
-            timeout=timeout,
             metadata=metadata,
         )
 
@@ -2743,8 +2741,6 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             method=rpc,
             request=request,
             response=response,
-            retry=retry,
-            timeout=timeout,
             metadata=metadata,
         )
 
