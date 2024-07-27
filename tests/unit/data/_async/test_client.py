@@ -1286,7 +1286,7 @@ class TestTableAsync:
             ("check_and_mutate_row", (b"row_key", None), "check_and_mutate_row"),
             (
                 "read_modify_write_row",
-                (b"row_key", IncrementRule('f', 'q')),
+                (b"row_key", IncrementRule("f", "q")),
                 "read_modify_write_row",
             ),
         ],
