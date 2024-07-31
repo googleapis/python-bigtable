@@ -242,3 +242,24 @@ async def read_with_filter(table):
                     print(row)
     # [END bigtable_async_reads_filter]
     await read_with_filter(table.client.project, table.instance_id, table.table_id)
+
+
+async def execute_query(table):
+    # [START bigtable_async_execute_query]
+    from google.cloud.bigtable.data import BigtableDataClientAsync
+
+    async def execute_query(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            query = (
+                "SELECT _key, os_build, connected_cell, connected_wifi "
+                f"from {table_id} WHERE _key=@row_key"
+            )
+            result = await client.execute_query(
+                query,
+                instance_id,
+                parameters={"row_key": b"phone#4c410523#20190501"},
+            )
+            results = [r async for r in result]
+            print(results)
+    # [END bigtable_async_execute_query]
+    await execute_query(table.client.project, table.instance_id, table.table_id)

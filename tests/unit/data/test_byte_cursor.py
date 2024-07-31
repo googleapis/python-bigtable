@@ -15,11 +15,7 @@
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from google.cloud.bigtable.byte_cursor import _ByteCursor
 
-TYPE_INT = {
-    "int64_type": {
-        "encoding": {"big_endian_bytes": {"bytes_type": {"encoding": {"raw": {}}}}}
-    }
-}
+from ._testing import TYPE_INT
 
 
 def pass_values_to_byte_cursor(byte_cursor, iterable):
@@ -30,7 +26,7 @@ def pass_values_to_byte_cursor(byte_cursor, iterable):
 
 
 class TestByteCursor:
-    def test__proto_bytes__complete_data(self):
+    def test__proto_rows_batch__complete_data(self):
         byte_cursor = _ByteCursor()
         stream = [
             ExecuteQueryResponse(
@@ -38,22 +34,22 @@ class TestByteCursor:
                     "proto_schema": {"columns": [{"name": "test1", "type": TYPE_INT}]}
                 }
             ),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"123"}}),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"456"}}),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"789"}}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"123"}}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"456"}}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"789"}}),
             ExecuteQueryResponse(
                 results={
-                    "proto_bytes": {"proto_rows_bytes": b"0"},
-                    "resumption_token": b"token1",
+                    "proto_rows_batch": {"batch_data": b"0"},
+                    "resume_token": b"token1",
                 }
             ),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"abc"}}),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"def"}}),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"ghi"}}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"abc"}}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"def"}}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"ghi"}}),
             ExecuteQueryResponse(
                 results={
-                    "proto_bytes": {"proto_rows_bytes": b"j"},
-                    "resumption_token": b"token2",
+                    "proto_rows_batch": {"batch_data": b"j"},
+                    "resume_token": b"token2",
                 }
             ),
         ]
@@ -61,14 +57,14 @@ class TestByteCursor:
         byte_cursor_iter = pass_values_to_byte_cursor(byte_cursor, stream)
         value = next(byte_cursor_iter)
         assert value == b"1234567890"
-        assert byte_cursor._resumption_token == b"token1"
-        assert byte_cursor.metadata.proto_schema.columns[0].name == "test1"
+        assert byte_cursor._resume_token == b"token1"
+        assert byte_cursor.metadata.columns[0].column_name == "test1"
 
         value = next(byte_cursor_iter)
         assert value == b"abcdefghij"
-        assert byte_cursor._resumption_token == b"token2"
+        assert byte_cursor._resume_token == b"token2"
 
-    def test__proto_bytes__empty_proto_bytes(self):
+    def test__proto_rows_batch__empty_proto_rows_batch(self):
         byte_cursor = _ByteCursor()
         stream = [
             ExecuteQueryResponse(
@@ -77,13 +73,13 @@ class TestByteCursor:
                 }
             ),
             ExecuteQueryResponse(
-                results={"proto_bytes": {}, "resumption_token": b"token1"}
+                results={"proto_rows_batch": {}, "resume_token": b"token1"}
             ),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"123"}}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"123"}}),
             ExecuteQueryResponse(
                 results={
-                    "proto_bytes": {"proto_rows_bytes": b"0"},
-                    "resumption_token": b"token2",
+                    "proto_rows_batch": {"batch_data": b"0"},
+                    "resume_token": b"token2",
                 }
             ),
         ]
@@ -91,9 +87,9 @@ class TestByteCursor:
         byte_cursor_iter = pass_values_to_byte_cursor(byte_cursor, stream)
         value = next(byte_cursor_iter)
         assert value == b"1230"
-        assert byte_cursor._resumption_token == b"token2"
+        assert byte_cursor._resume_token == b"token2"
 
-    def test__proto_bytes__no_proto_bytes(self):
+    def test__proto_rows_batch__no_proto_rows_batch(self):
         byte_cursor = _ByteCursor()
         stream = [
             ExecuteQueryResponse(
@@ -101,12 +97,12 @@ class TestByteCursor:
                     "proto_schema": {"columns": [{"name": "test1", "type": TYPE_INT}]}
                 }
             ),
-            ExecuteQueryResponse(results={"resumption_token": b"token1"}),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"123"}}),
+            ExecuteQueryResponse(results={"resume_token": b"token1"}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"123"}}),
             ExecuteQueryResponse(
                 results={
-                    "proto_bytes": {"proto_rows_bytes": b"0"},
-                    "resumption_token": b"token2",
+                    "proto_rows_batch": {"batch_data": b"0"},
+                    "resume_token": b"token2",
                 }
             ),
         ]
@@ -114,9 +110,9 @@ class TestByteCursor:
         byte_cursor_iter = pass_values_to_byte_cursor(byte_cursor, stream)
         value = next(byte_cursor_iter)
         assert value == b"1230"
-        assert byte_cursor._resumption_token == b"token2"
+        assert byte_cursor._resume_token == b"token2"
 
-    def test__proto_bytes__no_resumption_token_at_the_end_of_stream(self):
+    def test__proto_rows_batch__no_resume_token_at_the_end_of_stream(self):
         byte_cursor = _ByteCursor()
         stream = [
             ExecuteQueryResponse(
@@ -126,16 +122,16 @@ class TestByteCursor:
             ),
             ExecuteQueryResponse(
                 results={
-                    "proto_bytes": {"proto_rows_bytes": b"0"},
-                    "resumption_token": b"token1",
+                    "proto_rows_batch": {"batch_data": b"0"},
+                    "resume_token": b"token1",
                 }
             ),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"abc"}}),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"def"}}),
-            ExecuteQueryResponse(results={"proto_bytes": {"proto_rows_bytes": b"ghi"}}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"abc"}}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"def"}}),
+            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"ghi"}}),
             ExecuteQueryResponse(
                 results={
-                    "proto_bytes": {"proto_rows_bytes": b"j"},
+                    "proto_rows_batch": {"batch_data": b"j"},
                 }
             ),
         ]
@@ -143,8 +139,8 @@ class TestByteCursor:
         assert byte_cursor.consume(stream[0]) is None
         value = byte_cursor.consume(stream[1])
         assert value == b"0"
-        assert byte_cursor._resumption_token == b"token1"
-        assert byte_cursor.metadata.proto_schema.columns[0].name == "test1"
+        assert byte_cursor._resume_token == b"token1"
+        assert byte_cursor.metadata.columns[0].column_name == "test1"
 
         assert byte_cursor.consume(stream[2]) is None
         assert byte_cursor.consume(stream[3]) is None

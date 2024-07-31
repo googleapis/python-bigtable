@@ -15,39 +15,20 @@
 import pytest
 from unittest import mock
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
-from google.cloud.bigtable_v2.types.data import ProtoRows, Type
-from google.cloud.bigtable.execute_query_reader import (
-    _QueryResultRowReader,
-)
+from google.cloud.bigtable_v2.types.data import ProtoRows
+from google.cloud.bigtable.execute_query_reader import _QueryResultRowReader
+
+from google.cloud.bigtable.execute_query_metadata import ProtoMetadata, SqlType
 
 import google.cloud.bigtable.execute_query_reader
-
-
-TYPE_INT = {
-    "int64_type": {
-        "encoding": {"big_endian_bytes": {"bytes_type": {"encoding": {"raw": {}}}}}
-    }
-}
-
-
-def proto_rows_bytes(*args):
-    return ProtoRows.serialize(
-        ProtoRows(values=[ProtoRows.Value(**arg) for arg in args])
-    )
+from ._testing import TYPE_INT, proto_rows_bytes
 
 
 class TestQueryResultRowReader:
     def test__single_values_received(self):
         byte_cursor = mock.Mock(
-            metadata=ExecuteQueryResponse.ResultSetMetadata(
-                {
-                    "proto_schema": {
-                        "columns": [
-                            {"name": "test1", "type": TYPE_INT},
-                            {"name": "test2", "type": TYPE_INT},
-                        ]
-                    }
-                }
+            metadata=ProtoMetadata(
+                [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
             )
         )
         values = [
@@ -65,44 +46,72 @@ class TestQueryResultRowReader:
         assert reader.consume(values[2]) is None
 
     def test__multiple_rows_received(self):
-        value = proto_rows_bytes(
-            {"int_value": 1},
-            {"int_value": 2},
-            {"int_value": 3},
-            {"int_value": 4},
-            {"int_value": 5},
-        )
+        values = [
+            proto_rows_bytes(
+                {"int_value": 1},
+                {"int_value": 2},
+                {"int_value": 3},
+                {"int_value": 4},
+            ),
+            proto_rows_bytes({"int_value": 5}, {"int_value": 6}),
+            proto_rows_bytes({"int_value": 7}, {"int_value": 8}),
+        ]
 
         byte_cursor = mock.Mock(
-            metadata=ExecuteQueryResponse.ResultSetMetadata(
-                {
-                    "proto_schema": {
-                        "columns": [
-                            {"name": "test1", "type": TYPE_INT},
-                            {"name": "test2", "type": TYPE_INT},
-                        ]
-                    }
-                }
+            metadata=ProtoMetadata(
+                [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
             )
         )
 
         reader = _QueryResultRowReader(byte_cursor)
 
-        with pytest.raises(ValueError):
-            reader.consume(value)
+        result = reader.consume(values[0])
+        assert len(result) == 2
+        assert len(result[0]) == 2
+        assert result[0][0] == result[0]["test1"] == 1
+        assert result[0][1] == result[0]["test2"] == 2
+
+        assert len(result[1]) == 2
+        assert result[1][0] == result[1]["test1"] == 3
+        assert result[1][1] == result[1]["test2"] == 4
+
+        result = reader.consume(values[1])
+        assert len(result) == 1
+        assert len(result[0]) == 2
+        assert result[0][0] == result[0]["test1"] == 5
+        assert result[0][1] == result[0]["test2"] == 6
+
+        result = reader.consume(values[2])
+        assert len(result) == 1
+        assert len(result[0]) == 2
+        assert result[0][0] == result[0]["test1"] == 7
+        assert result[0][1] == result[0]["test2"] == 8
 
     def test__received_values_are_passed_to_parser_in_batches(self):
         byte_cursor = mock.Mock(
-            metadata=ExecuteQueryResponse.ResultSetMetadata(
-                {
-                    "proto_schema": {
-                        "columns": [
-                            {"name": "test1", "type": TYPE_INT},
-                            {"name": "test2", "type": TYPE_INT},
-                        ]
-                    }
-                }
+            metadata=ProtoMetadata(
+                [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
             )
+        )
+
+        assert SqlType.Struct([("a", SqlType.Int64())]) == SqlType.Struct(
+            [("a", SqlType.Int64())]
+        )
+        assert SqlType.Struct([("a", SqlType.String())]) != SqlType.Struct(
+            [("a", SqlType.Int64())]
+        )
+        assert SqlType.Struct([("a", SqlType.Int64())]) != SqlType.Struct(
+            [("b", SqlType.Int64())]
+        )
+
+        assert SqlType.Array(SqlType.Int64()) == SqlType.Array(SqlType.Int64())
+        assert SqlType.Array(SqlType.Int64()) != SqlType.Array(SqlType.String())
+
+        assert SqlType.Map(SqlType.Int64(), SqlType.String()) == SqlType.Map(
+            SqlType.Int64(), SqlType.String()
+        )
+        assert SqlType.Map(SqlType.Int64(), SqlType.String()) != SqlType.Map(
+            SqlType.String(), SqlType.String()
         )
 
         values = [
@@ -120,23 +129,13 @@ class TestQueryResultRowReader:
             reader.consume(proto_rows_bytes(values[1]))
             parse_mock.assert_has_calls(
                 [
-                    mock.call(ProtoRows.Value(values[0]), Type(TYPE_INT)),
-                    mock.call(ProtoRows.Value(values[1]), Type(TYPE_INT)),
+                    mock.call(ProtoRows.Value(values[0]), SqlType.Int64()),
+                    mock.call(ProtoRows.Value(values[1]), SqlType.Int64()),
                 ]
             )
 
     def test__parser_errors_are_forwarded(self):
-        byte_cursor = mock.Mock(
-            metadata=ExecuteQueryResponse.ResultSetMetadata(
-                {
-                    "proto_schema": {
-                        "columns": [
-                            {"name": "test1", "type": TYPE_INT},
-                        ]
-                    }
-                }
-            )
-        )
+        byte_cursor = mock.Mock(metadata=ProtoMetadata([("test1", SqlType.Int64())]))
 
         values = [
             {"string_value": "test"},
@@ -153,11 +152,11 @@ class TestQueryResultRowReader:
 
             parse_mock.assert_has_calls(
                 [
-                    mock.call(ProtoRows.Value(values[0]), Type(TYPE_INT)),
+                    mock.call(ProtoRows.Value(values[0]), SqlType.Int64()),
                 ]
             )
 
-    def test__multiple_proto_rows_received_with_one_resumption_token(self):
+    def test__multiple_proto_rows_received_with_one_resume_token(self):
         from google.cloud.bigtable.byte_cursor import _ByteCursor
 
         def split_bytes_into_chunks(bytes_to_split, num_chunks):
@@ -176,9 +175,9 @@ class TestQueryResultRowReader:
                     yield result
 
         proto_rows = [
-            proto_rows_bytes({"int_value": 1}, {"int_value": 2}, {"int_value": 3}),
-            proto_rows_bytes({"int_value": 4}, {"int_value": 5}),
-            proto_rows_bytes({"int_value": 6}),
+            proto_rows_bytes({"int_value": 1}, {"int_value": 2}),
+            proto_rows_bytes({"int_value": 3}, {"int_value": 4}),
+            proto_rows_bytes({"int_value": 5}, {"int_value": 6}),
         ]
 
         messages = [
@@ -199,26 +198,27 @@ class TestQueryResultRowReader:
                 }
             ),
             ExecuteQueryResponse(
-                results={"proto_bytes": {"proto_rows_bytes": messages[0]}}
+                results={"proto_rows_batch": {"batch_data": messages[0]}}
             ),
             ExecuteQueryResponse(
-                results={"proto_bytes": {"proto_rows_bytes": messages[1]}}
+                results={"proto_rows_batch": {"batch_data": messages[1]}}
             ),
             ExecuteQueryResponse(
-                results={"proto_bytes": {"proto_rows_bytes": messages[2]}}
+                results={"proto_rows_batch": {"batch_data": messages[2]}}
             ),
             ExecuteQueryResponse(
-                results={"proto_bytes": {"proto_rows_bytes": messages[3]}}
+                results={"proto_rows_batch": {"batch_data": messages[3]}}
             ),
             ExecuteQueryResponse(
                 results={
-                    "proto_bytes": {"proto_rows_bytes": messages[4]},
+                    "proto_rows_batch": {"batch_data": messages[4]},
+                    "resume_token": b"token1",
                 }
             ),
             ExecuteQueryResponse(
                 results={
-                    "proto_bytes": {"proto_rows_bytes": messages[5]},
-                    "resumption_token": b"token2",
+                    "proto_rows_batch": {"batch_data": messages[5]},
+                    "resume_token": b"token2",
                 }
             ),
         ]
@@ -248,18 +248,16 @@ class TestQueryResultRowReader:
         ):
             result = reader.consume(next(byte_cursor_iter))
 
-        # Despite the fact that two ProtoRows were received, a single resumption_token after the second ProtoRows object forces us to parse them together.
+        # Despite the fact that two ProtoRows were received, a single resume_token after the second ProtoRows object forces us to parse them together.
         # We will interpret them as one larger ProtoRows object.
         assert len(returned_values) == 1
-        assert len(returned_values[0]) == 6
+        assert len(returned_values[0]) == 4
         assert returned_values[0][0].int_value == 1
         assert returned_values[0][1].int_value == 2
         assert returned_values[0][2].int_value == 3
         assert returned_values[0][3].int_value == 4
-        assert returned_values[0][4].int_value == 5
-        assert returned_values[0][5].int_value == 6
 
-        assert len(result) == 3
+        assert len(result) == 2
         assert len(result[0]) == 2
         assert result[0][0] == 1
         assert result[0]["test1"] == 1
@@ -270,41 +268,43 @@ class TestQueryResultRowReader:
         assert result[1]["test1"] == 3
         assert result[1][1] == 4
         assert result[1]["test2"] == 4
-        assert len(result[2]) == 2
-        assert result[2][0] == 5
-        assert result[2]["test1"] == 5
-        assert result[2][1] == 6
-        assert result[2]["test2"] == 6
-        assert byte_cursor._resumption_token == b"token2"
+        assert byte_cursor._resume_token == b"token1"
 
-    def test__duplicate_result_field_name(self):
-        byte_cursor = mock.Mock(
-            metadata=ExecuteQueryResponse.ResultSetMetadata(
-                {
-                    "proto_schema": {
-                        "columns": [
-                            {"name": "test1", "type": TYPE_INT},
-                            {"name": "test1", "type": TYPE_INT},
-                        ]
-                    }
-                }
-            )
-        )
-        values = [
-            proto_rows_bytes({"int_value": 1}, {"int_value": 2}),
-        ]
+        returned_values = []
+        with mock.patch.object(
+            reader,
+            "_parse_proto_rows",
+            wraps=intercept_return_values(reader._parse_proto_rows),
+        ):
+            result = reader.consume(next(byte_cursor_iter))
 
-        reader = _QueryResultRowReader(byte_cursor)
-
-        result = reader.consume(values[0])
         assert len(result) == 1
         assert len(result[0]) == 2
+        assert result[0][0] == 5
+        assert result[0]["test1"] == 5
+        assert result[0][1] == 6
+        assert result[0]["test2"] == 6
+        assert byte_cursor._resume_token == b"token2"
 
-        with pytest.raises(
-            KeyError,
-            match="Ambigious field name: 'test1', use index instead. Field present on indexes 0, 1.",
-        ):
-            result[0]["test1"]
 
-        assert result[0][0] == 1
-        assert result[0][1] == 2
+class TestProtoMetadata:
+    def test__duplicate_column_names(self):
+        metadata = ProtoMetadata(
+            [
+                ("test1", SqlType.Int64()),
+                ("test2", SqlType.Bytes()),
+                ("test2", SqlType.String()),
+            ]
+        )
+        assert metadata[0].column_name == "test1"
+        assert metadata["test1"].column_type == SqlType.Int64()
+
+        # duplicate columns not accesible by name
+        with pytest.raises(KeyError, match="Ambigious column name"):
+            metadata["test2"]
+
+        # duplicate columns accessible by index
+        assert metadata[1].column_type == SqlType.Bytes()
+        assert metadata[1].column_name == "test2"
+        assert metadata[2].column_type == SqlType.String()
+        assert metadata[2].column_name == "test2"

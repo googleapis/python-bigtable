@@ -13,46 +13,35 @@
 # limitations under the License.
 
 from typing import Any
-from google.cloud.bigtable.execute_query import Struct
-from google.cloud.bigtable_v2.types.data import ProtoRows, Type
+from google.cloud.bigtable.execute_query_values import Struct
+from google.cloud.bigtable.execute_query_metadata import SqlType
+from google.cloud.bigtable_v2.types.data import ProtoRows
+from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 
 REQUIRED_PROTO_FIELDS = {
-    "bytes_type": "bytes_value",
-    "string_type": "string_value",
-    "int64_type": "int_value",
-    "float64_type": "float_value",
-    "bool_type": "bool_value",
-    "timestamp_type": "timestamp_value",
-    "date_type": "date_value",
-    "struct_type": "array_value",
-    "array_type": "array_value",
-    "map_type": "array_value",
+    SqlType.Bytes: "bytes_value",
+    SqlType.String: "string_value",
+    SqlType.Int64: "int_value",
+    SqlType.Float64: "float_value",
+    SqlType.Bool: "bool_value",
+    SqlType.Timestamp: "timestamp_value",
+    SqlType.Date: "date_value",
+    SqlType.Struct: "array_value",
+    SqlType.Array: "array_value",
+    SqlType.Map: "array_value",
 }
 
 
-TYPE_TO_VALUE_FIELD_NAME = {
-    "bytes_type": "bytes_value",
-    "string_type": "string_value",
-    "int64_type": "int_value",
-    "float64_type": "float_value",
-    "bool_type": "bool_value",
-    "timestamp_type": "timestamp_value",
-    "date_type": "date_value",
-}
-
-
-def _parse_array_type(value: ProtoRows.Value, pb_type: Type) -> list:
+def _parse_array_type(value: ProtoRows.Value, metadata_type: SqlType.Array) -> list:
     return list(
         map(
-            lambda val: parse_pb_value_to_python_value(
-                val, pb_type.array_type.element_type
-            ),
+            lambda val: parse_pb_value_to_python_value(val, metadata_type.element_type),
             value.array_value.values,
         )
     )
 
 
-def _parse_map_type(value: ProtoRows.Value, pb_type: Type) -> dict:
+def _parse_map_type(value: ProtoRows.Value, metadata_type: SqlType.Map) -> dict:
     # Values of type `Map` are stored in a `Value.array_value` where each entry
     # is another `Value.array_value` with two elements (the key and the value,
     # in that order).
@@ -65,10 +54,10 @@ def _parse_map_type(value: ProtoRows.Value, pb_type: Type) -> dict:
             map(
                 lambda map_entry: (
                     parse_pb_value_to_python_value(
-                        map_entry.array_value.values[0], pb_type.map_type.key_type
+                        map_entry.array_value.values[0], metadata_type.key_type
                     ),
                     parse_pb_value_to_python_value(
-                        map_entry.array_value.values[1], pb_type.map_type.value_type
+                        map_entry.array_value.values[1], metadata_type.value_type
                     ),
                 ),
                 value.array_value.values,
@@ -78,45 +67,50 @@ def _parse_map_type(value: ProtoRows.Value, pb_type: Type) -> dict:
         raise ValueError("Invalid map entry - less or more than two values.")
 
 
-def _parse_struct_type(value: ProtoRows.Value, pb_type: Type) -> Struct:
-    if len(value.array_value.values) != len(pb_type.struct_type.fields):
+def _parse_struct_type(value: ProtoRows.Value, metadata_type: SqlType.Struct) -> Struct:
+    if len(value.array_value.values) != len(metadata_type.fields):
         raise ValueError("Mismatched lengths of values and types.")
 
-    field_mapping = Struct._construct_field_mapping(
-        (field.field_name for field in pb_type.struct_type.fields)
-    )
-
-    struct = Struct(
-        values=(
-            parse_pb_value_to_python_value(value, field.type)
-            for value, field in zip(
-                value.array_value.values, pb_type.struct_type.fields
-            )
-        ),
-        field_mapping=field_mapping,
-    )
+    struct = Struct()
+    for value, field in zip(value.array_value.values, metadata_type.fields):
+        field_name, field_type = field
+        struct.add_field(field_name, parse_pb_value_to_python_value(value, field_type))
 
     return struct
 
 
+def _parse_timestamp_type(
+    value: ProtoRows.Value, metadata_type: SqlType.Timestamp
+) -> DatetimeWithNanoseconds:
+    return DatetimeWithNanoseconds.from_timestamp_pb(value.timestamp_value)
+
+
 TYPE_PARSERS = {
-    "struct_type": _parse_struct_type,
-    "array_type": _parse_array_type,
-    "map_type": _parse_map_type,
+    SqlType.Timestamp: _parse_timestamp_type,
+    SqlType.Struct: _parse_struct_type,
+    SqlType.Array: _parse_array_type,
+    SqlType.Map: _parse_map_type,
 }
 
 
-def parse_pb_value_to_python_value(value: ProtoRows.Value, pb_type: Type) -> Any:
-    kind = Type.pb(pb_type).WhichOneof("kind")
-    if kind in REQUIRED_PROTO_FIELDS and REQUIRED_PROTO_FIELDS[kind] not in value:
+def parse_pb_value_to_python_value(
+    value: ProtoRows.Value, metadata_type: SqlType.Type
+) -> Any:
+    value_kind = value.WhichOneof("kind")
+    if not value_kind:
+        return None
+
+    kind = type(metadata_type)
+    if not value.HasField(REQUIRED_PROTO_FIELDS[kind]):
         raise ValueError(
-            f"{REQUIRED_PROTO_FIELDS[kind]} field for {kind} type not found in a Value."
+            f"{REQUIRED_PROTO_FIELDS[kind]} field for {kind.__name__} type not found in a Value."
         )
-    if kind in TYPE_TO_VALUE_FIELD_NAME:
-        field_name = TYPE_TO_VALUE_FIELD_NAME[kind]
-        return getattr(value, field_name)
-    elif kind in TYPE_PARSERS:
+
+    if kind in TYPE_PARSERS:
         parser = TYPE_PARSERS[kind]
-        return parser(value, pb_type)
+        return parser(value, metadata_type)
+    elif kind in REQUIRED_PROTO_FIELDS:
+        field_name = REQUIRED_PROTO_FIELDS[kind]
+        return getattr(value, field_name)
     else:
-        raise ValueError(f"Type {kind} not supported by current client version")
+        raise ValueError(f"Unknown kind {kind}")

@@ -13,47 +13,55 @@
 # limitations under the License.
 
 import pytest
-import proto
-
 from google.cloud.bigtable_v2.types.data import ProtoRows, Type
 from google.cloud.bigtable.query_result_parsing_utils import (
     parse_pb_value_to_python_value,
 )
-from google.cloud.bigtable.execute_query import Struct
+from google.cloud.bigtable.execute_query_metadata import (
+    Struct,
+    pb_type_to_metadata_type,
+    SqlType,
+)
 
 from google.type import date_pb2
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 
 import datetime
 
+from ._testing import TYPE_INT
 
-TYPE_INT = {
-    "int64_type": {
-        "encoding": {"big_endian_bytes": {"bytes_type": {"encoding": {"raw": {}}}}}
-    }
-}
-
-
-class ExtendedType(Type):
-    new_type: Type.String = proto.Field(
-        Type.String,
-        number=1000,
-        oneof="kind",
-    )
+TYPE_BYTES = {"bytes_type": {}}
+TYPE_TIMESTAMP = {"timestamp_type": {}}
 
 
 class TestQueryResultParsingUtils:
     @pytest.mark.parametrize(
-        "type_dict,value_dict,expected_value",
+        "type_dict,value_dict,expected_metadata_type,expected_value",
         [
-            (TYPE_INT, {"int_value": 1}, 1),
-            ({"string_type": {}}, {"string_value": "test"}, "test"),
-            ({"bool_type": {}}, {"bool_value": False}, False),
-            ({"bytes_type": {}}, {"bytes_value": b"test"}, b"test"),
-            ({"float64_type": {}}, {"float_value": 17.21}, 17.21),
+            (TYPE_INT, {"int_value": 1}, SqlType.Int64, 1),
+            (
+                {"string_type": {}},
+                {"string_value": "test"},
+                SqlType.String,
+                "test",
+            ),
+            ({"bool_type": {}}, {"bool_value": False}, SqlType.Bool, False),
+            (
+                {"bytes_type": {}},
+                {"bytes_value": b"test"},
+                SqlType.Bytes,
+                b"test",
+            ),
+            (
+                {"float64_type": {}},
+                {"float_value": 17.21},
+                SqlType.Float64,
+                17.21,
+            ),
             (
                 {"timestamp_type": {}},
                 {"timestamp_value": {"seconds": 1715864647, "nanos": 12}},
+                SqlType.Timestamp,
                 DatetimeWithNanoseconds(
                     2024, 5, 16, 13, 4, 7, nanosecond=12, tzinfo=datetime.timezone.utc
                 ),
@@ -61,30 +69,42 @@ class TestQueryResultParsingUtils:
             (
                 {"date_type": {}},
                 {"date_value": {"year": 1800, "month": 12, "day": 0}},
+                SqlType.Date,
                 date_pb2.Date(year=1800, month=12, day=0),
-            ),
-            (
-                {"array_type": {"element_type": TYPE_INT}},
-                {
-                    "array_value": {
-                        "values": [
-                            {"int_value": 1},
-                            {"int_value": 2},
-                            {"int_value": 3},
-                            {"int_value": 4},
-                        ]
-                    }
-                },
-                [1, 2, 3, 4],
             ),
         ],
     )
-    def test_basic_types(self, type_dict, value_dict, expected_value):
+    def test_basic_types(
+        self, type_dict, value_dict, expected_metadata_type, expected_value
+    ):
         _type = Type(type_dict)
+        metadata_type = pb_type_to_metadata_type(_type)
+        assert type(metadata_type) is expected_metadata_type
         value = ProtoRows.Value(value_dict)
-        assert parse_pb_value_to_python_value(value, _type) == expected_value
+        assert (
+            parse_pb_value_to_python_value(value._pb, metadata_type) == expected_value
+        )
 
     # Larger test cases were extracted for readability
+    def test__array(self):
+        _type = Type({"array_type": {"element_type": TYPE_INT}})
+        metadata_type = pb_type_to_metadata_type(_type)
+        assert type(metadata_type) is SqlType.Array
+        assert type(metadata_type.element_type) is SqlType.Int64
+        value = ProtoRows.Value(
+            {
+                "array_value": {
+                    "values": [
+                        {"int_value": 1},
+                        {"int_value": 2},
+                        {"int_value": 3},
+                        {"int_value": 4},
+                    ]
+                }
+            }
+        )
+        assert parse_pb_value_to_python_value(value._pb, metadata_type) == [1, 2, 3, 4]
+
     def test__struct(self):
         _type = Type(
             {
@@ -101,6 +121,10 @@ class TestQueryResultParsingUtils:
                         {
                             "field_name": "field3",
                             "type": {"array_type": {"element_type": TYPE_INT}},
+                        },
+                        {
+                            "field_name": "field3",
+                            "type": {"string_type": {}},
                         },
                     ]
                 }
@@ -122,54 +146,36 @@ class TestQueryResultParsingUtils:
                                 ]
                             }
                         },
+                        {"string_value": "test4"},
                     ]
                 }
             }
         )
 
-        result = parse_pb_value_to_python_value(value, _type)
+        metadata_type = pb_type_to_metadata_type(_type)
+        assert type(metadata_type) is SqlType.Struct
+        assert type(metadata_type["field1"]) is SqlType.Int64
+        assert type(metadata_type[1]) is SqlType.String
+        assert type(metadata_type[2]) is SqlType.Array
+        assert type(metadata_type[2].element_type) is SqlType.Int64
+        assert type(metadata_type[3]) is SqlType.String
+
+        # duplicate fields not accesible by name
+        with pytest.raises(KeyError, match="Ambigious field name"):
+            metadata_type["field3"]
+
+        result = parse_pb_value_to_python_value(value._pb, metadata_type)
         assert isinstance(result, Struct)
         assert result["field1"] == result[0] == 1
         assert result[1] == "test2"
-        assert result["field3"] == result[2] == [2, 3, 4, 5]
 
-    def test__struct__duplicate_field_names(self):
-        _type = Type(
-            {
-                "struct_type": {
-                    "fields": [
-                        {
-                            "field_name": "field1",
-                            "type": TYPE_INT,
-                        },
-                        {
-                            "field_name": "field1",
-                            "type": {"string_type": {}},
-                        },
-                    ]
-                }
-            }
-        )
-        value = ProtoRows.Value(
-            {
-                "array_value": {
-                    "values": [
-                        {"int_value": 1},
-                        {"string_value": "test2"},
-                    ]
-                }
-            }
-        )
+        # duplicate fields not accesible by name
+        with pytest.raises(KeyError, match="Ambigious field name"):
+            result["field3"]
 
-        result = parse_pb_value_to_python_value(value, _type)
-        assert isinstance(result, Struct)
-        with pytest.raises(
-            KeyError,
-            match="Ambigious field name: 'field1', use index instead. Field present on indexes 0, 1.",
-        ):
-            result["field1"]
-        assert result[0] == 1
-        assert result[1] == "test2"
+        # duplicate fields accessible by index
+        assert result[2] == [2, 3, 4, 5]
+        assert result[3] == "test4"
 
     def test__array_of_structs(self):
         _type = Type(
@@ -241,7 +247,14 @@ class TestQueryResultParsingUtils:
             }
         )
 
-        result = parse_pb_value_to_python_value(value, _type)
+        metadata_type = pb_type_to_metadata_type(_type)
+        assert type(metadata_type) is SqlType.Array
+        assert type(metadata_type.element_type) is SqlType.Struct
+        assert type(metadata_type.element_type["field1"]) is SqlType.Int64
+        assert type(metadata_type.element_type[1]) is SqlType.String
+        assert type(metadata_type.element_type["field3"]) is SqlType.Bool
+
+        result = parse_pb_value_to_python_value(value._pb, metadata_type)
         assert isinstance(result, list)
         assert len(result) == 4
 
@@ -315,7 +328,12 @@ class TestQueryResultParsingUtils:
             }
         )
 
-        result = parse_pb_value_to_python_value(value, _type)
+        metadata_type = pb_type_to_metadata_type(_type)
+        assert type(metadata_type) is SqlType.Map
+        assert type(metadata_type.key_type) is SqlType.Int64
+        assert type(metadata_type.value_type) is SqlType.String
+
+        result = parse_pb_value_to_python_value(value._pb, metadata_type)
         assert isinstance(result, dict)
         assert len(result) == 4
 
@@ -368,7 +386,8 @@ class TestQueryResultParsingUtils:
             }
         )
 
-        result = parse_pb_value_to_python_value(value, _type)
+        metadata_type = pb_type_to_metadata_type(_type)
+        result = parse_pb_value_to_python_value(value._pb, metadata_type)
         assert len(result) == 1
 
         assert result == {
@@ -512,7 +531,15 @@ class TestQueryResultParsingUtils:
                 }
             }
         )
-        result = parse_pb_value_to_python_value(value, _type)
+        metadata_type = pb_type_to_metadata_type(_type)
+        assert type(metadata_type) is SqlType.Map
+        assert type(metadata_type.key_type) is SqlType.Int64
+        assert type(metadata_type.value_type) is SqlType.Map
+        assert type(metadata_type.value_type.key_type) is SqlType.String
+        assert type(metadata_type.value_type.value_type) is SqlType.Struct
+        assert type(metadata_type.value_type.value_type["field1"]) is SqlType.Int64
+        assert type(metadata_type.value_type.value_type["field2"]) is SqlType.String
+        result = parse_pb_value_to_python_value(value._pb, metadata_type)
 
         assert result[1]["1_1"]["field1"] == 1
         assert result[1]["1_1"]["field2"] == "test1"
@@ -526,21 +553,163 @@ class TestQueryResultParsingUtils:
         assert result[2]["2_2"]["field1"] == 4
         assert result[2]["2_2"]["field2"] == "test4"
 
+    def test__map_of_lists_of_structs(self):
+        _type = Type(
+            {
+                "map_type": {
+                    "key_type": TYPE_BYTES,
+                    "value_type": {
+                        "array_type": {
+                            "element_type": {
+                                "struct_type": {
+                                    "fields": [
+                                        {
+                                            "field_name": "timestamp",
+                                            "type": TYPE_TIMESTAMP,
+                                        },
+                                        {
+                                            "field_name": "value",
+                                            "type": TYPE_BYTES,
+                                        },
+                                    ]
+                                }
+                            },
+                        }
+                    },
+                }
+            }
+        )
+        value = ProtoRows.Value(
+            {
+                "array_value": {
+                    "values": [  # list of (byte, list) tuples
+                        {
+                            "array_value": {
+                                "values": [  # (byte, list) tuple
+                                    {"bytes_value": b"key1"},
+                                    {
+                                        "array_value": {
+                                            "values": [  # list of structs
+                                                {
+                                                    "array_value": {
+                                                        "values": [  # (timestamp, bytes) tuple
+                                                            {
+                                                                "timestamp_value": {
+                                                                    "seconds": 1111111111
+                                                                }
+                                                            },
+                                                            {
+                                                                "bytes_value": b"key1-value1"
+                                                            },
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "array_value": {
+                                                        "values": [  # (timestamp, bytes) tuple
+                                                            {
+                                                                "timestamp_value": {
+                                                                    "seconds": 2222222222
+                                                                }
+                                                            },
+                                                            {
+                                                                "bytes_value": b"key1-value2"
+                                                            },
+                                                        ]
+                                                    }
+                                                },
+                                            ]
+                                        }
+                                    },
+                                ]
+                            }
+                        },
+                        {
+                            "array_value": {
+                                "values": [  # (byte, list) tuple
+                                    {"bytes_value": b"key2"},
+                                    {
+                                        "array_value": {
+                                            "values": [  # list of structs
+                                                {
+                                                    "array_value": {
+                                                        "values": [  # (timestamp, bytes) tuple
+                                                            {
+                                                                "timestamp_value": {
+                                                                    "seconds": 3333333333
+                                                                }
+                                                            },
+                                                            {
+                                                                "bytes_value": b"key2-value1"
+                                                            },
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "array_value": {
+                                                        "values": [  # (timestamp, bytes) tuple
+                                                            {
+                                                                "timestamp_value": {
+                                                                    "seconds": 4444444444
+                                                                }
+                                                            },
+                                                            {
+                                                                "bytes_value": b"key2-value2"
+                                                            },
+                                                        ]
+                                                    }
+                                                },
+                                            ]
+                                        }
+                                    },
+                                ]
+                            }
+                        },
+                    ]
+                }
+            }
+        )
+        metadata_type = pb_type_to_metadata_type(_type)
+        assert type(metadata_type) is SqlType.Map
+        assert type(metadata_type.key_type) is SqlType.Bytes
+        assert type(metadata_type.value_type) is SqlType.Array
+        assert type(metadata_type.value_type.element_type) is SqlType.Struct
+        assert (
+            type(metadata_type.value_type.element_type["timestamp"])
+            is SqlType.Timestamp
+        )
+        assert type(metadata_type.value_type.element_type["value"]) is SqlType.Bytes
+        result = parse_pb_value_to_python_value(value._pb, metadata_type)
+
+        timestamp1 = DatetimeWithNanoseconds(
+            2005, 3, 18, 1, 58, 31, tzinfo=datetime.timezone.utc
+        )
+        timestamp2 = DatetimeWithNanoseconds(
+            2040, 6, 2, 3, 57, 2, tzinfo=datetime.timezone.utc
+        )
+        timestamp3 = DatetimeWithNanoseconds(
+            2075, 8, 18, 5, 55, 33, tzinfo=datetime.timezone.utc
+        )
+        timestamp4 = DatetimeWithNanoseconds(
+            2110, 11, 3, 7, 54, 4, tzinfo=datetime.timezone.utc
+        )
+
+        assert result[b"key1"][0]["timestamp"] == timestamp1
+        assert result[b"key1"][0]["value"] == b"key1-value1"
+        assert result[b"key1"][1]["timestamp"] == timestamp2
+        assert result[b"key1"][1]["value"] == b"key1-value2"
+        assert result[b"key2"][0]["timestamp"] == timestamp3
+        assert result[b"key2"][0]["value"] == b"key2-value1"
+        assert result[b"key2"][1]["timestamp"] == timestamp4
+        assert result[b"key2"][1]["value"] == b"key2-value2"
+
     def test__invalid_type_throws_exception(self):
         _type = Type({"string_type": {}})
         value = ProtoRows.Value({"int_value": 1})
+        metadata_type = pb_type_to_metadata_type(_type)
 
         with pytest.raises(
             ValueError,
-            match="string_value field for string_type type not found in a Value.",
+            match="string_value field for String type not found in a Value.",
         ):
-            parse_pb_value_to_python_value(value, _type)
-
-    def test__unknown_kind(self):
-        _type = ExtendedType({"new_type": {}})
-        value = ProtoRows.Value({"int_value": 1})
-
-        with pytest.raises(
-            ValueError, match="Type new_type not supported by current client version"
-        ):
-            parse_pb_value_to_python_value(value, _type)
+            parse_pb_value_to_python_value(value._pb, metadata_type)

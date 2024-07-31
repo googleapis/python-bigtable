@@ -15,11 +15,15 @@
 from typing import Optional
 
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
+from google.cloud.bigtable.execute_query_metadata import (
+    Metadata,
+    pb_metadata_to_metadata_types,
+)
 
 
 class _ByteCursor:
     """
-    Buffers bytes from `ExecuteQuery` responses until resumption_token is received or end-of-stream
+    Buffers bytes from `ExecuteQuery` responses until resume_token is received or end-of-stream
     is reached. :class:`google.cloud.bigtable_v2.types.bigtable.ExecuteQueryResponse` obtained from
     the server should be passed to ``consume`` or ``consume_metadata`` methods and its non-None
     results should be passed to appropriate
@@ -31,13 +35,13 @@ class _ByteCursor:
     """
 
     def __init__(self):
-        self._metadata = None
+        self._metadata: Optional[Metadata] = None
         self._buffer = bytearray()
-        self._resumption_token = None
+        self._resume_token = None
         self._last_response_results_field = None
 
     @property
-    def metadata(self) -> ExecuteQueryResponse.ResultSetMetadata:
+    def metadata(self) -> Optional[Metadata]:
         """
         Returns:
             Metadata or None: Metadata read from the first response of the stream
@@ -50,25 +54,25 @@ class _ByteCursor:
         Prepares this ``_ByteCursor`` for retrying an ``ExecuteQuery`` request.
 
         Clears internal buffers of this ``_ByteCursor`` and returns last received
-        ``resumption_token`` to be used in retried request.
+        ``resume_token`` to be used in retried request.
 
-        This is the only method that returns ``resumption_token`` to the user.
+        This is the only method that returns ``resume_token`` to the user.
         Returning the token to the user is tightly coupled with clearing internal
         buffers to prevent accidental retry without clearing the state, what would
-        cause invalid results. ``resumption_token`` are not needed in other cases,
+        cause invalid results. ``resume_token`` are not needed in other cases,
         thus they is no separate getter for it.
 
         Returns:
-            bytes: Last received resumption_token.
+            bytes: Last received resume_token.
         """
         self._buffer = bytearray()
         # metadata is sent in the first response in a stream,
         # if we've already received one, but it was not already commited
-        # by a subsequent resumption_token, then we should clear it as well.
-        if not self._resumption_token:
+        # by a subsequent resume_token, then we should clear it as well.
+        if not self._resume_token:
             self._metadata = None
 
-        return self._resumption_token
+        return self._resume_token
 
     def consume_metadata(self, response: ExecuteQueryResponse) -> None:
         """
@@ -87,9 +91,9 @@ class _ByteCursor:
             raise ValueError("Invalid state - metadata already consumed")
 
         if "metadata" in response:
-            self._metadata = response.metadata
+            self._metadata = pb_metadata_to_metadata_types(response.metadata)
         else:
-            raise ValueError("Invalid parameter - resonse without metadata")
+            raise ValueError("Invalid parameter - response without metadata")
 
         return None
 
@@ -97,11 +101,11 @@ class _ByteCursor:
         """
         Reads results bytes from an ``ExecuteQuery`` response and adds them to a buffer.
 
-        If the response contains a ``resumption_token``:
-        - the ``resumption_token`` is saved in this ``_ByteCursor``, and
+        If the response contains a ``resume_token``:
+        - the ``resume_token`` is saved in this ``_ByteCursor``, and
         - internal buffers are flushed and returned to the caller.
 
-        ``resumption_token`` is not available directly, but can be retrieved by calling
+        ``resume_token`` is not available directly, but can be retrieved by calling
         :meth:`._ByteCursor.prepare_for_new_request` when preparing to retry a request.
 
         Args:
@@ -116,21 +120,22 @@ class _ByteCursor:
                 or contains bytes representing response of a different kind than previously
                 processed responses.
         """
-        if "metadata" in response:
-            self.consume_metadata(response)
-        elif "results" in response:
-            results_bytes = response.results.proto_bytes.proto_rows_bytes
+        response_pb = response._pb  # proto-plus attribute retrieval is slow.
 
-            if results_bytes:
-                self._buffer.extend(results_bytes)
+        if response_pb.HasField("results"):
+            results = response_pb.results
+            if results.HasField("proto_rows_batch"):
+                self._buffer.extend(results.proto_rows_batch.batch_data)
 
-            if "resumption_token" in response.results:
-                self._resumption_token = response.results.resumption_token
+            if results.resume_token:
+                self._resume_token = results.resume_token
 
                 if self._buffer:
-                    return_value = bytes(self._buffer)
+                    return_value = memoryview(self._buffer)
                     self._buffer = bytearray()
                     return return_value
+        elif response_pb.HasField("metadata"):
+            self.consume_metadata(response)
         else:
             raise ValueError(f"Invalid ExecuteQueryResponse: {response}")
         return None

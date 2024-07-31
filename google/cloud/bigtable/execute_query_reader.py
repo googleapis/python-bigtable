@@ -23,14 +23,16 @@ from typing import (
 from abc import ABC, abstractmethod
 
 from google.cloud.bigtable_v2.types.data import ProtoRows
-from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from google.cloud.bigtable.byte_cursor import _ByteCursor
 
 from google.cloud.bigtable.query_result_parsing_utils import (
     parse_pb_value_to_python_value,
 )
 
-from google.cloud.bigtable.execute_query import QueryResultRow
+from google.cloud.bigtable.helpers import batched
+
+from google.cloud.bigtable.execute_query_values import QueryResultRow
+from google.cloud.bigtable.execute_query_metadata import Metadata
 
 
 T = TypeVar("T")
@@ -77,8 +79,8 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
     and producing :class:`google.cloud.bigtable.execute_query.QueryResultRow`.
 
     Number of entries in each row is determined by number of columns in
-    metadata obtained from :class:`google.cloud.bigtable.byte_cursor._ByteCursor`
-    passed in the constructor.
+    :class:`google.cloud.bigtable.execute_query.Metadata` obtained from
+    :class:`google.cloud.bigtable.byte_cursor._ByteCursor` passed in the constructor.
     """
 
     def __init__(self, byte_cursor: _ByteCursor):
@@ -88,47 +90,33 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         Args:
             byte_cursor (google.cloud.bigtable.byte_cursor._ByteCursor):
                 byte_cursor that will be used to gather bytes for this instance of ``_Reader``,
-                needed to obtain metadata about processed stream.
+                needed to obtain :class:`google.cloud.bigtable.execute_query.Metadata` about
+                processed stream.
         """
         self._values: List[ProtoRows.Value] = []
         self._byte_cursor = byte_cursor
-        self._field_mapping = None
 
     @property
-    def metadata(self) -> Optional[ExecuteQueryResponse.ResultSetMetadata]:
+    def _metadata(self) -> Optional[Metadata]:
         return self._byte_cursor.metadata
-
-    def _get_field_mapping(self):
-        if self._field_mapping is None:
-            if not self.metadata:
-                return None
-
-            self._field_mapping = QueryResultRow._construct_field_mapping(
-                (column.name for column in self.metadata.proto_schema.columns)
-            )
-
-        return self._field_mapping
 
     def _construct_query_result_row(
         self, values: Sequence[ProtoRows.Value]
-    ) -> QueryResultRow:
-        columns = self.metadata.proto_schema.columns
+    ) -> List[QueryResultRow]:
+        result = QueryResultRow()
+        columns = self._metadata.columns
 
         assert len(values) == len(
             columns
         ), "This function should be called only when count of values matches count of columns."
 
-        result = QueryResultRow(
-            values=(
-                parse_pb_value_to_python_value(value, column.type)
-                for column, value in zip(columns, values)
-            ),
-            field_mapping=self._get_field_mapping(),
-        )
+        for column, value in zip(columns, values):
+            parsed_value = parse_pb_value_to_python_value(value, column.column_type)
+            result.add_field(column.column_name, parsed_value)
         return result
 
     def _parse_proto_rows(self, bytes_to_parse: bytes) -> Iterable[ProtoRows.Value]:
-        proto_rows = ProtoRows.deserialize(bytes_to_parse)
+        proto_rows = ProtoRows.pb().FromString(bytes_to_parse)
         return proto_rows.values
 
     def consume(self, bytes_to_consume: bytes) -> Optional[Iterable[QueryResultRow]]:
@@ -137,19 +125,20 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
 
         self._values.extend(self._parse_proto_rows(bytes_to_consume))
 
-        num_columns = len(self.metadata.proto_schema.columns)
+        num_columns = len(self._metadata.columns)
 
         if len(self._values) < num_columns:
             return None
 
         rows = []
-        for index in range(0, len(self._values), num_columns):
-            batch = self._values[index : index + num_columns]
-            if len(batch) != num_columns:
+        for batch in batched(self._values, n=num_columns):
+            if len(batch) == num_columns:
+                rows.append(self._construct_query_result_row(batch))
+            else:
                 raise ValueError(
-                    "Number of received columns does not allow us to construct a full row."
+                    "Server error, recieved bad number of values. "
+                    f"Expected {num_columns} got {len(batch)}."
                 )
-            rows.append(self._construct_query_result_row(batch))
 
         self._values = []
 
