@@ -22,7 +22,7 @@ from typing import (
 )
 from abc import ABC, abstractmethod
 
-from google.cloud.bigtable_v2.types.data import ProtoRows
+from google.cloud.bigtable_v2 import ProtoRows, Value as PBValue
 from google.cloud.bigtable.byte_cursor import _ByteCursor
 
 from google.cloud.bigtable.query_result_parsing_utils import (
@@ -75,7 +75,7 @@ class _Reader(ABC, Generic[T]):
 class _QueryResultRowReader(_Reader[QueryResultRow]):
     """
     A :class:`._Reader` consuming bytes representing
-    :class:`google.cloud.bigtable_v2.types.ProtoRows.Type`
+    :class:`google.cloud.bigtable_v2.types.Type`
     and producing :class:`google.cloud.bigtable.execute_query.QueryResultRow`.
 
     Number of entries in each row is determined by number of columns in
@@ -93,7 +93,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
                 needed to obtain :class:`google.cloud.bigtable.execute_query.Metadata` about
                 processed stream.
         """
-        self._values: List[ProtoRows.Value] = []
+        self._values: List[PBValue] = []
         self._byte_cursor = byte_cursor
 
     @property
@@ -101,7 +101,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         return self._byte_cursor.metadata
 
     def _construct_query_result_row(
-        self, values: Sequence[ProtoRows.Value]
+        self, values: Sequence[PBValue]
     ) -> List[QueryResultRow]:
         result = QueryResultRow()
         columns = self._metadata.columns
@@ -115,7 +115,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
             result.add_field(column.column_name, parsed_value)
         return result
 
-    def _parse_proto_rows(self, bytes_to_parse: bytes) -> Iterable[ProtoRows.Value]:
+    def _parse_proto_rows(self, bytes_to_parse: bytes) -> Iterable[PBValue]:
         proto_rows = ProtoRows.pb().FromString(bytes_to_parse)
         return proto_rows.values
 

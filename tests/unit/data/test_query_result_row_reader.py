@@ -15,7 +15,7 @@
 import pytest
 from unittest import mock
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
-from google.cloud.bigtable_v2.types.data import ProtoRows
+from google.cloud.bigtable_v2.types.data import Value as PBValue
 from google.cloud.bigtable.execute_query_reader import _QueryResultRowReader
 
 from google.cloud.bigtable.execute_query_metadata import ProtoMetadata, SqlType
@@ -129,8 +129,8 @@ class TestQueryResultRowReader:
             reader.consume(proto_rows_bytes(values[1]))
             parse_mock.assert_has_calls(
                 [
-                    mock.call(ProtoRows.Value(values[0]), SqlType.Int64()),
-                    mock.call(ProtoRows.Value(values[1]), SqlType.Int64()),
+                    mock.call(PBValue(values[0]), SqlType.Int64()),
+                    mock.call(PBValue(values[1]), SqlType.Int64()),
                 ]
             )
 
@@ -152,7 +152,7 @@ class TestQueryResultRowReader:
 
             parse_mock.assert_has_calls(
                 [
-                    mock.call(ProtoRows.Value(values[0]), SqlType.Int64()),
+                    mock.call(PBValue(values[0]), SqlType.Int64()),
                 ]
             )
 
@@ -191,8 +191,8 @@ class TestQueryResultRowReader:
                 metadata={
                     "proto_schema": {
                         "columns": [
-                            {"name": "test1", "type": TYPE_INT},
-                            {"name": "test2", "type": TYPE_INT},
+                            {"name": "test1", "type_": TYPE_INT},
+                            {"name": "test2", "type_": TYPE_INT},
                         ]
                     }
                 }

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import pytest
-from google.cloud.bigtable_v2.types.data import ProtoRows, Type
+from google.cloud.bigtable_v2 import Type as PBType, Value as PBValue
 from google.cloud.bigtable.query_result_parsing_utils import (
     parse_pb_value_to_python_value,
 )
@@ -77,21 +77,21 @@ class TestQueryResultParsingUtils:
     def test_basic_types(
         self, type_dict, value_dict, expected_metadata_type, expected_value
     ):
-        _type = Type(type_dict)
+        _type = PBType(type_dict)
         metadata_type = pb_type_to_metadata_type(_type)
         assert type(metadata_type) is expected_metadata_type
-        value = ProtoRows.Value(value_dict)
+        value = PBValue(value_dict)
         assert (
             parse_pb_value_to_python_value(value._pb, metadata_type) == expected_value
         )
 
     # Larger test cases were extracted for readability
     def test__array(self):
-        _type = Type({"array_type": {"element_type": TYPE_INT}})
+        _type = PBType({"array_type": {"element_type": TYPE_INT}})
         metadata_type = pb_type_to_metadata_type(_type)
         assert type(metadata_type) is SqlType.Array
         assert type(metadata_type.element_type) is SqlType.Int64
-        value = ProtoRows.Value(
+        value = PBValue(
             {
                 "array_value": {
                     "values": [
@@ -106,31 +106,31 @@ class TestQueryResultParsingUtils:
         assert parse_pb_value_to_python_value(value._pb, metadata_type) == [1, 2, 3, 4]
 
     def test__struct(self):
-        _type = Type(
+        _type = PBType(
             {
                 "struct_type": {
                     "fields": [
                         {
                             "field_name": "field1",
-                            "type": TYPE_INT,
+                            "type_": TYPE_INT,
                         },
                         {
                             "field_name": None,
-                            "type": {"string_type": {}},
+                            "type_": {"string_type": {}},
                         },
                         {
                             "field_name": "field3",
-                            "type": {"array_type": {"element_type": TYPE_INT}},
+                            "type_": {"array_type": {"element_type": TYPE_INT}},
                         },
                         {
                             "field_name": "field3",
-                            "type": {"string_type": {}},
+                            "type_": {"string_type": {}},
                         },
                     ]
                 }
             }
         )
-        value = ProtoRows.Value(
+        value = PBValue(
             {
                 "array_value": {
                     "values": [
@@ -178,7 +178,7 @@ class TestQueryResultParsingUtils:
         assert result[3] == "test4"
 
     def test__array_of_structs(self):
-        _type = Type(
+        _type = PBType(
             {
                 "array_type": {
                     "element_type": {
@@ -186,15 +186,15 @@ class TestQueryResultParsingUtils:
                             "fields": [
                                 {
                                     "field_name": "field1",
-                                    "type": TYPE_INT,
+                                    "type_": TYPE_INT,
                                 },
                                 {
                                     "field_name": None,
-                                    "type": {"string_type": {}},
+                                    "type_": {"string_type": {}},
                                 },
                                 {
                                     "field_name": "field3",
-                                    "type": {"bool_type": {}},
+                                    "type_": {"bool_type": {}},
                                 },
                             ]
                         }
@@ -202,7 +202,7 @@ class TestQueryResultParsingUtils:
                 }
             }
         )
-        value = ProtoRows.Value(
+        value = PBValue(
             {
                 "array_value": {
                     "values": [
@@ -279,7 +279,7 @@ class TestQueryResultParsingUtils:
         assert not result[3]["field3"]
 
     def test__map(self):
-        _type = Type(
+        _type = PBType(
             {
                 "map_type": {
                     "key_type": TYPE_INT,
@@ -287,7 +287,7 @@ class TestQueryResultParsingUtils:
                 }
             }
         )
-        value = ProtoRows.Value(
+        value = PBValue(
             {
                 "array_value": {
                     "values": [
@@ -345,7 +345,7 @@ class TestQueryResultParsingUtils:
         }
 
     def test__map_repeated_values(self):
-        _type = Type(
+        _type = PBType(
             {
                 "map_type": {
                     "key_type": TYPE_INT,
@@ -353,7 +353,7 @@ class TestQueryResultParsingUtils:
                 }
             },
         )
-        value = ProtoRows.Value(
+        value = PBValue(
             {
                 "array_value": {
                     "values": [
@@ -395,7 +395,7 @@ class TestQueryResultParsingUtils:
         }
 
     def test__map_of_maps_of_structs(self):
-        _type = Type(
+        _type = PBType(
             {
                 "map_type": {
                     "key_type": TYPE_INT,
@@ -407,11 +407,11 @@ class TestQueryResultParsingUtils:
                                     "fields": [
                                         {
                                             "field_name": "field1",
-                                            "type": TYPE_INT,
+                                            "type_": TYPE_INT,
                                         },
                                         {
                                             "field_name": "field2",
-                                            "type": {"string_type": {}},
+                                            "type_": {"string_type": {}},
                                         },
                                     ]
                                 }
@@ -421,7 +421,7 @@ class TestQueryResultParsingUtils:
                 }
             }
         )
-        value = ProtoRows.Value(
+        value = PBValue(
             {
                 "array_value": {
                     "values": [  # list of (int, map) tuples
@@ -554,7 +554,7 @@ class TestQueryResultParsingUtils:
         assert result[2]["2_2"]["field2"] == "test4"
 
     def test__map_of_lists_of_structs(self):
-        _type = Type(
+        _type = PBType(
             {
                 "map_type": {
                     "key_type": TYPE_BYTES,
@@ -565,11 +565,11 @@ class TestQueryResultParsingUtils:
                                     "fields": [
                                         {
                                             "field_name": "timestamp",
-                                            "type": TYPE_TIMESTAMP,
+                                            "type_": TYPE_TIMESTAMP,
                                         },
                                         {
                                             "field_name": "value",
-                                            "type": TYPE_BYTES,
+                                            "type_": TYPE_BYTES,
                                         },
                                     ]
                                 }
@@ -579,7 +579,7 @@ class TestQueryResultParsingUtils:
                 }
             }
         )
-        value = ProtoRows.Value(
+        value = PBValue(
             {
                 "array_value": {
                     "values": [  # list of (byte, list) tuples
@@ -704,8 +704,8 @@ class TestQueryResultParsingUtils:
         assert result[b"key2"][1]["value"] == b"key2-value2"
 
     def test__invalid_type_throws_exception(self):
-        _type = Type({"string_type": {}})
-        value = ProtoRows.Value({"int_value": 1})
+        _type = PBType({"string_type": {}})
+        value = PBValue({"int_value": 1})
         metadata_type = pb_type_to_metadata_type(_type)
 
         with pytest.raises(

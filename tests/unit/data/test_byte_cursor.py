@@ -31,7 +31,7 @@ class TestByteCursor:
         stream = [
             ExecuteQueryResponse(
                 metadata={
-                    "proto_schema": {"columns": [{"name": "test1", "type": TYPE_INT}]}
+                    "proto_schema": {"columns": [{"name": "test1", "type_": TYPE_INT}]}
                 }
             ),
             ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": b"123"}}),
@@ -69,7 +69,7 @@ class TestByteCursor:
         stream = [
             ExecuteQueryResponse(
                 metadata={
-                    "proto_schema": {"columns": [{"name": "test1", "type": TYPE_INT}]}
+                    "proto_schema": {"columns": [{"name": "test1", "type_": TYPE_INT}]}
                 }
             ),
             ExecuteQueryResponse(
@@ -94,7 +94,7 @@ class TestByteCursor:
         stream = [
             ExecuteQueryResponse(
                 metadata={
-                    "proto_schema": {"columns": [{"name": "test1", "type": TYPE_INT}]}
+                    "proto_schema": {"columns": [{"name": "test1", "type_": TYPE_INT}]}
                 }
             ),
             ExecuteQueryResponse(results={"resume_token": b"token1"}),
@@ -117,7 +117,7 @@ class TestByteCursor:
         stream = [
             ExecuteQueryResponse(
                 metadata={
-                    "proto_schema": {"columns": [{"name": "test1", "type": TYPE_INT}]}
+                    "proto_schema": {"columns": [{"name": "test1", "type_": TYPE_INT}]}
                 }
             ),
             ExecuteQueryResponse(

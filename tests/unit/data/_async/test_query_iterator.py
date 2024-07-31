@@ -60,8 +60,8 @@ def proto_byte_stream():
             metadata={
                 "proto_schema": {
                     "columns": [
-                        {"name": "test1", "type": TYPE_INT},
-                        {"name": "test2", "type": TYPE_INT},
+                        {"name": "test1", "type_": TYPE_INT},
+                        {"name": "test2", "type_": TYPE_INT},
                     ]
                 }
             }

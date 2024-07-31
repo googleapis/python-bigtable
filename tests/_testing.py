@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.cloud.bigtable_v2.types.data import ProtoRows
+from google.cloud.bigtable_v2.types.data import ProtoRows, Value as PBValue
 
 
 TYPE_INT = {
@@ -23,9 +23,7 @@ TYPE_INT = {
 
 
 def proto_rows_bytes(*args):
-    return ProtoRows.serialize(
-        ProtoRows(values=[ProtoRows.Value(**arg) for arg in args])
-    )
+    return ProtoRows.serialize(ProtoRows(values=[PBValue(**arg) for arg in args]))
 
 
 def split_bytes_into_chunks(bytes_to_split, num_chunks):

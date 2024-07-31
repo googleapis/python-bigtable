@@ -31,8 +31,8 @@ from typing import (
     Any,
 )
 from google.cloud.bigtable.execute_query_values import _NamedList, Struct
-from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
-from google.cloud.bigtable_v2.types.data import Type as PBType
+from google.cloud.bigtable_v2 import ResultSetMetadata
+from google.cloud.bigtable_v2 import Type as PBType
 from google.type import date_pb2
 from google.protobuf import timestamp_pb2
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
@@ -310,7 +310,7 @@ class ProtoMetadata(Metadata):
 
 
 def pb_metadata_to_metadata_types(
-    metadata_pb: ExecuteQueryResponse.ResultSetMetadata,
+    metadata_pb: ResultSetMetadata,
 ) -> Metadata:
     if "proto_schema" in metadata_pb:
         fields = []

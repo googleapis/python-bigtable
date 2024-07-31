@@ -14,7 +14,7 @@
 
 from typing import Optional
 
-from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
+from google.cloud.bigtable_v2 import ExecuteQueryResponse
 from google.cloud.bigtable.execute_query_metadata import (
     Metadata,
     pb_metadata_to_metadata_types,

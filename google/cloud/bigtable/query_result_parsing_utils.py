@@ -15,7 +15,7 @@
 from typing import Any
 from google.cloud.bigtable.execute_query_values import Struct
 from google.cloud.bigtable.execute_query_metadata import SqlType
-from google.cloud.bigtable_v2.types.data import ProtoRows
+from google.cloud.bigtable_v2 import Value as PBValue
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 
 REQUIRED_PROTO_FIELDS = {
@@ -32,7 +32,7 @@ REQUIRED_PROTO_FIELDS = {
 }
 
 
-def _parse_array_type(value: ProtoRows.Value, metadata_type: SqlType.Array) -> list:
+def _parse_array_type(value: PBValue, metadata_type: SqlType.Array) -> list:
     return list(
         map(
             lambda val: parse_pb_value_to_python_value(val, metadata_type.element_type),
@@ -41,7 +41,7 @@ def _parse_array_type(value: ProtoRows.Value, metadata_type: SqlType.Array) -> l
     )
 
 
-def _parse_map_type(value: ProtoRows.Value, metadata_type: SqlType.Map) -> dict:
+def _parse_map_type(value: PBValue, metadata_type: SqlType.Map) -> dict:
     # Values of type `Map` are stored in a `Value.array_value` where each entry
     # is another `Value.array_value` with two elements (the key and the value,
     # in that order).
@@ -67,7 +67,7 @@ def _parse_map_type(value: ProtoRows.Value, metadata_type: SqlType.Map) -> dict:
         raise ValueError("Invalid map entry - less or more than two values.")
 
 
-def _parse_struct_type(value: ProtoRows.Value, metadata_type: SqlType.Struct) -> Struct:
+def _parse_struct_type(value: PBValue, metadata_type: SqlType.Struct) -> Struct:
     if len(value.array_value.values) != len(metadata_type.fields):
         raise ValueError("Mismatched lengths of values and types.")
 
@@ -80,7 +80,7 @@ def _parse_struct_type(value: ProtoRows.Value, metadata_type: SqlType.Struct) ->
 
 
 def _parse_timestamp_type(
-    value: ProtoRows.Value, metadata_type: SqlType.Timestamp
+    value: PBValue, metadata_type: SqlType.Timestamp
 ) -> DatetimeWithNanoseconds:
     return DatetimeWithNanoseconds.from_timestamp_pb(value.timestamp_value)
 
@@ -93,9 +93,7 @@ TYPE_PARSERS = {
 }
 
 
-def parse_pb_value_to_python_value(
-    value: ProtoRows.Value, metadata_type: SqlType.Type
-) -> Any:
+def parse_pb_value_to_python_value(value: PBValue, metadata_type: SqlType.Type) -> Any:
     value_kind = value.WhichOneof("kind")
     if not value_kind:
         return None

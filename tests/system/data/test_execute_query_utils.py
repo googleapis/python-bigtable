@@ -16,7 +16,7 @@ from unittest import mock
 
 import google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio as pga
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
-from google.cloud.bigtable_v2.types.data import ProtoRows
+from google.cloud.bigtable_v2.types.data import ProtoRows, Value as PBValue
 import grpc.aio
 
 
@@ -64,9 +64,9 @@ def response_with_result(*args, resume_token=None):
     values = []
     for column_value in args:
         if column_value is None:
-            pb_value = ProtoRows.Value({})
+            pb_value = PBValue({})
         else:
-            pb_value = ProtoRows.Value(
+            pb_value = PBValue(
                 {
                     "int_value"
                     if isinstance(column_value, int)
