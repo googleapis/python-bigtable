@@ -817,9 +817,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
             )
 
         if header_params:
-            metadata = tuple(metadata)
-        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
-            metadata += (gapic_v1.routing_header.to_grpc_metadata(header_params),)
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Validate the universe domain.
         self._validate_universe_domain()
@@ -933,9 +933,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
             )
 
         if header_params:
-            metadata = tuple(metadata)
-        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
-            metadata += (gapic_v1.routing_header.to_grpc_metadata(header_params),)
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Validate the universe domain.
         self._validate_universe_domain()
@@ -1070,9 +1070,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
             )
 
         if header_params:
-            metadata = tuple(metadata)
-        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
-            metadata += (gapic_v1.routing_header.to_grpc_metadata(header_params),)
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Validate the universe domain.
         self._validate_universe_domain()
@@ -1201,9 +1201,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
             )
 
         if header_params:
-            metadata = tuple(metadata)
-        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
-            metadata += (gapic_v1.routing_header.to_grpc_metadata(header_params),)
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Validate the universe domain.
         self._validate_universe_domain()
@@ -1375,9 +1375,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
             )
 
         if header_params:
-            metadata = tuple(metadata)
-        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
-            metadata += (gapic_v1.routing_header.to_grpc_metadata(header_params),)
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Validate the universe domain.
         self._validate_universe_domain()
@@ -1477,9 +1477,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:
-            metadata = tuple(metadata)
-        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
-            metadata += (gapic_v1.routing_header.to_grpc_metadata(header_params),)
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Validate the universe domain.
         self._validate_universe_domain()
@@ -1620,9 +1620,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
             )
 
         if header_params:
-            metadata = tuple(metadata)
-        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
-            metadata += (gapic_v1.routing_header.to_grpc_metadata(header_params),)
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Validate the universe domain.
         self._validate_universe_domain()
@@ -1937,9 +1937,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:
-            metadata = tuple(metadata)
-        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
-            metadata += (gapic_v1.routing_header.to_grpc_metadata(header_params),)
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Validate the universe domain.
         self._validate_universe_domain()
