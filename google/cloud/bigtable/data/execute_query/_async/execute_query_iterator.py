@@ -27,15 +27,18 @@ from typing import (
 
 from google.api_core import retry as retries
 
-from google.cloud.bigtable.byte_cursor import _ByteCursor
+from google.cloud.bigtable.data.execute_query._byte_cursor import _ByteCursor
 from google.cloud.bigtable.data._helpers import (
     _attempt_timeout_generator,
     _retry_exception_factory,
 )
 from google.cloud.bigtable.data.exceptions import InvalidExecuteQueryResponse
-from google.cloud.bigtable.execute_query_values import QueryResultRow
-from google.cloud.bigtable.execute_query_metadata import Metadata
-from google.cloud.bigtable.execute_query_reader import _QueryResultRowReader, _Reader
+from google.cloud.bigtable.data.execute_query.values import QueryResultRow
+from google.cloud.bigtable.data.execute_query.metadata import Metadata
+from google.cloud.bigtable.data.execute_query._reader import (
+    _QueryResultRowReader,
+    _Reader,
+)
 from google.cloud.bigtable_v2.types.bigtable import (
     ExecuteQueryRequest as ExecuteQueryRequestPB,
 )

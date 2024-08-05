@@ -15,15 +15,12 @@
 from typing import Dict, Any, Optional
 import datetime
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
-from google.cloud.bigtable.execute_query_values import ExecuteQueryValueType
-from google.cloud.bigtable.execute_query_metadata import SqlType
+from google.cloud.bigtable.data.exceptions import ParameterTypeInferenceFailed
+from google.cloud.bigtable.data.execute_query.values import ExecuteQueryValueType
+from google.cloud.bigtable.data.execute_query.metadata import SqlType
 
 
-class ParameterTypeInferenceFailed(ValueError):
-    pass
-
-
-def format_execute_query_params(
+def _format_execute_query_params(
     params: Optional[Dict[str, ExecuteQueryValueType]],
     parameter_types: Optional[Dict[str, SqlType.Type]],
 ):

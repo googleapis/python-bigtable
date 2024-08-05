@@ -17,7 +17,9 @@ import asyncio
 from unittest.mock import Mock
 from mock import patch
 import pytest
-from google.cloud.bigtable.data._async.client import ExecuteQueryIteratorAsync
+from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
+    ExecuteQueryIteratorAsync,
+)
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from ._testing import TYPE_INT, proto_rows_bytes, split_bytes_into_chunks, async_mock
 

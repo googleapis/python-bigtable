@@ -16,11 +16,11 @@ import pytest
 from unittest import mock
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from google.cloud.bigtable_v2.types.data import Value as PBValue
-from google.cloud.bigtable.execute_query_reader import _QueryResultRowReader
+from google.cloud.bigtable.data.execute_query._reader import _QueryResultRowReader
 
-from google.cloud.bigtable.execute_query_metadata import ProtoMetadata, SqlType
+from google.cloud.bigtable.data.execute_query.metadata import ProtoMetadata, SqlType
 
-import google.cloud.bigtable.execute_query_reader
+import google.cloud.bigtable.data.execute_query._reader
 from ._testing import TYPE_INT, proto_rows_bytes
 
 
@@ -121,8 +121,8 @@ class TestQueryResultRowReader:
 
         reader = _QueryResultRowReader(byte_cursor)
         with mock.patch.object(
-            google.cloud.bigtable.execute_query_reader,
-            "parse_pb_value_to_python_value",
+            google.cloud.bigtable.data.execute_query._reader,
+            "_parse_pb_value_to_python_value",
         ) as parse_mock:
             reader.consume(proto_rows_bytes(values[0]))
             parse_mock.assert_not_called()
@@ -143,8 +143,8 @@ class TestQueryResultRowReader:
 
         reader = _QueryResultRowReader(byte_cursor)
         with mock.patch.object(
-            google.cloud.bigtable.execute_query_reader,
-            "parse_pb_value_to_python_value",
+            google.cloud.bigtable.data.execute_query._reader,
+            "_parse_pb_value_to_python_value",
             side_effect=ValueError("test"),
         ) as parse_mock:
             with pytest.raises(ValueError, match="test"):
@@ -157,7 +157,7 @@ class TestQueryResultRowReader:
             )
 
     def test__multiple_proto_rows_received_with_one_resume_token(self):
-        from google.cloud.bigtable.byte_cursor import _ByteCursor
+        from google.cloud.bigtable.data.execute_query._byte_cursor import _ByteCursor
 
         def split_bytes_into_chunks(bytes_to_split, num_chunks):
             from google.cloud.bigtable.helpers import batched

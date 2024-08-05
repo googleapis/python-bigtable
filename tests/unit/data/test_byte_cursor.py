@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
-from google.cloud.bigtable.byte_cursor import _ByteCursor
+from google.cloud.bigtable.data.execute_query._byte_cursor import _ByteCursor
 
 from ._testing import TYPE_INT
 

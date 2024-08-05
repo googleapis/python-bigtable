@@ -23,16 +23,16 @@ from typing import (
 from abc import ABC, abstractmethod
 
 from google.cloud.bigtable_v2 import ProtoRows, Value as PBValue
-from google.cloud.bigtable.byte_cursor import _ByteCursor
+from google.cloud.bigtable.data.execute_query._byte_cursor import _ByteCursor
 
-from google.cloud.bigtable.query_result_parsing_utils import (
-    parse_pb_value_to_python_value,
+from google.cloud.bigtable.data.execute_query._query_result_parsing_utils import (
+    _parse_pb_value_to_python_value,
 )
 
 from google.cloud.bigtable.helpers import batched
 
-from google.cloud.bigtable.execute_query_values import QueryResultRow
-from google.cloud.bigtable.execute_query_metadata import Metadata
+from google.cloud.bigtable.data.execute_query.values import QueryResultRow
+from google.cloud.bigtable.data.execute_query.metadata import Metadata
 
 
 T = TypeVar("T")
@@ -111,7 +111,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         ), "This function should be called only when count of values matches count of columns."
 
         for column, value in zip(columns, values):
-            parsed_value = parse_pb_value_to_python_value(value, column.column_type)
+            parsed_value = _parse_pb_value_to_python_value(value, column.column_type)
             result.add_field(column.column_name, parsed_value)
         return result
 

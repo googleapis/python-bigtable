@@ -44,7 +44,7 @@ from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 import grpc
 
 from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
-from google.cloud.bigtable.data._async._execute_query_iterator import (
+from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
     ExecuteQueryIteratorAsync,
 )
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
@@ -79,10 +79,10 @@ from google.cloud.bigtable.data.row_filters import (
     RowFilterChain,
     StripValueTransformerFilter,
 )
-from google.cloud.bigtable.execute_query_values import ExecuteQueryValueType
-from google.cloud.bigtable.execute_query_metadata import SqlType
-from google.cloud.bigtable.execute_query_parameters_formatting import (
-    format_execute_query_params,
+from google.cloud.bigtable.data.execute_query.values import ExecuteQueryValueType
+from google.cloud.bigtable.data.execute_query.metadata import SqlType
+from google.cloud.bigtable.data.execute_query._parameters_formatting import (
+    _format_execute_query_params,
 )
 from google.cloud.bigtable_v2.services.bigtable.async_client import (
     DEFAULT_CLIENT_INFO,
@@ -496,7 +496,7 @@ class BigtableDataClientAsync(ClientWithProject):
 
         retryable_excs = [_get_error_type(e) for e in retryable_errors]
 
-        pb_params = format_execute_query_params(parameters, parameter_types)
+        pb_params = _format_execute_query_params(parameters, parameter_types)
 
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
 

@@ -15,9 +15,9 @@
 from typing import Optional
 
 from google.cloud.bigtable_v2 import ExecuteQueryResponse
-from google.cloud.bigtable.execute_query_metadata import (
+from google.cloud.bigtable.data.execute_query.metadata import (
     Metadata,
-    pb_metadata_to_metadata_types,
+    _pb_metadata_to_metadata_types,
 )
 
 
@@ -91,7 +91,7 @@ class _ByteCursor:
             raise ValueError("Invalid state - metadata already consumed")
 
         if "metadata" in response:
-            self._metadata = pb_metadata_to_metadata_types(response.metadata)
+            self._metadata = _pb_metadata_to_metadata_types(response.metadata)
         else:
             raise ValueError("Invalid parameter - response without metadata")
 

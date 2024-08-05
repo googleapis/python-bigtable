@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import pytest
-from google.cloud.bigtable.execute_query_parameters_formatting import (
-    format_execute_query_params,
+from google.cloud.bigtable.data.execute_query._parameters_formatting import (
+    _format_execute_query_params,
 )
-from google.cloud.bigtable.execute_query_metadata import Struct, SqlType
+from google.cloud.bigtable.data.execute_query.metadata import Struct, SqlType
 import datetime
 
 from google.type import date_pb2
@@ -73,7 +73,7 @@ pb_date = date_pb2.Date(year=2024, month=5, day=15)
 def test_instance_execute_query_parameters_simple_types_parsing(
     input_value, value_field, type_field, expected_value
 ):
-    result = format_execute_query_params(
+    result = _format_execute_query_params(
         {
             "test": input_value,
         },
@@ -90,19 +90,19 @@ def test_instance_execute_query_parameters_simple_types_parsing(
 
 def test_instance_execute_query_parameters_not_supported_types():
     with pytest.raises(ValueError):
-        format_execute_query_params({"test1": 1.1}, None)
+        _format_execute_query_params({"test1": 1.1}, None)
 
     with pytest.raises(ValueError):
-        format_execute_query_params({"test1": {"a": 1}}, None)
+        _format_execute_query_params({"test1": {"a": 1}}, None)
 
     with pytest.raises(ValueError):
-        format_execute_query_params({"test1": [1]}, None)
+        _format_execute_query_params({"test1": [1]}, None)
 
     with pytest.raises(ValueError):
-        format_execute_query_params({"test1": Struct([("field1", 1)])}, None)
+        _format_execute_query_params({"test1": Struct([("field1", 1)])}, None)
 
     with pytest.raises(NotImplementedError, match="not supported"):
-        format_execute_query_params(
+        _format_execute_query_params(
             {"test1": {"a": 1}},
             {
                 "test1": SqlType.Map(SqlType.String(), SqlType.Int64()),
@@ -110,7 +110,7 @@ def test_instance_execute_query_parameters_not_supported_types():
         )
 
     with pytest.raises(NotImplementedError, match="not supported"):
-        format_execute_query_params(
+        _format_execute_query_params(
             {"test1": [1]},
             {
                 "test1": SqlType.Array(SqlType.Int64()),
@@ -118,7 +118,7 @@ def test_instance_execute_query_parameters_not_supported_types():
         )
 
     with pytest.raises(NotImplementedError, match="not supported"):
-        format_execute_query_params(
+        _format_execute_query_params(
             {"test1": Struct([("field1", 1)])},
             {"test1": SqlType.Struct([("field1", SqlType.Int64())])},
         )
@@ -126,7 +126,7 @@ def test_instance_execute_query_parameters_not_supported_types():
 
 def test_instance_execute_query_parameters_not_match():
     with pytest.raises(ValueError, match="test2"):
-        format_execute_query_params(
+        _format_execute_query_params(
             {
                 "test1": 1,
                 "test2": 1,

@@ -30,7 +30,7 @@ from typing import (
     Tuple,
     Any,
 )
-from google.cloud.bigtable.execute_query_values import _NamedList, Struct
+from google.cloud.bigtable.data.execute_query.values import _NamedList, Struct
 from google.cloud.bigtable_v2 import ResultSetMetadata
 from google.cloud.bigtable_v2 import Type as PBType
 from google.type import date_pb2
@@ -93,7 +93,7 @@ class SqlType:
         def from_pb_type(cls, type_pb: PBType) -> "Metadata.Struct":
             fields = []
             for field in type_pb.struct_type.fields:
-                fields.append((field.field_name, pb_type_to_metadata_type(field.type)))
+                fields.append((field.field_name, _pb_type_to_metadata_type(field.type)))
             return cls(fields)
 
         def _to_value_pb_dict(self, value: Struct):
@@ -127,7 +127,7 @@ class SqlType:
 
         @classmethod
         def from_pb_type(cls, type_pb: PBType) -> "Metadata.Array":
-            return cls(pb_type_to_metadata_type(type_pb.array_type.element_type))
+            return cls(_pb_type_to_metadata_type(type_pb.array_type.element_type))
 
         def _to_value_pb_dict(self, value: list):
             raise NotImplementedError("Array is not supported as a query parameter")
@@ -157,8 +157,8 @@ class SqlType:
         @classmethod
         def from_pb_type(cls, type_pb: PBType) -> "Metadata.Map":
             return cls(
-                pb_type_to_metadata_type(type_pb.map_type.key_type),
-                pb_type_to_metadata_type(type_pb.map_type.value_type),
+                _pb_type_to_metadata_type(type_pb.map_type.key_type),
+                _pb_type_to_metadata_type(type_pb.map_type.value_type),
             )
 
         def _to_type_pb_dict(self) -> dict:
@@ -309,20 +309,20 @@ class ProtoMetadata(Metadata):
         return self.__str__()
 
 
-def pb_metadata_to_metadata_types(
+def _pb_metadata_to_metadata_types(
     metadata_pb: ResultSetMetadata,
 ) -> Metadata:
     if "proto_schema" in metadata_pb:
         fields = []
         for column_metadata in metadata_pb.proto_schema.columns:
             fields.append(
-                (column_metadata.name, pb_type_to_metadata_type(column_metadata.type))
+                (column_metadata.name, _pb_type_to_metadata_type(column_metadata.type))
             )
         return ProtoMetadata(fields)
     raise ValueError("Invalid ResultSetMetadata object received.")
 
 
-PROTO_TYPE_TO_METADATA_TYPE_FACTORY = {
+_PROTO_TYPE_TO_METADATA_TYPE_FACTORY = {
     "bytes_type": SqlType.Bytes,
     "string_type": SqlType.String,
     "int64_type": SqlType.Int64,
@@ -336,8 +336,8 @@ PROTO_TYPE_TO_METADATA_TYPE_FACTORY = {
 }
 
 
-def pb_type_to_metadata_type(type_pb: PBType) -> SqlType:
+def _pb_type_to_metadata_type(type_pb: PBType) -> SqlType:
     kind = PBType.pb(type_pb).WhichOneof("kind")
-    if kind in PROTO_TYPE_TO_METADATA_TYPE_FACTORY:
-        return PROTO_TYPE_TO_METADATA_TYPE_FACTORY[kind].from_pb_type(type_pb)
+    if kind in _PROTO_TYPE_TO_METADATA_TYPE_FACTORY:
+        return _PROTO_TYPE_TO_METADATA_TYPE_FACTORY[kind].from_pb_type(type_pb)
     raise ValueError(f"Unrecognized response data type: {type_pb}")

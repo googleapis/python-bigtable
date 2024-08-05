@@ -315,3 +315,7 @@ class FailedQueryShardError(Exception):
 
 class InvalidExecuteQueryResponse(core_exceptions.GoogleAPICallError):
     """Exception raised to invalid query response data from back-end."""
+
+
+class ParameterTypeInferenceFailed(ValueError):
+    pass

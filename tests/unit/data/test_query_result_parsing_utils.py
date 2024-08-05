@@ -14,12 +14,12 @@
 
 import pytest
 from google.cloud.bigtable_v2 import Type as PBType, Value as PBValue
-from google.cloud.bigtable.query_result_parsing_utils import (
-    parse_pb_value_to_python_value,
+from google.cloud.bigtable.data.execute_query._query_result_parsing_utils import (
+    _parse_pb_value_to_python_value,
 )
-from google.cloud.bigtable.execute_query_metadata import (
+from google.cloud.bigtable.data.execute_query.metadata import (
     Struct,
-    pb_type_to_metadata_type,
+    _pb_type_to_metadata_type,
     SqlType,
 )
 
@@ -78,17 +78,17 @@ class TestQueryResultParsingUtils:
         self, type_dict, value_dict, expected_metadata_type, expected_value
     ):
         _type = PBType(type_dict)
-        metadata_type = pb_type_to_metadata_type(_type)
+        metadata_type = _pb_type_to_metadata_type(_type)
         assert type(metadata_type) is expected_metadata_type
         value = PBValue(value_dict)
         assert (
-            parse_pb_value_to_python_value(value._pb, metadata_type) == expected_value
+            _parse_pb_value_to_python_value(value._pb, metadata_type) == expected_value
         )
 
     # Larger test cases were extracted for readability
     def test__array(self):
         _type = PBType({"array_type": {"element_type": TYPE_INT}})
-        metadata_type = pb_type_to_metadata_type(_type)
+        metadata_type = _pb_type_to_metadata_type(_type)
         assert type(metadata_type) is SqlType.Array
         assert type(metadata_type.element_type) is SqlType.Int64
         value = PBValue(
@@ -103,7 +103,7 @@ class TestQueryResultParsingUtils:
                 }
             }
         )
-        assert parse_pb_value_to_python_value(value._pb, metadata_type) == [1, 2, 3, 4]
+        assert _parse_pb_value_to_python_value(value._pb, metadata_type) == [1, 2, 3, 4]
 
     def test__struct(self):
         _type = PBType(
@@ -152,7 +152,7 @@ class TestQueryResultParsingUtils:
             }
         )
 
-        metadata_type = pb_type_to_metadata_type(_type)
+        metadata_type = _pb_type_to_metadata_type(_type)
         assert type(metadata_type) is SqlType.Struct
         assert type(metadata_type["field1"]) is SqlType.Int64
         assert type(metadata_type[1]) is SqlType.String
@@ -164,7 +164,7 @@ class TestQueryResultParsingUtils:
         with pytest.raises(KeyError, match="Ambigious field name"):
             metadata_type["field3"]
 
-        result = parse_pb_value_to_python_value(value._pb, metadata_type)
+        result = _parse_pb_value_to_python_value(value._pb, metadata_type)
         assert isinstance(result, Struct)
         assert result["field1"] == result[0] == 1
         assert result[1] == "test2"
@@ -247,14 +247,14 @@ class TestQueryResultParsingUtils:
             }
         )
 
-        metadata_type = pb_type_to_metadata_type(_type)
+        metadata_type = _pb_type_to_metadata_type(_type)
         assert type(metadata_type) is SqlType.Array
         assert type(metadata_type.element_type) is SqlType.Struct
         assert type(metadata_type.element_type["field1"]) is SqlType.Int64
         assert type(metadata_type.element_type[1]) is SqlType.String
         assert type(metadata_type.element_type["field3"]) is SqlType.Bool
 
-        result = parse_pb_value_to_python_value(value._pb, metadata_type)
+        result = _parse_pb_value_to_python_value(value._pb, metadata_type)
         assert isinstance(result, list)
         assert len(result) == 4
 
@@ -328,12 +328,12 @@ class TestQueryResultParsingUtils:
             }
         )
 
-        metadata_type = pb_type_to_metadata_type(_type)
+        metadata_type = _pb_type_to_metadata_type(_type)
         assert type(metadata_type) is SqlType.Map
         assert type(metadata_type.key_type) is SqlType.Int64
         assert type(metadata_type.value_type) is SqlType.String
 
-        result = parse_pb_value_to_python_value(value._pb, metadata_type)
+        result = _parse_pb_value_to_python_value(value._pb, metadata_type)
         assert isinstance(result, dict)
         assert len(result) == 4
 
@@ -386,8 +386,8 @@ class TestQueryResultParsingUtils:
             }
         )
 
-        metadata_type = pb_type_to_metadata_type(_type)
-        result = parse_pb_value_to_python_value(value._pb, metadata_type)
+        metadata_type = _pb_type_to_metadata_type(_type)
+        result = _parse_pb_value_to_python_value(value._pb, metadata_type)
         assert len(result) == 1
 
         assert result == {
@@ -531,7 +531,7 @@ class TestQueryResultParsingUtils:
                 }
             }
         )
-        metadata_type = pb_type_to_metadata_type(_type)
+        metadata_type = _pb_type_to_metadata_type(_type)
         assert type(metadata_type) is SqlType.Map
         assert type(metadata_type.key_type) is SqlType.Int64
         assert type(metadata_type.value_type) is SqlType.Map
@@ -539,7 +539,7 @@ class TestQueryResultParsingUtils:
         assert type(metadata_type.value_type.value_type) is SqlType.Struct
         assert type(metadata_type.value_type.value_type["field1"]) is SqlType.Int64
         assert type(metadata_type.value_type.value_type["field2"]) is SqlType.String
-        result = parse_pb_value_to_python_value(value._pb, metadata_type)
+        result = _parse_pb_value_to_python_value(value._pb, metadata_type)
 
         assert result[1]["1_1"]["field1"] == 1
         assert result[1]["1_1"]["field2"] == "test1"
@@ -669,7 +669,7 @@ class TestQueryResultParsingUtils:
                 }
             }
         )
-        metadata_type = pb_type_to_metadata_type(_type)
+        metadata_type = _pb_type_to_metadata_type(_type)
         assert type(metadata_type) is SqlType.Map
         assert type(metadata_type.key_type) is SqlType.Bytes
         assert type(metadata_type.value_type) is SqlType.Array
@@ -679,7 +679,7 @@ class TestQueryResultParsingUtils:
             is SqlType.Timestamp
         )
         assert type(metadata_type.value_type.element_type["value"]) is SqlType.Bytes
-        result = parse_pb_value_to_python_value(value._pb, metadata_type)
+        result = _parse_pb_value_to_python_value(value._pb, metadata_type)
 
         timestamp1 = DatetimeWithNanoseconds(
             2005, 3, 18, 1, 58, 31, tzinfo=datetime.timezone.utc
@@ -706,10 +706,10 @@ class TestQueryResultParsingUtils:
     def test__invalid_type_throws_exception(self):
         _type = PBType({"string_type": {}})
         value = PBValue({"int_value": 1})
-        metadata_type = pb_type_to_metadata_type(_type)
+        metadata_type = _pb_type_to_metadata_type(_type)
 
         with pytest.raises(
             ValueError,
             match="string_value field for String type not found in a Value.",
         ):
-            parse_pb_value_to_python_value(value._pb, metadata_type)
+            _parse_pb_value_to_python_value(value._pb, metadata_type)
