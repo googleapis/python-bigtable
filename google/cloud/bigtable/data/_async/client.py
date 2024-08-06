@@ -480,7 +480,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 Defaults to the 20 seconds.
                 If None, defaults to operation_timeout.
             - retryable_errors: a list of errors that will be retried if encountered.
-                Defaults to the Table's default_read_rows_retryable_errors
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
         Returns:
             - an asynchronous iterator that yields rows returned by the query
         Raises:
@@ -520,7 +520,6 @@ class BigtableDataClientAsync(ClientWithProject):
         return ExecuteQueryIteratorAsync(
             self,
             instance_id,
-            app_profile_id,
             request_body,
             attempt_timeout,
             operation_timeout,

@@ -79,11 +79,6 @@ def test_instance_execute_query_parameters_simple_types_parsing(
         },
         None,
     )
-    print("RESULT")
-    print(type(result["test"][value_field]))
-    print(result["test"][value_field])
-    print(type(expected_value))
-    print(expected_value)
     assert result["test"][value_field] == expected_value
     assert type_field in result["test"]["type"]
 

@@ -33,6 +33,9 @@ _REQUIRED_PROTO_FIELDS = {
 
 
 def _parse_array_type(value: PBValue, metadata_type: SqlType.Array) -> list:
+    """
+    used for parsing an array represented as a protobuf to a python list.
+    """
     return list(
         map(
             lambda val: _parse_pb_value_to_python_value(
@@ -44,12 +47,17 @@ def _parse_array_type(value: PBValue, metadata_type: SqlType.Array) -> list:
 
 
 def _parse_map_type(value: PBValue, metadata_type: SqlType.Map) -> dict:
-    # Values of type `Map` are stored in a `Value.array_value` where each entry
-    # is another `Value.array_value` with two elements (the key and the value,
-    # in that order).
-    # Normally encoded Map values won't have repeated keys, however, clients are
-    # expected to handle the case in which they do. If the same key appears
-    # multiple times, the _last_ value takes precedence.
+    """
+    used for parsing a map represented as a protobuf to a python dict.
+    
+    Values of type `Map` are stored in a `Value.array_value` where each entry
+    is another `Value.array_value` with two elements (the key and the value,
+    in that order).
+    Normally encoded Map values won't have repeated keys, however, the client 
+    must handle the case in which they do. If the same key appears
+    multiple times, the _last_ value takes precedence.
+    """
+    
 
     try:
         return dict(
@@ -70,6 +78,10 @@ def _parse_map_type(value: PBValue, metadata_type: SqlType.Map) -> dict:
 
 
 def _parse_struct_type(value: PBValue, metadata_type: SqlType.Struct) -> Struct:
+    """
+    used for parsing a struct represented as a protobuf to a 
+    google.cloud.bigtable.data.execute_query.Struct
+    """
     if len(value.array_value.values) != len(metadata_type.fields):
         raise ValueError("Mismatched lengths of values and types.")
 
@@ -84,6 +96,9 @@ def _parse_struct_type(value: PBValue, metadata_type: SqlType.Struct) -> Struct:
 def _parse_timestamp_type(
     value: PBValue, metadata_type: SqlType.Timestamp
 ) -> DatetimeWithNanoseconds:
+    """
+    used for parsing a timestamp represented as a protobuf to DatetimeWithNanoseconds
+    """
     return DatetimeWithNanoseconds.from_timestamp_pb(value.timestamp_value)
 
 
@@ -96,6 +111,9 @@ _TYPE_PARSERS = {
 
 
 def _parse_pb_value_to_python_value(value: PBValue, metadata_type: SqlType.Type) -> Any:
+    """
+    used for converting the value represented as a protobufs to a python object. 
+    """
     value_kind = value.WhichOneof("kind")
     if not value_kind:
         return None

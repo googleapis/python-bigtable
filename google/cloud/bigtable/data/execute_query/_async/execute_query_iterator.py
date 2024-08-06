@@ -45,11 +45,33 @@ from google.cloud.bigtable_v2.types.bigtable import (
 
 
 class ExecuteQueryIteratorAsync:
+    """
+    ExecuteQueryIteratorAsync handles collecting streaming responses from the 
+    ExecuteQuery RPC and parsing them to `QueryResultRow`s.
+    
+    ExecuteQueryIteratorAsync implements Asynchronous Iterator interface and can
+    be used with "async for" syntax. It is also a context manager.
+    
+    It is **not thread-safe**. It should not be used by multiple asyncio Tasks.
+    
+    Args:
+            client (google.cloud.bigtable.data._async.BigtableDataClientAsync): bigtable client
+            instance_id (str): id of the instance on which the query is executed
+            request_body (Dict[str, Any]): dict representing the body of the ExecuteQueryRequest
+            attempt_timeout (float | None): the time budget for the entire operation, in seconds.
+                Failed requests will be retried within the budget.
+                Defaults to 600 seconds.
+            operation_timeout (float): the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                Defaults to the 20 seconds. If None, defaults to operation_timeout.
+            req_metadata (Sequence[Tuple[str, str]]): metadata used while sending the gRPC request
+            retryable_excs (List[type[Exception]]): a list of errors that will be retried if encountered.
+    """
     def __init__(
         self,
         client: Any,
         instance_id: str,
-        app_profile_id: Optional[str],
         request_body: Dict[str, Any],
         attempt_timeout: float | None,
         operation_timeout: float,
@@ -57,7 +79,6 @@ class ExecuteQueryIteratorAsync:
         retryable_excs: List[type[Exception]],
     ) -> None:
         self._table_name = None
-        self._app_profile_id = app_profile_id
         self._client = client
         self._instance_id = instance_id
         self._byte_cursor = _ByteCursor()
@@ -92,14 +113,13 @@ class ExecuteQueryIteratorAsync:
         return self._is_closed
 
     @property
-    def app_profile_id(self):
-        return self._app_profile_id
-
-    @property
     def table_name(self):
         return self._table_name
 
     async def _make_request_with_resume_token(self):
+        """
+        perfoms the rpc call using the correct resume token.
+        """
         resume_token = self._byte_cursor.prepare_for_new_request()
         request = ExecuteQueryRequestPB(
             {
@@ -115,11 +135,19 @@ class ExecuteQueryIteratorAsync:
         )
 
     async def _await_metadata(self) -> None:
+        """
+        If called before the first response was recieved, the first response
+        is awaited as part of this call.
+        """
         if self._byte_cursor.metadata is None:
             metadata_msg = await self._async_stream.__anext__()
             self._byte_cursor.consume_metadata(metadata_msg)
 
     async def _next_impl(self) -> AsyncIterator[QueryResultRow]:
+        """
+        Generator wrapping the response stream which parses the stream results
+        and returns full `QueryResultRow`s.
+        """
         await self._await_metadata()
 
         async for response in self._async_stream:
@@ -150,6 +178,10 @@ class ExecuteQueryIteratorAsync:
         return self
 
     async def metadata(self) -> Optional[Metadata]:
+        """
+        Returns query metadata from the server or None if the iterator was 
+        explicitly closed.
+        """
         if self._is_closed:
             return None
         # Metadata should be present in the first response in a stream.
@@ -161,6 +193,9 @@ class ExecuteQueryIteratorAsync:
         return self._byte_cursor.metadata
 
     async def close(self) -> None:
+        """
+        Cancel all background tasks. Should be called all rows were processed.
+        """
         if self._is_closed:
             return
         self._is_closed = True

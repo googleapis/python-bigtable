@@ -23,7 +23,26 @@ from google.cloud.bigtable.data.execute_query.metadata import SqlType
 def _format_execute_query_params(
     params: Optional[Dict[str, ExecuteQueryValueType]],
     parameter_types: Optional[Dict[str, SqlType.Type]],
-):
+) -> Dict:
+    """
+    Takes a dictionary of param_name -> param_value and optionally parameter types.
+    If the parameters types are not provided, this function tries to infer them.
+
+    Args:
+        params (Optional[Dict[str, ExecuteQueryValueType]]): mapping from parameter names
+        like they appear in query (without @ at the beginning) to their values. 
+        Only values of type ExecuteQueryValueType are permitted.
+        parameter_types (Optional[Dict[str, SqlType.Type]]): mapping of parameter names
+        to their types.
+
+    Raises:
+        ValueError: raised when parameter types cannot be inferred and were not
+        provided explicitly.
+
+    Returns:
+         dictionary prasable to a protobuf represenging parameters as defined
+         in ExecuteQueryRequest.params
+    """
     if not params:
         return {}
     parameter_types = parameter_types or {}
@@ -50,7 +69,17 @@ def _format_execute_query_params(
     return result_values
 
 
-def _convert_value_to_pb_value_dict(value: Any, param_type: SqlType.Type):
+def _convert_value_to_pb_value_dict(value: ExecuteQueryValueType, param_type: SqlType.Type) -> Dict:
+    """
+    Takes a value and converts it to a dictionary parsable to a protobuf.
+
+    Args:
+        value (ExecuteQueryValueType): value
+        param_type (SqlType.Type): object describing which ExecuteQuery type the value represents.
+
+    Returns:
+        dictionary parsable to a protobuf.
+    """
     # type field will be set only in top-level Value.
     value_dict = param_type._to_value_pb_dict(value)
     value_dict["type"] = param_type._to_type_pb_dict()
@@ -68,7 +97,11 @@ _TYPES_TO_TYPE_DICTS = [
 ]
 
 
-def _detect_type(value):
+def _detect_type(value: ExecuteQueryValueType) -> SqlType.Type:
+    """
+    Infers the ExecuteQuery type based on value. Raises error if type is amiguous.
+    raises ParameterTypeInferenceFailed if not possible.
+    """
     if value is None:
         raise ParameterTypeInferenceFailed(
             "Cannot infer type of None, please provide the type manually."
