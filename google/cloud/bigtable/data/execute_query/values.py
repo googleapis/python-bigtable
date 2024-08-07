@@ -78,8 +78,12 @@ class _NamedList(Generic[T]):
         return len(self._fields)
 
     def __eq__(self, other):
+        print("_NamedList EQ")
         if not isinstance(other, _NamedList):
             return False
+
+        print("FIELDS", self._fields == other._fields)
+        print("FIELD IDXs", self._field_indexes == other._field_indexes)
         return (
             self._fields == other._fields
             and self._field_indexes == other._field_indexes

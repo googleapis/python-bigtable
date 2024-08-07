@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import pytest
+from google.cloud.bigtable.data.execute_query.values import Struct
 from google.cloud.bigtable_v2 import Type as PBType, Value as PBValue
 from google.cloud.bigtable.data.execute_query._query_result_parsing_utils import (
     _parse_pb_value_to_python_value,
 )
 from google.cloud.bigtable.data.execute_query.metadata import (
-    Struct,
     _pb_type_to_metadata_type,
     SqlType,
 )

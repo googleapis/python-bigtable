@@ -81,6 +81,7 @@ class SqlType:
             return {self.value_pb_dict_field_name: value}
 
         def __eq__(self, other):
+            print("TYPE EQ", isinstance(other, type(self)))
             return isinstance(other, type(self))
 
         def __str__(self) -> str:
@@ -113,9 +114,8 @@ class SqlType:
             #   one of the __eq__ methods (a super() in the base class would be required to call the other one), or
             # - call super() in only one of the base classes, but that would be error prone and changing
             #   the order of base classes would introduce unexpected behaviour.
-            return super(SqlType.Type, self).__eq__(other) and super(
-                _NamedList, self
-            ).__eq__(other)
+            # we also have to disable mypy because it doesn't see that SqlType.Struct == _NamedList[Type]
+            return SqlType.Type.__eq__(self, other) and _NamedList.__eq__(self, other)  # type: ignore
 
         def __str__(self):
             return super(_NamedList, self).__str__()

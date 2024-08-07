@@ -16,7 +16,8 @@ import pytest
 from google.cloud.bigtable.data.execute_query._parameters_formatting import (
     _format_execute_query_params,
 )
-from google.cloud.bigtable.data.execute_query.metadata import Struct, SqlType
+from google.cloud.bigtable.data.execute_query.metadata import SqlType
+from google.cloud.bigtable.data.execute_query.values import Struct
 import datetime
 
 from google.type import date_pb2
@@ -80,7 +81,7 @@ def test_instance_execute_query_parameters_simple_types_parsing(
         None,
     )
     assert result["test"][value_field] == expected_value
-    assert type_field in result["test"]["type"]
+    assert type_field in result["test"]["type_"]
 
 
 def test_instance_execute_query_parameters_not_supported_types():
