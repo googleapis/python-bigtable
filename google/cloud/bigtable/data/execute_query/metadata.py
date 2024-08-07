@@ -26,15 +26,16 @@ from typing import (
     List,
     Dict,
     Set,
+    Type,
     Union,
     Tuple,
     Any,
 )
-from google.cloud.bigtable.data.execute_query.values import _NamedList, Struct
+from google.cloud.bigtable.data.execute_query.values import _NamedList
 from google.cloud.bigtable_v2 import ResultSetMetadata
 from google.cloud.bigtable_v2 import Type as PBType
-from google.type import date_pb2
-from google.protobuf import timestamp_pb2
+from google.type import date_pb2  # type: ignore
+from google.protobuf import timestamp_pb2  # type: ignore
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 import datetime
 
@@ -47,15 +48,15 @@ class SqlType:
     """
 
     class Type:
-        expected_type = None
-        value_pb_dict_field_name = None
-        type_field_name = None
+        expected_type: Optional[type] = None
+        value_pb_dict_field_name: Optional[str] = None
+        type_field_name: Optional[str] = None
 
         @classmethod
         def from_pb_type(cls, pb_type: Optional[PBType] = None):
             return cls()
 
-        def _to_type_pb_dict(self) -> dict:
+        def _to_type_pb_dict(self) -> Any:
             if not self.type_field_name:
                 raise NotImplementedError(
                     "Fill in expected_type and value_pb_dict_field_name"
@@ -63,7 +64,7 @@ class SqlType:
 
             return {self.type_field_name: {}}
 
-        def _to_value_pb_dict(self, value: Any) -> dict:
+        def _to_value_pb_dict(self, value: Any) -> Any:
             if self.expected_type is None or self.value_pb_dict_field_name is None:
                 raise NotImplementedError(
                     "Fill in expected_type and value_pb_dict_field_name"
@@ -88,21 +89,23 @@ class SqlType:
         def __repr__(self) -> str:
             return self.__str__()
 
-    class Struct(_NamedList["SqlType"], Type):
+    class Struct(_NamedList["SqlType.Type"], "SqlType.Type"):
         @classmethod
-        def from_pb_type(cls, type_pb: PBType) -> "Metadata.Struct":
-            fields = []
+        def from_pb_type(cls, type_pb: Optional[PBType] = None) -> "SqlType.Struct":
+            if type_pb is None:
+                raise ValueError("missing required argument type_pb")
+            fields: List[Tuple[Optional[str], SqlType.Type]] = []
             for field in type_pb.struct_type.fields:
                 fields.append((field.field_name, _pb_type_to_metadata_type(field.type)))
             return cls(fields)
 
-        def _to_value_pb_dict(self, value: Struct):
+        def _to_value_pb_dict(self, value: Any):
             raise NotImplementedError("Struct is not supported as a query parameter")
 
-        def _to_type_pb_dict(self) -> dict:
+        def _to_type_pb_dict(self) -> Any:
             raise NotImplementedError("Struct is not supported as a query parameter")
 
-        def __eq__(self, other):
+        def __eq__(self, other: object):
             # Cannot use super() here - we'd either have to:
             # - call super() in these base classes, which would in turn call Object.__eq__
             #   to compare objects by identity and return a False, or
@@ -110,13 +113,15 @@ class SqlType:
             #   one of the __eq__ methods (a super() in the base class would be required to call the other one), or
             # - call super() in only one of the base classes, but that would be error prone and changing
             #   the order of base classes would introduce unexpected behaviour.
-            return SqlType.Type.__eq__(self, other) and _NamedList.__eq__(self, other)
+            return super(SqlType.Type, self).__eq__(other) and super(
+                _NamedList, self
+            ).__eq__(other)
 
         def __str__(self):
-            return _NamedList.__str__(self)
+            return super(_NamedList, self).__str__()
 
     class Array(Type):
-        def __init__(self, element_type: "SqlType"):
+        def __init__(self, element_type: "SqlType.Type"):
             if isinstance(element_type, SqlType.Array):
                 raise ValueError("Arrays of arrays are not supported.")
             self._element_type = element_type
@@ -126,13 +131,15 @@ class SqlType:
             return self._element_type
 
         @classmethod
-        def from_pb_type(cls, type_pb: PBType) -> "Metadata.Array":
+        def from_pb_type(cls, type_pb: Optional[PBType] = None) -> "SqlType.Array":
+            if type_pb is None:
+                raise ValueError("missing required argument type_pb")
             return cls(_pb_type_to_metadata_type(type_pb.array_type.element_type))
 
-        def _to_value_pb_dict(self, value: list):
+        def _to_value_pb_dict(self, value: Any):
             raise NotImplementedError("Array is not supported as a query parameter")
 
-        def _to_type_pb_dict(self) -> dict:
+        def _to_type_pb_dict(self) -> Any:
             raise NotImplementedError("Array is not supported as a query parameter")
 
         def __eq__(self, other):
@@ -142,7 +149,7 @@ class SqlType:
             return f"{self.__class__.__name__}<{str(self.element_type)}>"
 
     class Map(Type):
-        def __init__(self, key_type: Union[str, bytes, int], value_type: "SqlType"):
+        def __init__(self, key_type: "SqlType.Type", value_type: "SqlType.Type"):
             self._key_type = key_type
             self._value_type = value_type
 
@@ -155,16 +162,18 @@ class SqlType:
             return self._value_type
 
         @classmethod
-        def from_pb_type(cls, type_pb: PBType) -> "Metadata.Map":
+        def from_pb_type(cls, type_pb: Optional[PBType] = None) -> "SqlType.Map":
+            if type_pb is None:
+                raise ValueError("missing required argument type_pb")
             return cls(
                 _pb_type_to_metadata_type(type_pb.map_type.key_type),
                 _pb_type_to_metadata_type(type_pb.map_type.value_type),
             )
 
-        def _to_type_pb_dict(self) -> dict:
+        def _to_type_pb_dict(self) -> Any:
             raise NotImplementedError("Map is not supported as a query parameter")
 
-        def _to_value_pb_dict(self, value: dict):
+        def _to_value_pb_dict(self, value: Any):
             raise NotImplementedError("Map is not supported as a query parameter")
 
         def __eq__(self, other):
@@ -212,13 +221,13 @@ class SqlType:
             DatetimeWithNanoseconds,
         )
 
-        def _to_value_pb_dict(self, value: Any) -> dict:
+        def _to_value_pb_dict(self, value: Any) -> Any:
             if value is None:
                 return {}
 
             if not isinstance(value, self.expected_types):
                 raise ValueError(
-                    f"Expected one of {', '.join((_type.__name__ for _type in self.expected_type))}"
+                    f"Expected one of {', '.join((_type.__name__ for _type in self.expected_types))}"
                 )
 
             if isinstance(value, DatetimeWithNanoseconds):
@@ -232,7 +241,7 @@ class SqlType:
         type_field_name = "date_type"
         expected_type = datetime.date
 
-        def _to_value_pb_dict(self, value: Any) -> dict:
+        def _to_value_pb_dict(self, value: Any) -> Any:
             if value is None:
                 return {}
 
@@ -256,7 +265,7 @@ class Metadata:
 
 class ProtoMetadata(Metadata):
     class Column:
-        def __init__(self, column_name: Optional[str], column_type: SqlType):
+        def __init__(self, column_name: Optional[str], column_type: SqlType.Type):
             self._column_name = column_name
             self._column_type = column_type
 
@@ -265,23 +274,26 @@ class ProtoMetadata(Metadata):
             return self._column_name
 
         @property
-        def column_type(self) -> SqlType:
+        def column_type(self) -> SqlType.Type:
             return self._column_type
 
     @property
     def columns(self) -> List[Column]:
         return self._columns
 
-    def __init__(self, columns: Optional[List[Tuple[Optional[str], SqlType]]] = None):
-        self._columns: List[Tuple[Optional[str], SqlType]] = []
+    def __init__(
+        self, columns: Optional[List[Tuple[Optional[str], SqlType.Type]]] = None
+    ):
+        self._columns: List[ProtoMetadata.Column] = []
         self._column_indexes: Dict[str, List[int]] = defaultdict(list)
         self._duplicate_names: Set[str] = set()
 
         if columns:
             for column_name, column_type in columns:
-                if column_name in self._column_indexes:
-                    self._duplicate_names.add(column_name)
-                self._column_indexes[column_name].append(len(self._columns))
+                if column_name is not None:
+                    if column_name in self._column_indexes:
+                        self._duplicate_names.add(column_name)
+                    self._column_indexes[column_name].append(len(self._columns))
                 self._columns.append(ProtoMetadata.Column(column_name, column_type))
 
     def __getitem__(self, index_or_name: Union[str, int]) -> Column:
@@ -313,7 +325,7 @@ def _pb_metadata_to_metadata_types(
     metadata_pb: ResultSetMetadata,
 ) -> Metadata:
     if "proto_schema" in metadata_pb:
-        fields = []
+        fields: List[Tuple[Optional[str], SqlType.Type]] = []
         for column_metadata in metadata_pb.proto_schema.columns:
             fields.append(
                 (column_metadata.name, _pb_type_to_metadata_type(column_metadata.type))
@@ -322,7 +334,7 @@ def _pb_metadata_to_metadata_types(
     raise ValueError("Invalid ResultSetMetadata object received.")
 
 
-_PROTO_TYPE_TO_METADATA_TYPE_FACTORY = {
+_PROTO_TYPE_TO_METADATA_TYPE_FACTORY: Dict[str, Type[SqlType.Type]] = {
     "bytes_type": SqlType.Bytes,
     "string_type": SqlType.String,
     "int64_type": SqlType.Int64,
@@ -336,7 +348,7 @@ _PROTO_TYPE_TO_METADATA_TYPE_FACTORY = {
 }
 
 
-def _pb_type_to_metadata_type(type_pb: PBType) -> SqlType:
+def _pb_type_to_metadata_type(type_pb: PBType) -> SqlType.Type:
     kind = PBType.pb(type_pb).WhichOneof("kind")
     if kind in _PROTO_TYPE_TO_METADATA_TYPE_FACTORY:
         return _PROTO_TYPE_TO_METADATA_TYPE_FACTORY[kind].from_pb_type(type_pb)

@@ -520,6 +520,7 @@ class BigtableDataClientAsync(ClientWithProject):
         return ExecuteQueryIteratorAsync(
             self,
             instance_id,
+            app_profile_id,
             request_body,
             attempt_timeout,
             operation_timeout,

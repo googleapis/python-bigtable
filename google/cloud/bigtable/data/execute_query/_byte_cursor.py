@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
+from typing import Any, Generic, Optional, TypeVar
 
 from google.cloud.bigtable_v2 import ExecuteQueryResponse
 from google.cloud.bigtable.data.execute_query.metadata import (
@@ -20,8 +20,10 @@ from google.cloud.bigtable.data.execute_query.metadata import (
     _pb_metadata_to_metadata_types,
 )
 
+MT = TypeVar("MT", bound=Metadata)  # metadata type
 
-class _ByteCursor:
+
+class _ByteCursor(Generic[MT]):
     """
     Buffers bytes from `ExecuteQuery` responses until resume_token is received or end-of-stream
     is reached. :class:`google.cloud.bigtable_v2.types.bigtable.ExecuteQueryResponse` obtained from
@@ -35,13 +37,13 @@ class _ByteCursor:
     """
 
     def __init__(self):
-        self._metadata: Optional[Metadata] = None
+        self._metadata: Optional[MT] = None
         self._buffer = bytearray()
         self._resume_token = None
         self._last_response_results_field = None
 
     @property
-    def metadata(self) -> Optional[Metadata]:
+    def metadata(self) -> Optional[MT]:
         """
         Returns:
             Metadata or None: Metadata read from the first response of the stream
@@ -91,7 +93,8 @@ class _ByteCursor:
             raise ValueError("Invalid state - metadata already consumed")
 
         if "metadata" in response:
-            self._metadata = _pb_metadata_to_metadata_types(response.metadata)
+            metadata: Any = _pb_metadata_to_metadata_types(response.metadata)
+            self._metadata = metadata
         else:
             raise ValueError("Invalid parameter - response without metadata")
 

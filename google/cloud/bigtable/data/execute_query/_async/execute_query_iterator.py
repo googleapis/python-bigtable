@@ -34,7 +34,7 @@ from google.cloud.bigtable.data._helpers import (
 )
 from google.cloud.bigtable.data.exceptions import InvalidExecuteQueryResponse
 from google.cloud.bigtable.data.execute_query.values import QueryResultRow
-from google.cloud.bigtable.data.execute_query.metadata import Metadata
+from google.cloud.bigtable.data.execute_query.metadata import Metadata, ProtoMetadata
 from google.cloud.bigtable.data.execute_query._reader import (
     _QueryResultRowReader,
     _Reader,
@@ -46,14 +46,14 @@ from google.cloud.bigtable_v2.types.bigtable import (
 
 class ExecuteQueryIteratorAsync:
     """
-    ExecuteQueryIteratorAsync handles collecting streaming responses from the 
+    ExecuteQueryIteratorAsync handles collecting streaming responses from the
     ExecuteQuery RPC and parsing them to `QueryResultRow`s.
-    
+
     ExecuteQueryIteratorAsync implements Asynchronous Iterator interface and can
     be used with "async for" syntax. It is also a context manager.
-    
+
     It is **not thread-safe**. It should not be used by multiple asyncio Tasks.
-    
+
     Args:
             client (google.cloud.bigtable.data._async.BigtableDataClientAsync): bigtable client
             instance_id (str): id of the instance on which the query is executed
@@ -68,10 +68,12 @@ class ExecuteQueryIteratorAsync:
             req_metadata (Sequence[Tuple[str, str]]): metadata used while sending the gRPC request
             retryable_excs (List[type[Exception]]): a list of errors that will be retried if encountered.
     """
+
     def __init__(
         self,
         client: Any,
         instance_id: str,
+        app_profile_id: Optional[str],
         request_body: Dict[str, Any],
         attempt_timeout: float | None,
         operation_timeout: float,
@@ -79,9 +81,10 @@ class ExecuteQueryIteratorAsync:
         retryable_excs: List[type[Exception]],
     ) -> None:
         self._table_name = None
+        self._app_profile_id = app_profile_id
         self._client = client
         self._instance_id = instance_id
-        self._byte_cursor = _ByteCursor()
+        self._byte_cursor = _ByteCursor[ProtoMetadata]()
         self._reader: _Reader[QueryResultRow] = _QueryResultRowReader(self._byte_cursor)
         self._result_generator = self._next_impl()
         self._register_instance_task = None
@@ -111,6 +114,10 @@ class ExecuteQueryIteratorAsync:
     @property
     def is_closed(self):
         return self._is_closed
+
+    @property
+    def app_profile_id(self):
+        return self._app_profile_id
 
     @property
     def table_name(self):
@@ -179,7 +186,7 @@ class ExecuteQueryIteratorAsync:
 
     async def metadata(self) -> Optional[Metadata]:
         """
-        Returns query metadata from the server or None if the iterator was 
+        Returns query metadata from the server or None if the iterator was
         explicitly closed.
         """
         if self._is_closed:

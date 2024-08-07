@@ -24,7 +24,7 @@ from typing import (
     Tuple,
     Mapping,
 )
-from google.type import date_pb2
+from google.type import date_pb2  # type: ignore
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 
 T = TypeVar("T")

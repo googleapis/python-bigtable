@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 import datetime
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 from google.cloud.bigtable.data.exceptions import ParameterTypeInferenceFailed
@@ -23,14 +23,14 @@ from google.cloud.bigtable.data.execute_query.metadata import SqlType
 def _format_execute_query_params(
     params: Optional[Dict[str, ExecuteQueryValueType]],
     parameter_types: Optional[Dict[str, SqlType.Type]],
-) -> Dict:
+) -> Any:
     """
     Takes a dictionary of param_name -> param_value and optionally parameter types.
     If the parameters types are not provided, this function tries to infer them.
 
     Args:
         params (Optional[Dict[str, ExecuteQueryValueType]]): mapping from parameter names
-        like they appear in query (without @ at the beginning) to their values. 
+        like they appear in query (without @ at the beginning) to their values.
         Only values of type ExecuteQueryValueType are permitted.
         parameter_types (Optional[Dict[str, SqlType.Type]]): mapping of parameter names
         to their types.
@@ -69,7 +69,9 @@ def _format_execute_query_params(
     return result_values
 
 
-def _convert_value_to_pb_value_dict(value: ExecuteQueryValueType, param_type: SqlType.Type) -> Dict:
+def _convert_value_to_pb_value_dict(
+    value: ExecuteQueryValueType, param_type: SqlType.Type
+) -> Any:
     """
     Takes a value and converts it to a dictionary parsable to a protobuf.
 

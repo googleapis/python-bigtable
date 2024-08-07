@@ -19,6 +19,7 @@ from typing import (
     Optional,
     List,
     Sequence,
+    cast,
 )
 from abc import ABC, abstractmethod
 
@@ -32,7 +33,7 @@ from google.cloud.bigtable.data.execute_query._query_result_parsing_utils import
 from google.cloud.bigtable.helpers import batched
 
 from google.cloud.bigtable.data.execute_query.values import QueryResultRow
-from google.cloud.bigtable.data.execute_query.metadata import Metadata
+from google.cloud.bigtable.data.execute_query.metadata import ProtoMetadata
 
 
 T = TypeVar("T")
@@ -83,7 +84,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
     :class:`google.cloud.bigtable.byte_cursor._ByteCursor` passed in the constructor.
     """
 
-    def __init__(self, byte_cursor: _ByteCursor):
+    def __init__(self, byte_cursor: _ByteCursor[ProtoMetadata]):
         """
         Constructs new instance of ``_QueryResultRowReader``.
 
@@ -97,14 +98,15 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         self._byte_cursor = byte_cursor
 
     @property
-    def _metadata(self) -> Optional[Metadata]:
+    def _metadata(self) -> Optional[ProtoMetadata]:
         return self._byte_cursor.metadata
 
-    def _construct_query_result_row(
-        self, values: Sequence[PBValue]
-    ) -> List[QueryResultRow]:
+    def _construct_query_result_row(self, values: Sequence[PBValue]) -> QueryResultRow:
         result = QueryResultRow()
-        columns = self._metadata.columns
+        # The logic, not defined by mypy types, ensures that the value of
+        # "metadata" is never null at the time it is retrieved here
+        metadata = cast(ProtoMetadata, self._metadata)
+        columns = metadata.columns
 
         assert len(values) == len(
             columns
@@ -125,7 +127,9 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
 
         self._values.extend(self._parse_proto_rows(bytes_to_consume))
 
-        num_columns = len(self._metadata.columns)
+        # The logic, not defined by mypy types, ensures that the value of
+        # "metadata" is never null at the time it is retrieved here
+        num_columns = len(cast(ProtoMetadata, self._metadata).columns)
 
         if len(self._values) < num_columns:
             return None

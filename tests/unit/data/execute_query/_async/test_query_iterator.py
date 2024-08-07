@@ -109,7 +109,7 @@ async def test_iterator(proto_byte_stream):
         iterator = ExecuteQueryIteratorAsync(
             client=client_mock,
             instance_id="test-instance",
-            app_profile_id="app_profile_id",
+            app_profile_id="test_profile",
             request_body={},
             attempt_timeout=10,
             operation_timeout=10,
@@ -143,7 +143,7 @@ async def test_iterator_awaits_metadata(proto_byte_stream):
         iterator = ExecuteQueryIteratorAsync(
             client=client_mock,
             instance_id="test-instance",
-            app_profile_id="app_profile_id",
+            app_profile_id="test_profile",
             request_body={},
             attempt_timeout=10,
             operation_timeout=10,

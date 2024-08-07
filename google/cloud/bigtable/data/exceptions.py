@@ -319,4 +319,3 @@ class InvalidExecuteQueryResponse(core_exceptions.GoogleAPICallError):
 
 class ParameterTypeInferenceFailed(ValueError):
     """Exception raised when query parameter types were not provided and cannot be inferred."""
-
