@@ -89,7 +89,7 @@ class SqlType:
         def __repr__(self) -> str:
             return self.__str__()
 
-    class Struct(_NamedList["SqlType.Type"], "SqlType.Type"):
+    class Struct(_NamedList[Type], Type):
         @classmethod
         def from_pb_type(cls, type_pb: Optional[PBType] = None) -> "SqlType.Struct":
             if type_pb is None:

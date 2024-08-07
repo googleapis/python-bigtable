@@ -39,6 +39,21 @@ except ImportError:
         return AsyncMock(return_value=return_value)
 
 
+# ExecuteQueryResponse(
+#                 metadata={
+#                     "proto_schema": {
+#                         "columns": [
+#                             {"name": "test1", "type_": TYPE_INT},
+#                             {"name": "test2", "type_": TYPE_INT},
+#                         ]
+#                     }
+#                 }
+#             ),
+#             ExecuteQueryResponse(
+#                 results={"proto_rows_batch": {"batch_data": messages[0]}}
+#             ),
+
+
 def response_with_metadata():
     schema = {"a": "string_type", "b": "int64_type"}
     return ExecuteQueryResponse(
@@ -46,7 +61,7 @@ def response_with_metadata():
             "metadata": {
                 "proto_schema": {
                     "columns": [
-                        {"name": name, "type": {_type: {}}}
+                        {"name": name, "type_": {_type: {}}}
                         for name, _type in schema.items()
                     ]
                 }

@@ -503,7 +503,7 @@ class BigtableDataClientAsync(ClientWithProject):
         request_body = {
             "instance_name": instance_name,
             "app_profile_id": app_profile_id,
-            "query_string": query,
+            "query": query,
             "params": pb_params,
             "proto_format": {},
         }

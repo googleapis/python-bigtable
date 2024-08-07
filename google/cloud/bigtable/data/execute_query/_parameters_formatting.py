@@ -84,7 +84,7 @@ def _convert_value_to_pb_value_dict(
     """
     # type field will be set only in top-level Value.
     value_dict = param_type._to_value_pb_dict(value)
-    value_dict["type"] = param_type._to_type_pb_dict()
+    value_dict["type_"] = param_type._to_type_pb_dict()
     return value_dict
 
 
