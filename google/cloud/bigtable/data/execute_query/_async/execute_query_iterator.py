@@ -47,7 +47,7 @@ from google.cloud.bigtable_v2.types.bigtable import (
 class ExecuteQueryIteratorAsync:
     """
     ExecuteQueryIteratorAsync handles collecting streaming responses from the
-    ExecuteQuery RPC and parsing them to `QueryResultRow`s.
+    ExecuteQuery RPC and parsing them to QueryResultRows.
 
     ExecuteQueryIteratorAsync implements Asynchronous Iterator interface and can
     be used with "async for" syntax. It is also a context manager.
