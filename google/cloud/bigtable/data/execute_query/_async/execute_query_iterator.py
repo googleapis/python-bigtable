@@ -23,6 +23,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    TYPE_CHECKING
 )
 
 from google.api_core import retry as retries
@@ -43,6 +44,8 @@ from google.cloud.bigtable_v2.types.bigtable import (
     ExecuteQueryRequest as ExecuteQueryRequestPB,
 )
 
+if TYPE_CHECKING:
+    from google.cloud.bigtable.data import BigtableDataClientAsync
 
 class ExecuteQueryIteratorAsync:
     """
@@ -73,7 +76,7 @@ class ExecuteQueryIteratorAsync:
 
     def __init__(
         self,
-        client: Any,
+        client: BigtableDataClientAsync,
         instance_id: str,
         app_profile_id: Optional[str],
         request_body: Dict[str, Any],
