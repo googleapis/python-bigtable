@@ -55,18 +55,20 @@ class ExecuteQueryIteratorAsync:
     It is **not thread-safe**. It should not be used by multiple asyncio Tasks.
 
     Args:
-            client (google.cloud.bigtable.data._async.BigtableDataClientAsync): bigtable client
-            instance_id (str): id of the instance on which the query is executed
-            request_body (Dict[str, Any]): dict representing the body of the ExecuteQueryRequest
-            attempt_timeout (float | None): the time budget for the entire operation, in seconds.
-                Failed requests will be retried within the budget.
-                Defaults to 600 seconds.
-            operation_timeout (float): the time budget for an individual network request, in seconds.
-                If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted.
-                Defaults to the 20 seconds. If None, defaults to operation_timeout.
-            req_metadata (Sequence[Tuple[str, str]]): metadata used while sending the gRPC request
-            retryable_excs (List[type[Exception]]): a list of errors that will be retried if encountered.
+        client (google.cloud.bigtable.data.BigtableDataClientAsync): bigtable client
+        instance_id (str): id of the instance on which the query is executed
+        request_body (Dict[str, Any]): dict representing the body of the ExecuteQueryRequest
+        attempt_timeout (float | None): the time budget for the entire operation, in seconds.
+            Failed requests will be retried within the budget.
+            Defaults to 600 seconds.
+        operation_timeout (float): the time budget for an individual network request, in seconds.
+            If it takes longer than this time to complete, the request will be cancelled with
+            a DeadlineExceeded exception, and a retry will be attempted.
+            Defaults to the 20 seconds. If None, defaults to operation_timeout.
+        req_metadata (Sequence[Tuple[str, str]]): metadata used while sending the gRPC request
+        retryable_excs (List[type[Exception]]): a list of errors that will be retried if encountered.
+    Raises:
+        RuntimeError: if the instance is not created within an async event loop context.
     """
 
     def __init__(
@@ -113,14 +115,17 @@ class ExecuteQueryIteratorAsync:
 
     @property
     def is_closed(self):
+        """Returns True if the iterator is closed, False otherwise."""
         return self._is_closed
 
     @property
     def app_profile_id(self):
+        """Returns the app_profile_id of the iterator."""
         return self._app_profile_id
 
     @property
     def table_name(self):
+        """Returns the table_name of the iterator."""
         return self._table_name
 
     async def _make_request_with_resume_token(self):
