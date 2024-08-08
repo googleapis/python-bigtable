@@ -56,7 +56,7 @@ class SqlType:
         def from_pb_type(cls, pb_type: Optional[PBType] = None):
             return cls()
 
-        def _to_type_pb_dict(self) -> Any:
+        def _to_type_pb_dict(self) -> Dict[str, Any]:
             if not self.type_field_name:
                 raise NotImplementedError(
                     "Fill in expected_type and value_pb_dict_field_name"
@@ -64,7 +64,7 @@ class SqlType:
 
             return {self.type_field_name: {}}
 
-        def _to_value_pb_dict(self, value: Any) -> Any:
+        def _to_value_pb_dict(self, value: Any) -> Dict[str, Any]:
             if self.expected_type is None or self.value_pb_dict_field_name is None:
                 raise NotImplementedError(
                     "Fill in expected_type and value_pb_dict_field_name"
@@ -81,7 +81,6 @@ class SqlType:
             return {self.value_pb_dict_field_name: value}
 
         def __eq__(self, other):
-            print("TYPE EQ", isinstance(other, type(self)))
             return isinstance(other, type(self))
 
         def __str__(self) -> str:
@@ -103,7 +102,7 @@ class SqlType:
         def _to_value_pb_dict(self, value: Any):
             raise NotImplementedError("Struct is not supported as a query parameter")
 
-        def _to_type_pb_dict(self) -> Any:
+        def _to_type_pb_dict(self) -> Dict[str, Any]:
             raise NotImplementedError("Struct is not supported as a query parameter")
 
         def __eq__(self, other: object):
@@ -139,7 +138,7 @@ class SqlType:
         def _to_value_pb_dict(self, value: Any):
             raise NotImplementedError("Array is not supported as a query parameter")
 
-        def _to_type_pb_dict(self) -> Any:
+        def _to_type_pb_dict(self) -> Dict[str, Any]:
             raise NotImplementedError("Array is not supported as a query parameter")
 
         def __eq__(self, other):
@@ -170,7 +169,7 @@ class SqlType:
                 _pb_type_to_metadata_type(type_pb.map_type.value_type),
             )
 
-        def _to_type_pb_dict(self) -> Any:
+        def _to_type_pb_dict(self) -> Dict[str, Any]:
             raise NotImplementedError("Map is not supported as a query parameter")
 
         def _to_value_pb_dict(self, value: Any):
@@ -221,7 +220,7 @@ class SqlType:
             DatetimeWithNanoseconds,
         )
 
-        def _to_value_pb_dict(self, value: Any) -> Any:
+        def _to_value_pb_dict(self, value: Any) -> Dict[str, Any]:
             if value is None:
                 return {}
 
@@ -241,7 +240,7 @@ class SqlType:
         type_field_name = "date_type"
         expected_type = datetime.date
 
-        def _to_value_pb_dict(self, value: Any) -> Any:
+        def _to_value_pb_dict(self, value: Any) -> Dict[str, Any]:
             if value is None:
                 return {}
 
