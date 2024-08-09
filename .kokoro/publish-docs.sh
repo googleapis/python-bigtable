@@ -25,7 +25,7 @@ python3.10 -m pip install --require-hashes -r .kokoro/requirements.txt
 python3.10 -m nox --version
 
 # build docs
-python3.10 nox -s docs
+nox -s docs
 
 # create metadata
 python3.10 -m docuploader create-metadata \
@@ -44,7 +44,7 @@ python3.10 -m docuploader upload docs/_build/html --metadata-file docs.metadata 
 
 
 # docfx yaml files
-python3.10 nox -s docfx
+nox -s docfx
 
 # create metadata.
 python3.10 -m docuploader create-metadata \
