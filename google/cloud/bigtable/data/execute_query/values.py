@@ -112,8 +112,14 @@ ExecuteQueryValueType = Union[
 
 
 class QueryResultRow(_NamedList[ExecuteQueryValueType]):
+    """
+    Represents a single row of the result
+    """
     pass
 
 
 class Struct(_NamedList[ExecuteQueryValueType]):
+    """
+    Represents a struct value in the result
+    """
     pass
