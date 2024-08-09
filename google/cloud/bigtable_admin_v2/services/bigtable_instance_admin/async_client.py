@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 from collections import OrderedDict
-import functools
 import re
 from typing import (
     Dict,
@@ -218,10 +217,7 @@ class BigtableInstanceAdminAsyncClient:
         """
         return self._client._universe_domain
 
-    get_transport_class = functools.partial(
-        type(BigtableInstanceAdminClient).get_transport_class,
-        type(BigtableInstanceAdminClient),
-    )
+    get_transport_class = BigtableInstanceAdminClient.get_transport_class
 
     def __init__(
         self,
@@ -1698,6 +1694,8 @@ class BigtableInstanceAdminAsyncClient:
             method=rpc,
             request=request,
             response=response,
+            retry=retry,
+            timeout=timeout,
             metadata=metadata,
         )
 
@@ -2277,6 +2275,8 @@ class BigtableInstanceAdminAsyncClient:
             method=rpc,
             request=request,
             response=response,
+            retry=retry,
+            timeout=timeout,
             metadata=metadata,
         )
 

@@ -814,7 +814,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 Type[BigtableTableAdminTransport],
                 Callable[..., BigtableTableAdminTransport],
             ] = (
-                type(self).get_transport_class(transport)
+                BigtableTableAdminClient.get_transport_class(transport)
                 if isinstance(transport, str) or transport is None
                 else cast(Callable[..., BigtableTableAdminTransport], transport)
             )
@@ -1149,6 +1149,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
             method=rpc,
             request=request,
             response=response,
+            retry=retry,
+            timeout=timeout,
             metadata=metadata,
         )
 
@@ -1710,6 +1712,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
             method=rpc,
             request=request,
             response=response,
+            retry=retry,
+            timeout=timeout,
             metadata=metadata,
         )
 
@@ -2677,6 +2681,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
             method=rpc,
             request=request,
             response=response,
+            retry=retry,
+            timeout=timeout,
             metadata=metadata,
         )
 
@@ -3218,6 +3224,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
             method=rpc,
             request=request,
             response=response,
+            retry=retry,
+            timeout=timeout,
             metadata=metadata,
         )
 
@@ -3237,7 +3245,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         operation][google.longrunning.Operation] can be used to track
         the progress of the operation, and to cancel it. The
         [metadata][google.longrunning.Operation.metadata] field type is
-        [RestoreTableMetadata][google.bigtable.admin.RestoreTableMetadata].
+        [RestoreTableMetadata][google.bigtable.admin.v2.RestoreTableMetadata].
         The [response][google.longrunning.Operation.response] type is
         [Table][google.bigtable.admin.v2.Table], if successful.
 
@@ -3320,8 +3328,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 [CopyBackup][google.bigtable.admin.v2.BigtableTableAdmin.CopyBackup].
             parent (str):
                 Required. The name of the destination cluster that will
-                contain the backup copy. The cluster must already
-                exists. Values are of the form:
+                contain the backup copy. The cluster must already exist.
+                Values are of the form:
                 ``projects/{project}/instances/{instance}/clusters/{cluster}``.
 
                 This corresponds to the ``parent`` field

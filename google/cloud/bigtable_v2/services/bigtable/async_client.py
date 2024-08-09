@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 from collections import OrderedDict
-import functools
 import re
 from typing import (
     Dict,
@@ -188,9 +187,7 @@ class BigtableAsyncClient:
         """
         return self._client._universe_domain
 
-    get_transport_class = functools.partial(
-        type(BigtableClient).get_transport_class, type(BigtableClient)
-    )
+    get_transport_class = BigtableClient.get_transport_class
 
     def __init__(
         self,
@@ -340,11 +337,13 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
-        )
+        metadata = tuple(metadata)
+        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
+            metadata += (
+                gapic_v1.routing_header.to_grpc_metadata(
+                    (("table_name", request.table_name),)
+                ),
+            )
 
         # Validate the universe domain.
         self._client._validate_universe_domain()
@@ -441,11 +440,13 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
-        )
+        metadata = tuple(metadata)
+        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
+            metadata += (
+                gapic_v1.routing_header.to_grpc_metadata(
+                    (("table_name", request.table_name),)
+                ),
+            )
 
         # Validate the universe domain.
         self._client._validate_universe_domain()
@@ -563,11 +564,13 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
-        )
+        metadata = tuple(metadata)
+        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
+            metadata += (
+                gapic_v1.routing_header.to_grpc_metadata(
+                    (("table_name", request.table_name),)
+                ),
+            )
 
         # Validate the universe domain.
         self._client._validate_universe_domain()
@@ -679,11 +682,13 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
-        )
+        metadata = tuple(metadata)
+        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
+            metadata += (
+                gapic_v1.routing_header.to_grpc_metadata(
+                    (("table_name", request.table_name),)
+                ),
+            )
 
         # Validate the universe domain.
         self._client._validate_universe_domain()
@@ -838,11 +843,13 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
-        )
+        metadata = tuple(metadata)
+        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
+            metadata += (
+                gapic_v1.routing_header.to_grpc_metadata(
+                    (("table_name", request.table_name),)
+                ),
+            )
 
         # Validate the universe domain.
         self._client._validate_universe_domain()
@@ -936,9 +943,11 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
+        metadata = tuple(metadata)
+        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
+            metadata += (
+                gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+            )
 
         # Validate the universe domain.
         self._client._validate_universe_domain()
@@ -1062,11 +1071,13 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
-        )
+        metadata = tuple(metadata)
+        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
+            metadata += (
+                gapic_v1.routing_header.to_grpc_metadata(
+                    (("table_name", request.table_name),)
+                ),
+            )
 
         # Validate the universe domain.
         self._client._validate_universe_domain()
@@ -1172,11 +1183,13 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
-        )
+        metadata = tuple(metadata)
+        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
+            metadata += (
+                gapic_v1.routing_header.to_grpc_metadata(
+                    (("table_name", request.table_name),)
+                ),
+            )
 
         # Validate the universe domain.
         self._client._validate_universe_domain()
@@ -1274,11 +1287,13 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
-        )
+        metadata = tuple(metadata)
+        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
+            metadata += (
+                gapic_v1.routing_header.to_grpc_metadata(
+                    (("table_name", request.table_name),)
+                ),
+            )
 
         # Validate the universe domain.
         self._client._validate_universe_domain()
@@ -1377,11 +1392,13 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("instance_name", request.instance_name),)
-            ),
-        )
+        metadata = tuple(metadata)
+        if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
+            metadata += (
+                gapic_v1.routing_header.to_grpc_metadata(
+                    (("instance_name", request.instance_name),)
+                ),
+            )
 
         # Validate the universe domain.
         self._client._validate_universe_domain()
