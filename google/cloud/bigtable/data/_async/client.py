@@ -482,6 +482,8 @@ class BigtableDataClientAsync(ClientWithProject):
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
         Returns:
+            ExecuteQueryIteratorAsync: an asynchronous iterator that yields rows returned by the query
+        Raises:
             google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
