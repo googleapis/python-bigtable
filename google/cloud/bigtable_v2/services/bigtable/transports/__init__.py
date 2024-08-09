@@ -28,14 +28,12 @@ from .rest import BigtableRestInterceptor
 _transport_registry = OrderedDict()  # type: Dict[str, Type[BigtableTransport]]
 _transport_registry["grpc"] = BigtableGrpcTransport
 _transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport
-_transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport
 _transport_registry["rest"] = BigtableRestTransport
 
 __all__ = (
     "BigtableTransport",
     "BigtableGrpcTransport",
     "BigtableGrpcAsyncIOTransport",
-    "PooledBigtableGrpcAsyncIOTransport",
     "BigtableRestTransport",
     "BigtableRestInterceptor",
 )
