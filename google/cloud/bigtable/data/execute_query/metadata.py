@@ -91,6 +91,7 @@ class SqlType:
 
     class Struct(_NamedList[Type], Type):
         """Struct SQL type."""
+
         @classmethod
         def from_pb_type(cls, type_pb: Optional[PBType] = None) -> "SqlType.Struct":
             if type_pb is None:
@@ -122,6 +123,7 @@ class SqlType:
 
     class Array(Type):
         """Array SQL type."""
+
         def __init__(self, element_type: "SqlType.Type"):
             if isinstance(element_type, SqlType.Array):
                 raise ValueError("Arrays of arrays are not supported.")
@@ -151,6 +153,7 @@ class SqlType:
 
     class Map(Type):
         """Map SQL type."""
+
         def __init__(self, key_type: "SqlType.Type", value_type: "SqlType.Type"):
             self._key_type = key_type
             self._value_type = value_type
@@ -193,30 +196,35 @@ class SqlType:
 
     class Bytes(Type):
         """Bytes SQL type."""
+
         expected_type = bytes
         value_pb_dict_field_name = "bytes_value"
         type_field_name = "bytes_type"
 
     class String(Type):
         """String SQL type."""
+
         expected_type = str
         value_pb_dict_field_name = "string_value"
         type_field_name = "string_type"
 
     class Int64(Type):
         """Int64 SQL type."""
+
         expected_type = int
         value_pb_dict_field_name = "int_value"
         type_field_name = "int64_type"
 
     class Float64(Type):
         """Float64 SQL type."""
+
         expected_type = float
         value_pb_dict_field_name = "float_value"
         type_field_name = "float64_type"
 
     class Bool(Type):
         """Bool SQL type."""
+
         expected_type = bool
         value_pb_dict_field_name = "bool_value"
         type_field_name = "bool_type"
@@ -254,6 +262,7 @@ class SqlType:
 
     class Date(Type):
         """Date SQL type."""
+
         type_field_name = "date_type"
         expected_type = datetime.date
 
@@ -279,6 +288,7 @@ class Metadata:
     """
     Base class for metadata returned by the ExecuteQuery operation.
     """
+
     pass
 
 
@@ -291,6 +301,7 @@ class ProtoMetadata(Metadata):
             metadata tuples. Each tuple contains the column name and the column
             type.
     """
+
     class Column:
         def __init__(self, column_name: Optional[str], column_type: SqlType.Type):
             self._column_name = column_name
