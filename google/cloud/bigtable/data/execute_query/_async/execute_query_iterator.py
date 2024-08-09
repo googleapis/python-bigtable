@@ -117,17 +117,17 @@ class ExecuteQueryIteratorAsync:
             ) from e
 
     @property
-    def is_closed(self):
+    def is_closed(self) -> bool:
         """Returns True if the iterator is closed, False otherwise."""
         return self._is_closed
 
     @property
-    def app_profile_id(self):
+    def app_profile_id(self) -> Optional[str]:
         """Returns the app_profile_id of the iterator."""
         return self._app_profile_id
 
     @property
-    def table_name(self):
+    def table_name(self) -> Optional[str]:
         """Returns the table_name of the iterator."""
         return self._table_name
 
