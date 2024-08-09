@@ -76,7 +76,7 @@ ENV PATH /usr/local/bin/python3.10:$PATH
 
 # Update the python3 symlink
 RUN rm /usr/bin/python3 && \
-    ln -s /usr/bin/python3.10 /usr/bin/python3
+    ln -s /usr/local/bin/python3.10 /usr/bin/python3
 
 ###################### Install pip
 RUN wget -O /tmp/get-pip.py 'https://bootstrap.pypa.io/get-pip.py' \
