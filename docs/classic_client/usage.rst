@@ -1,5 +1,3 @@
-.. include:: multiprocessing.rst
-
 Classic Client
 ==============
 

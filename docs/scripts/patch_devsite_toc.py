@@ -209,6 +209,7 @@ if __name__ == "__main__":
             "Overview",
             "bigtable APIs",
             "Changelog",
+            "Multiprocessing",
             "Async Data Client",
             "Classic Client",
         ],
