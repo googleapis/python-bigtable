@@ -17,6 +17,9 @@
 
 import mock
 
+# flake8: noqa
+from .._testing import TYPE_INT, split_bytes_into_chunks, proto_rows_bytes
+
 
 class _FakeStub(object):
     """Acts as a gPRC stub."""

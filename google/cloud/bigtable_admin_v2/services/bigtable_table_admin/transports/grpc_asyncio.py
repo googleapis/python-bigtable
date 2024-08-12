@@ -181,7 +181,8 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
 
         if isinstance(channel, aio.Channel):
             # Ignore credentials if a channel was passed.
-            credentials = False
+            credentials = None
+            self._ignore_credentials = True
             # If a channel was explicitly provided, set it.
             self._grpc_channel = channel
             self._ssl_channel_credentials = None
@@ -1047,7 +1048,7 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
         operation][google.longrunning.Operation] can be used to track
         the progress of the operation, and to cancel it. The
         [metadata][google.longrunning.Operation.metadata] field type is
-        [RestoreTableMetadata][google.bigtable.admin.RestoreTableMetadata].
+        [RestoreTableMetadata][google.bigtable.admin.v2.RestoreTableMetadata].
         The [response][google.longrunning.Operation.response] type is
         [Table][google.bigtable.admin.v2.Table], if successful.
 
