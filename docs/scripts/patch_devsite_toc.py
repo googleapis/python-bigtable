@@ -98,7 +98,11 @@ class TocSection:
                 # add files explictly included in the toc
                 if line.startswith(".. include::"):
                     file_base = os.path.splitext(line.split("::")[1].strip())[0]
-                    self.items.append(self.extract_toc_entry(file_base, file_title=file_base.capitalize()))
+                    self.items.append(
+                        self.extract_toc_entry(
+                            file_base, file_title=file_base.capitalize()
+                        )
+                    )
                     continue
                 if line.startswith(".. toctree::"):
                     in_toc = True
@@ -153,7 +157,9 @@ def validate_toc(toc_file_path, expected_section_list, added_sections):
     current_toc = yaml.safe_load(open(toc_file_path, "r"))
     # make sure the set of sections matches what we expect
     found_sections = [d["name"] for d in current_toc[0]["items"]]
-    assert found_sections == expected_section_list, f"Expected {expected_section_list}, found {found_sections}"
+    assert (
+        found_sections == expected_section_list
+    ), f"Expected {expected_section_list}, found {found_sections}"
     # make sure each customs ection is in the toc
     for section in added_sections:
         assert section.title in found_sections
