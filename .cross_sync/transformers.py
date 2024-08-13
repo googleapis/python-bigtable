@@ -75,7 +75,7 @@ class SymbolReplacer(ast.NodeTransformer):
             node.body[0].value, ast.Str
         ):
             for key_word, replacement in self.replacements.items():
-                docstring = docstring.replace(f" {key_word} ", f" {replacement} ")
+                docstring = docstring.replace(key_word, replacement)
             node.body[0].value.s = docstring
         return self.generic_visit(node)
 
