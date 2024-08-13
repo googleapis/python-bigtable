@@ -57,6 +57,10 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import (
 )
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
+from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
+    ExecuteQueryIteratorAsync,
+)
+
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
@@ -64,6 +68,7 @@ CrossSync.add_mapping("PooledChannel", AsyncPooledChannel)
 CrossSync.add_mapping("PooledTransport", PooledBigtableGrpcAsyncIOTransport)
 CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
 CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
+CrossSync.add_mapping("ExecuteQueryIterator", ExecuteQueryIteratorAsync)
 
 
 __version__: str = package_version.__version__

@@ -34,9 +34,6 @@ import concurrent.futures
 from functools import partial
 from grpc import Channel
 
-from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
-    ExecuteQueryIteratorAsync,
-)
 from google.cloud.bigtable.data.execute_query.values import ExecuteQueryValueType
 from google.cloud.bigtable.data.execute_query.metadata import SqlType
 from google.cloud.bigtable.data.execute_query._parameters_formatting import (
@@ -91,12 +88,19 @@ if CrossSync.is_async:
     from google.cloud.bigtable.data._async.mutations_batcher import (
         MutationsBatcherAsync,
     )
+    from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
+        ExecuteQueryIteratorAsync,
+    )
 
 else:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport as PooledTransportType  # type: ignore
     from google.cloud.bigtable.data._sync.mutations_batcher import (  # noqa: F401
         MutationsBatcher,
     )
+    from google.cloud.bigtable.data.execute_query._sync.execute_query_iterator import (  # noqa: F401
+        ExecuteQueryIterator,
+    )
+
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -371,7 +375,7 @@ class BigtableDataClientAsync(ClientWithProject):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.monotonic() - start_timestamp)
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table", "ExecuteQueryIteratorAsync": "ExecuteQueryIterator"})
     async def _register_instance(
         self, instance_id: str, owner: TableAsync | ExecuteQueryIteratorAsync
     ) -> None:
@@ -406,7 +410,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 # refresh tasks aren't active. start them as background tasks
                 self._start_background_channel_refresh()
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
+    @CrossSync.convert(replace_symbols={"TableAsync": "Table", "ExecuteQueryIteratorAsync": "ExecuteQueryIterator"})
     async def _remove_instance_registration(
         self, instance_id: str, owner: TableAsync | ExecuteQueryIteratorAsync
     ) -> bool:
@@ -479,6 +483,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
+    @CrossSync.convert(replace_symbols={"ExecuteQueryIteratorAsync": "ExecuteQueryIterator"})
     async def execute_query(
         self,
         query: str,
