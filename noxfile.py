@@ -147,6 +147,8 @@ def mypy(session):
         "tests/system/v2_client",
         "--exclude",
         "tests/unit/v2_client",
+        "--disable-error-code",
+        "func-returns-value",  # needed for CrossSync.rm_aio
     )
 
 

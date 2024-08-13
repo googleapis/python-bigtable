@@ -36,7 +36,6 @@ Usage Example:
 ```
 """
 
-
 from __future__ import annotations
 
 from typing import (
@@ -67,6 +66,7 @@ from ._decorators import (
     Pytest,
     PytestFixture,
 )
+from ._mapping_meta import MappingMeta
 
 if TYPE_CHECKING:
     from typing_extensions import TypeAlias
@@ -74,7 +74,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-class CrossSync:
+class CrossSync(metaclass=MappingMeta):
     # support CrossSync.is_async to check if the current environment is async
     is_async = True
 
@@ -104,23 +104,6 @@ class CrossSync:
     pytest_fixture = (
         PytestFixture.decorator
     )  # decorate test methods to run with pytest fixture
-
-    # list of attributes that can be added to the CrossSync class at runtime
-    _runtime_replacements: set[Any] = set()
-
-    @classmethod
-    def add_mapping(cls, name, value):
-        """
-        Add a new attribute to the CrossSync class, for replacing library-level symbols
-
-        Raises:
-            - AttributeError if the attribute already exists with a different value
-        """
-        if not hasattr(cls, name):
-            cls._runtime_replacements.add(name)
-        elif value != getattr(cls, name):
-            raise AttributeError(f"Conflicting assignments for CrossSync.{name}")
-        setattr(cls, name, value)
 
     @classmethod
     def Mock(cls, *args, **kwargs):
@@ -247,7 +230,7 @@ class CrossSync:
         asyncio.get_running_loop()
 
     @staticmethod
-    def rm_aio(statement: Any) -> Any:
+    def rm_aio(statement: T) -> T:
         """
         Used to annotate regions of the code containing async keywords to strip
 
@@ -256,7 +239,7 @@ class CrossSync:
         """
         return statement
 
-    class _Sync_Impl:
+    class _Sync_Impl(metaclass=MappingMeta):
         """
         Provide sync versions of the async functions and types in CrossSync
         """
@@ -279,30 +262,6 @@ class CrossSync:
         Iterable: TypeAlias = typing.Iterable
         Iterator: TypeAlias = typing.Iterator
         Generator: TypeAlias = typing.Generator
-
-        _runtime_replacements: set[Any] = set()
-
-        @classmethod
-        def add_mapping_decorator(cls, name):
-            def decorator(wrapped_cls):
-                cls.add_mapping(name, wrapped_cls)
-                return wrapped_cls
-
-            return decorator
-
-        @classmethod
-        def add_mapping(cls, name, value):
-            """
-            Add a new attribute to the CrossSync class, for replacing library-level symbols
-
-            Raises:
-                - AttributeError if the attribute already exists with a different value
-            """
-            if not hasattr(cls, name):
-                cls._runtime_replacements.add(name)
-            elif value != getattr(cls, name):
-                raise AttributeError(f"Conflicting assignments for CrossSync.{name}")
-            setattr(cls, name, value)
 
         @classmethod
         def Mock(cls, *args, **kwargs):

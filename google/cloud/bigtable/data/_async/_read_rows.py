@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Sequence, TYPE_CHECKING
 
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
@@ -36,10 +36,15 @@ from google.api_core.retry import exponential_sleep_generator
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+if TYPE_CHECKING:
+    if CrossSync.is_async:
+        from google.cloud.bigtable.data._async.client import TableAsync as TableType
+    else:
+        from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
+
 
 @CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
-    add_mapping_for_name="_ReadRowsOperation",
 )
 class _ReadRowsOperationAsync:
     """
@@ -75,7 +80,7 @@ class _ReadRowsOperationAsync:
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: CrossSync.Table,
+        table: TableType,
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
@@ -95,8 +100,7 @@ class _ReadRowsOperationAsync:
         self.table = table
         self._predicate = retries.if_exception_type(*retryable_exceptions)
         self._metadata = _make_metadata(
-            table.table_name,
-            table.app_profile_id,
+            table.table_name, table.app_profile_id, instance_name=None
         )
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None

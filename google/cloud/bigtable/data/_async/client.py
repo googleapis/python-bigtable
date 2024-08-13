@@ -34,6 +34,14 @@ import concurrent.futures
 from functools import partial
 from grpc import Channel
 
+from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
+    ExecuteQueryIteratorAsync,
+)
+from google.cloud.bigtable.data.execute_query.values import ExecuteQueryValueType
+from google.cloud.bigtable.data.execute_query.metadata import SqlType
+from google.cloud.bigtable.data.execute_query._parameters_formatting import (
+    _format_execute_query_params,
+)
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.transports.base import (
     DEFAULT_CLIENT_INFO,
@@ -61,6 +69,7 @@ from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._helpers import _validate_timeouts
+from google.cloud.bigtable.data._helpers import _get_error_type
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
@@ -77,50 +86,17 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledBigtableGrpcAsyncIOTransport,
+        PooledBigtableGrpcAsyncIOTransport as PooledTransportType,
     )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledChannel as AsyncPooledChannel,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.async_client import (
-        BigtableAsyncClient,
-    )
-    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-    from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
     from google.cloud.bigtable.data._async.mutations_batcher import (
         MutationsBatcherAsync,
     )
 
-    # define file-specific cross-sync replacements
-    CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
-    CrossSync.add_mapping("PooledTransport", PooledBigtableGrpcAsyncIOTransport)
-    CrossSync.add_mapping("PooledChannel", AsyncPooledChannel)
-    CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
-    CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
-    CrossSync.add_mapping("MutationsBatcher", MutationsBatcherAsync)
 else:
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-        PooledBigtableGrpcTransport,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-        PooledChannel,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.client import (
-        BigtableClient,
-    )
-    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
-    from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
-    from google.cloud.bigtable.data._sync.mutations_batcher import (
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport as PooledTransportType  # type: ignore
+    from google.cloud.bigtable.data._sync.mutations_batcher import (  # noqa: F401
         MutationsBatcher,
     )
-
-    # define file-specific cross-sync replacements
-    CrossSync.add_mapping("GapicClient", BigtableClient)
-    CrossSync.add_mapping("PooledTransport", PooledBigtableGrpcTransport)
-    CrossSync.add_mapping("PooledChannel", PooledChannel)
-    CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperation)
-    CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperation)
-    CrossSync.add_mapping("MutationsBatcher", MutationsBatcher)
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -168,7 +144,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         # set up transport in registry
         transport_str = f"bt-{self._client_version()}-{pool_size}"
-        transport = CrossSync.PooledTransport.with_fixed_size(pool_size)
+        transport = PooledTransportType.with_fixed_size(pool_size)
         BigtableClientMeta._transport_registry[transport_str] = transport
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
@@ -200,7 +176,7 @@ class BigtableDataClientAsync(ClientWithProject):
             client_info=client_info,
         )
         self._is_closed = CrossSync.Event()
-        self.transport = cast(CrossSync.PooledTransport, self._gapic_client.transport)
+        self.transport = cast(PooledTransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[_WarmedInstanceKey] = set()
         # keep track of table objects associated with each instance
@@ -396,7 +372,9 @@ class BigtableDataClientAsync(ClientWithProject):
             next_sleep = next_refresh - (time.monotonic() - start_timestamp)
 
     @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
-    async def _register_instance(self, instance_id: str, owner: TableAsync) -> None:
+    async def _register_instance(
+        self, instance_id: str, owner: TableAsync | ExecuteQueryIteratorAsync
+    ) -> None:
         """
         Registers an instance with the client, and warms the channel pool
         for the instance
@@ -430,7 +408,7 @@ class BigtableDataClientAsync(ClientWithProject):
 
     @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
     async def _remove_instance_registration(
-        self, instance_id: str, owner: TableAsync
+        self, instance_id: str, owner: TableAsync | ExecuteQueryIteratorAsync
     ) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
@@ -500,6 +478,102 @@ class BigtableDataClientAsync(ClientWithProject):
             RuntimeError: if called outside of an async context (no running event loop)
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
+
+    async def execute_query(
+        self,
+        query: str,
+        instance_id: str,
+        *,
+        parameters: dict[str, ExecuteQueryValueType] | None = None,
+        parameter_types: dict[str, SqlType.Type] | None = None,
+        app_profile_id: str | None = None,
+        operation_timeout: float = 600,
+        attempt_timeout: float | None = 20,
+        retryable_errors: Sequence[type[Exception]] = (
+            DeadlineExceeded,
+            ServiceUnavailable,
+            Aborted,
+        ),
+    ) -> "ExecuteQueryIteratorAsync":
+        """
+        Executes an SQL query on an instance.
+        Returns an iterator to asynchronously stream back columns from selected rows.
+
+        Failed requests within operation_timeout will be retried based on the
+        retryable_errors list until operation_timeout is reached.
+
+        Args:
+            query: Query to be run on Bigtable instance. The query can use ``@param``
+                placeholders to use parameter interpolation on the server. Values for all
+                parameters should be provided in ``parameters``. Types of parameters are
+                inferred but should be provided in ``parameter_types`` if the inference is
+                not possible (i.e. when value can be None, an empty list or an empty dict).
+            instance_id: The Bigtable instance ID to perform the query on.
+                instance_id is combined with the client's project to fully
+                specify the instance.
+            parameters: Dictionary with values for all parameters used in the ``query``.
+            parameter_types: Dictionary with types of parameters used in the ``query``.
+                Required to contain entries only for parameters whose type cannot be
+                detected automatically (i.e. the value can be None, an empty list or
+                an empty dict).
+            app_profile_id: The app profile to associate with requests.
+                https://cloud.google.com/bigtable/docs/app-profiles
+            operation_timeout: the time budget for the entire operation, in seconds.
+                Failed requests will be retried within the budget.
+                Defaults to 600 seconds.
+            attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                Defaults to the 20 seconds.
+                If None, defaults to operation_timeout.
+            retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+        Returns:
+            ExecuteQueryIteratorAsync: an asynchronous iterator that yields rows returned by the query
+        Raises:
+            google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
+                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                from any retries that failed
+            google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
+        """
+        warnings.warn(
+            "ExecuteQuery is in preview and may change in the future.",
+            category=RuntimeWarning,
+        )
+
+        retryable_excs = [_get_error_type(e) for e in retryable_errors]
+
+        pb_params = _format_execute_query_params(parameters, parameter_types)
+
+        instance_name = self._gapic_client.instance_path(self.project, instance_id)
+
+        request_body = {
+            "instance_name": instance_name,
+            "app_profile_id": app_profile_id,
+            "query": query,
+            "params": pb_params,
+            "proto_format": {},
+        }
+
+        # app_profile_id should be set to an empty string for ExecuteQueryRequest only
+        app_profile_id_for_metadata = app_profile_id or ""
+
+        req_metadata = _make_metadata(
+            table_name=None,
+            app_profile_id=app_profile_id_for_metadata,
+            instance_name=instance_name,
+        )
+
+        return ExecuteQueryIteratorAsync(
+            self,
+            instance_id,
+            app_profile_id,
+            request_body,
+            attempt_timeout,
+            operation_timeout,
+            req_metadata,
+            retryable_excs,
+        )
 
     @CrossSync.convert(sync_name="__enter__")
     async def __aenter__(self):
@@ -1010,7 +1084,9 @@ class TableAsync:
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
 
         # prepare request
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        metadata = _make_metadata(
+            self.table_name, self.app_profile_id, instance_name=None
+        )
 
         @CrossSync.convert
         async def execute_rpc():
@@ -1155,7 +1231,9 @@ class TableAsync:
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
             timeout=attempt_timeout,
-            metadata=_make_metadata(self.table_name, self.app_profile_id),
+            metadata=_make_metadata(
+                self.table_name, self.app_profile_id, instance_name=None
+            ),
             retry=None,
         )
         return CrossSync.rm_aio(
@@ -1277,7 +1355,9 @@ class TableAsync:
         ):
             false_case_mutations = [false_case_mutations]
         false_case_list = [m._to_pb() for m in false_case_mutations or []]
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        metadata = _make_metadata(
+            self.table_name, self.app_profile_id, instance_name=None
+        )
         result = CrossSync.rm_aio(
             await self.client._gapic_client.check_and_mutate_row(
                 true_mutations=true_case_list,
@@ -1333,7 +1413,9 @@ class TableAsync:
             rules = [rules]
         if not rules:
             raise ValueError("rules must contain at least one item")
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        metadata = _make_metadata(
+            self.table_name, self.app_profile_id, instance_name=None
+        )
         result = CrossSync.rm_aio(
             await self.client._gapic_client.read_modify_write_row(
                 rules=[rule._to_pb() for rule in rules],

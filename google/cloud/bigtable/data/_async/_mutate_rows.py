@@ -35,19 +35,18 @@ if TYPE_CHECKING:
 
     if CrossSync.is_async:
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
-            BigtableAsyncClient,
+            BigtableAsyncClient as GapicClientType,
         )
-
-        CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
+        from google.cloud.bigtable.data._async.client import TableAsync as TableType
     else:
-        from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
-
-        CrossSync.add_mapping("GapicClient", BigtableClient)
+        from google.cloud.bigtable_v2.services.bigtable.client import (  # type: ignore
+            BigtableClient as GapicClientType,
+        )
+        from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
 
 
 @CrossSync.export_sync(
     path="google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
-    add_mapping_for_name="_MutateRowsOperation",
 )
 class _MutateRowsOperationAsync:
     """
@@ -71,8 +70,8 @@ class _MutateRowsOperationAsync:
     @CrossSync.convert
     def __init__(
         self,
-        gapic_client: CrossSync.GapicClient,
-        table: CrossSync.Table,
+        gapic_client: GapicClientType,
+        table: TableType,
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
@@ -87,7 +86,9 @@ class _MutateRowsOperationAsync:
                 f"all entries. Found {total_mutations}."
             )
         # create partial function to pass to trigger rpc call
-        metadata = _make_metadata(table.table_name, table.app_profile_id)
+        metadata = _make_metadata(
+            table.table_name, table.app_profile_id, instance_name=None
+        )
         self._gapic_fn = functools.partial(
             gapic_client.mutate_rows,
             table_name=table.table_name,
