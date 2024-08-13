@@ -143,9 +143,12 @@ def mypy(session):
         "--check-untyped-defs",
         "--warn-unreachable",
         "--disallow-any-generics",
-        "--exclude", "tests/system/v2_client",
-        "--exclude", "tests/unit/v2_client",
-        "--disable-error-code", "func-returns-value"  # needed for CrossSync.rm_aio
+        "--exclude",
+        "tests/system/v2_client",
+        "--exclude",
+        "tests/unit/v2_client",
+        "--disable-error-code",
+        "func-returns-value",  # needed for CrossSync.rm_aio
     )
 
 

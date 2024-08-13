@@ -47,7 +47,7 @@ if CrossSync.is_async:
     CrossSync.add_mapping("grpc_helpers", grpc_helpers_async)
 else:
     from google.api_core import grpc_helpers
-    from google.cloud.bigtable.data._sync.client import Table
+    from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
 
@@ -1378,7 +1378,7 @@ class TestTableAsync:
             ("read_rows_sharded", ([ReadRowsQuery()],), "read_rows"),
             ("row_exists", (b"row_key",), "read_rows"),
             ("sample_row_keys", (), "sample_row_keys"),
-            ("mutate_row", (b"row_key", [mock.Mock()]), "mutate_row"),
+            ("mutate_row", (b"row_key", [mutations.DeleteAllFromRow()]), "mutate_row"),
             (
                 "bulk_mutate_rows",
                 ([mutations.RowMutationEntry(b"key", [mutations.DeleteAllFromRow()])],),
@@ -1387,7 +1387,7 @@ class TestTableAsync:
             ("check_and_mutate_row", (b"row_key", None), "check_and_mutate_row"),
             (
                 "read_modify_write_row",
-                (b"row_key", mock.Mock()),
+                (b"row_key", IncrementRule("f", "q")),
                 "read_modify_write_row",
             ),
         ],

@@ -34,10 +34,14 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     if CrossSync.is_async:
-        from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient as GapicClientType
+        from google.cloud.bigtable_v2.services.bigtable.async_client import (
+            BigtableAsyncClient as GapicClientType,
+        )
         from google.cloud.bigtable.data._async.client import TableAsync as TableType
     else:
-        from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient as GapicClientType #  type: ignore
+        from google.cloud.bigtable_v2.services.bigtable.client import (  # type: ignore
+            BigtableClient as GapicClientType,
+        )
         from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
 
 
@@ -82,7 +86,9 @@ class _MutateRowsOperationAsync:
                 f"all entries. Found {total_mutations}."
             )
         # create partial function to pass to trigger rpc call
-        metadata = _make_metadata(table.table_name, table.app_profile_id)
+        metadata = _make_metadata(
+            table.table_name, table.app_profile_id, instance_name=None
+        )
         self._gapic_fn = functools.partial(
             gapic_client.mutate_rows,
             table_name=table.table_name,
