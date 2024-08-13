@@ -22,6 +22,11 @@ import os
 import concurrent.futures
 from functools import partial
 from grpc import Channel
+from google.cloud.bigtable.data.execute_query.values import ExecuteQueryValueType
+from google.cloud.bigtable.data.execute_query.metadata import SqlType
+from google.cloud.bigtable.data.execute_query._parameters_formatting import (
+    _format_execute_query_params,
+)
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.transports.base import (
     DEFAULT_CLIENT_INFO,
@@ -47,6 +52,7 @@ from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._helpers import _validate_timeouts
+from google.cloud.bigtable.data._helpers import _get_error_type
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
@@ -68,6 +74,9 @@ else:
         PooledBigtableGrpcTransport as PooledTransportType,
     )
     from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
+    from google.cloud.bigtable.data.execute_query._sync.execute_query_iterator import (
+        ExecuteQueryIterator,
+    )
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
@@ -293,7 +302,9 @@ class BigtableDataClient(ClientWithProject):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.monotonic() - start_timestamp)
 
-    def _register_instance(self, instance_id: str, owner: Table) -> None:
+    def _register_instance(
+        self, instance_id: str, owner: Table | ExecuteQueryIterator
+    ) -> None:
         """Registers an instance with the client, and warms the channel pool
         for the instance
         The client will periodically refresh grpc channel pool used to make
@@ -318,7 +329,9 @@ class BigtableDataClient(ClientWithProject):
             else:
                 self._start_background_channel_refresh()
 
-    def _remove_instance_registration(self, instance_id: str, owner: Table) -> bool:
+    def _remove_instance_registration(
+        self, instance_id: str, owner: Table | ExecuteQueryIterator
+    ) -> bool:
         """Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
 
@@ -378,11 +391,98 @@ class BigtableDataClient(ClientWithProject):
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Returns:
-            TableAsync: a table instance for making data API requests
+            Table: a table instance for making data API requests
         Raises:
             RuntimeError: if called outside of an async context (no running event loop)
         """
         return Table(self, instance_id, table_id, *args, **kwargs)
+
+    def execute_query(
+        self,
+        query: str,
+        instance_id: str,
+        *,
+        parameters: dict[str, ExecuteQueryValueType] | None = None,
+        parameter_types: dict[str, SqlType.Type] | None = None,
+        app_profile_id: str | None = None,
+        operation_timeout: float = 600,
+        attempt_timeout: float | None = 20,
+        retryable_errors: Sequence[type[Exception]] = (
+            DeadlineExceeded,
+            ServiceUnavailable,
+            Aborted,
+        ),
+    ) -> "ExecuteQueryIterator":
+        """Executes an SQL query on an instance.
+        Returns an iterator to asynchronously stream back columns from selected rows.
+
+        Failed requests within operation_timeout will be retried based on the
+        retryable_errors list until operation_timeout is reached.
+
+        Args:
+            query: Query to be run on Bigtable instance. The query can use ``@param``
+                placeholders to use parameter interpolation on the server. Values for all
+                parameters should be provided in ``parameters``. Types of parameters are
+                inferred but should be provided in ``parameter_types`` if the inference is
+                not possible (i.e. when value can be None, an empty list or an empty dict).
+            instance_id: The Bigtable instance ID to perform the query on.
+                instance_id is combined with the client's project to fully
+                specify the instance.
+            parameters: Dictionary with values for all parameters used in the ``query``.
+            parameter_types: Dictionary with types of parameters used in the ``query``.
+                Required to contain entries only for parameters whose type cannot be
+                detected automatically (i.e. the value can be None, an empty list or
+                an empty dict).
+            app_profile_id: The app profile to associate with requests.
+                https://cloud.google.com/bigtable/docs/app-profiles
+            operation_timeout: the time budget for the entire operation, in seconds.
+                Failed requests will be retried within the budget.
+                Defaults to 600 seconds.
+            attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                Defaults to the 20 seconds.
+                If None, defaults to operation_timeout.
+            retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+        Returns:
+            ExecuteQueryIterator: an asynchronous iterator that yields rows returned by the query
+        Raises:
+            google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
+                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                from any retries that failed
+            google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
+        """
+        warnings.warn(
+            "ExecuteQuery is in preview and may change in the future.",
+            category=RuntimeWarning,
+        )
+        retryable_excs = [_get_error_type(e) for e in retryable_errors]
+        pb_params = _format_execute_query_params(parameters, parameter_types)
+        instance_name = self._gapic_client.instance_path(self.project, instance_id)
+        request_body = {
+            "instance_name": instance_name,
+            "app_profile_id": app_profile_id,
+            "query": query,
+            "params": pb_params,
+            "proto_format": {},
+        }
+        app_profile_id_for_metadata = app_profile_id or ""
+        req_metadata = _make_metadata(
+            table_name=None,
+            app_profile_id=app_profile_id_for_metadata,
+            instance_name=instance_name,
+        )
+        return ExecuteQueryIterator(
+            self,
+            instance_id,
+            app_profile_id,
+            request_body,
+            attempt_timeout,
+            operation_timeout,
+            req_metadata,
+            retryable_excs,
+        )
 
     def __enter__(self):
         self._start_background_channel_refresh()
@@ -543,7 +643,7 @@ class Table:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors
         Returns:
-            AsyncIterable[Row]: an asynchronous iterator that yields rows returned by the query
+            Iterable[Row]: an asynchronous iterator that yields rows returned by the query
         Raises:
             google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
@@ -838,7 +938,9 @@ class Table:
         retryable_excs = _get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        metadata = _make_metadata(
+            self.table_name, self.app_profile_id, instance_name=None
+        )
 
         def execute_rpc():
             results = self.client._gapic_client.sample_row_keys(
@@ -892,7 +994,7 @@ class Table:
           batch_retryable_errors: a list of errors that will be retried if encountered.
               Defaults to the Table's default_mutate_rows_retryable_errors.
         Returns:
-            MutationsBatcherAsync: a MutationsBatcher context manager that can batch requests
+            MutationsBatcher: a MutationsBatcher context manager that can batch requests
         """
         return CrossSync._Sync_Impl.MutationsBatcher(
             self,
@@ -965,7 +1067,9 @@ class Table:
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
             timeout=attempt_timeout,
-            metadata=_make_metadata(self.table_name, self.app_profile_id),
+            metadata=_make_metadata(
+                self.table_name, self.app_profile_id, instance_name=None
+            ),
             retry=None,
         )
         return CrossSync._Sync_Impl.retry_target(
@@ -1078,7 +1182,9 @@ class Table:
         ):
             false_case_mutations = [false_case_mutations]
         false_case_list = [m._to_pb() for m in false_case_mutations or []]
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        metadata = _make_metadata(
+            self.table_name, self.app_profile_id, instance_name=None
+        )
         result = self.client._gapic_client.check_and_mutate_row(
             true_mutations=true_case_list,
             false_mutations=false_case_list,
@@ -1127,7 +1233,9 @@ class Table:
             rules = [rules]
         if not rules:
             raise ValueError("rules must contain at least one item")
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        metadata = _make_metadata(
+            self.table_name, self.app_profile_id, instance_name=None
+        )
         result = self.client._gapic_client.read_modify_write_row(
             rules=[rule._to_pb() for rule in rules],
             row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,

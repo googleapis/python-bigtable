@@ -300,7 +300,7 @@ class TestReadRowsOperation:
         assert "emit count exceeds row limit" in str(e.value)
 
     def test_close(self):
-        """should be able to close a stream safely with aclose.
+        """should be able to close a stream safely with close.
         Closed generators should raise StopAsyncIteration on next yield"""
 
         def mock_stream():

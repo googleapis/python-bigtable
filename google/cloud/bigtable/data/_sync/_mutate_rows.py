@@ -74,7 +74,9 @@ class _MutateRowsOperation:
             raise ValueError(
                 f"mutate_rows requests can contain at most {_MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across all entries. Found {total_mutations}."
             )
-        metadata = _make_metadata(table.table_name, table.app_profile_id)
+        metadata = _make_metadata(
+            table.table_name, table.app_profile_id, instance_name=None
+        )
         self._gapic_fn = functools.partial(
             gapic_client.mutate_rows,
             table_name=table.table_name,
