@@ -61,46 +61,13 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if CrossSync._Sync_Impl.is_async:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledBigtableGrpcAsyncIOTransport,
+        PooledBigtableGrpcAsyncIOTransport as PooledTransportType,
     )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledChannel as AsyncPooledChannel,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.async_client import (
-        BigtableAsyncClient,
-    )
-    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-    from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-    from google.cloud.bigtable.data._async.mutations_batcher import (
-        MutationsBatcherAsync,
-    )
-
-    CrossSync._Sync_Impl.add_mapping("GapicClient", BigtableAsyncClient)
-    CrossSync._Sync_Impl.add_mapping(
-        "PooledTransport", PooledBigtableGrpcAsyncIOTransport
-    )
-    CrossSync._Sync_Impl.add_mapping("PooledChannel", AsyncPooledChannel)
-    CrossSync._Sync_Impl.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
-    CrossSync._Sync_Impl.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
-    CrossSync._Sync_Impl.add_mapping("MutationsBatcher", MutationsBatcherAsync)
 else:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-        PooledBigtableGrpcTransport,
+        PooledBigtableGrpcTransport as PooledTransportType,
     )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-        PooledChannel,
-    )
-    from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
-    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
-    from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
     from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
-
-    CrossSync._Sync_Impl.add_mapping("GapicClient", BigtableClient)
-    CrossSync._Sync_Impl.add_mapping("PooledTransport", PooledBigtableGrpcTransport)
-    CrossSync._Sync_Impl.add_mapping("PooledChannel", PooledChannel)
-    CrossSync._Sync_Impl.add_mapping("_ReadRowsOperation", _ReadRowsOperation)
-    CrossSync._Sync_Impl.add_mapping("_MutateRowsOperation", _MutateRowsOperation)
-    CrossSync._Sync_Impl.add_mapping("MutationsBatcher", MutationsBatcher)
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
@@ -140,7 +107,7 @@ class BigtableDataClient(ClientWithProject):
             RuntimeError: if called outside of an async context (no running event loop)
             ValueError: if pool_size is less than 1"""
         transport_str = f"bt-{self._client_version()}-{pool_size}"
-        transport = CrossSync._Sync_Impl.PooledTransport.with_fixed_size(pool_size)
+        transport = PooledTransportType.with_fixed_size(pool_size)
         BigtableClientMeta._transport_registry[transport_str] = transport
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = self._client_version()
@@ -168,9 +135,7 @@ class BigtableDataClient(ClientWithProject):
             client_info=client_info,
         )
         self._is_closed = CrossSync._Sync_Impl.Event()
-        self.transport = cast(
-            CrossSync._Sync_Impl.PooledTransport, self._gapic_client.transport
-        )
+        self.transport = cast(PooledTransportType, self._gapic_client.transport)
         self._active_instances: Set[_WarmedInstanceKey] = set()
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()

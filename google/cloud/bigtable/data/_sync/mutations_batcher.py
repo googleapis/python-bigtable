@@ -36,9 +36,9 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     if CrossSync._Sync_Impl.is_async:
-        pass
+        from google.cloud.bigtable.data._async.client import TableAsync as TableType
     else:
-        from google.cloud.bigtable.data._sync.client import Table
+        from google.cloud.bigtable.data._sync.client import Table as TableType
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("_FlowControl")
@@ -185,7 +185,7 @@ class MutationsBatcher:
 
     def __init__(
         self,
-        table: Table,
+        table: TableType,
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,

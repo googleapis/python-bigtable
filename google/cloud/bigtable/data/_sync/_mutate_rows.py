@@ -31,17 +31,16 @@ if TYPE_CHECKING:
 
     if CrossSync._Sync_Impl.is_async:
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
-            BigtableAsyncClient,
+            BigtableAsyncClient as GapicClientType,
         )
-
-        CrossSync._Sync_Impl.add_mapping("GapicClient", BigtableAsyncClient)
+        from google.cloud.bigtable.data._async.client import TableAsync as TableType
     else:
-        from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
+        from google.cloud.bigtable_v2.services.bigtable.client import (
+            BigtableClient as GapicClientType,
+        )
+        from google.cloud.bigtable.data._sync.client import Table as TableType
 
-        CrossSync._Sync_Impl.add_mapping("GapicClient", BigtableClient)
 
-
-@CrossSync._Sync_Impl.add_mapping_decorator("_MutateRowsOperation")
 class _MutateRowsOperation:
     """
     MutateRowsOperation manages the logic of sending a set of row mutations,
@@ -63,8 +62,8 @@ class _MutateRowsOperation:
 
     def __init__(
         self,
-        gapic_client: "CrossSync.GapicClient",
-        table: "CrossSync.Table",
+        gapic_client: GapicClientType,
+        table: TableType,
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
