@@ -375,7 +375,12 @@ class BigtableDataClientAsync(ClientWithProject):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.monotonic() - start_timestamp)
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table", "ExecuteQueryIteratorAsync": "ExecuteQueryIterator"})
+    @CrossSync.convert(
+        replace_symbols={
+            "TableAsync": "Table",
+            "ExecuteQueryIteratorAsync": "ExecuteQueryIterator",
+        }
+    )
     async def _register_instance(
         self, instance_id: str, owner: TableAsync | ExecuteQueryIteratorAsync
     ) -> None:
@@ -410,7 +415,12 @@ class BigtableDataClientAsync(ClientWithProject):
                 # refresh tasks aren't active. start them as background tasks
                 self._start_background_channel_refresh()
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table", "ExecuteQueryIteratorAsync": "ExecuteQueryIterator"})
+    @CrossSync.convert(
+        replace_symbols={
+            "TableAsync": "Table",
+            "ExecuteQueryIteratorAsync": "ExecuteQueryIterator",
+        }
+    )
     async def _remove_instance_registration(
         self, instance_id: str, owner: TableAsync | ExecuteQueryIteratorAsync
     ) -> bool:
@@ -483,7 +493,9 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
-    @CrossSync.convert(replace_symbols={"ExecuteQueryIteratorAsync": "ExecuteQueryIterator"})
+    @CrossSync.convert(
+        replace_symbols={"ExecuteQueryIteratorAsync": "ExecuteQueryIterator"}
+    )
     async def execute_query(
         self,
         query: str,

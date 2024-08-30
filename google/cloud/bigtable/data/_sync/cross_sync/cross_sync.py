@@ -106,6 +106,10 @@ class CrossSync(metaclass=MappingMeta):
     )  # decorate test methods to run with pytest fixture
 
     @classmethod
+    def next(cls, iterable):
+        return iterable.__anext__()
+
+    @classmethod
     def Mock(cls, *args, **kwargs):
         """
         Alias for AsyncMock, importing at runtime to avoid hard dependency on mock
@@ -247,6 +251,7 @@ class CrossSync(metaclass=MappingMeta):
         is_async = False
 
         sleep = time.sleep
+        next = next
         retry_target = retries.retry_target
         retry_target_stream = retries.retry_target_stream
         Retry = retries.Retry

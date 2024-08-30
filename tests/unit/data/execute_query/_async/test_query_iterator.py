@@ -30,7 +30,9 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
-@CrossSync.export_sync(path="tests.unit.data.execute_query._sync.test_query_iterator.MockIterator")
+@CrossSync.export_sync(
+    path="tests.unit.data.execute_query._sync.test_query_iterator.MockIterator"
+)
 class MockIterator:
     def __init__(self, values, delay=None):
         self._values = values
@@ -52,9 +54,10 @@ class MockIterator:
         return value
 
 
-@CrossSync.export_sync(path="tests.unit.data.execute_query._sync.test_query_iterator.TestQueryIterator")
+@CrossSync.export_sync(
+    path="tests.unit.data.execute_query._sync.test_query_iterator.TestQueryIterator"
+)
 class TestQueryIteratorAsync:
-
     @staticmethod
     def _target_class():
         return CrossSync.ExecuteQueryIterator
@@ -87,15 +90,21 @@ class TestQueryIteratorAsync:
                     }
                 }
             ),
-            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": messages[0]}}),
+            ExecuteQueryResponse(
+                results={"proto_rows_batch": {"batch_data": messages[0]}}
+            ),
             ExecuteQueryResponse(
                 results={
                     "proto_rows_batch": {"batch_data": messages[1]},
                     "resume_token": b"token1",
                 }
             ),
-            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": messages[2]}}),
-            ExecuteQueryResponse(results={"proto_rows_batch": {"batch_data": messages[3]}}),
+            ExecuteQueryResponse(
+                results={"proto_rows_batch": {"batch_data": messages[2]}}
+            ),
+            ExecuteQueryResponse(
+                results={"proto_rows_batch": {"batch_data": messages[3]}}
+            ),
             ExecuteQueryResponse(
                 results={
                     "proto_rows_batch": {"batch_data": messages[4]},
@@ -111,7 +120,6 @@ class TestQueryIteratorAsync:
         ]
         return stream
 
-
     @CrossSync.pytest
     async def test_iterator(self, proto_byte_stream):
         client_mock = mock.Mock()
@@ -123,7 +131,9 @@ class TestQueryIteratorAsync:
         iterator = None
 
         with mock.patch.object(
-            CrossSync, "retry_target_stream", return_value=mock_async_iterator,
+            CrossSync,
+            "retry_target_stream",
+            return_value=mock_async_iterator,
         ):
             iterator = self._make_one(
                 client=client_mock,
@@ -146,7 +156,6 @@ class TestQueryIteratorAsync:
 
         assert mock_async_iterator.idx == len(proto_byte_stream)
 
-
     @CrossSync.pytest
     async def test_iterator_awaits_metadata(self, proto_byte_stream):
         client_mock = mock.Mock()
@@ -156,7 +165,9 @@ class TestQueryIteratorAsync:
         mock_async_iterator = MockIterator(proto_byte_stream)
         iterator = None
         with mock.patch.object(
-            CrossSync, "retry_target_stream", return_value=mock_async_iterator,
+            CrossSync,
+            "retry_target_stream",
+            return_value=mock_async_iterator,
         ):
             iterator = self._make_one(
                 client=client_mock,

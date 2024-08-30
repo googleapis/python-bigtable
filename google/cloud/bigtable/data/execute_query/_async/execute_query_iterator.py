@@ -53,7 +53,9 @@ if TYPE_CHECKING:
         from google.cloud.bigtable.data import BigtableDataClient as DataClientType
 
 
-@CrossSync.export_sync(path="google.cloud.bigtable.data.execute_query._sync.execute_query_iterator.ExecuteQueryIterator")
+@CrossSync.export_sync(
+    path="google.cloud.bigtable.data.execute_query._sync.execute_query_iterator.ExecuteQueryIterator"
+)
 class ExecuteQueryIteratorAsync:
     """
     ExecuteQueryIteratorAsync handles collecting streaming responses from the
