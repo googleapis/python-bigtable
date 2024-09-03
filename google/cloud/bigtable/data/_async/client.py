@@ -112,7 +112,12 @@ if TYPE_CHECKING:
     add_mapping_for_name="DataClient",
 )
 class BigtableDataClientAsync(ClientWithProject):
-    @CrossSync.convert
+    @CrossSync.convert(
+        docstring_format_vars={
+            "LOOP_MESSAGE": ("Client should be created within an async context (running event loop)", ""),
+            "RAISE_NO_LOOP": ("RuntimeError: if called outside of an async context (no running event loop)", ""),
+        }
+    )
     def __init__(
         self,
         *,
@@ -126,7 +131,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         Create a client instance for the Bigtable Data API
 
-        Client should be created within an async context (running event loop)
+        {LOOP_MESSAGE}
 
         Args:
             project: the project which the client acts on behalf of.
@@ -143,8 +148,8 @@ class BigtableDataClientAsync(ClientWithProject):
                 Client options used to set user options
                 on the client. API Endpoint should be set through client_options.
         Raises:
-            RuntimeError: if called outside of an async context (no running event loop)
             ValueError: if pool_size is less than 1
+            {RAISE_NO_LOOP}
         """
         # set up transport in registry
         transport_str = f"bt-{self._client_version()}-{pool_size}"
@@ -228,12 +233,15 @@ class BigtableDataClientAsync(ClientWithProject):
             version_str += "-async"
         return version_str
 
+    @CrossSync.convert(
+        docstring_format_vars={"RAISE_NO_LOOP": ("RuntimeError: if not called in an asyncio event loop", "None")}
+    )
     def _start_background_channel_refresh(self) -> None:
         """
         Starts a background task to ping and warm each channel in the pool
 
         Raises:
-          RuntimeError: if not called in an asyncio event loop
+            {RAISE_NO_LOOP}
         """
         if (
             not self._channel_refresh_tasks
@@ -320,7 +328,7 @@ class BigtableDataClientAsync(ClientWithProject):
         grace_period: float = 60 * 10,
     ) -> None:
         """
-        Background coroutine that periodically refreshes and warms a grpc channel
+        Background task that periodically refreshes and warms a grpc channel
 
         The backend will automatically close channels after 60 minutes, so
         `refresh_interval` + `grace_period` should be < 60 minutes
@@ -451,11 +459,19 @@ class BigtableDataClientAsync(ClientWithProject):
         except KeyError:
             return False
 
-    @CrossSync.convert(replace_symbols={"TableAsync": "Table"})
+    @CrossSync.convert(
+        replace_symbols={"TableAsync": "Table"},
+        docstring_format_vars={
+            "LOOP_MESSAGE": ("Must be created within an async context (running event loop)", ""),
+            "RAISE_NO_LOOP": ("RuntimeError: if called outside of an async context (no running event loop)", "None"),
+        },
+    )
     def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> TableAsync:
         """
         Returns a table instance for making data API requests. All arguments are passed
         directly to the TableAsync constructor.
+
+        {LOOP_MESSAGE}
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -489,7 +505,7 @@ class BigtableDataClientAsync(ClientWithProject):
         Returns:
             TableAsync: a table instance for making data API requests
         Raises:
-            RuntimeError: if called outside of an async context (no running event loop)
+            {RAISE_NO_LOOP}
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
@@ -615,7 +631,11 @@ class TableAsync:
     """
 
     @CrossSync.convert(
-        replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"}
+        replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"},
+        docstring_format_vars={
+            "LOOP_MESSAGE": ("Must be created within an async context (running event loop)", ""),
+            "RAISE_NO_LOOP": ("RuntimeError: if called outside of an async context (no running event loop)", "None"),
+        }
     )
     def __init__(
         self,
@@ -647,7 +667,7 @@ class TableAsync:
         """
         Initialize a Table instance
 
-        Must be created within an async context (running event loop)
+        {LOOP_MESSAGE}
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -679,7 +699,7 @@ class TableAsync:
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Raises:
-            RuntimeError: if called outside of an async context (no running event loop)
+            {RAISE_NO_LOOP}
         """
         # NOTE: any changes to the signature of this method should also be reflected
         # in client.get_table()
