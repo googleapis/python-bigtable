@@ -29,6 +29,7 @@ except ImportError:
 
 
 class Test_FlowControl:
+
     @staticmethod
     def _target_class():
         return CrossSync._Sync_Impl._FlowControl
@@ -258,6 +259,7 @@ class Test_FlowControl:
 
 
 class TestMutationsBatcher:
+
     def _get_target_class(self):
         return CrossSync._Sync_Impl.MutationsBatcher
 

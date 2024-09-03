@@ -237,6 +237,7 @@ class TestReadRowsOperation:
         from google.cloud.bigtable_v2.types import ReadRowsResponse
 
         def awaitable_stream():
+
             def mock_stream():
                 for i in range(emit_num):
                     yield ReadRowsResponse(
@@ -272,6 +273,7 @@ class TestReadRowsOperation:
         from google.cloud.bigtable.data.exceptions import InvalidChunk
 
         def awaitable_stream():
+
             def mock_stream():
                 for i in range(emit_num):
                     yield ReadRowsResponse(
@@ -330,6 +332,7 @@ class TestReadRowsOperation:
         row_key = b"duplicate"
 
         def mock_awaitable_stream():
+
             def mock_stream():
                 while True:
                     yield ReadRowsResponse(

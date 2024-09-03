@@ -84,19 +84,20 @@ if TYPE_CHECKING:
 
 @CrossSync._Sync_Impl.add_mapping_decorator("DataClient")
 class BigtableDataClient(ClientWithProject):
+
     def __init__(
         self,
         *,
         project: str | None = None,
         pool_size: int = 3,
         credentials: google.auth.credentials.Credentials | None = None,
-        client_options: dict[str, Any]
-        | "google.api_core.client_options.ClientOptions"
-        | None = None,
+        client_options: (
+            dict[str, Any] | "google.api_core.client_options.ClientOptions" | None
+        ) = None,
     ):
         """Create a client instance for the Bigtable Data API
 
-        Client should be created within an async context (running event loop)
+
 
         Args:
             project: the project which the client acts on behalf of.
@@ -113,8 +114,8 @@ class BigtableDataClient(ClientWithProject):
                 Client options used to set user options
                 on the client. API Endpoint should be set through client_options.
         Raises:
-            RuntimeError: if called outside of an async context (no running event loop)
-            ValueError: if pool_size is less than 1"""
+            ValueError: if pool_size is less than 1
+        """
         transport_str = f"bt-{self._client_version()}-{pool_size}"
         transport = PooledTransportType.with_fixed_size(pool_size)
         BigtableClientMeta._transport_registry[transport_str] = transport
@@ -187,7 +188,7 @@ class BigtableDataClient(ClientWithProject):
         """Starts a background task to ping and warm each channel in the pool
 
         Raises:
-          RuntimeError: if not called in an asyncio event loop"""
+            None"""
         if (
             not self._channel_refresh_tasks
             and (not self._emulator_host)
@@ -260,7 +261,7 @@ class BigtableDataClient(ClientWithProject):
         refresh_interval_max: float = 60 * 45,
         grace_period: float = 60 * 10,
     ) -> None:
-        """Background coroutine that periodically refreshes and warms a grpc channel
+        """Background task that periodically refreshes and warms a grpc channel
 
         The backend will automatically close channels after 60 minutes, so
         `refresh_interval` + `grace_period` should be < 60 minutes
@@ -361,6 +362,8 @@ class BigtableDataClient(ClientWithProject):
         """Returns a table instance for making data API requests. All arguments are passed
         directly to the Table constructor.
 
+
+
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
                 instance_id is combined with the client's project to fully
@@ -393,8 +396,7 @@ class BigtableDataClient(ClientWithProject):
         Returns:
             Table: a table instance for making data API requests
         Raises:
-            RuntimeError: if called outside of an async context (no running event loop)
-        """
+            None"""
         return Table(self, instance_id, table_id, *args, **kwargs)
 
     def execute_query(
@@ -531,7 +533,7 @@ class Table:
     ):
         """Initialize a Table instance
 
-        Must be created within an async context (running event loop)
+
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -563,8 +565,7 @@ class Table:
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Raises:
-            RuntimeError: if called outside of an async context (no running event loop)
-        """
+            None"""
         _validate_timeouts(
             default_operation_timeout, default_attempt_timeout, allow_none=True
         )
@@ -621,8 +622,9 @@ class Table:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: (
+            Sequence[type[Exception]] | TABLE_DEFAULT
+        ) = TABLE_DEFAULT.READ_ROWS,
     ) -> Iterable[Row]:
         """Read a set of rows from the table, based on the specified query.
         Returns an iterator to asynchronously stream back row data.
@@ -669,8 +671,9 @@ class Table:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: (
+            Sequence[type[Exception]] | TABLE_DEFAULT
+        ) = TABLE_DEFAULT.READ_ROWS,
     ) -> list[Row]:
         """Read a set of rows from the table, based on the specified query.
         Retruns results as a list of Row objects when the request is complete.
@@ -716,8 +719,9 @@ class Table:
         row_filter: RowFilter | None = None,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: (
+            Sequence[type[Exception]] | TABLE_DEFAULT
+        ) = TABLE_DEFAULT.READ_ROWS,
     ) -> Row | None:
         """Read a single row from the table, based on the specified key.
 
@@ -763,8 +767,9 @@ class Table:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: (
+            Sequence[type[Exception]] | TABLE_DEFAULT
+        ) = TABLE_DEFAULT.READ_ROWS,
     ) -> list[Row]:
         """Runs a sharded query in parallel, then return the results in a single list.
         Results will be returned in the order of the input queries.
@@ -852,8 +857,9 @@ class Table:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: (
+            Sequence[type[Exception]] | TABLE_DEFAULT
+        ) = TABLE_DEFAULT.READ_ROWS,
     ) -> bool:
         """Return a boolean indicating whether the specified row exists in the table.
         uses the filters: chain(limit cells per row = 1, strip value)
@@ -897,8 +903,9 @@ class Table:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
+        retryable_errors: (
+            Sequence[type[Exception]] | TABLE_DEFAULT
+        ) = TABLE_DEFAULT.DEFAULT,
     ) -> RowKeySamples:
         """Return a set of RowKeySamples that delimit contiguous sections of the table of
         approximately equal size
@@ -970,8 +977,9 @@ class Table:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        batch_retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
+        batch_retryable_errors: (
+            Sequence[type[Exception]] | TABLE_DEFAULT
+        ) = TABLE_DEFAULT.MUTATE_ROWS,
     ) -> MutationsBatcher:
         """Returns a new mutations batcher instance.
 
@@ -1015,8 +1023,9 @@ class Table:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
+        retryable_errors: (
+            Sequence[type[Exception]] | TABLE_DEFAULT
+        ) = TABLE_DEFAULT.DEFAULT,
     ):
         """Mutates a row atomically.
 
@@ -1086,8 +1095,9 @@ class Table:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
+        retryable_errors: (
+            Sequence[type[Exception]] | TABLE_DEFAULT
+        ) = TABLE_DEFAULT.MUTATE_ROWS,
     ):
         """Applies mutations for multiple rows in a single batched request.
 

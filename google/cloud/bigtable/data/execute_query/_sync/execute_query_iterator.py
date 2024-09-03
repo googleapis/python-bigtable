@@ -41,31 +41,6 @@ if TYPE_CHECKING:
 
 
 class ExecuteQueryIterator:
-    """
-    ExecuteQueryIteratorAsync handles collecting streaming responses from the
-    ExecuteQuery RPC and parsing them to QueryResultRows.
-
-    ExecuteQueryIteratorAsync implements Asynchronous Iterator interface and can
-    be used with "async for" syntax. It is also a context manager.
-
-    It is **not thread-safe**. It should not be used by multiple asyncio Tasks.
-
-    Args:
-        client: bigtable client
-        instance_id: id of the instance on which the query is executed
-        request_body: dict representing the body of the ExecuteQueryRequest
-        attempt_timeout: the time budget for the entire operation, in seconds.
-            Failed requests will be retried within the budget.
-            Defaults to 600 seconds.
-        operation_timeout: the time budget for an individual network request, in seconds.
-            If it takes longer than this time to complete, the request will be cancelled with
-            a DeadlineExceeded exception, and a retry will be attempted.
-            Defaults to the 20 seconds. If None, defaults to operation_timeout.
-        req_metadata: metadata used while sending the gRPC request
-        retryable_excs: a list of errors that will be retried if encountered.
-    Raises:
-        RuntimeError: if the instance is not created within an async event loop context.
-    """
 
     def __init__(
         self,
@@ -78,6 +53,25 @@ class ExecuteQueryIterator:
         req_metadata: Sequence[Tuple[str, str]],
         retryable_excs: List[type[Exception]],
     ) -> None:
+        """Collects responses from ExecuteQuery requests and parses them into QueryResultRows.
+
+        It is **not thread-safe**. It should not be used by multiple threads.
+
+        Args:
+            client: bigtable client
+            instance_id: id of the instance on which the query is executed
+            request_body: dict representing the body of the ExecuteQueryRequest
+            attempt_timeout: the time budget for the entire operation, in seconds.
+                Failed requests will be retried within the budget.
+                Defaults to 600 seconds.
+            operation_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                Defaults to the 20 seconds. If None, defaults to operation_timeout.
+            req_metadata: metadata used while sending the gRPC request
+            retryable_excs: a list of errors that will be retried if encountered.
+        Raises:
+            None"""
         self._table_name = None
         self._app_profile_id = app_profile_id
         self._client = client

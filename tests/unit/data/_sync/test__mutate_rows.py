@@ -27,6 +27,7 @@ except ImportError:
 
 
 class TestMutateRowsOperation:
+
     def _target_class(self):
         return CrossSync._Sync_Impl._MutateRowsOperation
 

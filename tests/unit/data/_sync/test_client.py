@@ -46,6 +46,7 @@ else:
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TestBigtableDataClient")
 class TestBigtableDataClient:
+
     @staticmethod
     def _get_target_class():
         return CrossSync._Sync_Impl.DataClient
@@ -316,11 +317,9 @@ class TestBigtableDataClient:
                 gather.assert_awaited_once()
             grpc_call_args = channel.unary_unary().call_args_list
             for idx, (_, kwargs) in enumerate(grpc_call_args):
-                (
-                    expected_instance,
-                    expected_table,
-                    expected_app_profile,
-                ) = client_mock._active_instances[idx]
+                expected_instance, expected_table, expected_app_profile = (
+                    client_mock._active_instances[idx]
+                )
                 request = kwargs["request"]
                 assert request["name"] == expected_instance
                 assert request["app_profile_id"] == expected_app_profile
@@ -409,9 +408,9 @@ class TestBigtableDataClient:
         )
         with mock.patch.object(*sleep_tuple):
             client_mock.transport.replace_channel.side_effect = asyncio.CancelledError
-            ping_and_warm = (
-                client_mock._ping_and_warm_instances
-            ) = CrossSync._Sync_Impl.Mock()
+            ping_and_warm = client_mock._ping_and_warm_instances = (
+                CrossSync._Sync_Impl.Mock()
+            )
             try:
                 channel_idx = 1
                 self._get_target_class()._manage_channel(client_mock, channel_idx, 10)
@@ -962,6 +961,7 @@ class TestBigtableDataClient:
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TestTable")
 class TestTable:
+
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -1275,6 +1275,7 @@ class TestReadRows:
         from google.cloud.bigtable_v2 import ReadRowsResponse
 
         class mock_stream:
+
             def __init__(self, chunk_list, sleep_time):
                 self.chunk_list = chunk_list
                 self.idx = -1
@@ -1672,6 +1673,7 @@ class TestReadRows:
 
 
 class TestReadRowsSharded:
+
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -1857,6 +1859,7 @@ class TestReadRowsSharded:
 
 
 class TestSampleRowKeys:
+
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -1995,6 +1998,7 @@ class TestSampleRowKeys:
 
 
 class TestMutateRow:
+
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -2147,6 +2151,7 @@ class TestMutateRow:
 
 
 class TestBulkMutateRows:
+
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -2483,6 +2488,7 @@ class TestBulkMutateRows:
 
 
 class TestCheckAndMutateRow:
+
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -2627,6 +2633,7 @@ class TestCheckAndMutateRow:
 
 
 class TestReadModifyWriteRow:
+
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -2752,7 +2759,9 @@ class TestExecuteQuery:
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
     def _make_gapic_stream(self, sample_list: list["ExecuteQueryResponse" | Exception]):
+
         class MockStream:
+
             def __init__(self, sample_list):
                 self.sample_list = sample_list
 
@@ -2807,9 +2816,11 @@ class TestExecuteQuery:
             else:
                 pb_value = PBValue(
                     {
-                        "int_value"
-                        if isinstance(column_value, int)
-                        else "string_value": column_value
+                        (
+                            "int_value"
+                            if isinstance(column_value, int)
+                            else "string_value"
+                        ): column_value
                     }
                 )
             values.append(pb_value)

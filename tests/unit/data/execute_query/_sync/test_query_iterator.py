@@ -26,6 +26,7 @@ except ImportError:
 
 
 class MockIterator:
+
     def __init__(self, values, delay=None):
         self._values = values
         self.idx = 0
@@ -45,6 +46,7 @@ class MockIterator:
 
 
 class TestQueryIterator:
+
     @staticmethod
     def _target_class():
         return CrossSync._Sync_Impl.ExecuteQueryIterator

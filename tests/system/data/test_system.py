@@ -70,6 +70,7 @@ class TempRowBuilder:
 
 
 class TestSystem:
+
     @pytest.fixture(scope="session")
     def client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None

@@ -194,8 +194,9 @@ class MutationsBatcher:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        batch_retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
+        batch_retryable_errors: (
+            Sequence[type[Exception]] | TABLE_DEFAULT
+        ) = TABLE_DEFAULT.MUTATE_ROWS,
     ):
         self._operation_timeout, self._attempt_timeout = _get_timeouts(
             batch_operation_timeout, batch_attempt_timeout, table

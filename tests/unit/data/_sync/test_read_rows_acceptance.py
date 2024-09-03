@@ -27,6 +27,7 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 
 class TestReadRowsAcceptance:
+
     @staticmethod
     def _get_operation_class():
         return CrossSync._Sync_Impl._ReadRowsOperation
@@ -64,6 +65,7 @@ class TestReadRowsAcceptance:
         return stream
 
     def _process_chunks(self, *chunks):
+
         def _row_stream():
             yield ReadRowsResponse(chunks=chunks)
 
@@ -83,6 +85,7 @@ class TestReadRowsAcceptance:
         "test_case", parse_readrows_acceptance_tests(), ids=lambda t: t.description
     )
     def test_row_merger_scenario(self, test_case: ReadRowsTest):
+
         def _scenerio_stream():
             for chunk in test_case.chunks:
                 yield ReadRowsResponse(chunks=[chunk])
@@ -116,10 +119,12 @@ class TestReadRowsAcceptance:
         "test_case", parse_readrows_acceptance_tests(), ids=lambda t: t.description
     )
     def test_read_rows_scenario(self, test_case: ReadRowsTest):
+
         def _make_gapic_stream(chunk_list: list[ReadRowsResponse]):
             from google.cloud.bigtable_v2 import ReadRowsResponse
 
             class mock_stream:
+
                 def __init__(self, chunk_list):
                     self.chunk_list = chunk_list
                     self.idx = -1
@@ -175,6 +180,7 @@ class TestReadRowsAcceptance:
             assert actual == expected
 
     def test_out_of_order_rows(self):
+
         def _row_stream():
             yield ReadRowsResponse(last_scanned_row_key=b"a")
 
