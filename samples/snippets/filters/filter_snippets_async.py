@@ -27,7 +27,7 @@ async def filter_limit_row_sample(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -46,7 +46,7 @@ async def filter_limit_row_regex(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -63,7 +63,7 @@ async def filter_limit_cells_per_col(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -80,7 +80,7 @@ async def filter_limit_cells_per_row(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -97,7 +97,7 @@ async def filter_limit_cells_per_row_offset(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -116,7 +116,7 @@ async def filter_limit_col_family_regex(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -137,7 +137,7 @@ async def filter_limit_col_qualifier_regex(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -158,7 +158,7 @@ async def filter_limit_col_range(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -177,7 +177,7 @@ async def filter_limit_value_range(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -198,7 +198,7 @@ async def filter_limit_value_regex(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -219,7 +219,7 @@ async def filter_limit_timestamp_range(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -236,7 +236,7 @@ async def filter_limit_block_all(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -253,7 +253,7 @@ async def filter_limit_pass_all(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -270,7 +270,7 @@ async def filter_modify_strip_value(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -287,7 +287,7 @@ async def filter_modify_apply_label(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -311,7 +311,7 @@ async def filter_composing_chain(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -335,7 +335,7 @@ async def filter_composing_interleave(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
@@ -363,7 +363,7 @@ async def filter_composing_condition(project_id, instance_id, table_id):
 
     async with BigtableDataClientAsync(project=project_id) as client:
         async with client.get_table(instance_id, table_id) as table:
-            for row in await table.read_rows(query):
+            for row in await table.read_rows_stream(query):
                 print_row(row)
 
 
