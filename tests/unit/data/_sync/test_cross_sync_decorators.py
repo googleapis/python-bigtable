@@ -110,7 +110,7 @@ class TestExportSyncDecorator:
         If docstring_format_vars is set, should update the docstring
         of the class being decorated
         """
-        @self._get_class().decorator(path=1, docstring_format_vars=format_vars)
+        @ExportSync.decorator(path=1, docstring_format_vars=format_vars)
         class Class:
             __doc__ = docstring
         assert Class.__doc__ == expected
@@ -283,7 +283,7 @@ class TestConvertDecorator:
         If docstring_format_vars is set, should update the docstring
         of the class being decorated
         """
-        @self._get_class().decorator(docstring_format_vars=format_vars)
+        @Convert.decorator(docstring_format_vars=format_vars)
         class Class:
             __doc__ = docstring
         assert Class.__doc__ == expected
@@ -456,7 +456,7 @@ class TestPytestFixtureDecorator:
         Should wrap the class with pytest_asyncio.fixture
         """
         with mock.patch.object(pytest_asyncio, "fixture") as fixture:
-            @self._get_class().decorator(1, 2, scope="function", params=[3, 4])
+            @PytestFixture.decorator(1, 2, scope="function", params=[3, 4])
             def fn():
                 pass
 
