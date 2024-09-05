@@ -148,21 +148,6 @@ class CrossSync(metaclass=MappingMeta):
         )
 
     @staticmethod
-    async def condition_wait(
-        condition: CrossSync.Condition, timeout: float | None = None
-    ) -> bool:
-        """
-        abstraction over asyncio.Condition.wait
-
-        returns False if the timeout is reached before the condition is set, otherwise True
-        """
-        try:
-            await asyncio.wait_for(condition.wait(), timeout=timeout)
-            return True
-        except asyncio.TimeoutError:
-            return False
-
-    @staticmethod
     async def event_wait(
         event: CrossSync.Event,
         timeout: float | None = None,
@@ -264,15 +249,6 @@ class CrossSync(metaclass=MappingMeta):
             except ImportError:  # pragma: NO COVER
                 from mock import Mock  # type: ignore
             return Mock(*args, **kwargs)
-
-        @staticmethod
-        def condition_wait(
-            condition: CrossSync._Sync_Impl.Condition, timeout: float | None = None
-        ) -> bool:
-            """
-            returns False if the timeout is reached before the condition is set, otherwise True
-            """
-            return condition.wait(timeout=timeout)
 
         @staticmethod
         def event_wait(
