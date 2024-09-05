@@ -3,6 +3,7 @@ import sys
 import os
 import black
 import pytest
+import yaml
 # add cross_sync to path
 sys.path.append("google/cloud/bigtable/data/_sync/cross_sync")
 from transformers import SymbolReplacer, AsyncToSync, RmAioFunctions, CrossSyncClassDecoratorHandler, CrossSyncClassDecoratorHandler
@@ -11,10 +12,13 @@ from transformers import SymbolReplacer, AsyncToSync, RmAioFunctions, CrossSyncC
 def loader():
     dir_name = os.path.join(os.path.dirname(__file__), "test_cases")
     for file_name in os.listdir(dir_name):
+        if not file_name.endswith(".yaml"):
+            print(f"Skipping {file_name}")
+            continue
         test_case_file = os.path.join(dir_name, file_name)
         # load test cases
-        import yaml
         with open(test_case_file) as f:
+            print(f"Loading test cases from {test_case_file}")
             test_cases = yaml.safe_load(f)
             for test in test_cases["tests"]:
                 test["file_name"] = file_name
