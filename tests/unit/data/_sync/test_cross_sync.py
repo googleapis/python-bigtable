@@ -1,3 +1,16 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import typing
 import asyncio
 import pytest
@@ -407,3 +420,32 @@ class TestCrossSync:
         assert cs_async.rm_aio("test") == "test"
         obj = object()
         assert cs_async.rm_aio(obj) == obj
+
+    def test_add_mapping(self, cs_sync, cs_async):
+        """
+        Add dynamic attributes to each class using add_mapping()
+        """
+        for cls in [cs_sync, cs_async]:
+            cls.add_mapping("test", 1)
+            assert cls.test == 1
+            assert cls._runtime_replacements[(cls, "test")] == 1
+
+    def test_add_duplicate_mapping(self, cs_sync, cs_async):
+        """
+        Adding the same attribute twice should raise an exception
+        """
+        for cls in [cs_sync, cs_async]:
+            cls.add_mapping("duplicate", 1)
+            with pytest.raises(AttributeError) as e:
+                cls.add_mapping("duplicate", 2)
+                assert "Conflicting assignments" in str(e.value)
+
+    def test_add_mapping_decorator(self, cs_sync, cs_async):
+        """
+        add_mapping_decorator should allow wrapping classes with add_mapping()
+        """
+        for cls in [cs_sync, cs_async]:
+            @cls.add_mapping_decorator("decorated")
+            class Decorated:
+                pass
+            assert cls.decorated == Decorated
