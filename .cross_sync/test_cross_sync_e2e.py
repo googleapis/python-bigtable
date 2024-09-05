@@ -29,10 +29,17 @@ def loader():
 )
 def test_e2e_scenario(test_dict):
     before_ast = ast.parse(test_dict["before"]).body[0]
-    transformers = [globals()[t] for t in test_dict["transformers"]]
     got_ast = before_ast
-    for transformer in transformers:
-        got_ast = transformer().visit(got_ast)
+    for transformer_info in test_dict["transformers"]:
+        # transformer can be passed as a string, or a dict with name and args
+        if isinstance(transformer_info, str):
+            transformer_class = globals()[transformer_info]
+            transformer_args = {}
+        else:
+            transformer_class = globals()[transformer_info["name"]]
+            transformer_args = transformer_info.get("args", {})
+        transformer = transformer_class(**transformer_args)
+        got_ast = transformer.visit(got_ast)
     final_str = black.format_str(ast.unparse(got_ast), mode=black.FileMode())
     expected_str = black.format_str(test_dict["after"], mode=black.FileMode())
     assert final_str == expected_str, f"Expected:\n{expected_str}\nGot:\n{final_str}"

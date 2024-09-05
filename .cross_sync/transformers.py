@@ -79,7 +79,7 @@ class SymbolReplacer(ast.NodeTransformer):
             node.body[0].value.s = docstring
         return self.generic_visit(node)
 
-    def visit_Str(self, node):
+    def visit_Constant(self, node):
         """Replace string type annotations"""
         node.s = self.replacements.get(node.s, node.s)
         return node
