@@ -80,6 +80,7 @@ class CrossSync(metaclass=MappingMeta):
 
     # provide aliases for common async functions and types
     sleep = asyncio.sleep
+    wait = asyncio.wait
     retry_target = retries.retry_target_async
     retry_target_stream = retries.retry_target_stream_async
     Retry = retries.AsyncRetry
@@ -145,20 +146,6 @@ class CrossSync(metaclass=MappingMeta):
         return await asyncio.gather(
             *awaitable_list, return_exceptions=return_exceptions
         )
-
-    @staticmethod
-    async def wait(
-        futures: Sequence[CrossSync.Future[T]], timeout: float | None = None
-    ) -> tuple[set[CrossSync.Future[T]], set[CrossSync.Future[T]]]:
-        """
-        abstraction over asyncio.wait
-
-        Return:
-            - a tuple of (done, pending) sets of futures
-        """
-        if not futures:
-            return set(), set()
-        return await asyncio.wait(futures, timeout=timeout)
 
     @staticmethod
     async def condition_wait(
@@ -251,6 +238,7 @@ class CrossSync(metaclass=MappingMeta):
         is_async = False
 
         sleep = time.sleep
+        wait = concurrent.futures.wait
         next = next
         retry_target = retries.retry_target
         retry_target_stream = retries.retry_target_stream
@@ -276,20 +264,6 @@ class CrossSync(metaclass=MappingMeta):
             except ImportError:  # pragma: NO COVER
                 from mock import Mock  # type: ignore
             return Mock(*args, **kwargs)
-
-        @staticmethod
-        def wait(
-            futures: Sequence[CrossSync._Sync_Impl.Future[T]],
-            timeout: float | None = None,
-        ) -> tuple[
-            set[CrossSync._Sync_Impl.Future[T]], set[CrossSync._Sync_Impl.Future[T]]
-        ]:
-            """
-            abstraction over asyncio.wait
-            """
-            if not futures:
-                return set(), set()
-            return concurrent.futures.wait(futures, timeout=timeout)
 
         @staticmethod
         def condition_wait(

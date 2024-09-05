@@ -30,6 +30,7 @@ class TestCrossSync:
         "attr, async_version, sync_version", [
             ("is_async", True, False),
             ("sleep", asyncio.sleep, time.sleep),
+            ("wait", asyncio.wait, concurrent.futures.wait),
             ("retry_target", api_core.retry.retry_target_async, api_core.retry.retry_target),
             ("retry_target_stream", api_core.retry.retry_target_stream_async, api_core.retry.retry_target_stream),
             ("Retry", api_core.retry.AsyncRetry, api_core.retry.Retry),
