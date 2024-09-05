@@ -289,3 +289,74 @@ class TestCrossSync:
         with mock.patch.object(asyncio, "sleep", mock.AsyncMock()) as sleep:
             await cs_async.event_wait(event, timeout=timeout, async_break_early=False)
             sleep.assert_called_once_with(timeout)
+
+    def test_create_task(self, cs_sync):
+        """
+        Test creating Future using create_task()
+        """
+        executor = concurrent.futures.ThreadPoolExecutor()
+        fn = lambda x, y: x + y
+        result = cs_sync.create_task(fn, 1, y=4, sync_executor=executor)
+        assert isinstance(result, cs_sync.Task)
+        assert result.result() == 5
+
+    def test_create_task_passthrough(self, cs_sync):
+        """
+        sync version passed through to executor.submit()
+        """
+        fn = object()
+        executor = mock.Mock()
+        executor.submit.return_value = object()
+        args = [1, 2, 3]
+        kwargs = {"a": 1, "b": 2}
+        result = cs_sync.create_task(fn, *args, **kwargs, sync_executor=executor)
+        assert result == executor.submit.return_value
+        assert executor.submit.call_count == 1
+        assert executor.submit.call_args == ((fn, *args), kwargs)
+
+
+    def test_create_task_no_executor(self, cs_sync):
+        """
+        if no executor is provided, raise an exception
+        """
+        with pytest.raises(ValueError) as e:
+            cs_sync.create_task(lambda: None)
+        assert "sync_executor is required" in str(e.value)
+
+    @pytest.mark.asyncio
+    async def test_create_task_async(self, cs_async):
+        """
+        Test creating Future using create_task()
+        """
+        async def coro_fn(x, y):
+            return x + y
+        result = cs_async.create_task(coro_fn, 1, y=4)
+        assert isinstance(result, asyncio.Task)
+        assert await result == 5
+
+    @pytest.mark.asyncio
+    async def test_create_task_async_passthrough(self, cs_async):
+        """
+        async version passed through to asyncio.create_task()
+        """
+        coro_fn = mock.Mock()
+        coro_fn.return_value = object()
+        args = [1, 2, 3]
+        kwargs = {"a": 1, "b": 2}
+        with mock.patch.object(asyncio, "create_task", mock.Mock()) as create_task:
+            result = cs_async.create_task(coro_fn, *args, **kwargs)
+            create_task.assert_called_once()
+            create_task.assert_called_once_with(coro_fn.return_value)
+            coro_fn.assert_called_once_with(*args, **kwargs)
+
+    @pytest.mark.asyncio
+    async def test_create_task_async_with_name(self, cs_async):
+        """
+        Test creating a task with a name
+        """
+        async def coro_fn():
+            return None
+        name = "test-name-456"
+        result = cs_async.create_task(coro_fn, task_name=name)
+        assert isinstance(result, asyncio.Task)
+        assert result.get_name() == name
