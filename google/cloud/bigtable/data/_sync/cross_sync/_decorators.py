@@ -240,6 +240,8 @@ class ExportSync(AstDecorator):
             wrapped_node.decorator_list = [
                 d for d in wrapped_node.decorator_list if "CrossSync" not in ast.dump(d)
             ]
+        else:
+            wrapped_node.decorator_list = []
         # add mapping decorator if needed
         if self.add_mapping_for_name:
             wrapped_node.decorator_list.append(
@@ -266,6 +268,7 @@ class ExportSync(AstDecorator):
         wrapped_node = transformers_globals["CrossSyncMethodDecoratorHandler"]().visit(
             wrapped_node
         )
+        # update docstring if specified
         if self.sync_docstring_format_vars:
             docstring = ast.get_docstring(wrapped_node)
             wrapped_node.body[0].value.s = docstring.format(**self.sync_docstring_format_vars)

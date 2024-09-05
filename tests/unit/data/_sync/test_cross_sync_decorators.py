@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+import ast
 from unittest import mock
 from google.cloud.bigtable.data._sync.cross_sync.cross_sync import CrossSync
 from google.cloud.bigtable.data._sync.cross_sync._decorators import ExportSync, Convert, DropMethod, Pytest, PytestFixture
@@ -22,6 +23,54 @@ class TestExportSyncDecorator:
 
     def _get_class(self):
         return ExportSync
+
+    @pytest.fixture
+    def globals_mock(self):
+        mock_transform = mock.Mock()
+        mock_transform().visit = lambda x: x
+        global_dict = {k: mock_transform for k in ["RmAioFunctions", "SymbolReplacer", "CrossSyncMethodDecoratorHandler"]}
+        return global_dict
+
+    def test_ctor_defaults(self):
+        """
+        Should set default values for path, add_mapping_for_name, and docstring_format_vars
+        """
+        with pytest.raises(TypeError) as exc:
+            self._get_class()()
+            assert "missing 1 required positional argument" in str(exc.value)
+        path = object()
+        instance = self._get_class()(path)
+        assert instance.path is path
+        assert instance.replace_symbols is None
+        assert instance.mypy_ignore is ()
+        assert instance.include_file_imports is True
+        assert instance.add_mapping_for_name is None
+        assert instance.async_docstring_format_vars == {}
+        assert instance.sync_docstring_format_vars == {}
+
+    def test_ctor(self):
+        path = object()
+        replace_symbols = {"a": "b"}
+        docstring_format_vars = {"A": (1, 2)}
+        mypy_ignore = ("a", "b")
+        include_file_imports = False
+        add_mapping_for_name = "test_name"
+
+        instance = self._get_class()(
+            path=path,
+            replace_symbols=replace_symbols,
+            docstring_format_vars=docstring_format_vars,
+            mypy_ignore=mypy_ignore,
+            include_file_imports=include_file_imports,
+            add_mapping_for_name=add_mapping_for_name
+        )
+        assert instance.path is path
+        assert instance.replace_symbols is replace_symbols
+        assert instance.mypy_ignore is mypy_ignore
+        assert instance.include_file_imports is include_file_imports
+        assert instance.add_mapping_for_name is add_mapping_for_name
+        assert instance.async_docstring_format_vars == {"A": 1}
+        assert instance.sync_docstring_format_vars == {"A": 2}
 
     def test_class_decorator(self):
         """
@@ -70,8 +119,115 @@ class TestExportSyncDecorator:
         assert instance.async_docstring_format_vars == async_replacements
         assert instance.sync_docstring_format_vars == sync_replacements
 
-    def test_sync_ast_transform(self):
-        pass
+    def test_sync_ast_transform_replaces_name(self, globals_mock):
+        """
+        Should update the name of the new class
+        """
+        decorator = self._get_class()("path.to.SyncClass")
+        mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[])
+
+        result = decorator.sync_ast_transform(mock_node, globals_mock)
+
+        assert isinstance(result, ast.ClassDef)
+        assert result.name == "SyncClass"
+
+    def test_sync_ast_transform_strips_cross_sync_decorators(self, globals_mock):
+        """
+        should remove all CrossSync decorators from the class
+        """
+        decorator = self._get_class()("path")
+        cross_sync_decorator = ast.Call(func=ast.Attribute(value=ast.Name(id='CrossSync', ctx=ast.Load()), attr='some_decorator', ctx=ast.Load()), args=[], keywords=[])
+        other_decorator = ast.Name(id='other_decorator', ctx=ast.Load())
+        mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[], decorator_list=[cross_sync_decorator, other_decorator])
+
+        result = decorator.sync_ast_transform(mock_node, globals_mock)
+
+        assert isinstance(result, ast.ClassDef)
+        assert len(result.decorator_list) == 1
+        assert isinstance(result.decorator_list[0], ast.Name)
+        assert result.decorator_list[0].id == 'other_decorator'
+
+    def test_sync_ast_transform_add_mapping(self, globals_mock):
+        """
+        If add_mapping_for_name is set, should add CrossSync.add_mapping_decorator to new class
+        """
+        decorator = self._get_class()("path", add_mapping_for_name="sync_class")
+        mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[])
+
+        result = decorator.sync_ast_transform(mock_node, globals_mock)
+
+        assert isinstance(result, ast.ClassDef)
+        assert len(result.decorator_list) == 1
+        assert isinstance(result.decorator_list[0], ast.Call)
+        assert isinstance(result.decorator_list[0].func, ast.Attribute)
+        assert result.decorator_list[0].func.attr == 'add_mapping_decorator'
+        assert result.decorator_list[0].args[0].value == 'sync_class'
+
+    @pytest.mark.parametrize("docstring,format_vars,expected", [
+        ["test docstring", {}, "test docstring"],
+        ["{}", {}, "{}"],
+        ["test_docstring", {"A": (1, 2)}, "test_docstring"],
+        ["{A}", {"A": (1, 2)}, "2"],
+        ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "2 4"],
+        ["hello {world_var}", {"world_var": ("world", "moon")}, "hello moon"],
+    ])
+    def test_sync_ast_transform_add_docstring_format(self, docstring, format_vars, expected, globals_mock):
+        """
+        If docstring_format_vars is set, should format the docstring of the new class
+        """
+        decorator = self._get_class()("path.to.SyncClass", docstring_format_vars=format_vars)
+        mock_node = ast.ClassDef(
+            name="AsyncClass",
+            bases=[],
+            keywords=[],
+            body=[ast.Expr(value=ast.Constant(value=docstring))]
+        )
+        result = decorator.sync_ast_transform(mock_node, globals_mock)
+
+        assert isinstance(result, ast.ClassDef)
+        assert isinstance(result.body[0], ast.Expr)
+        assert isinstance(result.body[0].value, ast.Constant)
+        assert result.body[0].value.value == expected
+
+    def test_sync_ast_transform_call_cross_sync_transforms(self):
+        """
+        Should use transformers_globals to call some extra transforms on class:
+        - RmAioFunctions
+        - SymbolReplacer
+        - CrossSyncMethodDecoratorHandler
+        """
+        decorator = self._get_class()("path.to.SyncClass")
+        mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[])
+
+        transformers_globals = {
+            "RmAioFunctions": mock.Mock(),
+            "SymbolReplacer": mock.Mock(),
+            "CrossSyncMethodDecoratorHandler": mock.Mock(),
+        }
+        decorator.sync_ast_transform(mock_node, transformers_globals)
+        # ensure each transformer was called
+        for transformer in transformers_globals.values():
+            assert transformer.call_count == 1
+
+    def test_sync_ast_transform_replace_symbols(self, globals_mock):
+        """
+        SymbolReplacer should be called with replace_symbols
+        """
+        replace_symbols = {"a": "b", "c": "d"}
+        decorator = self._get_class()("path.to.SyncClass", replace_symbols=replace_symbols)
+        mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[])
+        symbol_transform_mock = mock.Mock()
+        globals_mock = {**globals_mock, "SymbolReplacer": symbol_transform_mock}
+        decorator.sync_ast_transform(mock_node, globals_mock)
+        # make sure SymbolReplacer was called with replace_symbols
+        assert symbol_transform_mock.call_count == 1
+        found_dict = symbol_transform_mock.call_args[0][0]
+        assert "a" in found_dict
+        for k, v in replace_symbols.items():
+            assert found_dict[k] == v
+        # should also add CrossSync replacement
+        assert found_dict["CrossSync"] == "CrossSync._Sync_Impl"
+
 
 class TestConvertDecorator:
 
