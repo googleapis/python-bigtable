@@ -360,3 +360,50 @@ class TestCrossSync:
         result = cs_async.create_task(coro_fn, task_name=name)
         assert isinstance(result, asyncio.Task)
         assert result.get_name() == name
+
+    def test_yeild_to_event_loop(self, cs_sync):
+        """
+        no-op in sync version
+        """
+        assert cs_sync.yield_to_event_loop() is None
+
+    @pytest.mark.asyncio
+    async def test_yield_to_event_loop_async(self, cs_async):
+        """
+        should call await asyncio.sleep(0)
+        """
+        with mock.patch.object(asyncio, "sleep", mock.AsyncMock()) as sleep:
+            await cs_async.yield_to_event_loop()
+            sleep.assert_called_once_with(0)
+
+    def test_verify_async_event_loop(self, cs_sync):
+        """
+        no-op in sync version
+        """
+        assert cs_sync.verify_async_event_loop() is None
+
+    @pytest.mark.asyncio
+    async def test_verify_async_event_loop_async(self, cs_async):
+        """
+        should call asyncio.get_running_loop()
+        """
+        with mock.patch.object(asyncio, "get_running_loop") as get_running_loop:
+            cs_async.verify_async_event_loop()
+            get_running_loop.assert_called_once()
+
+    def test_verify_async_event_loop_no_event_loop(self, cs_async):
+        """
+        Should raise an exception if no event loop is running
+        """
+        with pytest.raises(RuntimeError) as e:
+            cs_async.verify_async_event_loop()
+        assert "no running event loop" in str(e.value)
+
+    def test_rmaio(self, cs_async):
+        """
+        rm_aio should return whatever is passed to it
+        """
+        assert cs_async.rm_aio(1) == 1
+        assert cs_async.rm_aio("test") == "test"
+        obj = object()
+        assert cs_async.rm_aio(obj) == obj
