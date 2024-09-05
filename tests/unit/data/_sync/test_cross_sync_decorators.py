@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+import pytest_asyncio
 import ast
 from unittest import mock
 from google.cloud.bigtable.data._sync.cross_sync.cross_sync import CrossSync
@@ -389,18 +390,61 @@ class TestDropMethodDecorator:
         assert wrapped(1) == 1
 
     def test_sync_ast_transform(self):
-        pass
+        """
+        Should return None for any input method
+        """
+        decorator = self._get_class()()
+        mock_node = ast.AsyncFunctionDef(name="test_method", args=ast.arguments(), body=[])
+
+        result = decorator.sync_ast_transform(mock_node, {})
+
+        assert result is None
+
 
 class TestPytestDecorator:
 
     def _get_class(self):
         return Pytest
 
+    def test_ctor(self):
+        instance = self._get_class()()
+        assert instance.rm_aio is True
+        instance = self._get_class()(rm_aio=False)
+        assert instance.rm_aio is False
+
     def test_decorator_functionality(self):
-        pass
+        """
+        Should wrap the class with pytest.mark.asyncio
+        """
+        unwrapped_class = mock.Mock
+        wrapped_class = self._get_class().decorator(unwrapped_class)
+        assert wrapped_class == pytest.mark.asyncio(unwrapped_class)
 
     def test_sync_ast_transform(self):
-        pass
+        """
+        Should be no-op if rm_aio is not set
+        """
+        decorator = self._get_class()(rm_aio=False)
+
+        input_obj = object()
+        result = decorator.sync_ast_transform(input_obj, {})
+
+        assert result is input_obj
+
+    def test_sync_ast_transform_rm_aio(self):
+        """
+        If rm_aio is set, should call AsyncToSync on the class
+        """
+        decorator = self._get_class()()
+        mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[])
+
+        async_to_sync_mock = mock.Mock()
+        async_to_sync_mock.visit.return_value = mock_node
+        globals_mock = {"AsyncToSync": lambda: async_to_sync_mock}
+
+        decorator.sync_ast_transform(mock_node, globals_mock)
+        assert async_to_sync_mock.visit.call_count == 1
+
 
 class TestPytestFixtureDecorator:
 
@@ -408,7 +452,34 @@ class TestPytestFixtureDecorator:
         return PytestFixture
 
     def test_decorator_functionality(self):
-        pass
+        """
+        Should wrap the class with pytest_asyncio.fixture
+        """
+        with mock.patch.object(pytest_asyncio, "fixture") as fixture:
+            @self._get_class().decorator(1, 2, scope="function", params=[3, 4])
+            def fn():
+                pass
+
+            assert fixture.call_count == 1
+            assert fixture.call_args[0] == (1, 2)
+            assert fixture.call_args[1] == {"scope": "function", "params": [3, 4]}
 
     def test_sync_ast_transform(self):
-        pass
+        """
+        Should attach pytest.fixture to generated method
+        """
+        decorator = self._get_class()(1, 2, scope="function")
+
+        mock_node = ast.AsyncFunctionDef(name="test_method", args=ast.arguments(), body=[])
+
+        result = decorator.sync_ast_transform(mock_node, {})
+
+        assert isinstance(result, ast.AsyncFunctionDef)
+        assert len(result.decorator_list) == 1
+        assert isinstance(result.decorator_list[0], ast.Call)
+        assert result.decorator_list[0].func.value.id == "pytest"
+        assert result.decorator_list[0].func.attr == "fixture"
+        assert result.decorator_list[0].args[0].value == 1
+        assert result.decorator_list[0].args[1].value == 2
+        assert result.decorator_list[0].keywords[0].arg == "scope"
+        assert result.decorator_list[0].keywords[0].value.value == "function"

@@ -414,6 +414,8 @@ class PytestFixture(AstDecorator):
         import copy
 
         new_node = copy.deepcopy(wrapped_node)
+        if not hasattr(new_node, "decorator_list"):
+            new_node.decorator_list = []
         new_node.decorator_list.append(
             ast.Call(
                 func=ast.Attribute(
