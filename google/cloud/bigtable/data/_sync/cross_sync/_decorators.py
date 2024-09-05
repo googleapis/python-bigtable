@@ -315,7 +315,7 @@ class Convert(AstDecorator):
                 wrapped_node.name,
                 wrapped_node.args,
                 wrapped_node.body,
-                wrapped_node.decorator_list,
+                wrapped_node.decorator_list if hasattr(wrapped_node, "decorator_list") else [],
                 wrapped_node.returns,
             ),
             wrapped_node,

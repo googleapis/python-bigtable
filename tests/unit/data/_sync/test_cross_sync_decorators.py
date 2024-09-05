@@ -19,17 +19,18 @@ from google.cloud.bigtable.data._sync.cross_sync.cross_sync import CrossSync
 from google.cloud.bigtable.data._sync.cross_sync._decorators import ExportSync, Convert, DropMethod, Pytest, PytestFixture
 
 
+@pytest.fixture
+def globals_mock():
+    mock_transform = mock.Mock()
+    mock_transform().visit = lambda x: x
+    global_dict = {k: mock_transform for k in ["RmAioFunctions", "SymbolReplacer", "CrossSyncMethodDecoratorHandler"]}
+    return global_dict
+
+
 class TestExportSyncDecorator:
 
     def _get_class(self):
         return ExportSync
-
-    @pytest.fixture
-    def globals_mock(self):
-        mock_transform = mock.Mock()
-        mock_transform().visit = lambda x: x
-        global_dict = {k: mock_transform for k in ["RmAioFunctions", "SymbolReplacer", "CrossSyncMethodDecoratorHandler"]}
-        return global_dict
 
     def test_ctor_defaults(self):
         """
@@ -234,11 +235,143 @@ class TestConvertDecorator:
     def _get_class(self):
         return Convert
 
-    def test_decorator_functionality(self):
-        pass
+    def test_ctor_defaults(self):
+        instance = self._get_class()()
+        assert instance.sync_name is None
+        assert instance.replace_symbols is None
+        assert instance.async_docstring_format_vars == {}
+        assert instance.sync_docstring_format_vars == {}
+        assert instance.rm_aio is False
 
-    def test_sync_ast_transform(self):
-        pass
+    def test_ctor(self):
+        sync_name = "sync_name"
+        replace_symbols = {"a": "b"}
+        docstring_format_vars = {"A": (1, 2)}
+        rm_aio = True
+
+        instance = self._get_class()(
+            sync_name=sync_name,
+            replace_symbols=replace_symbols,
+            docstring_format_vars=docstring_format_vars,
+            rm_aio=rm_aio
+        )
+        assert instance.sync_name is sync_name
+        assert instance.replace_symbols is replace_symbols
+        assert instance.async_docstring_format_vars == {"A": 1}
+        assert instance.sync_docstring_format_vars == {"A": 2}
+        assert instance.rm_aio is rm_aio
+
+    def test_async_decorator_no_docstring(self):
+        """
+        If no docstring_format_vars is set, should be a no-op
+        """
+        unwrapped_class = mock.Mock
+        wrapped_class = self._get_class().decorator(unwrapped_class)
+        assert unwrapped_class == wrapped_class
+
+    @pytest.mark.parametrize("docstring,format_vars,expected", [
+        ["test docstring", {}, "test docstring"],
+        ["{}", {}, "{}"],
+        ["test_docstring", {"A": (1, 2)}, "test_docstring"],
+        ["{A}", {"A": (1, 2)}, "1"],
+        ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "1 3"],
+        ["hello {world_var}", {"world_var": ("world", "moon")}, "hello world"],
+    ])
+    def test_async_decorator_docstring_update(self, docstring, format_vars, expected):
+        """
+        If docstring_format_vars is set, should update the docstring
+        of the class being decorated
+        """
+        @self._get_class().decorator(docstring_format_vars=format_vars)
+        class Class:
+            __doc__ = docstring
+        assert Class.__doc__ == expected
+        # check internal state
+        instance = self._get_class()(docstring_format_vars=format_vars)
+        async_replacements = {k: v[0] for k, v in format_vars.items()}
+        sync_replacements = {k: v[1] for k, v in format_vars.items()}
+        assert instance.async_docstring_format_vars == async_replacements
+        assert instance.sync_docstring_format_vars == sync_replacements
+
+    def test_sync_ast_transform_remove_adef(self):
+        """
+        Should convert `async def` methods to `def` methods
+        """
+        decorator = self._get_class()()
+        mock_node = ast.AsyncFunctionDef(name="test_method", args=ast.arguments(), body=[])
+
+        result = decorator.sync_ast_transform(mock_node, {})
+
+        assert isinstance(result, ast.FunctionDef)
+        assert result.name == "test_method"
+
+    def test_sync_ast_transform_replaces_name(self, globals_mock):
+        """
+        Should update the name of the method if sync_name is set
+        """
+        decorator = self._get_class()(sync_name="new_method_name")
+        mock_node = ast.AsyncFunctionDef(name="old_method_name", args=ast.arguments(), body=[])
+
+        result = decorator.sync_ast_transform(mock_node, globals_mock)
+
+        assert isinstance(result, ast.FunctionDef)
+        assert result.name == "new_method_name"
+
+    def test_sync_ast_transform_calls_async_to_sync(self):
+        """
+        Should call AsyncToSync if rm_aio is set
+        """
+        decorator = self._get_class()(rm_aio=True)
+        mock_node = ast.AsyncFunctionDef(name="test_method", args=ast.arguments(), body=[])
+        async_to_sync_mock = mock.Mock()
+        async_to_sync_mock.visit.return_value = mock_node
+        globals_mock = {"AsyncToSync": lambda: async_to_sync_mock}
+
+        decorator.sync_ast_transform(mock_node, globals_mock)
+        assert async_to_sync_mock.visit.call_count == 1
+
+    def test_sync_ast_transform_replace_symbols(self):
+        """
+        Should call SymbolReplacer with replace_symbols if replace_symbols is set
+        """
+        replace_symbols = {"old_symbol": "new_symbol"}
+        decorator = self._get_class()(replace_symbols=replace_symbols)
+        mock_node = ast.AsyncFunctionDef(name="test_method", args=ast.arguments(), body=[])
+        symbol_replacer_mock = mock.Mock()
+        globals_mock = {"SymbolReplacer": symbol_replacer_mock}
+
+        decorator.sync_ast_transform(mock_node, globals_mock)
+
+        assert symbol_replacer_mock.call_count == 1
+        assert symbol_replacer_mock.call_args[0][0] == replace_symbols
+        assert symbol_replacer_mock(replace_symbols).visit.call_count == 1
+
+    @pytest.mark.parametrize("docstring,format_vars,expected", [
+        ["test docstring", {}, "test docstring"],
+        ["{}", {}, "{}"],
+        ["test_docstring", {"A": (1, 2)}, "test_docstring"],
+        ["{A}", {"A": (1, 2)}, "2"],
+        ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "2 4"],
+        ["hello {world_var}", {"world_var": ("world", "moon")}, "hello moon"],
+    ])
+    def test_sync_ast_transform_add_docstring_format(self, docstring, format_vars, expected):
+        """
+        If docstring_format_vars is set, should format the docstring of the new method
+        """
+        decorator = self._get_class()(docstring_format_vars=format_vars)
+        mock_node = ast.AsyncFunctionDef(
+            name="test_method",
+            args=ast.arguments(),
+            body=[ast.Expr(value=ast.Constant(value=docstring))]
+        )
+
+        result = decorator.sync_ast_transform(mock_node, {})
+
+        assert isinstance(result, ast.FunctionDef)
+        assert isinstance(result.body[0], ast.Expr)
+        assert isinstance(result.body[0].value, ast.Constant)
+        assert result.body[0].value.value == expected
+
 
 class TestDropMethodDecorator:
 
