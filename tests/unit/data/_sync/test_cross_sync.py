@@ -193,3 +193,99 @@ class TestCrossSync:
             assert found_kwargs["return_exceptions"] == return_exceptions
             for coro in found_args:
                 await coro
+
+    def test_event_wait_passthrough(self, cs_sync):
+        """
+        Test sync version of CrossSync.event_wait()
+        should pass through timeout directly to the event.wait() call
+        """
+        event = mock.Mock()
+        timeout = object()
+        cs_sync.event_wait(event, timeout)
+        event.wait.assert_called_once_with(timeout=timeout)
+
+    @pytest.mark.parametrize("timeout", [0, 0.01, 0.05])
+    def test_event_wait_timeout_exceeded(self, cs_sync, timeout):
+        """
+        Test sync version of CrossSync.event_wait()
+        """
+        event = threading.Event()
+        start_time = time.monotonic()
+        cs_sync.event_wait(event, timeout=timeout)
+        end_time = time.monotonic()
+        assert abs((end_time - start_time) - timeout) < 0.01
+
+    def test_event_wait_already_set(self, cs_sync):
+        """
+        if event is already set, do not block
+        """
+        event = threading.Event()
+        event.set()
+        start_time = time.monotonic()
+        cs_sync.event_wait(event, timeout=10)
+        end_time = time.monotonic()
+        assert end_time - start_time < 0.01
+
+    @pytest.mark.parametrize("break_early", [True, False])
+    @pytest.mark.asyncio
+    async def test_event_wait_async(self, cs_async, break_early):
+        """
+        With no timeout, call event.wait() with no arguments
+        """
+        event = mock.AsyncMock()
+        await cs_async.event_wait(event, async_break_early=break_early)
+        event.wait.assert_called_once_with()
+
+
+    @pytest.mark.asyncio
+    async def test_event_wait_async_with_timeout(self, cs_async):
+        """
+        In with timeout set, should call event.wait(), wrapped in wait_for()
+        for the timeout
+        """
+        event = mock.Mock()
+        event.wait.return_value = object()
+        timeout = object()
+        with mock.patch.object(asyncio, "wait_for", mock.AsyncMock()) as wait_for:
+            await cs_async.event_wait(event, timeout=timeout)
+            assert wait_for.await_count == 1
+            assert wait_for.call_count == 1
+            wait_for.assert_called_once_with(event.wait(), timeout=timeout)
+
+    @pytest.mark.asyncio
+    async def test_event_wait_async_timeout_exceeded(self, cs_async):
+        """
+        If tiemout exceeded, break without throwing exception
+        """
+        event = asyncio.Event()
+        timeout = 0.5
+        start_time = time.monotonic()
+        await cs_async.event_wait(event, timeout=timeout)
+        end_time = time.monotonic()
+        assert abs((end_time - start_time) - timeout) < 0.01
+
+    @pytest.mark.parametrize("break_early", [True, False])
+    @pytest.mark.asyncio
+    async def test_event_wait_async_already_set(self, cs_async, break_early):
+        """
+        if event is already set, return immediately
+        """
+        event = mock.AsyncMock()
+        event.is_set = lambda: True
+        start_time = time.monotonic()
+        await cs_async.event_wait(event, async_break_early=break_early)
+        end_time = time.monotonic()
+        assert abs(end_time - start_time) < 0.01
+
+    @pytest.mark.asyncio
+    async def test_event_wait_no_break_early(self, cs_async):
+        """
+        if async_break_early is False, and the event is not set,
+        simply sleep for the timeout
+        """
+        event = mock.Mock()
+        event.is_set.return_value = False
+        timeout = object()
+        with mock.patch.object(asyncio, "sleep", mock.AsyncMock()) as sleep:
+            await cs_async.event_wait(event, timeout=timeout, async_break_early=False)
+            sleep.assert_called_once_with(timeout)

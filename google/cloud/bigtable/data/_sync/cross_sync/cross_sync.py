@@ -166,7 +166,8 @@ class CrossSync(metaclass=MappingMeta):
         if timeout is None:
             await event.wait()
         elif not async_break_early:
-            await asyncio.sleep(timeout)
+            if not event.is_set():
+                await asyncio.sleep(timeout)
         else:
             try:
                 await asyncio.wait_for(event.wait(), timeout=timeout)
