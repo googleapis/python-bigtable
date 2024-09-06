@@ -244,11 +244,7 @@ class CrossSync(metaclass=MappingMeta):
 
         @classmethod
         def Mock(cls, *args, **kwargs):
-            # try/except added for compatibility with python < 3.8
-            try:
-                from unittest.mock import Mock
-            except ImportError:  # pragma: NO COVER
-                from mock import Mock  # type: ignore
+            from unittest.mock import Mock
             return Mock(*args, **kwargs)
 
         @staticmethod

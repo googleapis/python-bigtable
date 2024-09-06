@@ -20,10 +20,17 @@ import concurrent.futures
 import time
 import queue
 import functools
+import sys
 from google import api_core
 from google.cloud.bigtable.data._sync.cross_sync.cross_sync import CrossSync, T
-from unittest import mock
 
+# try/except added for compatibility with python < 3.8
+try:
+    from unittest import mock
+    from unittest.mock import AsyncMock  # type: ignore
+except ImportError:  # pragma: NO COVER
+    import mock  # type: ignore
+    from mock import AsyncMock  # type: ignore
 
 class TestCrossSync:
     async def async_iter(self, in_list):
@@ -86,8 +93,9 @@ class TestCrossSync:
         """
         Test Mock class in both sync and async versions
         """
-        assert isinstance(cs_async.Mock(), mock.AsyncMock)
-        assert isinstance(cs_sync.Mock(), mock.Mock)
+        import unittest.mock
+        assert isinstance(cs_async.Mock(), AsyncMock)
+        assert isinstance(cs_sync.Mock(), unittest.mock.Mock)
         # test with return value
         assert await cs_async.Mock(return_value=1)() == 1
         assert cs_sync.Mock(return_value=1)() == 1
@@ -217,7 +225,7 @@ class TestCrossSync:
 
         return_exceptions = object()
         partials = [functools.partial(coro, i) for i in range(5)]
-        with mock.patch.object(asyncio, "gather", mock.AsyncMock()) as gather:
+        with mock.patch.object(asyncio, "gather", AsyncMock()) as gather:
             await cs_async.gather_partials(
                 partials, return_exceptions=return_exceptions
             )
@@ -265,7 +273,7 @@ class TestCrossSync:
         """
         With no timeout, call event.wait() with no arguments
         """
-        event = mock.AsyncMock()
+        event = AsyncMock()
         await cs_async.event_wait(event, async_break_early=break_early)
         event.wait.assert_called_once_with()
 
@@ -278,7 +286,7 @@ class TestCrossSync:
         event = mock.Mock()
         event.wait.return_value = object()
         timeout = object()
-        with mock.patch.object(asyncio, "wait_for", mock.AsyncMock()) as wait_for:
+        with mock.patch.object(asyncio, "wait_for", AsyncMock()) as wait_for:
             await cs_async.event_wait(event, timeout=timeout)
             assert wait_for.await_count == 1
             assert wait_for.call_count == 1
@@ -302,7 +310,7 @@ class TestCrossSync:
         """
         if event is already set, return immediately
         """
-        event = mock.AsyncMock()
+        event = AsyncMock()
         event.is_set = lambda: True
         start_time = time.monotonic()
         await cs_async.event_wait(event, async_break_early=break_early)
@@ -318,7 +326,7 @@ class TestCrossSync:
         event = mock.Mock()
         event.is_set.return_value = False
         timeout = object()
-        with mock.patch.object(asyncio, "sleep", mock.AsyncMock()) as sleep:
+        with mock.patch.object(asyncio, "sleep", AsyncMock()) as sleep:
             await cs_async.event_wait(event, timeout=timeout, async_break_early=False)
             sleep.assert_called_once_with(timeout)
 
@@ -382,6 +390,7 @@ class TestCrossSync:
             create_task.assert_called_once_with(coro_fn.return_value)
             coro_fn.assert_called_once_with(*args, **kwargs)
 
+    @pytest.mark.skipif(sys.version_info < (3, 8), reason="Task names require python 3.8")
     @pytest.mark.asyncio
     async def test_create_task_async_with_name(self, cs_async):
         """
@@ -407,7 +416,7 @@ class TestCrossSync:
         """
         should call await asyncio.sleep(0)
         """
-        with mock.patch.object(asyncio, "sleep", mock.AsyncMock()) as sleep:
+        with mock.patch.object(asyncio, "sleep", AsyncMock()) as sleep:
             await cs_async.yield_to_event_loop()
             sleep.assert_called_once_with(0)
 

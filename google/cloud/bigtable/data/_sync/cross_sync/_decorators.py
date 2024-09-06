@@ -276,8 +276,8 @@ class ExportSync(AstDecorator):
         if self.sync_docstring_format_vars:
             docstring = ast.get_docstring(wrapped_node)
             if docstring:
-                wrapped_node.body[0].value.s = docstring.format(
-                    **self.sync_docstring_format_vars
+                wrapped_node.body[0].value = ast.Constant(
+                    value=docstring.format(**self.sync_docstring_format_vars)
                 )
         return wrapped_node
 
@@ -347,8 +347,8 @@ class Convert(AstDecorator):
         if self.sync_docstring_format_vars:
             docstring = ast.get_docstring(wrapped_node)
             if docstring:
-                wrapped_node.body[0].value.s = docstring.format(
-                    **self.sync_docstring_format_vars
+                wrapped_node.body[0].value = ast.Constant(
+                    value=docstring.format(**self.sync_docstring_format_vars)
                 )
         return wrapped_node
 
