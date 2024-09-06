@@ -271,6 +271,7 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
         and avoid duplicate writes
         """
         try:
+            converted = None
             for decorator in node.decorator_list:
                 try:
                     handler = AstDecorator.get_for_node(decorator)
@@ -300,7 +301,7 @@ class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
                         self._artifact_dict[out_file] = output_artifact
                 except ValueError:
                     continue
-            return node
+            return converted
         except ValueError as e:
             raise ValueError(f"failed for class: {node.name}") from e
 
