@@ -5,12 +5,15 @@ import black
 import pytest
 import yaml
 # add cross_sync to path
-sys.path.append("google/cloud/bigtable/data/_sync/cross_sync")
+test_dir_name = os.path.dirname(__file__)
+cross_sync_path = os.path.join(test_dir_name, "..", "..", "..", ".cross_sync")
+sys.path.append(cross_sync_path)
+
 from transformers import SymbolReplacer, AsyncToSync, RmAioFunctions, CrossSyncMethodDecoratorHandler, CrossSyncClassDecoratorHandler
 
 
 def loader():
-    dir_name = os.path.join(os.path.dirname(__file__), "test_cases")
+    dir_name = os.path.join(test_dir_name, "test_cases")
     for file_name in os.listdir(dir_name):
         if not file_name.endswith(".yaml"):
             print(f"Skipping {file_name}")
@@ -27,6 +30,7 @@ def loader():
 @pytest.mark.parametrize(
     "test_dict", loader(), ids=lambda x: f"{x['file_name']}: {x.get('description', '')}"
 )
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="ast.unparse requires python3.9 or higher")
 def test_e2e_scenario(test_dict):
     before_ast = ast.parse(test_dict["before"]).body[0]
     got_ast = before_ast
