@@ -6,7 +6,7 @@ import pytest
 import yaml
 # add cross_sync to path
 sys.path.append("google/cloud/bigtable/data/_sync/cross_sync")
-from transformers import SymbolReplacer, AsyncToSync, RmAioFunctions, CrossSyncClassDecoratorHandler, CrossSyncClassDecoratorHandler
+from transformers import SymbolReplacer, AsyncToSync, RmAioFunctions, CrossSyncMethodDecoratorHandler, CrossSyncClassDecoratorHandler
 
 
 def loader():
