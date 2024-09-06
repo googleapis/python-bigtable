@@ -32,6 +32,7 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
     from mock import AsyncMock  # type: ignore
 
+
 class TestCrossSync:
     async def async_iter(self, in_list):
         for i in in_list:
@@ -94,6 +95,7 @@ class TestCrossSync:
         Test Mock class in both sync and async versions
         """
         import unittest.mock
+
         assert isinstance(cs_async.Mock(), AsyncMock)
         assert isinstance(cs_sync.Mock(), unittest.mock.Mock)
         # test with return value
@@ -390,7 +392,9 @@ class TestCrossSync:
             create_task.assert_called_once_with(coro_fn.return_value)
             coro_fn.assert_called_once_with(*args, **kwargs)
 
-    @pytest.mark.skipif(sys.version_info < (3, 8), reason="Task names require python 3.8")
+    @pytest.mark.skipif(
+        sys.version_info < (3, 8), reason="Task names require python 3.8"
+    )
     @pytest.mark.asyncio
     async def test_create_task_async_with_name(self, cs_async):
         """

@@ -34,6 +34,7 @@ from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 
 # try/except added for compatibility with python < 3.8
 from unittest import mock
+
 try:
     from unittest.mock import AsyncMock  # type: ignore
 except ImportError:  # pragma: NO COVER

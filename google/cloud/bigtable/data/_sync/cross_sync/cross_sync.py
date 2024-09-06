@@ -245,6 +245,7 @@ class CrossSync(metaclass=MappingMeta):
         @classmethod
         def Mock(cls, *args, **kwargs):
             from unittest.mock import Mock
+
             return Mock(*args, **kwargs)
 
         @staticmethod
