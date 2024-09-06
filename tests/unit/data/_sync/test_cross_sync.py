@@ -377,7 +377,7 @@ class TestCrossSync:
         args = [1, 2, 3]
         kwargs = {"a": 1, "b": 2}
         with mock.patch.object(asyncio, "create_task", mock.Mock()) as create_task:
-            result = cs_async.create_task(coro_fn, *args, **kwargs)
+            cs_async.create_task(coro_fn, *args, **kwargs)
             create_task.assert_called_once()
             create_task.assert_called_once_with(coro_fn.return_value)
             coro_fn.assert_called_once_with(*args, **kwargs)
