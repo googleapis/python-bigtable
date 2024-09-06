@@ -258,7 +258,7 @@ def install_systemtest_dependencies(session, *constraints):
         session.install("-e", ".", *constraints)
 
 
-@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
+@nox.session(python=3.8)
 def system_emulated(session):
     import subprocess
     import signal
