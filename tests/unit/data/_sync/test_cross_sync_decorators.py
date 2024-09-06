@@ -17,19 +17,27 @@ import pytest_asyncio
 import ast
 from unittest import mock
 from google.cloud.bigtable.data._sync.cross_sync.cross_sync import CrossSync
-from google.cloud.bigtable.data._sync.cross_sync._decorators import ExportSync, Convert, DropMethod, Pytest, PytestFixture
+from google.cloud.bigtable.data._sync.cross_sync._decorators import (
+    ExportSync,
+    Convert,
+    DropMethod,
+    Pytest,
+    PytestFixture,
+)
 
 
 @pytest.fixture
 def globals_mock():
     mock_transform = mock.Mock()
     mock_transform().visit = lambda x: x
-    global_dict = {k: mock_transform for k in ["RmAioFunctions", "SymbolReplacer", "CrossSyncMethodDecoratorHandler"]}
+    global_dict = {
+        k: mock_transform
+        for k in ["RmAioFunctions", "SymbolReplacer", "CrossSyncMethodDecoratorHandler"]
+    }
     return global_dict
 
 
 class TestExportSyncDecorator:
-
     def _get_class(self):
         return ExportSync
 
@@ -44,7 +52,7 @@ class TestExportSyncDecorator:
         instance = self._get_class()(path)
         assert instance.path is path
         assert instance.replace_symbols is None
-        assert instance.mypy_ignore is ()
+        assert instance.mypy_ignore == ()
         assert instance.include_file_imports is True
         assert instance.add_mapping_for_name is None
         assert instance.async_docstring_format_vars == {}
@@ -64,7 +72,7 @@ class TestExportSyncDecorator:
             docstring_format_vars=docstring_format_vars,
             mypy_ignore=mypy_ignore,
             include_file_imports=include_file_imports,
-            add_mapping_for_name=add_mapping_for_name
+            add_mapping_for_name=add_mapping_for_name,
         )
         assert instance.path is path
         assert instance.replace_symbols is replace_symbols
@@ -97,22 +105,27 @@ class TestExportSyncDecorator:
             assert add_mapping.call_count == 1
             add_mapping.assert_called_once_with(name, mock_cls)
 
-    @pytest.mark.parametrize("docstring,format_vars,expected", [
-        ["test docstring", {}, "test docstring"],
-        ["{}", {}, "{}"],
-        ["test_docstring", {"A": (1, 2)}, "test_docstring"],
-        ["{A}", {"A": (1, 2)}, "1"],
-        ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "1 3"],
-        ["hello {world_var}", {"world_var": ("world", "moon")}, "hello world"],
-    ])
+    @pytest.mark.parametrize(
+        "docstring,format_vars,expected",
+        [
+            ["test docstring", {}, "test docstring"],
+            ["{}", {}, "{}"],
+            ["test_docstring", {"A": (1, 2)}, "test_docstring"],
+            ["{A}", {"A": (1, 2)}, "1"],
+            ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "1 3"],
+            ["hello {world_var}", {"world_var": ("world", "moon")}, "hello world"],
+        ],
+    )
     def test_class_decorator_docstring_update(self, docstring, format_vars, expected):
         """
         If docstring_format_vars is set, should update the docstring
         of the class being decorated
         """
+
         @ExportSync.decorator(path=1, docstring_format_vars=format_vars)
         class Class:
             __doc__ = docstring
+
         assert Class.__doc__ == expected
         # check internal state
         instance = self._get_class()(path=1, docstring_format_vars=format_vars)
@@ -138,16 +151,30 @@ class TestExportSyncDecorator:
         should remove all CrossSync decorators from the class
         """
         decorator = self._get_class()("path")
-        cross_sync_decorator = ast.Call(func=ast.Attribute(value=ast.Name(id='CrossSync', ctx=ast.Load()), attr='some_decorator', ctx=ast.Load()), args=[], keywords=[])
-        other_decorator = ast.Name(id='other_decorator', ctx=ast.Load())
-        mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[], decorator_list=[cross_sync_decorator, other_decorator])
+        cross_sync_decorator = ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="CrossSync", ctx=ast.Load()),
+                attr="some_decorator",
+                ctx=ast.Load(),
+            ),
+            args=[],
+            keywords=[],
+        )
+        other_decorator = ast.Name(id="other_decorator", ctx=ast.Load())
+        mock_node = ast.ClassDef(
+            name="AsyncClass",
+            bases=[],
+            keywords=[],
+            body=[],
+            decorator_list=[cross_sync_decorator, other_decorator],
+        )
 
         result = decorator.sync_ast_transform(mock_node, globals_mock)
 
         assert isinstance(result, ast.ClassDef)
         assert len(result.decorator_list) == 1
         assert isinstance(result.decorator_list[0], ast.Name)
-        assert result.decorator_list[0].id == 'other_decorator'
+        assert result.decorator_list[0].id == "other_decorator"
 
     def test_sync_ast_transform_add_mapping(self, globals_mock):
         """
@@ -162,27 +189,34 @@ class TestExportSyncDecorator:
         assert len(result.decorator_list) == 1
         assert isinstance(result.decorator_list[0], ast.Call)
         assert isinstance(result.decorator_list[0].func, ast.Attribute)
-        assert result.decorator_list[0].func.attr == 'add_mapping_decorator'
-        assert result.decorator_list[0].args[0].value == 'sync_class'
+        assert result.decorator_list[0].func.attr == "add_mapping_decorator"
+        assert result.decorator_list[0].args[0].value == "sync_class"
 
-    @pytest.mark.parametrize("docstring,format_vars,expected", [
-        ["test docstring", {}, "test docstring"],
-        ["{}", {}, "{}"],
-        ["test_docstring", {"A": (1, 2)}, "test_docstring"],
-        ["{A}", {"A": (1, 2)}, "2"],
-        ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "2 4"],
-        ["hello {world_var}", {"world_var": ("world", "moon")}, "hello moon"],
-    ])
-    def test_sync_ast_transform_add_docstring_format(self, docstring, format_vars, expected, globals_mock):
+    @pytest.mark.parametrize(
+        "docstring,format_vars,expected",
+        [
+            ["test docstring", {}, "test docstring"],
+            ["{}", {}, "{}"],
+            ["test_docstring", {"A": (1, 2)}, "test_docstring"],
+            ["{A}", {"A": (1, 2)}, "2"],
+            ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "2 4"],
+            ["hello {world_var}", {"world_var": ("world", "moon")}, "hello moon"],
+        ],
+    )
+    def test_sync_ast_transform_add_docstring_format(
+        self, docstring, format_vars, expected, globals_mock
+    ):
         """
         If docstring_format_vars is set, should format the docstring of the new class
         """
-        decorator = self._get_class()("path.to.SyncClass", docstring_format_vars=format_vars)
+        decorator = self._get_class()(
+            "path.to.SyncClass", docstring_format_vars=format_vars
+        )
         mock_node = ast.ClassDef(
             name="AsyncClass",
             bases=[],
             keywords=[],
-            body=[ast.Expr(value=ast.Constant(value=docstring))]
+            body=[ast.Expr(value=ast.Constant(value=docstring))],
         )
         result = decorator.sync_ast_transform(mock_node, globals_mock)
 
@@ -216,7 +250,9 @@ class TestExportSyncDecorator:
         SymbolReplacer should be called with replace_symbols
         """
         replace_symbols = {"a": "b", "c": "d"}
-        decorator = self._get_class()("path.to.SyncClass", replace_symbols=replace_symbols)
+        decorator = self._get_class()(
+            "path.to.SyncClass", replace_symbols=replace_symbols
+        )
         mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[])
         symbol_transform_mock = mock.Mock()
         globals_mock = {**globals_mock, "SymbolReplacer": symbol_transform_mock}
@@ -232,7 +268,6 @@ class TestExportSyncDecorator:
 
 
 class TestConvertDecorator:
-
     def _get_class(self):
         return Convert
 
@@ -254,7 +289,7 @@ class TestConvertDecorator:
             sync_name=sync_name,
             replace_symbols=replace_symbols,
             docstring_format_vars=docstring_format_vars,
-            rm_aio=rm_aio
+            rm_aio=rm_aio,
         )
         assert instance.sync_name is sync_name
         assert instance.replace_symbols is replace_symbols
@@ -270,22 +305,27 @@ class TestConvertDecorator:
         wrapped_class = self._get_class().decorator(unwrapped_class)
         assert unwrapped_class == wrapped_class
 
-    @pytest.mark.parametrize("docstring,format_vars,expected", [
-        ["test docstring", {}, "test docstring"],
-        ["{}", {}, "{}"],
-        ["test_docstring", {"A": (1, 2)}, "test_docstring"],
-        ["{A}", {"A": (1, 2)}, "1"],
-        ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "1 3"],
-        ["hello {world_var}", {"world_var": ("world", "moon")}, "hello world"],
-    ])
+    @pytest.mark.parametrize(
+        "docstring,format_vars,expected",
+        [
+            ["test docstring", {}, "test docstring"],
+            ["{}", {}, "{}"],
+            ["test_docstring", {"A": (1, 2)}, "test_docstring"],
+            ["{A}", {"A": (1, 2)}, "1"],
+            ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "1 3"],
+            ["hello {world_var}", {"world_var": ("world", "moon")}, "hello world"],
+        ],
+    )
     def test_async_decorator_docstring_update(self, docstring, format_vars, expected):
         """
         If docstring_format_vars is set, should update the docstring
         of the class being decorated
         """
+
         @Convert.decorator(docstring_format_vars=format_vars)
         class Class:
             __doc__ = docstring
+
         assert Class.__doc__ == expected
         # check internal state
         instance = self._get_class()(docstring_format_vars=format_vars)
@@ -299,7 +339,9 @@ class TestConvertDecorator:
         Should convert `async def` methods to `def` methods
         """
         decorator = self._get_class()()
-        mock_node = ast.AsyncFunctionDef(name="test_method", args=ast.arguments(), body=[])
+        mock_node = ast.AsyncFunctionDef(
+            name="test_method", args=ast.arguments(), body=[]
+        )
 
         result = decorator.sync_ast_transform(mock_node, {})
 
@@ -311,7 +353,9 @@ class TestConvertDecorator:
         Should update the name of the method if sync_name is set
         """
         decorator = self._get_class()(sync_name="new_method_name")
-        mock_node = ast.AsyncFunctionDef(name="old_method_name", args=ast.arguments(), body=[])
+        mock_node = ast.AsyncFunctionDef(
+            name="old_method_name", args=ast.arguments(), body=[]
+        )
 
         result = decorator.sync_ast_transform(mock_node, globals_mock)
 
@@ -323,7 +367,9 @@ class TestConvertDecorator:
         Should call AsyncToSync if rm_aio is set
         """
         decorator = self._get_class()(rm_aio=True)
-        mock_node = ast.AsyncFunctionDef(name="test_method", args=ast.arguments(), body=[])
+        mock_node = ast.AsyncFunctionDef(
+            name="test_method", args=ast.arguments(), body=[]
+        )
         async_to_sync_mock = mock.Mock()
         async_to_sync_mock.visit.return_value = mock_node
         globals_mock = {"AsyncToSync": lambda: async_to_sync_mock}
@@ -337,7 +383,9 @@ class TestConvertDecorator:
         """
         replace_symbols = {"old_symbol": "new_symbol"}
         decorator = self._get_class()(replace_symbols=replace_symbols)
-        mock_node = ast.AsyncFunctionDef(name="test_method", args=ast.arguments(), body=[])
+        mock_node = ast.AsyncFunctionDef(
+            name="test_method", args=ast.arguments(), body=[]
+        )
         symbol_replacer_mock = mock.Mock()
         globals_mock = {"SymbolReplacer": symbol_replacer_mock}
 
@@ -347,15 +395,20 @@ class TestConvertDecorator:
         assert symbol_replacer_mock.call_args[0][0] == replace_symbols
         assert symbol_replacer_mock(replace_symbols).visit.call_count == 1
 
-    @pytest.mark.parametrize("docstring,format_vars,expected", [
-        ["test docstring", {}, "test docstring"],
-        ["{}", {}, "{}"],
-        ["test_docstring", {"A": (1, 2)}, "test_docstring"],
-        ["{A}", {"A": (1, 2)}, "2"],
-        ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "2 4"],
-        ["hello {world_var}", {"world_var": ("world", "moon")}, "hello moon"],
-    ])
-    def test_sync_ast_transform_add_docstring_format(self, docstring, format_vars, expected):
+    @pytest.mark.parametrize(
+        "docstring,format_vars,expected",
+        [
+            ["test docstring", {}, "test docstring"],
+            ["{}", {}, "{}"],
+            ["test_docstring", {"A": (1, 2)}, "test_docstring"],
+            ["{A}", {"A": (1, 2)}, "2"],
+            ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "2 4"],
+            ["hello {world_var}", {"world_var": ("world", "moon")}, "hello moon"],
+        ],
+    )
+    def test_sync_ast_transform_add_docstring_format(
+        self, docstring, format_vars, expected
+    ):
         """
         If docstring_format_vars is set, should format the docstring of the new method
         """
@@ -363,7 +416,7 @@ class TestConvertDecorator:
         mock_node = ast.AsyncFunctionDef(
             name="test_method",
             args=ast.arguments(),
-            body=[ast.Expr(value=ast.Constant(value=docstring))]
+            body=[ast.Expr(value=ast.Constant(value=docstring))],
         )
 
         result = decorator.sync_ast_transform(mock_node, {})
@@ -375,7 +428,6 @@ class TestConvertDecorator:
 
 
 class TestDropMethodDecorator:
-
     def _get_class(self):
         return DropMethod
 
@@ -383,7 +435,7 @@ class TestDropMethodDecorator:
         """
         applying the decorator should be a no-op
         """
-        unwrapped = lambda x: x
+        unwrapped = lambda x: x  # noqa: E731
         wrapped = self._get_class().decorator(unwrapped)
         assert unwrapped == wrapped
         assert unwrapped(1) == wrapped(1)
@@ -394,7 +446,9 @@ class TestDropMethodDecorator:
         Should return None for any input method
         """
         decorator = self._get_class()()
-        mock_node = ast.AsyncFunctionDef(name="test_method", args=ast.arguments(), body=[])
+        mock_node = ast.AsyncFunctionDef(
+            name="test_method", args=ast.arguments(), body=[]
+        )
 
         result = decorator.sync_ast_transform(mock_node, {})
 
@@ -402,7 +456,6 @@ class TestDropMethodDecorator:
 
 
 class TestPytestDecorator:
-
     def _get_class(self):
         return Pytest
 
@@ -447,7 +500,6 @@ class TestPytestDecorator:
 
 
 class TestPytestFixtureDecorator:
-
     def _get_class(self):
         return PytestFixture
 
@@ -456,6 +508,7 @@ class TestPytestFixtureDecorator:
         Should wrap the class with pytest_asyncio.fixture
         """
         with mock.patch.object(pytest_asyncio, "fixture") as fixture:
+
             @PytestFixture.decorator(1, 2, scope="function", params=[3, 4])
             def fn():
                 pass
@@ -470,7 +523,9 @@ class TestPytestFixtureDecorator:
         """
         decorator = self._get_class()(1, 2, scope="function")
 
-        mock_node = ast.AsyncFunctionDef(name="test_method", args=ast.arguments(), body=[])
+        mock_node = ast.AsyncFunctionDef(
+            name="test_method", args=ast.arguments(), body=[]
+        )
 
         result = decorator.sync_ast_transform(mock_node, {})
 

@@ -24,8 +24,8 @@ from google import api_core
 from google.cloud.bigtable.data._sync.cross_sync.cross_sync import CrossSync, T
 from unittest import mock
 
-class TestCrossSync:
 
+class TestCrossSync:
     async def async_iter(self, in_list):
         for i in in_list:
             yield i
@@ -38,14 +38,22 @@ class TestCrossSync:
     def cs_async(self):
         return CrossSync
 
-
     @pytest.mark.parametrize(
-        "attr, async_version, sync_version", [
+        "attr, async_version, sync_version",
+        [
             ("is_async", True, False),
             ("sleep", asyncio.sleep, time.sleep),
             ("wait", asyncio.wait, concurrent.futures.wait),
-            ("retry_target", api_core.retry.retry_target_async, api_core.retry.retry_target),
-            ("retry_target_stream", api_core.retry.retry_target_stream_async, api_core.retry.retry_target_stream),
+            (
+                "retry_target",
+                api_core.retry.retry_target_async,
+                api_core.retry.retry_target,
+            ),
+            (
+                "retry_target_stream",
+                api_core.retry.retry_target_stream_async,
+                api_core.retry.retry_target_stream,
+            ),
             ("Retry", api_core.retry.AsyncRetry, api_core.retry.Retry),
             ("Queue", asyncio.Queue, queue.Queue),
             ("Condition", asyncio.Condition, threading.Condition),
@@ -59,14 +67,18 @@ class TestCrossSync:
             ("Iterable", typing.AsyncIterable, typing.Iterable),
             ("Iterator", typing.AsyncIterator, typing.Iterator),
             ("Generator", typing.AsyncGenerator, typing.Generator),
-        ]
+        ],
     )
-    def test_alias_attributes(self, attr, async_version, sync_version, cs_sync, cs_async):
+    def test_alias_attributes(
+        self, attr, async_version, sync_version, cs_sync, cs_async
+    ):
         """
         Test basic alias attributes, to ensure they point to the right place
         in both sync and async versions.
         """
-        assert getattr(cs_async, attr) == async_version, f"Failed async version for {attr}"
+        assert (
+            getattr(cs_async, attr) == async_version
+        ), f"Failed async version for {attr}"
         assert getattr(cs_sync, attr) == sync_version, f"Failed sync version for {attr}"
 
     @pytest.mark.asyncio
@@ -121,7 +133,7 @@ class TestCrossSync:
         Test sync version of CrossSync.gather_partials() with exceptions
         """
         with concurrent.futures.ThreadPoolExecutor() as e:
-            partials = [lambda i=i: i + 1 if i != 3 else 1/0 for i in range(5)]
+            partials = [lambda i=i: i + 1 if i != 3 else 1 / 0 for i in range(5)]
             with pytest.raises(ZeroDivisionError):
                 cs_sync.gather_partials(partials, sync_executor=e)
 
@@ -130,8 +142,10 @@ class TestCrossSync:
         Test sync version of CrossSync.gather_partials() with return_exceptions=True
         """
         with concurrent.futures.ThreadPoolExecutor() as e:
-            partials = [lambda i=i: i + 1 if i != 3 else 1/0 for i in range(5)]
-            results = cs_sync.gather_partials(partials, return_exceptions=True, sync_executor=e)
+            partials = [lambda i=i: i + 1 if i != 3 else 1 / 0 for i in range(5)]
+            results = cs_sync.gather_partials(
+                partials, return_exceptions=True, sync_executor=e
+            )
             assert len(results) == 5
             assert results[0] == 1
             assert results[1] == 2
@@ -145,7 +159,7 @@ class TestCrossSync:
         """
         partials = [lambda i=i: i + 1 for i in range(5)]
         with pytest.raises(ValueError) as e:
-            results = cs_sync.gather_partials(partials)
+            cs_sync.gather_partials(partials)
         assert "sync_executor is required" in str(e.value)
 
     @pytest.mark.asyncio
@@ -153,6 +167,7 @@ class TestCrossSync:
         """
         Test async version of CrossSync.gather_partials()
         """
+
         async def coro(i):
             return i + 1
 
@@ -165,8 +180,9 @@ class TestCrossSync:
         """
         Test async version of CrossSync.gather_partials() with exceptions
         """
+
         async def coro(i):
-            return i + 1 if i != 3 else 1/0
+            return i + 1 if i != 3 else 1 / 0
 
         partials = [functools.partial(coro, i) for i in range(5)]
         with pytest.raises(ZeroDivisionError):
@@ -177,8 +193,9 @@ class TestCrossSync:
         """
         Test async version of CrossSync.gather_partials() with return_exceptions=True
         """
+
         async def coro(i):
-            return i + 1 if i != 3 else 1/0
+            return i + 1 if i != 3 else 1 / 0
 
         partials = [functools.partial(coro, i) for i in range(5)]
         results = await cs_async.gather_partials(partials, return_exceptions=True)
@@ -194,13 +211,16 @@ class TestCrossSync:
         """
         CrossSync.gather_partials() should use asyncio.gather() internally
         """
+
         async def coro(i):
             return i + 1
 
-        return_exceptions=object()
+        return_exceptions = object()
         partials = [functools.partial(coro, i) for i in range(5)]
         with mock.patch.object(asyncio, "gather", mock.AsyncMock()) as gather:
-            await cs_async.gather_partials(partials, return_exceptions=return_exceptions)
+            await cs_async.gather_partials(
+                partials, return_exceptions=return_exceptions
+            )
             gather.assert_called_once()
             found_args, found_kwargs = gather.call_args
             assert found_kwargs["return_exceptions"] == return_exceptions
@@ -248,7 +268,6 @@ class TestCrossSync:
         event = mock.AsyncMock()
         await cs_async.event_wait(event, async_break_early=break_early)
         event.wait.assert_called_once_with()
-
 
     @pytest.mark.asyncio
     async def test_event_wait_async_with_timeout(self, cs_async):
@@ -308,7 +327,7 @@ class TestCrossSync:
         Test creating Future using create_task()
         """
         executor = concurrent.futures.ThreadPoolExecutor()
-        fn = lambda x, y: x + y
+        fn = lambda x, y: x + y  # noqa: E731
         result = cs_sync.create_task(fn, 1, y=4, sync_executor=executor)
         assert isinstance(result, cs_sync.Task)
         assert result.result() == 5
@@ -327,7 +346,6 @@ class TestCrossSync:
         assert executor.submit.call_count == 1
         assert executor.submit.call_args == ((fn, *args), kwargs)
 
-
     def test_create_task_no_executor(self, cs_sync):
         """
         if no executor is provided, raise an exception
@@ -341,8 +359,10 @@ class TestCrossSync:
         """
         Test creating Future using create_task()
         """
+
         async def coro_fn(x, y):
             return x + y
+
         result = cs_async.create_task(coro_fn, 1, y=4)
         assert isinstance(result, asyncio.Task)
         assert await result == 5
@@ -358,6 +378,7 @@ class TestCrossSync:
         kwargs = {"a": 1, "b": 2}
         with mock.patch.object(asyncio, "create_task", mock.Mock()) as create_task:
             result = cs_async.create_task(coro_fn, *args, **kwargs)
+            assert isinstance(result, asyncio.Task)
             create_task.assert_called_once()
             create_task.assert_called_once_with(coro_fn.return_value)
             coro_fn.assert_called_once_with(*args, **kwargs)
@@ -367,8 +388,10 @@ class TestCrossSync:
         """
         Test creating a task with a name
         """
+
         async def coro_fn():
             return None
+
         name = "test-name-456"
         result = cs_async.create_task(coro_fn, task_name=name)
         assert isinstance(result, asyncio.Task)
@@ -445,7 +468,9 @@ class TestCrossSync:
         add_mapping_decorator should allow wrapping classes with add_mapping()
         """
         for cls in [cs_sync, cs_async]:
+
             @cls.add_mapping_decorator("decorated")
             class Decorated:
                 pass
+
             assert cls.decorated == Decorated

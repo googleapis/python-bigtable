@@ -4,12 +4,19 @@ import os
 import black
 import pytest
 import yaml
+
 # add cross_sync to path
 test_dir_name = os.path.dirname(__file__)
 cross_sync_path = os.path.join(test_dir_name, "..", "..", "..", ".cross_sync")
 sys.path.append(cross_sync_path)
 
-from transformers import SymbolReplacer, AsyncToSync, RmAioFunctions, CrossSyncMethodDecoratorHandler, CrossSyncClassDecoratorHandler
+from transformers import (  # noqa: F401 E402
+    SymbolReplacer,
+    AsyncToSync,
+    RmAioFunctions,
+    CrossSyncMethodDecoratorHandler,
+    CrossSyncClassDecoratorHandler,
+)
 
 
 def loader():
@@ -27,10 +34,13 @@ def loader():
                 test["file_name"] = file_name
                 yield test
 
+
 @pytest.mark.parametrize(
     "test_dict", loader(), ids=lambda x: f"{x['file_name']}: {x.get('description', '')}"
 )
-@pytest.mark.skipif(sys.version_info < (3, 9), reason="ast.unparse requires python3.9 or higher")
+@pytest.mark.skipif(
+    sys.version_info < (3, 9), reason="ast.unparse requires python3.9 or higher"
+)
 def test_e2e_scenario(test_dict):
     before_ast = ast.parse(test_dict["before"]).body[0]
     got_ast = before_ast
