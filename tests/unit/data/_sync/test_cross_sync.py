@@ -51,7 +51,6 @@ class TestCrossSync:
         [
             ("is_async", True, False),
             ("sleep", asyncio.sleep, time.sleep),
-            ("wait", asyncio.wait, concurrent.futures.wait),
             (
                 "retry_target",
                 api_core.retry.retry_target_async,
@@ -236,6 +235,98 @@ class TestCrossSync:
             assert found_kwargs["return_exceptions"] == return_exceptions
             for coro in found_args:
                 await coro
+
+    def test_wait(self, cs_sync):
+        """
+        Test sync version of CrossSync.wait()
+
+        If future is complete, it should be in the first (complete) set
+        """
+        future = concurrent.futures.Future()
+        future.set_result(1)
+        s1, s2 = cs_sync.wait([future])
+        assert s1 == {future}
+        assert s2 == set()
+
+    def test_wait_timeout(self, cs_sync):
+        """
+        If timeout occurs, future should be in the second (incomplete) set
+        """
+        future = concurrent.futures.Future()
+        timeout = 0.1
+        start_time = time.monotonic()
+        s1, s2 = cs_sync.wait([future], timeout)
+        end_time = time.monotonic()
+        assert abs((end_time - start_time) - timeout) < 0.01
+        assert s1 == set()
+        assert s2 == {future}
+
+    def test_wait_passthrough(self, cs_sync):
+        """
+        sync version of CrossSync.wait() should pass through to concurrent.futures.wait()
+        """
+        future = object()
+        timeout = object()
+        with mock.patch.object(concurrent.futures, "wait", mock.Mock()) as wait:
+            result = cs_sync.wait([future], timeout)
+            assert wait.call_count == 1
+            assert wait.call_args == (([future],), {"timeout": timeout})
+            assert result == wait.return_value
+
+    def test_wait_empty_input(self, cs_sync):
+        """
+        If no futures are provided, return empty sets
+        """
+        s1, s2 = cs_sync.wait([])
+        assert s1 == set()
+        assert s2 == set()
+
+    @pytest.mark.asyncio
+    async def test_wait_async(self, cs_async):
+        """
+        Test async version of CrossSync.wait()
+        """
+        future = asyncio.Future()
+        future.set_result(1)
+        s1, s2 = await cs_async.wait([future])
+        assert s1 == {future}
+        assert s2 == set()
+
+    @pytest.mark.asyncio
+    async def test_wait_async_timeout(self, cs_async):
+        """
+        If timeout occurs, future should be in the second (incomplete) set
+        """
+        future = asyncio.Future()
+        timeout = 0.1
+        start_time = time.monotonic()
+        s1, s2 = await cs_async.wait([future], timeout)
+        end_time = time.monotonic()
+        assert abs((end_time - start_time) - timeout) < 0.01
+        assert s1 == set()
+        assert s2 == {future}
+
+    @pytest.mark.asyncio
+    async def test_wait_async_passthrough(self, cs_async):
+        """
+        async version of CrossSync.wait() should pass through to asyncio.wait()
+        """
+        future = object()
+        timeout = object()
+        with mock.patch.object(asyncio, "wait", AsyncMock()) as wait:
+            result = await cs_async.wait([future], timeout)
+            assert wait.call_count == 1
+            assert wait.call_args == (([future],), {"timeout": timeout})
+            assert result == wait.return_value
+
+    @pytest.mark.asyncio
+    async def test_wait_async_empty_input(self, cs_async):
+        """
+        If no futures are provided, return empty sets
+        """
+        s1, s2 = await cs_async.wait([])
+        assert s1 == set()
+        assert s2 == set()
 
     def test_event_wait_passthrough(self, cs_sync):
         """
