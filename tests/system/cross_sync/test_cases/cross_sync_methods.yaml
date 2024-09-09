@@ -1,0 +1,144 @@
+tests:
+  - description: "Convert async method with @CrossSync.convert"
+    before: |
+        @CrossSync.convert
+        async def my_method(self, arg):
+          pass
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+        def my_method(self, arg):
+          pass
+
+  - description: "Convert async method with custom sync name"
+    before: |
+        @CrossSync.convert(sync_name="sync_method")
+        async def async_method(self, arg):
+            return await self.helper(arg)
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+        def sync_method(self, arg):
+            return await self.helper(arg)
+
+  - description: "Convert async method with symbol replacement"
+    before: |
+        @CrossSync.convert(replace_symbols={"old": "new"})
+        async def my_method(self):
+            old = 1
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+        def my_method(self):
+            new = 1
+
+  - description: "Convert async method with rm_aio=True"
+    before: |
+        @CrossSync.convert(rm_aio=True)
+        async def async_method(self):
+            async with self.lock:
+                async for item in self.items:
+                    await self.process(item)
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+        def async_method(self):
+            with self.lock:
+                for item in self.items:
+                    self.process(item)
+
+  - description: "Convert async method with docstring formatting"
+    before: |
+        @CrossSync.convert(docstring_format_vars={"mode": ("async", "sync")})
+        async def async_method(self):
+            """This is a {mode} method."""
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+        def async_method(self):
+            """This is a sync method."""
+
+  - description: "Drop method from sync version"
+    before: |
+          def keep_method(self):
+              pass
+
+          @CrossSync.drop_method
+          async def async_only_method(self):
+              await self.async_operation()
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+          def keep_method(self):
+              pass
+
+  - description: "Convert.pytest"
+    before: |
+        @CrossSync.pytest
+        async def test_async_function():
+            result = await async_operation()
+            assert result == expected_value
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+        def test_async_function():
+            result = async_operation()
+            assert result == expected_value
+
+  - description: "CrossSync.pytest with rm_aio=False"
+    before: |
+        @CrossSync.pytest(rm_aio=False)
+        async def test_partial_async():
+            async with context_manager():
+                result = await async_function()
+            assert result == expected_value
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+        async def test_partial_async():
+            async with context_manager():
+                result = await async_function()
+            assert result == expected_value
+
+  - description: "Convert pytest fixture with custom parameters"
+    before: |
+        @CrossSync.pytest_fixture(scope="module", autouse=True)
+        async def async_fixture():
+            resource = await setup_resource()
+            yield resource
+            await cleanup_resource(resource)
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+        @pytest.fixture(scope="module", autouse=True)
+        async def async_fixture():
+            resource = await setup_resource()
+            yield resource
+            await cleanup_resource(resource)
+
+  - description: "Convert method with multiple stacked decorators"
+    before: |
+        @CrossSync.convert(sync_name="sync_multi_decorated")
+        @CrossSync.pytest
+        @some_other_decorator
+        async def async_multi_decorated(self, arg):
+            result = await self.async_operation(arg)
+            return result
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+        @some_other_decorator
+        def sync_multi_decorated(self, arg):
+            result = self.async_operation(arg)
+            return result
+
+  - description: "Convert method with stacked decorators including rm_aio"
+    before: |
+        @CrossSync.convert(rm_aio=True)
+        @CrossSync.pytest_fixture(scope="function")
+        @another_decorator
+        async def async_fixture_with_context():
+            async with some_async_context():
+                resource = await setup_async_resource()
+                yield resource
+                await cleanup_async_resource(resource)
+    transformers: [CrossSyncMethodDecoratorHandler]
+    after: |
+        @pytest.fixture(scope="function")
+        @another_decorator
+        def async_fixture_with_context():
+            with some_async_context():
+                resource = setup_async_resource()
+                yield resource
+                cleanup_async_resource(resource)
+

@@ -161,21 +161,6 @@ class CrossSync(metaclass=MappingMeta):
         return await asyncio.wait(futures, timeout=timeout)
 
     @staticmethod
-    async def condition_wait(
-        condition: CrossSync.Condition, timeout: float | None = None
-    ) -> bool:
-        """
-        abstraction over asyncio.Condition.wait
-
-        returns False if the timeout is reached before the condition is set, otherwise True
-        """
-        try:
-            await asyncio.wait_for(condition.wait(), timeout=timeout)
-            return True
-        except asyncio.TimeoutError:
-            return False
-
-    @staticmethod
     async def event_wait(
         event: CrossSync.Event,
         timeout: float | None = None,
@@ -194,7 +179,8 @@ class CrossSync(metaclass=MappingMeta):
         if timeout is None:
             await event.wait()
         elif not async_break_early:
-            await asyncio.sleep(timeout)
+            if not event.is_set():
+                await asyncio.sleep(timeout)
         else:
             try:
                 await asyncio.wait_for(event.wait(), timeout=timeout)
@@ -270,35 +256,9 @@ class CrossSync(metaclass=MappingMeta):
 
         @classmethod
         def Mock(cls, *args, **kwargs):
-            # try/except added for compatibility with python < 3.8
-            try:
-                from unittest.mock import Mock
-            except ImportError:  # pragma: NO COVER
-                from mock import Mock  # type: ignore
+            from unittest.mock import Mock
+
             return Mock(*args, **kwargs)
-
-        @staticmethod
-        def wait(
-            futures: Sequence[CrossSync._Sync_Impl.Future[T]],
-            timeout: float | None = None,
-        ) -> tuple[
-            set[CrossSync._Sync_Impl.Future[T]], set[CrossSync._Sync_Impl.Future[T]]
-        ]:
-            """
-            abstraction over asyncio.wait
-            """
-            if not futures:
-                return set(), set()
-            return concurrent.futures.wait(futures, timeout=timeout)
-
-        @staticmethod
-        def condition_wait(
-            condition: CrossSync._Sync_Impl.Condition, timeout: float | None = None
-        ) -> bool:
-            """
-            returns False if the timeout is reached before the condition is set, otherwise True
-            """
-            return condition.wait(timeout=timeout)
 
         @staticmethod
         def event_wait(
@@ -330,6 +290,17 @@ class CrossSync(metaclass=MappingMeta):
                 else:
                     results_list.append(future.result())
             return results_list
+
+        @staticmethod
+        def wait(
+            futures: Sequence[CrossSync._Sync_Impl.Future[T]],
+            timeout: float | None = None,
+        ) -> tuple[
+            set[CrossSync._Sync_Impl.Future[T]], set[CrossSync._Sync_Impl.Future[T]]
+        ]:
+            if not futures:
+                return set(), set()
+            return concurrent.futures.wait(futures, timeout=timeout)
 
         @staticmethod
         def create_task(

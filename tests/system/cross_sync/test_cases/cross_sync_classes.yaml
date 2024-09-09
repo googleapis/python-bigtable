@@ -1,0 +1,167 @@
+tests:
+  - description: "No conversion needed"
+    before: |
+      @CrossSync.export_sync(path="example.sync.MyClass")
+      class MyAsyncClass:
+          async def my_method(self):
+              pass
+
+    transformers: 
+      - name: CrossSyncClassDecoratorHandler
+        args:
+          file_path: "dummy_path.py"
+    after: |
+      class MyClass:
+
+          async def my_method(self):
+              pass
+
+  - description: "CrossSync.export_sync with replace_symbols"
+    before: |
+      @CrossSync.export_sync(
+          path="example.sync.MyClass",
+          replace_symbols={"AsyncBase": "SyncBase", "ParentA": "ParentB"}
+      )
+      class MyAsyncClass(ParentA):
+          def __init__(self, base: AsyncBase):
+              self.base = base
+
+    transformers: 
+      - name: CrossSyncClassDecoratorHandler
+        args:
+          file_path: "dummy_path.py"
+    after: |
+      class MyClass(ParentB):
+
+          def __init__(self, base: SyncBase):
+              self.base = base
+
+  - description: "CrossSync.export_sync with docstring formatting"
+    before: |
+      @CrossSync.export_sync(
+          path="example.sync.MyClass",
+          docstring_format_vars={"type": ("async", "sync")}
+      )
+      class MyAsyncClass:
+          """This is a {type} class."""
+
+    transformers:
+      - name: CrossSyncClassDecoratorHandler
+        args:
+          file_path: "dummy_path.py"
+    after: |
+      class MyClass:
+          """This is a sync class."""
+
+  - description: "CrossSync.export_sync with multiple decorators and methods"
+    before: |
+      @CrossSync.export_sync(path="example.sync.MyClass")
+      @some_other_decorator
+      class MyAsyncClass:
+          @CrossSync.convert
+          async def my_method(self):
+              async with self.base.connection():
+                  return await self.base.my_method()
+
+          @CrossSync.drop_method
+          async def async_only_method(self):
+              await self.async_operation()
+
+          def sync_method(self):
+              return "This method stays the same"
+
+          @CrossSync.pytest_fixture
+          def fixture(self):
+              pass
+
+    transformers:
+      - name: CrossSyncClassDecoratorHandler
+        args:
+          file_path: "dummy_path.py"
+    after: |
+      @some_other_decorator
+      class MyClass:
+
+          def my_method(self):
+              async with self.base.connection():
+                  return await self.base.my_method()
+
+          def sync_method(self):
+              return "This method stays the same"
+
+          @pytest.fixture()
+          def fixture(self):
+              pass
+
+  - description: "CrossSync.export_sync with nested classes"
+    before: |
+      @CrossSync.export_sync(path="example.sync.MyClass", replace_symbols={"AsyncBase": "SyncBase"})
+      class MyAsyncClass:
+          class NestedAsyncClass:
+              async def nested_method(self, base: AsyncBase):
+                  pass
+
+              @CrossSync.drop_method
+              async def drop_this_method(self):
+                  pass
+
+          @CrossSync.convert
+          async def use_nested(self):
+              nested = self.NestedAsyncClass()
+              CrossSync.rm_aio(await nested.nested_method())
+    transformers:
+      - name: CrossSyncClassDecoratorHandler
+        args:
+          file_path: "dummy_path.py"
+    after: |
+      class MyClass:
+
+          class NestedAsyncClass:
+
+              async def nested_method(self, base: SyncBase):
+                  pass
+
+          def use_nested(self):
+              nested = self.NestedAsyncClass()
+              nested.nested_method()
+
+  - description: "CrossSync.export_sync with add_mapping"
+    before: |
+      @CrossSync.export_sync(
+          path="example.sync.MyClass",
+          add_mapping_for_name="MyClass"
+      )
+      class MyAsyncClass:
+          async def my_method(self):
+              pass
+
+    transformers:
+      - name: CrossSyncClassDecoratorHandler
+        args:
+          file_path: "dummy_path.py"
+    after: |
+      @CrossSync._Sync_Impl.add_mapping_decorator("MyClass")
+      class MyClass:
+
+          async def my_method(self):
+              pass
+
+  - description: "CrossSync.export_sync with CrossSync calls"
+    before: |
+      @CrossSync.export_sync(path="example.sync.MyClass")
+      class MyAsyncClass:
+          @CrossSync.convert
+          async def my_method(self):
+              async with CrossSync.rm_aio(CrossSync.Condition()) as c:
+                  CrossSync.rm_aio(await CrossSync.yield_to_event_loop())
+
+    transformers:
+      - name: CrossSyncClassDecoratorHandler
+        args:
+          file_path: "dummy_path.py"
+    after: |
+      class MyClass:
+
+        def my_method(self):
+            with CrossSync._Sync_Impl.Condition() as c:
+                CrossSync._Sync_Impl.yield_to_event_loop()
