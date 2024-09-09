@@ -484,6 +484,31 @@ class TestSystemAsync:
 
     @pytest.mark.usefixtures("client")
     @pytest.mark.usefixtures("table")
+    @CrossSync.Retry(
+        predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
+    )
+    @CrossSync.pytest
+    async def test_mutations_batcher_large_batch(self, client, table, temp_rows):
+        """
+        test batcher with large batch of mutations
+        """
+        from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
+        add_mutation = SetCell(family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"a")
+        row_mutations = []
+        for i in range(50_000):
+            row_key = uuid.uuid4().hex.encode()
+            row_mutations.append(RowMutationEntry(row_key, [add_mutation]))
+            # append row key for eventual deletion
+            temp_rows.rows.append(row_key)
+
+        async with table.mutations_batcher() as batcher:
+            for mutation in row_mutations:
+                await batcher.append(mutation)
+        # ensure cell is updated
+        assert len(batcher._staged_entries) == 0
+
+    @pytest.mark.usefixtures("client")
+    @pytest.mark.usefixtures("table")
     @pytest.mark.parametrize(
         "start,increment,expected",
         [
