@@ -196,8 +196,12 @@ class ExportSync(AstDecorator):
         self.path = path
         self.replace_symbols = replace_symbols
         docstring_format_vars = docstring_format_vars or {}
-        self.async_docstring_format_vars = {k: v[0] for k, v in docstring_format_vars.items()}
-        self.sync_docstring_format_vars = {k: v[1] for k, v in docstring_format_vars.items()}
+        self.async_docstring_format_vars = {
+            k: v[0] for k, v in docstring_format_vars.items()
+        }
+        self.sync_docstring_format_vars = {
+            k: v[1] for k, v in docstring_format_vars.items()
+        }
         self.mypy_ignore = mypy_ignore
         self.include_file_imports = include_file_imports
         self.add_mapping_for_name = add_mapping_for_name
@@ -240,6 +244,8 @@ class ExportSync(AstDecorator):
             wrapped_node.decorator_list = [
                 d for d in wrapped_node.decorator_list if "CrossSync" not in ast.dump(d)
             ]
+        else:
+            wrapped_node.decorator_list = []
         # add mapping decorator if needed
         if self.add_mapping_for_name:
             wrapped_node.decorator_list.append(
@@ -266,9 +272,13 @@ class ExportSync(AstDecorator):
         wrapped_node = transformers_globals["CrossSyncMethodDecoratorHandler"]().visit(
             wrapped_node
         )
+        # update docstring if specified
         if self.sync_docstring_format_vars:
             docstring = ast.get_docstring(wrapped_node)
-            wrapped_node.body[0].value.s = docstring.format(**self.sync_docstring_format_vars)
+            if docstring:
+                wrapped_node.body[0].value = ast.Constant(
+                    value=docstring.format(**self.sync_docstring_format_vars)
+                )
         return wrapped_node
 
 
@@ -296,8 +306,12 @@ class Convert(AstDecorator):
         self.sync_name = sync_name
         self.replace_symbols = replace_symbols
         docstring_format_vars = docstring_format_vars or {}
-        self.async_docstring_format_vars = {k: v[0] for k, v in docstring_format_vars.items()}
-        self.sync_docstring_format_vars = {k: v[1] for k, v in docstring_format_vars.items()}
+        self.async_docstring_format_vars = {
+            k: v[0] for k, v in docstring_format_vars.items()
+        }
+        self.sync_docstring_format_vars = {
+            k: v[1] for k, v in docstring_format_vars.items()
+        }
         self.rm_aio = rm_aio
 
     def sync_ast_transform(self, wrapped_node, transformers_globals):
@@ -312,8 +326,10 @@ class Convert(AstDecorator):
                 wrapped_node.name,
                 wrapped_node.args,
                 wrapped_node.body,
-                wrapped_node.decorator_list,
-                wrapped_node.returns,
+                wrapped_node.decorator_list
+                if hasattr(wrapped_node, "decorator_list")
+                else [],
+                wrapped_node.returns if hasattr(wrapped_node, "returns") else None,
             ),
             wrapped_node,
         )
@@ -330,7 +346,10 @@ class Convert(AstDecorator):
         # update docstring if specified
         if self.sync_docstring_format_vars:
             docstring = ast.get_docstring(wrapped_node)
-            wrapped_node.body[0].value.s = docstring.format(**self.sync_docstring_format_vars)
+            if docstring:
+                wrapped_node.body[0].value = ast.Constant(
+                    value=docstring.format(**self.sync_docstring_format_vars)
+                )
         return wrapped_node
 
     def async_decorator(self):
@@ -339,9 +358,11 @@ class Convert(AstDecorator):
         """
 
         if self.async_docstring_format_vars:
+
             def decorator(f):
                 f.__doc__ = f.__doc__.format(**self.async_docstring_format_vars)
                 return f
+
             return decorator
         else:
             return None
@@ -411,6 +432,8 @@ class PytestFixture(AstDecorator):
         import copy
 
         new_node = copy.deepcopy(wrapped_node)
+        if not hasattr(new_node, "decorator_list"):
+            new_node.decorator_list = []
         new_node.decorator_list.append(
             ast.Call(
                 func=ast.Attribute(

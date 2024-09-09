@@ -80,6 +80,7 @@ class CrossSync(metaclass=MappingMeta):
 
     # provide aliases for common async functions and types
     sleep = asyncio.sleep
+    wait = asyncio.wait
     retry_target = retries.retry_target_async
     retry_target_stream = retries.retry_target_stream_async
     Retry = retries.AsyncRetry
@@ -147,35 +148,6 @@ class CrossSync(metaclass=MappingMeta):
         )
 
     @staticmethod
-    async def wait(
-        futures: Sequence[CrossSync.Future[T]], timeout: float | None = None
-    ) -> tuple[set[CrossSync.Future[T]], set[CrossSync.Future[T]]]:
-        """
-        abstraction over asyncio.wait
-
-        Return:
-            - a tuple of (done, pending) sets of futures
-        """
-        if not futures:
-            return set(), set()
-        return await asyncio.wait(futures, timeout=timeout)
-
-    @staticmethod
-    async def condition_wait(
-        condition: CrossSync.Condition, timeout: float | None = None
-    ) -> bool:
-        """
-        abstraction over asyncio.Condition.wait
-
-        returns False if the timeout is reached before the condition is set, otherwise True
-        """
-        try:
-            await asyncio.wait_for(condition.wait(), timeout=timeout)
-            return True
-        except asyncio.TimeoutError:
-            return False
-
-    @staticmethod
     async def event_wait(
         event: CrossSync.Event,
         timeout: float | None = None,
@@ -194,7 +166,8 @@ class CrossSync(metaclass=MappingMeta):
         if timeout is None:
             await event.wait()
         elif not async_break_early:
-            await asyncio.sleep(timeout)
+            if not event.is_set():
+                await asyncio.sleep(timeout)
         else:
             try:
                 await asyncio.wait_for(event.wait(), timeout=timeout)
@@ -251,6 +224,7 @@ class CrossSync(metaclass=MappingMeta):
         is_async = False
 
         sleep = time.sleep
+        wait = concurrent.futures.wait
         next = next
         retry_target = retries.retry_target
         retry_target_stream = retries.retry_target_stream
@@ -270,35 +244,9 @@ class CrossSync(metaclass=MappingMeta):
 
         @classmethod
         def Mock(cls, *args, **kwargs):
-            # try/except added for compatibility with python < 3.8
-            try:
-                from unittest.mock import Mock
-            except ImportError:  # pragma: NO COVER
-                from mock import Mock  # type: ignore
+            from unittest.mock import Mock
+
             return Mock(*args, **kwargs)
-
-        @staticmethod
-        def wait(
-            futures: Sequence[CrossSync._Sync_Impl.Future[T]],
-            timeout: float | None = None,
-        ) -> tuple[
-            set[CrossSync._Sync_Impl.Future[T]], set[CrossSync._Sync_Impl.Future[T]]
-        ]:
-            """
-            abstraction over asyncio.wait
-            """
-            if not futures:
-                return set(), set()
-            return concurrent.futures.wait(futures, timeout=timeout)
-
-        @staticmethod
-        def condition_wait(
-            condition: CrossSync._Sync_Impl.Condition, timeout: float | None = None
-        ) -> bool:
-            """
-            returns False if the timeout is reached before the condition is set, otherwise True
-            """
-            return condition.wait(timeout=timeout)
 
         @staticmethod
         def event_wait(
