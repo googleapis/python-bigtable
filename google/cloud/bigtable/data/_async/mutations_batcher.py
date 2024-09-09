@@ -247,13 +247,20 @@ class MutationsBatcherAsync:
             if flush_limit_mutation_count is not None
             else float("inf")
         )
-        self._sync_executor = (
+        # used by sync class to run mutate_rows operations
+        self._sync_rpc_executor = (
             concurrent.futures.ThreadPoolExecutor(max_workers=8)
             if not CrossSync.is_async
             else None
         )
+        # used by sync class to manage flush_internal tasks
+        self._sync_flush_executor = (
+            concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            if not CrossSync.is_async
+            else None
+        )
         self._flush_timer = CrossSync.create_task(
-            self._timer_routine, flush_interval, sync_executor=self._sync_executor
+            self._timer_routine, flush_interval, sync_executor=self._sync_flush_executor
         )
         self._flush_jobs: set[CrossSync.Future[None]] = set()
         # MutationExceptionGroup reports number of successful entries along with failures
@@ -333,7 +340,7 @@ class MutationsBatcherAsync:
             entries, self._staged_entries = self._staged_entries, []
             self._staged_count, self._staged_bytes = 0, 0
             new_task = CrossSync.create_task(
-                self._flush_internal, entries, sync_executor=self._sync_executor
+                self._flush_internal, entries, sync_executor=self._sync_flush_executor
             )
             if not new_task.done():
                 self._flush_jobs.add(new_task)
@@ -355,7 +362,7 @@ class MutationsBatcherAsync:
             self._flow_control.add_to_flow(new_entries)
         ):
             batch_task = CrossSync.create_task(
-                self._execute_mutate_rows, batch, sync_executor=self._sync_executor
+                self._execute_mutate_rows, batch, sync_executor=self._sync_rpc_executor
             )
             in_process_requests.append(batch_task)
         # wait for all inflight requests to complete
@@ -477,11 +484,14 @@ class MutationsBatcherAsync:
         self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
+        # shut down executors
+        if self._sync_rpc_executor:
+            with self._sync_rpc_executor:
+                self._sync_rpc_executor.shutdown(wait=True)
+        if self._sync_flush_executor:
+            with self._sync_flush_executor:
+                self._sync_flush_executor.shutdown(wait=True)
         CrossSync.rm_aio(await CrossSync.wait([*self._flush_jobs, self._flush_timer]))
-        # shut down executor
-        if self._sync_executor:
-            with self._sync_executor:
-                self._sync_executor.shutdown(wait=True)
         atexit.unregister(self._on_exit)
         # raise unreported exceptions
         self._raise_exceptions()
