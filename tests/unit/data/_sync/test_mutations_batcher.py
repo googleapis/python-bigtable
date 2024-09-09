@@ -1081,3 +1081,22 @@ class TestMutationsBatcher:
                     )
                     retry_call_args = retry_fn_mock.call_args_list[0].args
                     assert retry_call_args[1] is expected_predicate
+
+    def test_large_batch_write(self):
+        """Test that a large batch of mutations can be written"""
+        import math
+
+        num_mutations = 10000
+        flush_limit = 1000
+        mutations = [self._make_mutation(count=1, size=1)] * num_mutations
+        with self._make_one(flush_limit_mutation_count=flush_limit) as instance:
+            operation_mock = mock.Mock()
+            rpc_call_mock = CrossSync._Sync_Impl.Mock()
+            operation_mock().start = rpc_call_mock
+            CrossSync._Sync_Impl._MutateRowsOperation = operation_mock
+            for m in mutations:
+                instance.append(m)
+        expected_calls = math.ceil(num_mutations / flush_limit)
+        assert rpc_call_mock.call_count == expected_calls
+        assert instance._entries_processed_since_last_raise == num_mutations
+        assert len(instance._staged_entries) == 0
