@@ -485,12 +485,12 @@ class MutationsBatcherAsync:
         self._flush_timer.cancel()
         self._schedule_flush()
         # shut down executors
-        if self._sync_rpc_executor:
-            with self._sync_rpc_executor:
-                self._sync_rpc_executor.shutdown(wait=True)
         if self._sync_flush_executor:
             with self._sync_flush_executor:
                 self._sync_flush_executor.shutdown(wait=True)
+        if self._sync_rpc_executor:
+            with self._sync_rpc_executor:
+                self._sync_rpc_executor.shutdown(wait=True)
         CrossSync.rm_aio(await CrossSync.wait([*self._flush_jobs, self._flush_timer]))
         atexit.unregister(self._on_exit)
         # raise unreported exceptions
