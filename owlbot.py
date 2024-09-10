@@ -171,3 +171,9 @@ s.replace(
 INSTALL_LIBRARY_FROM_SOURCE = False""")
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
+
+# ----------------------------------------------------------------------------
+# Run Cross Sync
+# ----------------------------------------------------------------------------
+
+s.shell.run(["nox", "-s", "generate_sync"])
