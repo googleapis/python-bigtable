@@ -552,3 +552,11 @@ def prerelease_deps(session, protobuf_implementation):
                 "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": protobuf_implementation,
             },
         )
+
+@nox.session(python="3.11")
+def generate_sync(session):
+    """
+    Re-generate sync files for the library from CrossSync-annotated async source
+    """
+    session.install("black", "autoflake")
+    session.run("python", ".cross_sync/generate.py", ".")
