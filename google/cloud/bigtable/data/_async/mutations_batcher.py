@@ -255,7 +255,7 @@ class MutationsBatcherAsync:
         )
         # used by sync class to manage flush_internal tasks
         self._sync_flush_executor = (
-            concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            concurrent.futures.ThreadPoolExecutor(max_workers=4)
             if not CrossSync.is_async
             else None
         )
