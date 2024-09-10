@@ -407,12 +407,12 @@ class MutationsBatcher:
         self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
-        if self._sync_rpc_executor:
-            with self._sync_rpc_executor:
-                self._sync_rpc_executor.shutdown(wait=True)
         if self._sync_flush_executor:
             with self._sync_flush_executor:
                 self._sync_flush_executor.shutdown(wait=True)
+        if self._sync_rpc_executor:
+            with self._sync_rpc_executor:
+                self._sync_rpc_executor.shutdown(wait=True)
         CrossSync._Sync_Impl.wait([*self._flush_jobs, self._flush_timer])
         atexit.unregister(self._on_exit)
         self._raise_exceptions()
