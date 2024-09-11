@@ -13267,7 +13267,8 @@ def test_create_app_profile_rest(request_type):
         "etag": "etag_value",
         "description": "description_value",
         "multi_cluster_routing_use_any": {
-            "cluster_ids": ["cluster_ids_value1", "cluster_ids_value2"]
+            "cluster_ids": ["cluster_ids_value1", "cluster_ids_value2"],
+            "row_affinity": {},
         },
         "single_cluster_routing": {
             "cluster_id": "cluster_id_value",
@@ -14396,7 +14397,8 @@ def test_update_app_profile_rest(request_type):
         "etag": "etag_value",
         "description": "description_value",
         "multi_cluster_routing_use_any": {
-            "cluster_ids": ["cluster_ids_value1", "cluster_ids_value2"]
+            "cluster_ids": ["cluster_ids_value1", "cluster_ids_value2"],
+            "row_affinity": {},
         },
         "single_cluster_routing": {
             "cluster_id": "cluster_id_value",

@@ -468,17 +468,46 @@ class AppProfile(proto.Message):
         in a region are considered equidistant. Choosing this option
         sacrifices read-your-writes consistency to improve availability.
 
+
+        .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
         Attributes:
             cluster_ids (MutableSequence[str]):
                 The set of clusters to route to. The order is
                 ignored; clusters will be tried in order of
                 distance. If left empty, all clusters are
                 eligible.
+            row_affinity (google.cloud.bigtable_admin_v2.types.AppProfile.MultiClusterRoutingUseAny.RowAffinity):
+                Row affinity sticky routing based on the row
+                key of the request. Requests that span multiple
+                rows are routed non-deterministically.
+
+                This field is a member of `oneof`_ ``affinity``.
         """
+
+        class RowAffinity(proto.Message):
+            r"""If enabled, Bigtable will route the request based on the row
+            key of the request, rather than randomly. Instead, each row key
+            will be assigned to a cluster, and will stick to that cluster.
+            If clusters are added or removed, then this may affect which row
+            keys stick to which clusters. To avoid this, users can use a
+            cluster group to specify which clusters are to be used. In this
+            case, new clusters that are not a part of the cluster group will
+            not be routed to, and routing will be unaffected by the new
+            cluster. Moreover, clusters specified in the cluster group
+            cannot be deleted unless removed from the cluster group.
+
+            """
 
         cluster_ids: MutableSequence[str] = proto.RepeatedField(
             proto.STRING,
             number=1,
+        )
+        row_affinity: "AppProfile.MultiClusterRoutingUseAny.RowAffinity" = proto.Field(
+            proto.MESSAGE,
+            number=3,
+            oneof="affinity",
+            message="AppProfile.MultiClusterRoutingUseAny.RowAffinity",
         )
 
     class SingleClusterRouting(proto.Message):
