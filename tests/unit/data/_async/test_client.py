@@ -31,6 +31,7 @@ from google.cloud.bigtable.data import TABLE_DEFAULT
 
 from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
+from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
@@ -1115,9 +1116,7 @@ class TestBigtableDataClientAsync:
         assert client._channel_refresh_tasks == []
 
 
-@CrossSync.export_sync(
-    "TestTable", add_mapping_for_name="TestTable"
-)
+@CrossSync.export_sync("TestTable", add_mapping_for_name="TestTable")
 class TestTableAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):

@@ -232,20 +232,18 @@ class CrossSyncFileHandler(ast.NodeTransformer):
     """
 
     @staticmethod
-    def _find_cs_output(node):
+    def get_output_path(node):
         for i, n in enumerate(node.body):
             if isinstance(n, ast.Assign):
                 for target in n.targets:
                     if isinstance(target, ast.Name) and target.id == "__CROSS_SYNC_OUTPUT__":
                         # keep the output path
-                        # remove the statement
-                        node.body.pop(i)
-                        return n.value.value + ".py"
+                        return n.value.value.replace(".", "/") + ".py"
 
     def visit_Module(self, node):
         # look for __CROSS_SYNC_OUTPUT__ Assign statement
-        self.output_path = self._find_cs_output(node)
-        if self.output_path:
+        output_path = self.get_output_path(node)
+        if output_path:
             # if found, process the file
             return self.generic_visit(node)
         else:

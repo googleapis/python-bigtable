@@ -15,9 +15,6 @@
 
 import pytest
 import concurrent.futures
-from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
-    ExecuteQueryIteratorAsync,
-)
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from .._testing import TYPE_INT, split_bytes_into_chunks, proto_rows_bytes
 
@@ -32,9 +29,8 @@ except ImportError:  # pragma: NO COVER
 
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data.execute_query._sync.test_query_iterator"
 
-@CrossSync.export_sync(
-    sync_name="MockIterator"
-)
+
+@CrossSync.export_sync(sync_name="MockIterator")
 class MockIterator:
     def __init__(self, values, delay=None):
         self._values = values
@@ -56,9 +52,7 @@ class MockIterator:
         return value
 
 
-@CrossSync.export_sync(
-    sync_name="TestQueryIterator"
-)
+@CrossSync.export_sync(sync_name="TestQueryIterator")
 class TestQueryIteratorAsync:
     @staticmethod
     def _target_class():

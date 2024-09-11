@@ -116,8 +116,14 @@ __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync.client"
 class BigtableDataClientAsync(ClientWithProject):
     @CrossSync.convert(
         docstring_format_vars={
-            "LOOP_MESSAGE": ("Client should be created within an async context (running event loop)", ""),
-            "RAISE_NO_LOOP": ("RuntimeError: if called outside of an async context (no running event loop)", ""),
+            "LOOP_MESSAGE": (
+                "Client should be created within an async context (running event loop)",
+                "",
+            ),
+            "RAISE_NO_LOOP": (
+                "RuntimeError: if called outside of an async context (no running event loop)",
+                "",
+            ),
         }
     )
     def __init__(
@@ -236,7 +242,12 @@ class BigtableDataClientAsync(ClientWithProject):
         return version_str
 
     @CrossSync.convert(
-        docstring_format_vars={"RAISE_NO_LOOP": ("RuntimeError: if not called in an asyncio event loop", "None")}
+        docstring_format_vars={
+            "RAISE_NO_LOOP": (
+                "RuntimeError: if not called in an asyncio event loop",
+                "None",
+            )
+        }
     )
     def _start_background_channel_refresh(self) -> None:
         """
@@ -464,8 +475,14 @@ class BigtableDataClientAsync(ClientWithProject):
     @CrossSync.convert(
         replace_symbols={"TableAsync": "Table"},
         docstring_format_vars={
-            "LOOP_MESSAGE": ("Must be created within an async context (running event loop)", ""),
-            "RAISE_NO_LOOP": ("RuntimeError: if called outside of an async context (no running event loop)", "None"),
+            "LOOP_MESSAGE": (
+                "Must be created within an async context (running event loop)",
+                "",
+            ),
+            "RAISE_NO_LOOP": (
+                "RuntimeError: if called outside of an async context (no running event loop)",
+                "None",
+            ),
         },
     )
     def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> TableAsync:
@@ -633,9 +650,15 @@ class TableAsync:
     @CrossSync.convert(
         replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"},
         docstring_format_vars={
-            "LOOP_MESSAGE": ("Must be created within an async context (running event loop)", ""),
-            "RAISE_NO_LOOP": ("RuntimeError: if called outside of an async context (no running event loop)", "None"),
-        }
+            "LOOP_MESSAGE": (
+                "Must be created within an async context (running event loop)",
+                "",
+            ),
+            "RAISE_NO_LOOP": (
+                "RuntimeError: if called outside of an async context (no running event loop)",
+                "None",
+            ),
+        },
     )
     def __init__(
         self,
