@@ -41,8 +41,8 @@ UNIT_TEST_STANDARD_DEPENDENCIES = [
     "pytest",
     "pytest-cov",
     "pytest-asyncio",
-    "black",
     "autoflake",
+    BLACK_VERSION,
 ]
 UNIT_TEST_EXTERNAL_DEPENDENCIES: List[str] = []
 UNIT_TEST_LOCAL_DEPENDENCIES: List[str] = []
@@ -58,7 +58,7 @@ SYSTEM_TEST_STANDARD_DEPENDENCIES: List[str] = [
 ]
 SYSTEM_TEST_EXTERNAL_DEPENDENCIES: List[str] = [
     "pytest-asyncio==0.21.2",
-    "black==23.7.0",
+    BLACK_VERSION,
     "pyyaml==6.0.2",
 ]
 SYSTEM_TEST_LOCAL_DEPENDENCIES: List[str] = []
@@ -555,10 +555,12 @@ def prerelease_deps(session, protobuf_implementation):
             },
         )
 
-@nox.session(python="3.11")
+
+@nox.session(python="3.10")
 def generate_sync(session):
     """
     Re-generate sync files for the library from CrossSync-annotated async source
     """
-    session.install("black", "autoflake")
+    session.install(BLACK_VERSION)
+    session.install("autoflake")
     session.run("python", ".cross_sync/generate.py", ".")
