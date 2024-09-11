@@ -26,10 +26,12 @@ sys.path.append(cross_sync_path)
 from generate import convert_files_in_dir  # noqa: E402
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 9), reason="ast.unparse is only available in 3.9+"
+)
 @pytest.mark.parametrize(
     "artifact", convert_files_in_dir(repo_root), ids=lambda a: a.file_path
 )
-@pytest.mark.skipif(sys.version_info < (3, 11), reason="generation uses python3.11")
 def test_sync_up_to_date(artifact):
     """
     Generate a fresh copy of each cross_sync file, and compare hashes with the existing file.
