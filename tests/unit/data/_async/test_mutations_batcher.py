@@ -31,9 +31,8 @@ except ImportError:  # pragma: NO COVER
 
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_mutations_batcher"
 
-@CrossSync.export_sync(
-    sync_name="Test_FlowControl"
-)
+
+@CrossSync.export_sync(sync_name="Test_FlowControl")
 class Test_FlowControl:
     @staticmethod
     @CrossSync.convert
@@ -303,9 +302,7 @@ class Test_FlowControl:
         assert len(count_results) == 1
 
 
-@CrossSync.export_sync(
-    sync_name="TestMutationsBatcher"
-)
+@CrossSync.export_sync(sync_name="TestMutationsBatcher")
 class TestMutationsBatcherAsync:
     @CrossSync.convert
     def _get_target_class(self):
@@ -1226,6 +1223,7 @@ class TestMutationsBatcherAsync:
         Test that a large batch of mutations can be written
         """
         import math
+
         num_mutations = 10_000
         flush_limit = 1000
         mutations = [self._make_mutation(count=1, size=1)] * num_mutations

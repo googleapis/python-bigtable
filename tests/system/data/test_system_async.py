@@ -29,6 +29,7 @@ from . import TEST_FAMILY, TEST_FAMILY_2
 
 __CROSS_SYNC_OUTPUT__ = "tests.system.data.test_system"
 
+
 @CrossSync.export_sync(
     sync_name="TempRowBuilder",
     add_mapping_for_name="TempRowBuilder",
@@ -495,7 +496,10 @@ class TestSystemAsync:
         test batcher with large batch of mutations
         """
         from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
-        add_mutation = SetCell(family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"a")
+
+        add_mutation = SetCell(
+            family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"a"
+        )
         row_mutations = []
         for i in range(50_000):
             row_key = uuid.uuid4().hex.encode()

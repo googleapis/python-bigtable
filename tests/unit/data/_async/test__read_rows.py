@@ -24,6 +24,7 @@ except ImportError:  # pragma: NO COVER
 
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test__read_rows"
 
+
 @CrossSync.export_sync(
     sync_name="TestReadRowsOperation",
 )

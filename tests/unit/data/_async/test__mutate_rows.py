@@ -29,6 +29,7 @@ except ImportError:  # pragma: NO COVER
 
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test__mutate_rows"
 
+
 @CrossSync.export_sync("TestMutateRowsOperation")
 class TestMutateRowsOperation:
     def _target_class(self):

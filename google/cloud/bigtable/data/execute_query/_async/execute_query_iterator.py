@@ -14,10 +14,8 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import (
     Any,
-    AsyncIterator,
     Dict,
     List,
     Optional,
@@ -52,15 +50,19 @@ if TYPE_CHECKING:
     else:
         from google.cloud.bigtable.data import BigtableDataClient as DataClientType
 
-__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data.execute_query._sync.execute_query_iterator"
+__CROSS_SYNC_OUTPUT__ = (
+    "google.cloud.bigtable.data.execute_query._sync.execute_query_iterator"
+)
 
 
 @CrossSync.export_sync(sync_name="ExecuteQueryIterator")
 class ExecuteQueryIteratorAsync:
-
     @CrossSync.convert(
         docstring_format_vars={
-            "NO_LOOP": ("RuntimeError: if the instance is not created within an async event loop context.", "None"),
+            "NO_LOOP": (
+                "RuntimeError: if the instance is not created within an async event loop context.",
+                "None",
+            ),
             "TASK_OR_THREAD": ("asyncio Tasks", "threads"),
         }
     )
