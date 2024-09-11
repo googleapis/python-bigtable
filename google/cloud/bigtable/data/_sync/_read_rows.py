@@ -32,13 +32,11 @@ from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if TYPE_CHECKING:
-    if CrossSync._Sync_Impl.is_async:
-        from google.cloud.bigtable.data._async.client import TableAsync as TableType
-    else:
-        from google.cloud.bigtable.data._sync.client import Table as TableType
+    from google.cloud.bigtable.data._sync.client import Table as TableType
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync._read_rows"
 
 
-class _ReadRowsOperation:
+class ReadRowsOperation:
     """
     ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream
     into a stream of Row objects.

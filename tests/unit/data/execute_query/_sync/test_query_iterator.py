@@ -23,6 +23,7 @@ try:
     from unittest import mock
 except ImportError:
     import mock
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data.execute_query._sync.test_query_iterator"
 
 
 class MockIterator:

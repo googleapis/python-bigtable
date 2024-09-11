@@ -28,20 +28,17 @@ from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data import TABLE_DEFAULT
 from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
+from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 try:
     from unittest import mock
 except ImportError:
     import mock
-if CrossSync._Sync_Impl.is_async:
-    from google.api_core import grpc_helpers_async
+from google.api_core import grpc_helpers
 
-    CrossSync._Sync_Impl.add_mapping("grpc_helpers", grpc_helpers_async)
-else:
-    from google.api_core import grpc_helpers
-
-    CrossSync._Sync_Impl.add_mapping("grpc_helpers", grpc_helpers)
+CrossSync.add_mapping("grpc_helpers", grpc_helpers)
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_client"
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TestBigtableDataClient")

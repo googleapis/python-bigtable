@@ -26,6 +26,7 @@ try:
     from unittest import mock
 except ImportError:
     import mock
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_mutations_batcher"
 
 
 class Test_FlowControl:

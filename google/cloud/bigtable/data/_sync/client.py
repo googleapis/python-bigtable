@@ -64,22 +64,18 @@ from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+    PooledBigtableGrpcTransport as PooledTransportType,
+)
+from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
+from google.cloud.bigtable.data.execute_query._sync.execute_query_iterator import (
+    ExecuteQueryIterator,
+)
 
-if CrossSync._Sync_Impl.is_async:
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledBigtableGrpcAsyncIOTransport as PooledTransportType,
-    )
-else:
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-        PooledBigtableGrpcTransport as PooledTransportType,
-    )
-    from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
-    from google.cloud.bigtable.data.execute_query._sync.execute_query_iterator import (
-        ExecuteQueryIterator,
-    )
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync.client"
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("DataClient")

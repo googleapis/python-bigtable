@@ -28,20 +28,14 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
-
-    if CrossSync._Sync_Impl.is_async:
-        from google.cloud.bigtable_v2.services.bigtable.async_client import (
-            BigtableAsyncClient as GapicClientType,
-        )
-        from google.cloud.bigtable.data._async.client import TableAsync as TableType
-    else:
-        from google.cloud.bigtable_v2.services.bigtable.client import (
-            BigtableClient as GapicClientType,
-        )
-        from google.cloud.bigtable.data._sync.client import Table as TableType
+    from google.cloud.bigtable_v2.services.bigtable.client import (
+        BigtableClient as GapicClientType,
+    )
+    from google.cloud.bigtable.data._sync.client import Table as TableType
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync._mutate_rows"
 
 
-class _MutateRowsOperation:
+class MutateRowsOperation:
     """
     MutateRowsOperation manages the logic of sending a set of row mutations,
     and retrying on failed entries. It manages this using the _run_attempt

@@ -34,10 +34,10 @@ from google.cloud.bigtable_v2.types.bigtable import (
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if TYPE_CHECKING:
-    if CrossSync._Sync_Impl.is_async:
-        from google.cloud.bigtable.data import BigtableDataClientAsync as DataClientType
-    else:
-        from google.cloud.bigtable.data import BigtableDataClient as DataClientType
+    from google.cloud.bigtable.data import BigtableDataClient as DataClientType
+__CROSS_SYNC_OUTPUT__ = (
+    "google.cloud.bigtable.data.execute_query._sync.execute_query_iterator"
+)
 
 
 class ExecuteQueryIterator:
