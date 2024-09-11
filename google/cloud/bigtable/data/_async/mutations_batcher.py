@@ -42,11 +42,10 @@ if TYPE_CHECKING:
     else:
         from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
 
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync.mutations_batcher"
 
-@CrossSync.export_sync(
-    path="google.cloud.bigtable.data._sync.mutations_batcher._FlowControl",
-    add_mapping_for_name="_FlowControl",
-)
+
+@CrossSync.export_sync(sync_name="_FlowControl", add_mapping_for_name="_FlowControl")
 class _FlowControlAsync:
     """
     Manages flow control for batched mutations. Mutations are registered against
@@ -178,9 +177,7 @@ class _FlowControlAsync:
 
 
 @CrossSync.export_sync(
-    path="google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher",
-    mypy_ignore=["unreachable"],
-    add_mapping_for_name="MutationsBatcher",
+    sync_name="MutationsBatcher", add_mapping_for_name="MutationsBatcher"
 )
 class MutationsBatcherAsync:
     """

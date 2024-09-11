@@ -42,10 +42,10 @@ if TYPE_CHECKING:
     else:
         from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
 
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync._read_rows"
 
-@CrossSync.export_sync(
-    path="google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
-)
+
+@CrossSync.export_sync("ReadRowsOperation")
 class _ReadRowsOperationAsync:
     """
     ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream

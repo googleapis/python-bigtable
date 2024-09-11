@@ -30,8 +30,10 @@ from ...v2_client.test_row_merger import ReadRowsTest, TestFile
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_read_rows_acceptance"
+
 @CrossSync.export_sync(
-    path="tests.unit.data._sync.test_read_rows_acceptance.TestReadRowsAcceptance",
+    sync_name="TestReadRowsAcceptance",
 )
 class TestReadRowsAcceptanceAsync:
     @staticmethod

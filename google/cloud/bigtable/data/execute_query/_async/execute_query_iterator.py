@@ -52,10 +52,10 @@ if TYPE_CHECKING:
     else:
         from google.cloud.bigtable.data import BigtableDataClient as DataClientType
 
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data.execute_query._sync.execute_query_iterator"
 
-@CrossSync.export_sync(
-    path="google.cloud.bigtable.data.execute_query._sync.execute_query_iterator.ExecuteQueryIterator",
-)
+
+@CrossSync.export_sync(sync_name="ExecuteQueryIterator")
 class ExecuteQueryIteratorAsync:
 
     @CrossSync.convert(
