@@ -28,7 +28,6 @@ __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test__mutate_rows"
 
 
 class TestMutateRowsOperation:
-
     def _target_class(self):
         return CrossSync._Sync_Impl._MutateRowsOperation
 
@@ -263,7 +262,7 @@ class TestMutateRowsOperation:
             instance._run_attempt()
         assert len(instance.remaining_indices) == 0
         assert mock_gapic_fn.call_count == 1
-        _, kwargs = mock_gapic_fn.call_args
+        (_, kwargs) = mock_gapic_fn.call_args
         assert kwargs["timeout"] == expected_timeout
         assert kwargs["entries"] == [mutation._to_pb()]
 

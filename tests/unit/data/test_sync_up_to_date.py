@@ -40,9 +40,7 @@ def test_sync_up_to_date(artifact):
     new_render = artifact.render()
     found_render = open(path).read()
     # compare by content
-    diff = unified_diff(
-        found_render.splitlines(), new_render.splitlines(), lineterm=""
-    )
+    diff = unified_diff(found_render.splitlines(), new_render.splitlines(), lineterm="")
     diff_str = "\n".join(diff)
     assert not diff_str, f"Found differences:\n{diff_str}"
     # compare by hash

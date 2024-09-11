@@ -27,7 +27,6 @@ __CROSS_SYNC_OUTPUT__ = "tests.unit.data.execute_query._sync.test_query_iterator
 
 
 class MockIterator:
-
     def __init__(self, values, delay=None):
         self._values = values
         self.idx = 0
@@ -47,7 +46,6 @@ class MockIterator:
 
 
 class TestQueryIterator:
-
     @staticmethod
     def _target_class():
         return CrossSync._Sync_Impl.ExecuteQueryIterator

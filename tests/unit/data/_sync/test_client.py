@@ -43,7 +43,6 @@ __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_client"
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TestBigtableDataClient")
 class TestBigtableDataClient:
-
     @staticmethod
     def _get_target_class():
         return CrossSync._Sync_Impl.DataClient
@@ -314,9 +313,11 @@ class TestBigtableDataClient:
                 gather.assert_awaited_once()
             grpc_call_args = channel.unary_unary().call_args_list
             for idx, (_, kwargs) in enumerate(grpc_call_args):
-                expected_instance, expected_table, expected_app_profile = (
-                    client_mock._active_instances[idx]
-                )
+                (
+                    expected_instance,
+                    expected_table,
+                    expected_app_profile,
+                ) = client_mock._active_instances[idx]
                 request = kwargs["request"]
                 assert request["name"] == expected_instance
                 assert request["app_profile_id"] == expected_app_profile
@@ -405,9 +406,9 @@ class TestBigtableDataClient:
         )
         with mock.patch.object(*sleep_tuple):
             client_mock.transport.replace_channel.side_effect = asyncio.CancelledError
-            ping_and_warm = client_mock._ping_and_warm_instances = (
-                CrossSync._Sync_Impl.Mock()
-            )
+            ping_and_warm = (
+                client_mock._ping_and_warm_instances
+            ) = CrossSync._Sync_Impl.Mock()
             try:
                 channel_idx = 1
                 self._get_target_class()._manage_channel(client_mock, channel_idx, 10)
@@ -552,7 +553,7 @@ class TestBigtableDataClient:
                     assert create_channel.call_count == num_cycles
                     assert replace_channel.call_count == num_cycles
                     for call in replace_channel.call_args_list:
-                        args, kwargs = call
+                        (args, kwargs) = call
                         assert args[0] == channel_idx
                         assert kwargs["grace"] == expected_grace
                         assert kwargs["new_channel"] == new_channel
@@ -958,7 +959,6 @@ class TestBigtableDataClient:
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TestTable")
 class TestTable:
-
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -1272,7 +1272,6 @@ class TestReadRows:
         from google.cloud.bigtable_v2 import ReadRowsResponse
 
         class mock_stream:
-
             def __init__(self, chunk_list, sleep_time):
                 self.chunk_list = chunk_list
                 self.idx = -1
@@ -1563,7 +1562,7 @@ class TestReadRows:
                 )
                 assert row == expected_result
                 assert read_rows.call_count == 1
-                args, kwargs = read_rows.call_args_list[0]
+                (args, kwargs) = read_rows.call_args_list[0]
                 assert kwargs["operation_timeout"] == expected_op_timeout
                 assert kwargs["attempt_timeout"] == expected_req_timeout
                 assert len(args) == 1
@@ -1594,7 +1593,7 @@ class TestReadRows:
                 )
                 assert row == expected_result
                 assert read_rows.call_count == 1
-                args, kwargs = read_rows.call_args_list[0]
+                (args, kwargs) = read_rows.call_args_list[0]
                 assert kwargs["operation_timeout"] == expected_op_timeout
                 assert kwargs["attempt_timeout"] == expected_req_timeout
                 assert len(args) == 1
@@ -1621,7 +1620,7 @@ class TestReadRows:
                 )
                 assert result is None
                 assert read_rows.call_count == 1
-                args, kwargs = read_rows.call_args_list[0]
+                (args, kwargs) = read_rows.call_args_list[0]
                 assert kwargs["operation_timeout"] == expected_op_timeout
                 assert kwargs["attempt_timeout"] == expected_req_timeout
                 assert isinstance(args[0], ReadRowsQuery)
@@ -1650,7 +1649,7 @@ class TestReadRows:
                 )
                 assert expected_result == result
                 assert read_rows.call_count == 1
-                args, kwargs = read_rows.call_args_list[0]
+                (args, kwargs) = read_rows.call_args_list[0]
                 assert kwargs["operation_timeout"] == expected_op_timeout
                 assert kwargs["attempt_timeout"] == expected_req_timeout
                 assert isinstance(args[0], ReadRowsQuery)
@@ -1670,7 +1669,6 @@ class TestReadRows:
 
 
 class TestReadRowsSharded:
-
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -1783,7 +1781,7 @@ class TestReadRowsSharded:
                     assert read_rows.call_count == num_queries
                     rpc_start_list = [
                         starting_timeout - kwargs["operation_timeout"]
-                        for _, kwargs in read_rows.call_args_list
+                        for (_, kwargs) in read_rows.call_args_list
                     ]
                     eps = 0.01
                     assert all(
@@ -1856,7 +1854,6 @@ class TestReadRowsSharded:
 
 
 class TestSampleRowKeys:
-
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -1914,7 +1911,7 @@ class TestSampleRowKeys:
                 ) as sample_row_keys:
                     sample_row_keys.return_value = self._make_gapic_stream([])
                     result = table.sample_row_keys()
-                    _, kwargs = sample_row_keys.call_args
+                    (_, kwargs) = sample_row_keys.call_args
                     assert abs(kwargs["timeout"] - expected_timeout) < 0.1
                     assert result == []
                     assert kwargs["retry"] is None
@@ -1936,7 +1933,7 @@ class TestSampleRowKeys:
                 ) as sample_row_keys:
                     sample_row_keys.return_value = self._make_gapic_stream([])
                     table.sample_row_keys(attempt_timeout=expected_timeout)
-                    args, kwargs = sample_row_keys.call_args
+                    (args, kwargs) = sample_row_keys.call_args
                     assert len(args) == 0
                     assert len(kwargs) == 5
                     assert kwargs["timeout"] == expected_timeout
@@ -1995,7 +1992,6 @@ class TestSampleRowKeys:
 
 
 class TestMutateRow:
-
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -2148,7 +2144,6 @@ class TestMutateRow:
 
 
 class TestBulkMutateRows:
-
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -2485,7 +2480,6 @@ class TestBulkMutateRows:
 
 
 class TestCheckAndMutateRow:
-
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -2630,7 +2624,6 @@ class TestCheckAndMutateRow:
 
 
 class TestReadModifyWriteRow:
-
     def _make_client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
@@ -2756,9 +2749,7 @@ class TestExecuteQuery:
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
 
     def _make_gapic_stream(self, sample_list: list["ExecuteQueryResponse" | Exception]):
-
         class MockStream:
-
             def __init__(self, sample_list):
                 self.sample_list = sample_list
 
@@ -2791,7 +2782,7 @@ class TestExecuteQuery:
                     "proto_schema": {
                         "columns": [
                             {"name": name, "type_": {_type: {}}}
-                            for name, _type in schema.items()
+                            for (name, _type) in schema.items()
                         ]
                     }
                 }
@@ -2813,11 +2804,9 @@ class TestExecuteQuery:
             else:
                 pb_value = PBValue(
                     {
-                        (
-                            "int_value"
-                            if isinstance(column_value, int)
-                            else "string_value"
-                        ): column_value
+                        "int_value"
+                        if isinstance(column_value, int)
+                        else "string_value": column_value
                     }
                 )
             values.append(pb_value)

@@ -188,11 +188,10 @@ class MutationsBatcher:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        batch_retryable_errors: (
-            Sequence[type[Exception]] | TABLE_DEFAULT
-        ) = TABLE_DEFAULT.MUTATE_ROWS,
+        batch_retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
     ):
-        self._operation_timeout, self._attempt_timeout = _get_timeouts(
+        (self._operation_timeout, self._attempt_timeout) = _get_timeouts(
             batch_operation_timeout, batch_attempt_timeout, table
         )
         self._retryable_errors: list[type[Exception]] = _get_retryable_errors(
@@ -201,7 +200,7 @@ class MutationsBatcher:
         self._closed = CrossSync._Sync_Impl.Event()
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
-        self._staged_count, self._staged_bytes = (0, 0)
+        (self._staged_count, self._staged_bytes) = (0, 0)
         self._flow_control = CrossSync._Sync_Impl._FlowControl(
             flow_control_max_mutation_count, flow_control_max_bytes
         )
@@ -282,8 +281,8 @@ class MutationsBatcher:
             Future[None] | None:
                 future representing the background task, if started"""
         if self._staged_entries:
-            entries, self._staged_entries = (self._staged_entries, [])
-            self._staged_count, self._staged_bytes = (0, 0)
+            (entries, self._staged_entries) = (self._staged_entries, [])
+            (self._staged_count, self._staged_bytes) = (0, 0)
             new_task = CrossSync._Sync_Impl.create_task(
                 self._flush_internal, entries, sync_executor=self._sync_flush_executor
             )
@@ -362,14 +361,14 @@ class MutationsBatcher:
         Raises:
             MutationsExceptionGroup: exception group with all unreported exceptions"""
         if self._oldest_exceptions or self._newest_exceptions:
-            oldest, self._oldest_exceptions = (self._oldest_exceptions, [])
+            (oldest, self._oldest_exceptions) = (self._oldest_exceptions, [])
             newest = list(self._newest_exceptions)
             self._newest_exceptions.clear()
-            entry_count, self._entries_processed_since_last_raise = (
+            (entry_count, self._entries_processed_since_last_raise) = (
                 self._entries_processed_since_last_raise,
                 0,
             )
-            exc_count, self._exceptions_since_last_raise = (
+            (exc_count, self._exceptions_since_last_raise) = (
                 self._exceptions_since_last_raise,
                 0,
             )

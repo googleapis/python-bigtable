@@ -41,7 +41,6 @@ __CROSS_SYNC_OUTPUT__ = (
 
 
 class ExecuteQueryIterator:
-
     def __init__(
         self,
         client: DataClientType,
