@@ -15,7 +15,7 @@ from transformers import (  # noqa: F401 E402
     AsyncToSync,
     RmAioFunctions,
     CrossSyncMethodDecoratorHandler,
-    CrossSyncClassDecoratorHandler,
+    CrossSyncFileHandler,
 )
 
 
@@ -42,7 +42,7 @@ def loader():
     sys.version_info < (3, 9), reason="ast.unparse requires python3.9 or higher"
 )
 def test_e2e_scenario(test_dict):
-    before_ast = ast.parse(test_dict["before"]).body[0]
+    before_ast = ast.parse(test_dict["before"])
     got_ast = before_ast
     for transformer_info in test_dict["transformers"]:
         # transformer can be passed as a string, or a dict with name and args
@@ -54,6 +54,12 @@ def test_e2e_scenario(test_dict):
             transformer_args = transformer_info.get("args", {})
         transformer = transformer_class(**transformer_args)
         got_ast = transformer.visit(got_ast)
-    final_str = black.format_str(ast.unparse(got_ast), mode=black.FileMode())
-    expected_str = black.format_str(test_dict["after"], mode=black.FileMode())
+    if got_ast is None:
+        final_str = ""
+    else:
+        final_str = black.format_str(ast.unparse(got_ast), mode=black.FileMode())
+    if test_dict.get("after") is None:
+        expected_str = ""
+    else:
+        expected_str = black.format_str(test_dict["after"], mode=black.FileMode())
     assert final_str == expected_str, f"Expected:\n{expected_str}\nGot:\n{final_str}"

@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import ast
-    from typing import Sequence, Callable, Any
+    from typing import Callable, Any
 
 
 class AstDecorator:
@@ -175,25 +175,21 @@ class ExportSync(AstDecorator):
     Class decorator for marking async classes to be converted to sync classes
 
     Args:
-        path: path to output the generated sync class
+        sync_name: use a new name for the sync class
         replace_symbols: a dict of symbols and replacements to use when generating sync class
         docstring_format_vars: a dict of variables to replace in the docstring
-        mypy_ignore: set of mypy errors to ignore in the generated file
-        include_file_imports: if True, include top-level imports from the file in the generated sync class
         add_mapping_for_name: when given, will add a new attribute to CrossSync, so the original class and its sync version can be accessed from CrossSync.<name>
     """
 
     def __init__(
         self,
-        path: str,
+        sync_name: str | None = None,
         *,
         replace_symbols: dict[str, str] | None = None,
         docstring_format_vars: dict[str, tuple[str, str]] | None = None,
-        mypy_ignore: Sequence[str] = (),
-        include_file_imports: bool = True,
         add_mapping_for_name: str | None = None,
     ):
-        self.path = path
+        self.sync_name = sync_name
         self.replace_symbols = replace_symbols
         docstring_format_vars = docstring_format_vars or {}
         self.async_docstring_format_vars = {
@@ -202,8 +198,6 @@ class ExportSync(AstDecorator):
         self.sync_docstring_format_vars = {
             k: v[1] for k, v in docstring_format_vars.items()
         }
-        self.mypy_ignore = mypy_ignore
-        self.include_file_imports = include_file_imports
         self.add_mapping_for_name = add_mapping_for_name
 
     def async_decorator(self):
@@ -230,15 +224,11 @@ class ExportSync(AstDecorator):
         import ast
         import copy
 
-        if not self.path:
-            raise ValueError(
-                f"{wrapped_node.name} has no path specified in export_sync decorator"
-            )
         # copy wrapped node
         wrapped_node = copy.deepcopy(wrapped_node)
         # update name
-        sync_cls_name = self.path.rsplit(".", 1)[-1]
-        wrapped_node.name = sync_cls_name
+        if self.sync_name:
+            wrapped_node.name = self.sync_name
         # strip CrossSync decorators
         if hasattr(wrapped_node, "decorator_list"):
             wrapped_node.decorator_list = [
