@@ -27,8 +27,10 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from . import TEST_FAMILY, TEST_FAMILY_2
 
 
+__CROSS_SYNC_OUTPUT__ = "tests.system.data.test_system"
+
 @CrossSync.export_sync(
-    path="tests.system.data.test_system.TempRowBuilder",
+    sync_name="TempRowBuilder",
     add_mapping_for_name="TempRowBuilder",
 )
 class TempRowBuilderAsync:
@@ -77,7 +79,7 @@ class TempRowBuilderAsync:
             CrossSync.rm_aio(await self.table.client._gapic_client.mutate_rows(request))
 
 
-@CrossSync.export_sync(path="tests.system.data.test_system.TestSystem")
+@CrossSync.export_sync(sync_name="TestSystem")
 class TestSystemAsync:
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")

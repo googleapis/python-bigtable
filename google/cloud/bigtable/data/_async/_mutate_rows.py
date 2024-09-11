@@ -44,10 +44,10 @@ if TYPE_CHECKING:
         )
         from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
 
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync._mutate_rows"
 
-@CrossSync.export_sync(
-    path="google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
-)
+
+@CrossSync.export_sync("MutateRowsOperation")
 class _MutateRowsOperationAsync:
     """
     MutateRowsOperation manages the logic of sending a set of row mutations,

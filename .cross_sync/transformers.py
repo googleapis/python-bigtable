@@ -32,7 +32,6 @@ import sys
 # add cross_sync to path
 sys.path.append("google/cloud/bigtable/data/_sync/cross_sync")
 from _decorators import AstDecorator, ExportSync
-from generate import CrossSyncOutputFile
 
 
 class SymbolReplacer(ast.NodeTransformer):
@@ -227,96 +226,54 @@ class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
             raise ValueError(f"node {node.name} failed") from e
 
 
-class CrossSyncClassDecoratorHandler(ast.NodeTransformer):
+class CrossSyncFileHandler(ast.NodeTransformer):
     """
-    Visits each class in the file, and if it has a CrossSync decorator, it will be transformed.
-
-    Uses CrossSyncMethodDecoratorHandler to visit and (potentially) convert each method in the class
+    Visit each file, and process CrossSync classes if found
     """
-    def __init__(self, file_path):
-        self.in_path = file_path
-        self._artifact_dict: dict[str, CrossSyncOutputFile] = {}
-        self.imports: list[ast.Import | ast.ImportFrom | ast.Try | ast.If] = []
-        self.cross_sync_symbol_transformer = SymbolReplacer(
-            {"CrossSync": "CrossSync._Sync_Impl"}
-        )
-        self.cross_sync_method_handler = CrossSyncMethodDecoratorHandler()
 
-    def convert_file(
-        self, artifacts: set[CrossSyncOutputFile] | None = None
-    ) -> set[CrossSyncOutputFile]:
-        """
-        Called to run a file through the ast transformer.
+    @staticmethod
+    def _find_cs_output(node):
+        for i, n in enumerate(node.body):
+            if isinstance(n, ast.Assign):
+                for target in n.targets:
+                    if isinstance(target, ast.Name) and target.id == "__CROSS_SYNC_OUTPUT__":
+                        # keep the output path
+                        # remove the statement
+                        node.body.pop(i)
+                        return n.value.value + ".py"
 
-        If the file contains any classes marked with CrossSync.export_sync, the
-        classes will be processed according to the decorator arguments, and
-        a set of CrossSyncOutputFile objects will be returned for each output file.
-
-        If no CrossSync annotations are found, no changes will occur and an
-        empty set will be returned
-        """
-        tree = ast.parse(open(self.in_path).read())
-        self._artifact_dict = {f.file_path: f for f in artifacts or []}
-        self.imports = self._get_imports(tree)
-        self.visit(tree)
-        # return set of new artifacts
-        return set(self._artifact_dict.values()).difference(artifacts or [])
+    def visit_Module(self, node):
+        # look for __CROSS_SYNC_OUTPUT__ Assign statement
+        self.output_path = self._find_cs_output(node)
+        if self.output_path:
+            # if found, process the file
+            return self.generic_visit(node)
+        else:
+            # not cross_sync file. Return None
+            return None
 
     def visit_ClassDef(self, node):
         """
         Called for each class in file. If class has a CrossSync decorator, it will be transformed
-        according to the decorator arguments. Otherwise, no changes will occur
-
-        Uses a set of CrossSyncOutputFile objects to store the transformed classes
-        and avoid duplicate writes
+        according to the decorator arguments. Otherwise, class is returned unchanged
         """
-        try:
-            converted = None
-            for decorator in node.decorator_list:
-                try:
-                    handler = AstDecorator.get_for_node(decorator)
-                    if isinstance(handler, ExportSync):
-                        # find the path to write the sync class to
-                        out_file = "/".join(handler.path.rsplit(".")[:-1]) + ".py"
-                        sync_cls_name = handler.path.rsplit(".", 1)[-1]
-                        # find the artifact file for the save location
-                        output_artifact = self._artifact_dict.get(
-                            out_file, CrossSyncOutputFile(out_file)
-                        )
-                        # write converted class details if not already present
-                        if sync_cls_name not in output_artifact.contained_classes:
-                            # transformation is handled in sync_ast_transform method of the decorator
-                            converted = handler.sync_ast_transform(node, globals())
-                            output_artifact.converted_classes.append(converted)
-                            # handle file-level mypy ignores
-                            mypy_ignores = [
-                                s
-                                for s in handler.mypy_ignore
-                                if s not in output_artifact.mypy_ignore
-                            ]
-                            output_artifact.mypy_ignore.extend(mypy_ignores)
-                            # handle file-level imports
-                            if not output_artifact.imports and handler.include_file_imports:
-                                output_artifact.imports = self.imports
-                        self._artifact_dict[out_file] = output_artifact
-                except ValueError:
-                    continue
-            return converted
-        except ValueError as e:
-            raise ValueError(f"failed for class: {node.name}") from e
+        for decorator in node.decorator_list:
+            try:
+                handler = AstDecorator.get_for_node(decorator)
+                if isinstance(handler, ExportSync):
+                    # transformation is handled in sync_ast_transform method of the decorator
+                    return handler.sync_ast_transform(node, globals())
+            except ValueError:
+                # not cross_sync decorator
+                continue
+        # cross_sync decorator not found
+        return node
 
-    def _get_imports(
-        self, tree: ast.Module
-    ) -> list[ast.Import | ast.ImportFrom | ast.Try | ast.If]:
+    def visit_If(self, node):
         """
-        Grab the imports from the top of the file
-
-        raw imports, as well as try and if statements at the top level are included
+        remove CrossSync.is_async branches from top-level if statements
         """
-        imports = []
-        for node in tree.body:
-            if isinstance(node, (ast.Import, ast.ImportFrom, ast.Try, ast.If)):
-                imports.append(self.cross_sync_symbol_transformer.visit(node))
-        return imports
-
+        if isinstance(node.test, ast.Attribute) and isinstance(node.test.value, ast.Name) and node.test.value.id == "CrossSync" and node.test.attr == "is_async":
+            return node.orelse
+        return self.generic_visit(node)
 

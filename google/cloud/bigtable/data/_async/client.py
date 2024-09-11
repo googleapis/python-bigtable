@@ -106,9 +106,11 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
 
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync.client"
+
 
 @CrossSync.export_sync(
-    path="google.cloud.bigtable.data._sync.client.BigtableDataClient",
+    sync_name="BigtableDataClient",
     add_mapping_for_name="DataClient",
 )
 class BigtableDataClientAsync(ClientWithProject):
@@ -619,9 +621,7 @@ class BigtableDataClientAsync(ClientWithProject):
         CrossSync.rm_aio(await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb))
 
 
-@CrossSync.export_sync(
-    path="google.cloud.bigtable.data._sync.client.Table", add_mapping_for_name="Table"
-)
+@CrossSync.export_sync(sync_name="Table", add_mapping_for_name="Table")
 class TableAsync:
     """
     Main Data API surface

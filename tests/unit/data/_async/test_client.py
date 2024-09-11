@@ -51,9 +51,11 @@ else:
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
 
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_client"
+
 
 @CrossSync.export_sync(
-    path="tests.unit.data._sync.test_client.TestBigtableDataClient",
+    sync_name="TestBigtableDataClient",
     add_mapping_for_name="TestBigtableDataClient",
 )
 class TestBigtableDataClientAsync:
@@ -1114,7 +1116,7 @@ class TestBigtableDataClientAsync:
 
 
 @CrossSync.export_sync(
-    path="tests.unit.data._sync.test_client.TestTable", add_mapping_for_name="TestTable"
+    "TestTable", add_mapping_for_name="TestTable"
 )
 class TestTableAsync:
     @CrossSync.convert
@@ -1428,7 +1430,7 @@ class TestTableAsync:
 
 
 @CrossSync.export_sync(
-    path="tests.unit.data._sync.test_client.TestReadRows",
+    "TestReadRows",
     add_mapping_for_name="TestReadRows",
 )
 class TestReadRowsAsync:
@@ -1940,7 +1942,7 @@ class TestReadRowsAsync:
                 assert query.filter._to_dict() == expected_filter
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestReadRowsSharded")
+@CrossSync.export_sync("TestReadRowsSharded")
 class TestReadRowsShardedAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -2160,7 +2162,7 @@ class TestReadRowsShardedAsync:
                     )
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestSampleRowKeys")
+@CrossSync.export_sync("TestSampleRowKeys")
 class TestSampleRowKeysAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -2314,9 +2316,7 @@ class TestSampleRowKeysAsync:
                         await table.sample_row_keys()
 
 
-@CrossSync.export_sync(
-    path="tests.unit.data._sync.test_client.TestMutateRow",
-)
+@CrossSync.export_sync("TestMutateRow")
 class TestMutateRowAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -2493,9 +2493,7 @@ class TestMutateRowAsync:
                     assert e.value.args[0] == "No mutations provided"
 
 
-@CrossSync.export_sync(
-    path="tests.unit.data._sync.test_client.TestBulkMutateRows",
-)
+@CrossSync.export_sync("TestBulkMutateRows")
 class TestBulkMutateRowsAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -2878,7 +2876,7 @@ class TestBulkMutateRowsAsync:
                 await table.bulk_mutate_rows(entries, operation_timeout=1000)
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestCheckAndMutateRow")
+@CrossSync.export_sync("TestCheckAndMutateRow")
 class TestCheckAndMutateRowAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -3031,7 +3029,7 @@ class TestCheckAndMutateRowAsync:
                     )
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestReadModifyWriteRow")
+@CrossSync.export_sync("TestReadModifyWriteRow")
 class TestReadModifyWriteRowAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -3163,7 +3161,7 @@ class TestReadModifyWriteRowAsync:
                         constructor_mock.assert_called_once_with(mock_response.row)
 
 
-@CrossSync.export_sync(path="tests.unit.data._sync.test_client.TestExecuteQuery")
+@CrossSync.export_sync("TestExecuteQuery")
 class TestExecuteQueryAsync:
     TABLE_NAME = "TABLE_NAME"
     INSTANCE_NAME = "INSTANCE_NAME"

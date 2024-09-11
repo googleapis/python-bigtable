@@ -22,8 +22,10 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test__read_rows"
+
 @CrossSync.export_sync(
-    path="tests.unit.data._sync.test__read_rows.TestReadRowsOperation",
+    sync_name="TestReadRowsOperation",
 )
 class TestReadRowsOperationAsync:
     """
