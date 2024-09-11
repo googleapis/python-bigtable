@@ -238,7 +238,7 @@ class CrossSyncFileHandler(ast.NodeTransformer):
                 for target in n.targets:
                     if isinstance(target, ast.Name) and target.id == "__CROSS_SYNC_OUTPUT__":
                         # keep the output path
-                        return n.value.value.replace(".", "/") + ".py"
+                        return n.value.s.replace(".", "/") + ".py"
 
     def visit_Module(self, node):
         # look for __CROSS_SYNC_OUTPUT__ Assign statement
