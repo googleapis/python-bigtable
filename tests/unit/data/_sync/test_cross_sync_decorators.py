@@ -45,39 +45,27 @@ class TestExportSyncDecorator:
         """
         Should set default values for path, add_mapping_for_name, and docstring_format_vars
         """
-        with pytest.raises(TypeError) as exc:
-            self._get_class()()
-            assert "missing 1 required positional argument" in str(exc.value)
-        path = object()
-        instance = self._get_class()(path)
-        assert instance.path is path
+        instance = self._get_class()()
+        assert instance.sync_name is None
         assert instance.replace_symbols is None
-        assert instance.mypy_ignore == ()
-        assert instance.include_file_imports is True
         assert instance.add_mapping_for_name is None
         assert instance.async_docstring_format_vars == {}
         assert instance.sync_docstring_format_vars == {}
 
     def test_ctor(self):
-        path = object()
+        sync_name = "sync_name"
         replace_symbols = {"a": "b"}
         docstring_format_vars = {"A": (1, 2)}
-        mypy_ignore = ("a", "b")
-        include_file_imports = False
         add_mapping_for_name = "test_name"
 
         instance = self._get_class()(
-            path=path,
+            sync_name,
             replace_symbols=replace_symbols,
             docstring_format_vars=docstring_format_vars,
-            mypy_ignore=mypy_ignore,
-            include_file_imports=include_file_imports,
             add_mapping_for_name=add_mapping_for_name,
         )
-        assert instance.path is path
+        assert instance.sync_name is sync_name
         assert instance.replace_symbols is replace_symbols
-        assert instance.mypy_ignore is mypy_ignore
-        assert instance.include_file_imports is include_file_imports
         assert instance.add_mapping_for_name is add_mapping_for_name
         assert instance.async_docstring_format_vars == {"A": 1}
         assert instance.sync_docstring_format_vars == {"A": 2}
@@ -87,7 +75,7 @@ class TestExportSyncDecorator:
         Should return class being decorated
         """
         unwrapped_class = mock.Mock
-        wrapped_class = self._get_class().decorator(unwrapped_class, path=1)
+        wrapped_class = self._get_class().decorator(unwrapped_class, sync_name="s")
         assert unwrapped_class == wrapped_class
 
     def test_class_decorator_adds_mapping(self):
@@ -97,11 +85,13 @@ class TestExportSyncDecorator:
         with mock.patch.object(CrossSync, "add_mapping") as add_mapping:
             mock_cls = mock.Mock
             # check decoration with no add_mapping
-            self._get_class().decorator(path=1)(mock_cls)
+            self._get_class().decorator(sync_name="s")(mock_cls)
             assert add_mapping.call_count == 0
             # check decoration with add_mapping
             name = "test_name"
-            self._get_class().decorator(path=1, add_mapping_for_name=name)(mock_cls)
+            self._get_class().decorator(sync_name="s", add_mapping_for_name=name)(
+                mock_cls
+            )
             assert add_mapping.call_count == 1
             add_mapping.assert_called_once_with(name, mock_cls)
 
@@ -122,13 +112,13 @@ class TestExportSyncDecorator:
         of the class being decorated
         """
 
-        @ExportSync.decorator(path=1, docstring_format_vars=format_vars)
+        @ExportSync.decorator(sync_name="s", docstring_format_vars=format_vars)
         class Class:
             __doc__ = docstring
 
         assert Class.__doc__ == expected
         # check internal state
-        instance = self._get_class()(path=1, docstring_format_vars=format_vars)
+        instance = self._get_class()(sync_name="s", docstring_format_vars=format_vars)
         async_replacements = {k: v[0] for k, v in format_vars.items()}
         sync_replacements = {k: v[1] for k, v in format_vars.items()}
         assert instance.async_docstring_format_vars == async_replacements
@@ -138,7 +128,7 @@ class TestExportSyncDecorator:
         """
         Should update the name of the new class
         """
-        decorator = self._get_class()("path.to.SyncClass")
+        decorator = self._get_class()("SyncClass")
         mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[])
 
         result = decorator.sync_ast_transform(mock_node, globals_mock)
