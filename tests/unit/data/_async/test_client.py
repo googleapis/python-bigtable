@@ -19,6 +19,7 @@ import re
 import sys
 
 import pytest
+import mock
 
 from google.cloud.bigtable.data import mutations
 from google.auth.credentials import AnonymousCredentials
@@ -34,12 +35,6 @@ from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
-
-# try/except added for compatibility with python < 3.8
-try:
-    from unittest import mock
-except ImportError:  # pragma: NO COVER
-    import mock  # type: ignore
 
 if CrossSync.is_async:
     from google.api_core import grpc_helpers_async
