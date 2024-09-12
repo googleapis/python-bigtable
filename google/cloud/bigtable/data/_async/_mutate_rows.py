@@ -47,7 +47,7 @@ if TYPE_CHECKING:
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync._mutate_rows"
 
 
-@CrossSync.export_sync("MutateRowsOperation")
+@CrossSync.export_sync("_MutateRowsOperation")
 class _MutateRowsOperationAsync:
     """
     MutateRowsOperation manages the logic of sending a set of row mutations,
