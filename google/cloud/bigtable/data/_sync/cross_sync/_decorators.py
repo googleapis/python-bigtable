@@ -16,7 +16,7 @@ Contains a set of AstDecorator classes, which define the behavior of CrossSync d
 Each AstDecorator class is used through @CrossSync.<decorator_name>
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 if TYPE_CHECKING:
     import ast
@@ -148,7 +148,7 @@ class AstDecorator:
             raise ValueError("Not a CrossSync decorator")
 
     @classmethod
-    def get_subclasses(cls) -> list[type[AstDecorator]]:
+    def get_subclasses(cls) -> Iterable[type["AstDecorator"]]:
         """
         Get all subclasses of AstDecorator
 
