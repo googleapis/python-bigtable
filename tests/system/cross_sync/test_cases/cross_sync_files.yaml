@@ -6,7 +6,7 @@ tests:
               pass
 
     transformers: 
-      - name: CrossSyncFileHandler
+      - name: CrossSyncFileProcessor
     after: null
 
   - description: "CrossSync.export_sync with default sync_name"
@@ -18,7 +18,7 @@ tests:
               pass
 
     transformers: 
-      - name: CrossSyncFileHandler
+      - name: CrossSyncFileProcessor
     after: |
       class MyClass:
 
@@ -34,7 +34,7 @@ tests:
               pass
 
     transformers: 
-      - name: CrossSyncFileHandler
+      - name: CrossSyncFileProcessor
     after: |
       class MyClass:
 
@@ -53,7 +53,7 @@ tests:
               self.base = base
 
     transformers: 
-      - name: CrossSyncFileHandler
+      - name: CrossSyncFileProcessor
     after: |
       class MyClass(ParentB):
 
@@ -71,7 +71,7 @@ tests:
           """This is a {type} class."""
 
     transformers:
-      - name: CrossSyncFileHandler
+      - name: CrossSyncFileProcessor
     after: |
       class MyClass:
           """This is a sync class."""
@@ -99,7 +99,7 @@ tests:
               pass
 
     transformers:
-      - name: CrossSyncFileHandler
+      - name: CrossSyncFileProcessor
     after: |
       @some_other_decorator
       class MyClass:
@@ -115,17 +115,13 @@ tests:
           def fixture(self):
               pass
 
-  - description: "CrossSync.export_sync with nested classes"
+  - description: "CrossSync.export_sync with nested classes drop"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"
-      @CrossSync.export_sync(sync_name="MyClass", replace_symbols={"AsyncBase": "SyncBase"})
+      @CrossSync.export_sync(sync_name="MyClass")
       class MyAsyncClass:
           class NestedAsyncClass:
               async def nested_method(self, base: AsyncBase):
-                  pass
-
-              @CrossSync.drop_method
-              async def drop_this_method(self):
                   pass
 
           @CrossSync.convert
@@ -133,11 +129,34 @@ tests:
               nested = self.NestedAsyncClass()
               CrossSync.rm_aio(await nested.nested_method())
     transformers:
-      - name: CrossSyncFileHandler
+      - name: CrossSyncFileProcessor
     after: |
       class MyClass:
 
-          class NestedAsyncClass:
+          def use_nested(self):
+              nested = self.NestedAsyncClass()
+              nested.nested_method()
+
+  - description: "CrossSync.export_sync with nested classes"
+    before: |
+      __CROSS_SYNC_OUTPUT__ = "out.path"
+      @CrossSync.export_sync(sync_name="MyClass", replace_symbols={"AsyncBase": "SyncBase"})
+      class MyAsyncClass:
+          @CrossSync.export_sync
+          class NestedClass:
+              async def nested_method(self, base: AsyncBase):
+                  pass
+
+          @CrossSync.convert
+          async def use_nested(self):
+              nested = self.NestedAsyncClass()
+              CrossSync.rm_aio(await nested.nested_method())
+    transformers:
+      - name: CrossSyncFileProcessor
+    after: |
+      class MyClass:
+
+          class NestedClass:
 
               async def nested_method(self, base: SyncBase):
                   pass
@@ -158,13 +177,29 @@ tests:
               pass
 
     transformers:
-      - name: CrossSyncFileHandler
+      - name: CrossSyncFileProcessor
     after: |
       @CrossSync._Sync_Impl.add_mapping_decorator("MyClass")
       class MyClass:
 
-          async def my_method(self):
+         async def my_method(self):
               pass
+
+  - description: "CrossSync.export_sync with rm_aio"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.export_sync(rm_aio=True)
+        class MyClass:
+            async def my_method(self):
+                async for item in self.items:
+                    await self.process(item)
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        class MyClass:
+
+            def my_method(self):
+              for item in self.items:
+                  self.process(item)
 
   - description: "CrossSync.export_sync with CrossSync calls"
     before: |
@@ -177,10 +212,216 @@ tests:
                   CrossSync.rm_aio(await CrossSync.yield_to_event_loop())
 
     transformers:
-      - name: CrossSyncFileHandler
+      - name: CrossSyncFileProcessor
     after: |
       class MyClass:
 
         def my_method(self):
             with CrossSync._Sync_Impl.Condition() as c:
                 CrossSync._Sync_Impl.yield_to_event_loop()
+
+  - description: "Convert async method with @CrossSync.convert"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.convert
+        async def my_method(self, arg):
+          pass
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        def my_method(self, arg):
+          pass
+
+  - description: "Convert async method with custom sync name"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.convert(sync_name="sync_method")
+        async def async_method(self, arg):
+            return await self.helper(arg)
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        def sync_method(self, arg):
+            return await self.helper(arg)
+
+  - description: "Convert async method with rm_aio=True"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.convert(rm_aio=True)
+        async def async_method(self):
+            async with self.lock:
+                async for item in self.items:
+                    await self.process(item)
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        def async_method(self):
+            with self.lock:
+                for item in self.items:
+                    self.process(item)
+
+  - description: "Drop method from sync version"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        def keep_method(self):
+            pass
+
+        @CrossSync.drop_method
+        async def async_only_method(self):
+            await self.async_operation()
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        def keep_method(self):
+            pass
+
+  - description: "Convert.pytest"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.pytest
+        async def test_async_function():
+            result = await async_operation()
+            assert result == expected_value
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        def test_async_function():
+            result = async_operation()
+            assert result == expected_value
+
+  - description: "CrossSync.pytest with rm_aio=False"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.pytest(rm_aio=False)
+        async def test_partial_async():
+            async with context_manager():
+                result = await async_function()
+            assert result == expected_value
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        def test_partial_async():
+            async with context_manager():
+                result = await async_function()
+            assert result == expected_value
+
+  - description: "Convert async pytest fixture"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.pytest_fixture
+        @CrossSync.convert(rm_aio=True)
+        async def my_fixture():
+            resource = await setup_resource()
+            yield resource
+            await cleanup_resource(resource)
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        @pytest.fixture()
+        def my_fixture():
+            resource = setup_resource()
+            yield resource
+            cleanup_resource(resource)
+
+  - description: "Convert pytest fixture with custom parameters"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.pytest_fixture(scope="module", autouse=True)
+        def my_fixture():
+            resource = setup_resource()
+            yield resource
+            cleanup_resource(resource)
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        @pytest.fixture(scope="module", autouse=True)
+        def my_fixture():
+            resource = setup_resource()
+            yield resource
+            cleanup_resource(resource)
+
+  - description: "Convert method with multiple stacked decorators"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.convert(sync_name="sync_multi_decorated")
+        @CrossSync.pytest
+        @some_other_decorator
+        async def async_multi_decorated(self, arg):
+            result = await self.async_operation(arg)
+            return result
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        @some_other_decorator
+        def sync_multi_decorated(self, arg):
+            result = self.async_operation(arg)
+            return result
+
+  - description: "Convert method with multiple stacked decorators in class"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.export_sync
+        class MyClass:
+            @CrossSync.convert(sync_name="sync_multi_decorated")
+            @CrossSync.pytest
+            @some_other_decorator
+            async def async_multi_decorated(self, arg):
+                result = await self.async_operation(arg)
+                return result
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        class MyClass:
+
+            @some_other_decorator
+            def sync_multi_decorated(self, arg):
+                result = self.async_operation(arg)
+                return result
+
+  - description: "Convert method with stacked decorators including rm_aio"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.convert(rm_aio=True)
+        @CrossSync.pytest_fixture(scope="function")
+        @another_decorator
+        async def async_fixture_with_context():
+            async with some_async_context():
+                resource = await setup_async_resource()
+                yield resource
+                await cleanup_async_resource(resource)
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        @pytest.fixture(scope="function")
+        @another_decorator
+        def async_fixture_with_context():
+            with some_async_context():
+                resource = setup_async_resource()
+                yield resource
+                cleanup_async_resource(resource)
+
+  - description: "Handle CrossSync.is_async conditional"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        if CrossSync.is_async:
+            import a
+        else:
+            import b
+
+        def my_method(self):
+            if CrossSync.is_async:
+                return "async version"
+            else:
+                return "sync version"
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        import b
+
+        def my_method(self):
+            return "sync version"
+
+  - description: "Replace CrossSync symbols"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        CrossSync.sleep(1)
+        @CrossSync.export_sync
+        class MyClass:
+            event = CrossSync.Event()
+            def my_method(self):
+                return CrossSync.some_function()
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        CrossSync._Sync_Impl.sleep(1)
+        class MyClass:
+            event = CrossSync._Sync_Impl.Event()
+            def my_method(self):
+                return CrossSync._Sync_Impl.some_function()
