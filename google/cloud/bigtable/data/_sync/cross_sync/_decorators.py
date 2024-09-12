@@ -140,12 +140,24 @@ class AstDecorator:
             )
             # convert to standardized representation
             formatted_name = decorator_name.replace("_", "").lower()
-            for subclass in cls.__subclasses__():
+            for subclass in cls.get_subclasses():
                 if subclass.__name__.lower() == formatted_name:
                     return subclass(*got_args, **got_kwargs)
             raise ValueError(f"Unknown decorator encountered: {decorator_name}")
         else:
             raise ValueError("Not a CrossSync decorator")
+
+    @classmethod
+    def get_subclasses(cls) -> list[type[AstDecorator]]:
+        """
+        Get all subclasses of AstDecorator
+
+        Returns:
+            list of all subclasses of AstDecorator
+        """
+        for subclass in cls.__subclasses__():
+            yield from subclass.get_subclasses()
+            yield subclass
 
     @classmethod
     def _convert_ast_to_py(cls, ast_node: ast.expr | None) -> Any:
@@ -178,7 +190,10 @@ class ExportSync(AstDecorator):
         sync_name: use a new name for the sync class
         replace_symbols: a dict of symbols and replacements to use when generating sync class
         docstring_format_vars: a dict of variables to replace in the docstring
-        add_mapping_for_name: when given, will add a new attribute to CrossSync, so the original class and its sync version can be accessed from CrossSync.<name>
+        rm_aio: if True, automatically strip all asyncio keywords from method. If false,
+            only keywords wrapped in CrossSync.rm_aio() calls to be removed.
+        add_mapping_for_name: when given, will add a new attribute to CrossSync,
+            so the original class and its sync version can be accessed from CrossSync.<name>
     """
 
     def __init__(
@@ -187,6 +202,7 @@ class ExportSync(AstDecorator):
         *,
         replace_symbols: dict[str, str] | None = None,
         docstring_format_vars: dict[str, tuple[str, str]] | None = None,
+        rm_aio: bool = False,
         add_mapping_for_name: str | None = None,
     ):
         self.sync_name = sync_name
@@ -198,6 +214,7 @@ class ExportSync(AstDecorator):
         self.sync_docstring_format_vars = {
             k: v[1] for k, v in docstring_format_vars.items()
         }
+        self.rm_aio = rm_aio
         self.add_mapping_for_name = add_mapping_for_name
 
     def async_decorator(self):
@@ -205,6 +222,10 @@ class ExportSync(AstDecorator):
         Use async decorator as a hook to update CrossSync mappings
         """
         from .cross_sync import CrossSync
+
+        if not self.add_mapping_for_name and not self.async_docstring_format_vars:
+            # return None if no changes needed
+            return None
 
         new_mapping = self.add_mapping_for_name
 
@@ -236,6 +257,9 @@ class ExportSync(AstDecorator):
             ]
         else:
             wrapped_node.decorator_list = []
+        # strip async keywords if specified
+        if self.rm_aio:
+            wrapped_node = transformers_globals["AsyncToSync"]().visit(wrapped_node)
         # add mapping decorator if needed
         if self.add_mapping_for_name:
             wrapped_node.decorator_list.append(
@@ -253,9 +277,9 @@ class ExportSync(AstDecorator):
             )
         # replace symbols if specified
         if self.replace_symbols:
-            wrapped_node = transformers_globals["SymbolReplacer"](self.replace_symbols).visit(
-                wrapped_node
-            )
+            wrapped_node = transformers_globals["SymbolReplacer"](
+                self.replace_symbols
+            ).visit(wrapped_node)
         # update docstring if specified
         if self.sync_docstring_format_vars:
             docstring = ast.get_docstring(wrapped_node)
@@ -266,7 +290,7 @@ class ExportSync(AstDecorator):
         return wrapped_node
 
 
-class Convert(AstDecorator):
+class Convert(ExportSync):
     """
     Method decorator to mark async methods to be converted to sync methods
 
@@ -281,22 +305,19 @@ class Convert(AstDecorator):
 
     def __init__(
         self,
-        *,
         sync_name: str | None = None,
+        *,
         replace_symbols: dict[str, str] | None = None,
         docstring_format_vars: dict[str, tuple[str, str]] | None = None,
         rm_aio: bool = False,
     ):
-        self.sync_name = sync_name
-        self.replace_symbols = replace_symbols
-        docstring_format_vars = docstring_format_vars or {}
-        self.async_docstring_format_vars = {
-            k: v[0] for k, v in docstring_format_vars.items()
-        }
-        self.sync_docstring_format_vars = {
-            k: v[1] for k, v in docstring_format_vars.items()
-        }
-        self.rm_aio = rm_aio
+        super().__init__(
+            sync_name=sync_name,
+            replace_symbols=replace_symbols,
+            docstring_format_vars=docstring_format_vars,
+            rm_aio=rm_aio,
+            add_mapping_for_name=None,
+        )
 
     def sync_ast_transform(self, wrapped_node, transformers_globals):
         """
@@ -305,7 +326,7 @@ class Convert(AstDecorator):
         import ast
 
         # replace async function with sync function
-        wrapped_node = ast.copy_location(
+        converted = ast.copy_location(
             ast.FunctionDef(
                 wrapped_node.name,
                 wrapped_node.args,
@@ -317,39 +338,8 @@ class Convert(AstDecorator):
             ),
             wrapped_node,
         )
-        # update name if specified
-        if self.sync_name:
-            wrapped_node.name = self.sync_name
-        # strip async keywords if specified
-        if self.rm_aio:
-            wrapped_node = transformers_globals["AsyncToSync"]().visit(wrapped_node)
-        # update arbitrary symbols if specified
-        if self.replace_symbols:
-            replacer = transformers_globals["SymbolReplacer"]
-            wrapped_node = replacer(self.replace_symbols).visit(wrapped_node)
-        # update docstring if specified
-        if self.sync_docstring_format_vars:
-            docstring = ast.get_docstring(wrapped_node)
-            if docstring:
-                wrapped_node.body[0].value = ast.Constant(
-                    value=docstring.format(**self.sync_docstring_format_vars)
-                )
-        return wrapped_node
-
-    def async_decorator(self):
-        """
-        If docstring_format_vars are provided, update the docstring of the async method
-        """
-
-        if self.async_docstring_format_vars:
-
-            def decorator(f):
-                f.__doc__ = f.__doc__.format(**self.async_docstring_format_vars)
-                return f
-
-            return decorator
-        else:
-            return None
+        # transform based on arguments
+        return super().sync_ast_transform(converted, transformers_globals)
 
 
 class DropMethod(AstDecorator):
@@ -389,6 +379,7 @@ class Pytest(AstDecorator):
         convert async to sync
         """
         import ast
+
         # always convert method to sync
         converted = ast.copy_location(
             ast.FunctionDef(

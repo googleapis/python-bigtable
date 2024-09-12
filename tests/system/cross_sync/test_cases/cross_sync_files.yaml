@@ -185,6 +185,22 @@ tests:
          async def my_method(self):
               pass
 
+  - description: "CrossSync.export_sync with rm_aio"
+    before: |
+        __CROSS_SYNC_OUTPUT__ = "out.path"
+        @CrossSync.export_sync(rm_aio=True)
+        class MyClass:
+            async def my_method(self):
+                async for item in self.items:
+                    await self.process(item)
+    transformers: [CrossSyncFileProcessor]
+    after: |
+        class MyClass:
+
+            def my_method(self):
+              for item in self.items:
+                  self.process(item)
+
   - description: "CrossSync.export_sync with CrossSync calls"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"

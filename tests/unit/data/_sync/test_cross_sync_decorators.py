@@ -51,24 +51,28 @@ class TestExportSyncDecorator:
         assert instance.add_mapping_for_name is None
         assert instance.async_docstring_format_vars == {}
         assert instance.sync_docstring_format_vars == {}
+        assert instance.rm_aio is False
 
     def test_ctor(self):
         sync_name = "sync_name"
         replace_symbols = {"a": "b"}
         docstring_format_vars = {"A": (1, 2)}
         add_mapping_for_name = "test_name"
+        rm_aio = True
 
         instance = self._get_class()(
             sync_name,
             replace_symbols=replace_symbols,
             docstring_format_vars=docstring_format_vars,
             add_mapping_for_name=add_mapping_for_name,
+            rm_aio=rm_aio,
         )
         assert instance.sync_name is sync_name
         assert instance.replace_symbols is replace_symbols
         assert instance.add_mapping_for_name is add_mapping_for_name
         assert instance.async_docstring_format_vars == {"A": 1}
         assert instance.sync_docstring_format_vars == {"A": 2}
+        assert instance.rm_aio is rm_aio
 
     def test_class_decorator(self):
         """
@@ -215,26 +219,6 @@ class TestExportSyncDecorator:
         assert isinstance(result.body[0].value, ast.Constant)
         assert result.body[0].value.value == expected
 
-    def test_sync_ast_transform_call_cross_sync_transforms(self):
-        """
-        Should use transformers_globals to call some extra transforms on class:
-        - RmAioFunctions
-        - SymbolReplacer
-        - CrossSyncMethodDecoratorHandler
-        """
-        decorator = self._get_class()("path.to.SyncClass")
-        mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[])
-
-        transformers_globals = {
-            "RmAioFunctions": mock.Mock(),
-            "SymbolReplacer": mock.Mock(),
-            "CrossSyncMethodDecoratorHandler": mock.Mock(),
-        }
-        decorator.sync_ast_transform(mock_node, transformers_globals)
-        # ensure each transformer was called
-        for transformer in transformers_globals.values():
-            assert transformer.call_count == 1
-
     def test_sync_ast_transform_replace_symbols(self, globals_mock):
         """
         SymbolReplacer should be called with replace_symbols
@@ -253,8 +237,19 @@ class TestExportSyncDecorator:
         assert "a" in found_dict
         for k, v in replace_symbols.items():
             assert found_dict[k] == v
-        # should also add CrossSync replacement
-        assert found_dict["CrossSync"] == "CrossSync._Sync_Impl"
+
+    def test_sync_ast_transform_rmaio_calls_async_to_sync(self):
+        """
+        Should call AsyncToSync if rm_aio is set
+        """
+        decorator = self._get_class()(rm_aio=True)
+        mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[])
+        async_to_sync_mock = mock.Mock()
+        async_to_sync_mock.visit.side_effect = lambda x: x
+        globals_mock = {"AsyncToSync": lambda: async_to_sync_mock}
+
+        decorator.sync_ast_transform(mock_node, globals_mock)
+        assert async_to_sync_mock.visit.call_count == 1
 
 
 class TestConvertDecorator:
@@ -352,7 +347,7 @@ class TestConvertDecorator:
         assert isinstance(result, ast.FunctionDef)
         assert result.name == "new_method_name"
 
-    def test_sync_ast_transform_calls_async_to_sync(self):
+    def test_sync_ast_transform_rmaio_calls_async_to_sync(self):
         """
         Should call AsyncToSync if rm_aio is set
         """
@@ -459,34 +454,43 @@ class TestPytestDecorator:
         """
         Should wrap the class with pytest.mark.asyncio
         """
-        unwrapped_class = mock.Mock
-        wrapped_class = self._get_class().decorator(unwrapped_class)
-        assert wrapped_class == pytest.mark.asyncio(unwrapped_class)
+        unwrapped_fn = mock.Mock
+        wrapped_class = self._get_class().decorator(unwrapped_fn)
+        assert wrapped_class == pytest.mark.asyncio(unwrapped_fn)
 
     def test_sync_ast_transform(self):
         """
-        Should be no-op if rm_aio is not set
-        """
-        decorator = self._get_class()(rm_aio=False)
-
-        input_obj = object()
-        result = decorator.sync_ast_transform(input_obj, {})
-
-        assert result is input_obj
-
-    def test_sync_ast_transform_rm_aio(self):
-        """
-        If rm_aio is set, should call AsyncToSync on the class
+        If rm_aio is True (default), should call AsyncToSync on the class
         """
         decorator = self._get_class()()
-        mock_node = ast.ClassDef(name="AsyncClass", bases=[], keywords=[], body=[])
+        mock_node = ast.AsyncFunctionDef(
+            name="AsyncMethod", args=ast.arguments(), body=[]
+        )
+
+        async_to_sync_mock = mock.Mock()
+        async_to_sync_mock.visit.side_effect = lambda x: x
+        globals_mock = {"AsyncToSync": lambda: async_to_sync_mock}
+
+        transformed = decorator.sync_ast_transform(mock_node, globals_mock)
+        assert async_to_sync_mock.visit.call_count == 1
+        assert isinstance(transformed, ast.FunctionDef)
+
+    def test_sync_ast_transform_no_rm_aio(self):
+        """
+        if rm_aio is False, should remove the async keyword from the method
+        """
+        decorator = self._get_class()(rm_aio=False)
+        mock_node = ast.AsyncFunctionDef(
+            name="AsyncMethod", args=ast.arguments(), body=[]
+        )
 
         async_to_sync_mock = mock.Mock()
         async_to_sync_mock.visit.return_value = mock_node
         globals_mock = {"AsyncToSync": lambda: async_to_sync_mock}
 
-        decorator.sync_ast_transform(mock_node, globals_mock)
-        assert async_to_sync_mock.visit.call_count == 1
+        transformed = decorator.sync_ast_transform(mock_node, globals_mock)
+        assert async_to_sync_mock.visit.call_count == 0
+        assert isinstance(transformed, ast.FunctionDef)
 
 
 class TestPytestFixtureDecorator:
