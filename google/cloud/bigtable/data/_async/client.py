@@ -93,6 +93,7 @@ if CrossSync.is_async:
     )
 
 else:
+    from typing import Iterable  # noqa: F401
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport as PooledTransportType  # type: ignore
     from google.cloud.bigtable.data._sync.mutations_batcher import (  # noqa: F401
         MutationsBatcher,

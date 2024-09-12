@@ -1496,6 +1496,7 @@ class TestReadRowsAsync:
     ):
         from google.cloud.bigtable_v2 import ReadRowsResponse
 
+        @CrossSync.export_sync
         class mock_stream:
             def __init__(self, chunk_list, sleep_time):
                 self.chunk_list = chunk_list
@@ -3166,6 +3167,7 @@ class TestExecuteQueryAsync:
 
     @CrossSync.convert
     def _make_gapic_stream(self, sample_list: list["ExecuteQueryResponse" | Exception]):
+        @CrossSync.export_sync
         class MockStream:
             def __init__(self, sample_list):
                 self.sample_list = sample_list

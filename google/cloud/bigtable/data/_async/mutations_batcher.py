@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Sequence, TYPE_CHECKING
+from typing import Sequence, TYPE_CHECKING, cast
 import atexit
 import warnings
 from collections import deque
@@ -309,7 +309,7 @@ class MutationsBatcherAsync:
         # TODO: return a future to track completion of this entry
         if self._closed.is_set():
             raise RuntimeError("Cannot append to closed MutationsBatcher")
-        if isinstance(mutation_entry, Mutation):  # type: ignore
+        if isinstance(cast(Mutation, mutation_entry), Mutation):
             raise ValueError(
                 f"invalid mutation type: {type(mutation_entry).__name__}. Only RowMutationEntry objects are supported by batcher"
             )
