@@ -251,17 +251,11 @@ class ExportSync(AstDecorator):
                     keywords=[],
                 )
             )
-        # convert class contents
-        wrapped_node = transformers_globals["RmAioFunctions"]().visit(wrapped_node)
-        replace_dict = self.replace_symbols or {}
-        replace_dict.update({"CrossSync": "CrossSync._Sync_Impl"})
-        wrapped_node = transformers_globals["SymbolReplacer"](replace_dict).visit(
-            wrapped_node
-        )
-        # visit CrossSync method decorators
-        wrapped_node = transformers_globals["CrossSyncMethodDecoratorHandler"]().visit(
-            wrapped_node
-        )
+        # replace symbols if specified
+        if self.replace_symbols:
+            wrapped_node = transformers_globals["SymbolReplacer"](self.replace_symbols).visit(
+                wrapped_node
+            )
         # update docstring if specified
         if self.sync_docstring_format_vars:
             docstring = ast.get_docstring(wrapped_node)
@@ -394,9 +388,24 @@ class Pytest(AstDecorator):
         """
         convert async to sync
         """
+        import ast
+        # always convert method to sync
+        converted = ast.copy_location(
+            ast.FunctionDef(
+                wrapped_node.name,
+                wrapped_node.args,
+                wrapped_node.body,
+                wrapped_node.decorator_list
+                if hasattr(wrapped_node, "decorator_list")
+                else [],
+                wrapped_node.returns if hasattr(wrapped_node, "returns") else None,
+            ),
+            wrapped_node,
+        )
+        # convert entire body to sync if rm_aio is set
         if self.rm_aio:
-            wrapped_node = transformers_globals["AsyncToSync"]().visit(wrapped_node)
-        return wrapped_node
+            converted = transformers_globals["AsyncToSync"]().visit(converted)
+        return converted
 
 
 class PytestFixture(AstDecorator):

@@ -18,7 +18,7 @@ import ast
 Entrypoint for initiating an async -> sync conversion using CrossSync
 
 Finds all python files rooted in a given directory, and uses
-transformers.CrossSyncFileHandler to handle any files marked with
+transformers.CrossSyncFileProcessor to handle any files marked with
 __CROSS_SYNC_OUTPUT__
 """
 
@@ -73,13 +73,13 @@ class CrossSyncOutputFile:
 
 def convert_files_in_dir(directory: str) -> set[CrossSyncOutputFile]:
     import glob
-    from transformers import CrossSyncFileHandler
+    from transformers import CrossSyncFileProcessor
 
     # find all python files in the directory
     files = glob.glob(directory + "/**/*.py", recursive=True)
     # keep track of the output files pointed to by the annotated classes
     artifacts: set[CrossSyncOutputFile] = set()
-    file_transformer = CrossSyncFileHandler()
+    file_transformer = CrossSyncFileProcessor()
     # run each file through ast transformation to find all annotated classes
     for file_path in files:
         ast_tree = ast.parse(open(file_path).read())

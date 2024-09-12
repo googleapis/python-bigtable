@@ -27,6 +27,7 @@ with AstDecorators, and call decorator.sync_ast_transform on each one to fully t
 from __future__ import annotations
 
 import ast
+import copy
 
 import sys
 # add cross_sync to path
@@ -197,15 +198,87 @@ class RmAioFunctions(ast.NodeTransformer):
         return self.generic_visit(node)
 
 
-class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
+class CrossSyncFileProcessor(ast.NodeTransformer):
     """
-    Visits each method in a class, and handles any CrossSync decorators found
+    Visits a file, looking for __CROSS_SYNC_OUTPUT__ annotations
+
+    If found, the file is processed with the following steps:
+      - Strip out asyncio keywords within CrossSync.rm_aio calls
+      - transform classes and methods annotated with CrossSync decorators
+        - classes not marked with @CrossSync.export are discarded in sync version
+      - statements behind CrossSync.is_async conditional branches are removed
+      - Replace remaining CrossSync statements with corresponding CrossSync._Sync calls
+      - save changes in an output file at path specified by __CROSS_SYNC_OUTPUT__
     """
+    FILE_ANNOTATION = "__CROSS_SYNC_OUTPUT__"
+
+    def get_output_path(self, node):
+        for i, n in enumerate(node.body):
+            if isinstance(n, ast.Assign):
+                for target in n.targets:
+                    if isinstance(target, ast.Name) and target.id == self.FILE_ANNOTATION:
+                        # return the output path
+                        return n.value.value.replace(".", "/") + ".py"
+
+    def visit_Module(self, node):
+        # look for __CROSS_SYNC_OUTPUT__ Assign statement
+        output_path = self.get_output_path(node)
+        if output_path:
+            # if found, process the file
+            converted = self.generic_visit(node)
+            # strip out CrossSync.rm_aio calls
+            converted = RmAioFunctions().visit(converted)
+            # replace CrossSync statements
+            converted = SymbolReplacer({"CrossSync": "CrossSync._Sync_Impl"}).visit(converted)
+            return converted
+        else:
+            # not cross_sync file. Return None
+            return None
+
+    def visit_ClassDef(self, node):
+        """
+        Called for each class in file. If class has a CrossSync decorator, it will be transformed
+        according to the decorator arguments. Otherwise, class is returned unchanged
+        """
+        for decorator in node.decorator_list:
+            try:
+                handler = AstDecorator.get_for_node(decorator)
+                if isinstance(handler, ExportSync):
+                    # transformation is handled in sync_ast_transform method of the decorator
+                    after_export = handler.sync_ast_transform(node, globals())
+                    return self.generic_visit(after_export)
+            except ValueError:
+                # not cross_sync decorator
+                continue
+        # cross_sync decorator not found. Drop from sync version
+        return None
+
+    def visit_If(self, node):
+        """
+        remove CrossSync.is_async branches from top-level if statements
+        """
+        if isinstance(node.test, ast.Attribute) and isinstance(node.test.value, ast.Name) and node.test.value.id == "CrossSync" and node.test.attr == "is_async":
+            return [self.generic_visit(n) for n in node.orelse]
+        return self.generic_visit(node)
+
+    def visit_Assign(self, node):
+        """
+        strip out __CROSS_SYNC_OUTPUT__ assignments
+        """
+        if isinstance(node.targets[0], ast.Name) and node.targets[0].id == self.FILE_ANNOTATION:
+            return None
+        return self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
+        """
+        Visit any sync methods marked with CrossSync decorators
+        """
         return self.visit_AsyncFunctionDef(node)
 
     def visit_AsyncFunctionDef(self, node):
+        """
+        Visit and transform any async methods marked with CrossSync decorators
+        """
         try:
             if hasattr(node, "decorator_list"):
                 found_list, node.decorator_list = node.decorator_list, []
@@ -221,57 +294,6 @@ class CrossSyncMethodDecoratorHandler(ast.NodeTransformer):
                         # keep unknown decorators
                         node.decorator_list.append(decorator)
                         continue
-            return node
+            return self.generic_visit(node)
         except ValueError as e:
             raise ValueError(f"node {node.name} failed") from e
-
-
-class CrossSyncFileHandler(ast.NodeTransformer):
-    """
-    Visit each file, and process CrossSync classes if found
-    """
-
-    @staticmethod
-    def get_output_path(node):
-        for i, n in enumerate(node.body):
-            if isinstance(n, ast.Assign):
-                for target in n.targets:
-                    if isinstance(target, ast.Name) and target.id == "__CROSS_SYNC_OUTPUT__":
-                        # keep the output path
-                        return n.value.s.replace(".", "/") + ".py"
-
-    def visit_Module(self, node):
-        # look for __CROSS_SYNC_OUTPUT__ Assign statement
-        output_path = self.get_output_path(node)
-        if output_path:
-            # if found, process the file
-            return self.generic_visit(node)
-        else:
-            # not cross_sync file. Return None
-            return None
-
-    def visit_ClassDef(self, node):
-        """
-        Called for each class in file. If class has a CrossSync decorator, it will be transformed
-        according to the decorator arguments. Otherwise, class is returned unchanged
-        """
-        for decorator in node.decorator_list:
-            try:
-                handler = AstDecorator.get_for_node(decorator)
-                if isinstance(handler, ExportSync):
-                    # transformation is handled in sync_ast_transform method of the decorator
-                    return handler.sync_ast_transform(node, globals())
-            except ValueError:
-                # not cross_sync decorator
-                continue
-        # cross_sync decorator not found
-        return node
-
-    def visit_If(self, node):
-        """
-        remove CrossSync.is_async branches from top-level if statements
-        """
-        if isinstance(node.test, ast.Attribute) and isinstance(node.test.value, ast.Name) and node.test.value.id == "CrossSync" and node.test.attr == "is_async":
-            return node.orelse
-        return self.generic_visit(node)
-
