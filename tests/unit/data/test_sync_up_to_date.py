@@ -33,9 +33,7 @@ sync_files = list(convert_files_in_dir(repo_root))
 @pytest.mark.skipif(
     sys.version_info < (3, 9), reason="ast.unparse is only available in 3.9+"
 )
-@pytest.mark.parametrize(
-    "sync_file", sync_files, ids=lambda f: f.output_path
-)
+@pytest.mark.parametrize("sync_file", sync_files, ids=lambda f: f.output_path)
 def test_sync_up_to_date(sync_file):
     """
     Generate a fresh copy of each cross_sync file, and compare hashes with the existing file.
@@ -45,9 +43,7 @@ def test_sync_up_to_date(sync_file):
     path = sync_file.output_path
     new_render = sync_file.render(with_black=True, save_to_disk=False)
     found_render = CrossSyncOutputFile(
-        output_path="",
-        ast_tree=ast.parse(open(path).read()),
-        header=sync_file.header
+        output_path="", ast_tree=ast.parse(open(path).read()), header=sync_file.header
     ).render(with_black=True, save_to_disk=False)
     # compare by content
     diff = unified_diff(found_render.splitlines(), new_render.splitlines(), lineterm="")
@@ -58,23 +54,22 @@ def test_sync_up_to_date(sync_file):
     found_hash = hashlib.md5(found_render.encode()).hexdigest()
     assert new_hash == found_hash, f"md5 mismatch for {path}"
 
-@pytest.mark.parametrize(
-    "sync_file", sync_files, ids=lambda f: f.output_path
-)
+
+@pytest.mark.parametrize("sync_file", sync_files, ids=lambda f: f.output_path)
 def test_verify_headers(sync_file):
     license_regex = r"""
-        \#\ Copyright\ \d{4}\ Google\ LLC\n 
-        \#\n 
-        \#\ Licensed\ under\ the\ Apache\ License,\ Version\ 2\.0\ \(the\ \"License\"\);\n 
-        \#\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License\.\n 
+        \#\ Copyright\ \d{4}\ Google\ LLC\n
+        \#\n
+        \#\ Licensed\ under\ the\ Apache\ License,\ Version\ 2\.0\ \(the\ \"License\"\);\n
+        \#\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License\.\n
         \#\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at\
         \#\n
         \#\s+http:\/\/www\.apache\.org\/licenses\/LICENSE-2\.0\n
-        \#\n 
-        \#\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software\n 
-        \#\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ \"AS\ IS\"\ BASIS,\n 
-        \#\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied\.\n 
-        \#\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and\n 
+        \#\n
+        \#\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software\n
+        \#\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ \"AS\ IS\"\ BASIS,\n
+        \#\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied\.\n
+        \#\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and\n
         \#\ limitations\ under\ the\ License\.
     """
     pattern = re.compile(license_regex, re.VERBOSE)
