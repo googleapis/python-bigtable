@@ -32,7 +32,7 @@ import copy
 import sys
 # add cross_sync to path
 sys.path.append("google/cloud/bigtable/data/_sync/cross_sync")
-from _decorators import AstDecorator, ExportSync
+from _decorators import AstDecorator, ConvertClass
 
 
 class SymbolReplacer(ast.NodeTransformer):

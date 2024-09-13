@@ -60,7 +60,7 @@ import queue
 import threading
 import time
 from ._decorators import (
-    ExportSync,
+    ConvertClass,
     Convert,
     Drop,
     Pytest,
@@ -97,7 +97,7 @@ class CrossSync(metaclass=MappingMeta):
     Generator: TypeAlias = AsyncGenerator
 
     # decorators
-    export_sync = ExportSync.decorator  # decorate classes to convert
+    convert_class = ConvertClass.decorator  # decorate classes to convert
     convert = Convert.decorator  # decorate methods to convert from async to sync
     drop = Drop.decorator  # decorate methods to remove from sync version
     pytest = Pytest.decorator  # decorate test methods to run with pytest-asyncio

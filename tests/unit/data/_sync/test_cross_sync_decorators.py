@@ -18,7 +18,7 @@ import ast
 from unittest import mock
 from google.cloud.bigtable.data._sync.cross_sync.cross_sync import CrossSync
 from google.cloud.bigtable.data._sync.cross_sync._decorators import (
-    ExportSync,
+    ConvertClass,
     Convert,
     Drop,
     Pytest,
@@ -37,9 +37,9 @@ def globals_mock():
     return global_dict
 
 
-class TestExportSyncDecorator:
+class TestConvertClassDecorator:
     def _get_class(self):
-        return ExportSync
+        return ConvertClass
 
     def test_ctor_defaults(self):
         """
@@ -116,7 +116,7 @@ class TestExportSyncDecorator:
         of the class being decorated
         """
 
-        @ExportSync.decorator(sync_name="s", docstring_format_vars=format_vars)
+        @ConvertClass.decorator(sync_name="s", docstring_format_vars=format_vars)
         class Class:
             __doc__ = docstring
 

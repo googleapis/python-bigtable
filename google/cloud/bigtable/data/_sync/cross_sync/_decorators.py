@@ -182,9 +182,9 @@ class AstDecorator:
         raise ValueError(f"Unsupported type {type(ast_node)}")
 
 
-class ExportSync(AstDecorator):
+class ConvertClass(AstDecorator):
     """
-    Class decorator for marking async classes to be converted to sync classes
+    Class decorator for guiding generation of sync classes
 
     Args:
         sync_name: use a new name for the sync class
@@ -290,7 +290,7 @@ class ExportSync(AstDecorator):
         return wrapped_node
 
 
-class Convert(ExportSync):
+class Convert(ConvertClass):
     """
     Method decorator to mark async methods to be converted to sync methods
 

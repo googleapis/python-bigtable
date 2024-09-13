@@ -46,8 +46,8 @@ Additionally, CrossSync provides method implementations that work equivalently i
 
 CrossSync provides a set of annotations to mark up async classes, to guide the generation of sync code.
 
-- `@CrossSync.export_sync`
-  - marks classes for conversion. Unmarked classes will be droppd
+- `@CrossSync.convert_sync`
+  - marks classes for conversion. Unmarked classes will be copied as-is
   - if add_mapping is included, the async and sync classes can be accessed using a shared CrossSync.X alias
 - `@CrossSync.convert`
   - marks async functions for conversion. Unmarked methods will be copied as-is
