@@ -20,7 +20,7 @@ from google.cloud.bigtable.data._sync.cross_sync.cross_sync import CrossSync
 from google.cloud.bigtable.data._sync.cross_sync._decorators import (
     ExportSync,
     Convert,
-    DropMethod,
+    Drop,
     Pytest,
     PytestFixture,
 )
@@ -412,9 +412,9 @@ class TestConvertDecorator:
         assert result.body[0].value.value == expected
 
 
-class TestDropMethodDecorator:
+class TestDropDecorator:
     def _get_class(self):
-        return DropMethod
+        return Drop
 
     def test_decorator_functionality(self):
         """

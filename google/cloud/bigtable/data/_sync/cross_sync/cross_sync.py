@@ -62,7 +62,7 @@ import time
 from ._decorators import (
     ExportSync,
     Convert,
-    DropMethod,
+    Drop,
     Pytest,
     PytestFixture,
 )
@@ -99,7 +99,7 @@ class CrossSync(metaclass=MappingMeta):
     # decorators
     export_sync = ExportSync.decorator  # decorate classes to convert
     convert = Convert.decorator  # decorate methods to convert from async to sync
-    drop_method = DropMethod.decorator  # decorate methods to remove from sync version
+    drop = Drop.decorator  # decorate methods to remove from sync version
     pytest = Pytest.decorator  # decorate test methods to run with pytest-asyncio
     pytest_fixture = (
         PytestFixture.decorator

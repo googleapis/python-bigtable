@@ -87,7 +87,7 @@ tests:
               async with self.base.connection():
                   return await self.base.my_method()
 
-          @CrossSync.drop_method
+          @CrossSync.drop
           async def async_only_method(self):
               await self.async_operation()
 
@@ -120,6 +120,7 @@ tests:
       __CROSS_SYNC_OUTPUT__ = "out.path"
       @CrossSync.export_sync(sync_name="MyClass")
       class MyAsyncClass:
+          @CrossSync.drop
           class NestedAsyncClass:
               async def nested_method(self, base: AsyncBase):
                   pass
@@ -263,13 +264,26 @@ tests:
         def keep_method(self):
             pass
 
-        @CrossSync.drop_method
+        @CrossSync.drop
         async def async_only_method(self):
             await self.async_operation()
     transformers: [CrossSyncFileProcessor]
     after: |
         def keep_method(self):
             pass
+
+  - description: "Drop class from sync version"
+    before: |
+      __CROSS_SYNC_OUTPUT__ = "out.path"
+      @CrossSync.drop
+      class DropMe:
+          pass
+      class Keeper:
+          pass
+    transformers: [CrossSyncFileProcessor]
+    after: |
+      class Keeper:
+          pass
 
   - description: "Convert.pytest"
     before: |

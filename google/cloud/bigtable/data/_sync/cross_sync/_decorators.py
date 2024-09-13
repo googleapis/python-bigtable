@@ -342,14 +342,14 @@ class Convert(ExportSync):
         return super().sync_ast_transform(converted, transformers_globals)
 
 
-class DropMethod(AstDecorator):
+class Drop(AstDecorator):
     """
-    Method decorator to drop async methods from the sync output
+    Method decorator to drop methods or classes from the sync output
     """
 
     def sync_ast_transform(self, wrapped_node, transformers_globals):
         """
-        Drop method from sync output
+        Drop from sync output
         """
         return None
 
