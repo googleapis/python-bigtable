@@ -219,7 +219,7 @@ class StripAsyncConditionalBranches(ast.NodeTransformer):
             return [self.visit(n) for n in kept_branch]
         else:
             # keep the entire if statement
-            return self.visit(node)
+            return self.generic_visit(node)
 
     def _is_async_check(self, node) -> bool:
         """
