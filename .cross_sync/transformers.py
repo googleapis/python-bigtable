@@ -198,6 +198,36 @@ class RmAioFunctions(ast.NodeTransformer):
         return self.generic_visit(node)
 
 
+class StripAsyncConditionalBranches(ast.NodeTransformer):
+    """
+    Visits all if statements in an AST, and removes branches marked with CrossSync.is_async
+    """
+
+    def visit_If(self, node):
+        """
+        remove CrossSync.is_async branches from top-level if statements
+        """
+        kept_branch = None
+        # check for CrossSync.is_async
+        if self._is_async_check(node.test):
+            kept_branch = node.orelse
+        # check for not CrossSync.is_async
+        elif isinstance(node.test, ast.UnaryOp) and isinstance(node.test.op, ast.Not) and self._is_async_check(node.test.operand):
+            kept_branch = node.body
+        if kept_branch is not None:
+            # only keep the statements in the kept branch
+            return [self.visit(n) for n in kept_branch]
+        else:
+            # keep the entire if statement
+            return self.visit(node)
+
+    def _is_async_check(self, node) -> bool:
+        """
+        Check for CrossSync.is_async nodes
+        """
+        return isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "CrossSync" and node.attr == "is_async"
+
+
 class CrossSyncFileProcessor(ast.NodeTransformer):
     """
     Visits a file, looking for __CROSS_SYNC_OUTPUT__ annotations
@@ -228,6 +258,8 @@ class CrossSyncFileProcessor(ast.NodeTransformer):
             converted = self.generic_visit(node)
             # strip out CrossSync.rm_aio calls
             converted = RmAioFunctions().visit(converted)
+            # strip out CrossSync.is_async branches
+            converted = StripAsyncConditionalBranches().visit(converted)
             # replace CrossSync statements
             converted = SymbolReplacer({"CrossSync": "CrossSync._Sync_Impl"}).visit(converted)
             return converted
@@ -250,14 +282,6 @@ class CrossSyncFileProcessor(ast.NodeTransformer):
                 # not cross_sync decorator
                 continue
         return self.generic_visit(node) if node else None
-
-    def visit_If(self, node):
-        """
-        remove CrossSync.is_async branches from top-level if statements
-        """
-        if isinstance(node.test, ast.Attribute) and isinstance(node.test.value, ast.Name) and node.test.value.id == "CrossSync" and node.test.attr == "is_async":
-            return [self.generic_visit(n) for n in node.orelse]
-        return self.generic_visit(node)
 
     def visit_Assign(self, node):
         """
