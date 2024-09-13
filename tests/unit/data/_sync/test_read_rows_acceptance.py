@@ -120,7 +120,6 @@ class TestReadRowsAcceptance:
         def _make_gapic_stream(chunk_list: list[ReadRowsResponse]):
             from google.cloud.bigtable_v2 import ReadRowsResponse
 
-            @CrossSync._Sync_Impl.export_sync
             class mock_stream:
                 def __init__(self, chunk_list):
                     self.chunk_list = chunk_list
