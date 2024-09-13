@@ -14,6 +14,7 @@ from transformers import (  # noqa: F401 E402
     SymbolReplacer,
     AsyncToSync,
     RmAioFunctions,
+    StripAsyncConditionalBranches,
     CrossSyncFileProcessor,
 )
 
