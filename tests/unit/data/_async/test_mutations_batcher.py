@@ -26,7 +26,7 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_mutations_batcher"
 
 
-@CrossSync.export_sync(sync_name="Test_FlowControl")
+@CrossSync.convert_class(sync_name="Test_FlowControl")
 class Test_FlowControl:
     @staticmethod
     @CrossSync.convert
@@ -296,7 +296,7 @@ class Test_FlowControl:
         assert len(count_results) == 1
 
 
-@CrossSync.export_sync(sync_name="TestMutationsBatcher")
+@CrossSync.convert_class(sync_name="TestMutationsBatcher")
 class TestMutationsBatcherAsync:
     @CrossSync.convert
     def _get_target_class(self):

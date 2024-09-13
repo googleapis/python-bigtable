@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync.mutations_batcher"
 
 
-@CrossSync.export_sync(sync_name="_FlowControl", add_mapping_for_name="_FlowControl")
+@CrossSync.convert_class(sync_name="_FlowControl", add_mapping_for_name="_FlowControl")
 class _FlowControlAsync:
     """
     Manages flow control for batched mutations. Mutations are registered against
@@ -176,7 +176,7 @@ class _FlowControlAsync:
             yield mutations[start_idx:end_idx]
 
 
-@CrossSync.export_sync(
+@CrossSync.convert_class(
     sync_name="MutationsBatcher", add_mapping_for_name="MutationsBatcher"
 )
 class MutationsBatcherAsync:

@@ -50,7 +50,7 @@ else:
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_client"
 
 
-@CrossSync.export_sync(
+@CrossSync.convert_class(
     sync_name="TestBigtableDataClient",
     add_mapping_for_name="TestBigtableDataClient",
 )
@@ -270,7 +270,7 @@ class TestBigtableDataClientAsync:
                         assert client.transport._grpc_channel._pool[i] != start_pool[i]
             await client.close()
 
-    @CrossSync.drop_method
+    @CrossSync.drop
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test__start_background_channel_refresh_sync(self):
         # should raise RuntimeError if called in a sync context
@@ -314,7 +314,7 @@ class TestBigtableDataClientAsync:
                 ping_and_warm.assert_any_call(channel)
         await client.close()
 
-    @CrossSync.drop_method
+    @CrossSync.drop
     @CrossSync.pytest
     @pytest.mark.skipif(
         sys.version_info < (3, 8), reason="Task.name requires python3.8 or higher"
@@ -1095,7 +1095,7 @@ class TestBigtableDataClientAsync:
         # actually close the client
         await true_close
 
-    @CrossSync.drop_method
+    @CrossSync.drop
     def test_client_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
 
@@ -1111,7 +1111,7 @@ class TestBigtableDataClientAsync:
         assert client._channel_refresh_tasks == []
 
 
-@CrossSync.export_sync("TestTable", add_mapping_for_name="TestTable")
+@CrossSync.convert_class("TestTable", add_mapping_for_name="TestTable")
 class TestTableAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -1240,7 +1240,7 @@ class TestTableAsync:
             assert "operation_timeout must be greater than 0" in str(e.value)
         await client.close()
 
-    @CrossSync.drop_method
+    @CrossSync.drop
     def test_table_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
         client = mock.Mock()
@@ -1423,7 +1423,7 @@ class TestTableAsync:
                     assert "app_profile_id=" not in goog_metadata
 
 
-@CrossSync.export_sync(
+@CrossSync.convert_class(
     "TestReadRows",
     add_mapping_for_name="TestReadRows",
 )
@@ -1937,7 +1937,7 @@ class TestReadRowsAsync:
                 assert query.filter._to_dict() == expected_filter
 
 
-@CrossSync.export_sync("TestReadRowsSharded")
+@CrossSync.convert_class("TestReadRowsSharded")
 class TestReadRowsShardedAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -2157,7 +2157,7 @@ class TestReadRowsShardedAsync:
                     )
 
 
-@CrossSync.export_sync("TestSampleRowKeys")
+@CrossSync.convert_class("TestSampleRowKeys")
 class TestSampleRowKeysAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -2311,7 +2311,7 @@ class TestSampleRowKeysAsync:
                         await table.sample_row_keys()
 
 
-@CrossSync.export_sync("TestMutateRow")
+@CrossSync.convert_class("TestMutateRow")
 class TestMutateRowAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -2488,7 +2488,7 @@ class TestMutateRowAsync:
                     assert e.value.args[0] == "No mutations provided"
 
 
-@CrossSync.export_sync("TestBulkMutateRows")
+@CrossSync.convert_class("TestBulkMutateRows")
 class TestBulkMutateRowsAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -2871,7 +2871,7 @@ class TestBulkMutateRowsAsync:
                 await table.bulk_mutate_rows(entries, operation_timeout=1000)
 
 
-@CrossSync.export_sync("TestCheckAndMutateRow")
+@CrossSync.convert_class("TestCheckAndMutateRow")
 class TestCheckAndMutateRowAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -3024,7 +3024,7 @@ class TestCheckAndMutateRowAsync:
                     )
 
 
-@CrossSync.export_sync("TestReadModifyWriteRow")
+@CrossSync.convert_class("TestReadModifyWriteRow")
 class TestReadModifyWriteRowAsync:
     @CrossSync.convert
     def _make_client(self, *args, **kwargs):
@@ -3156,7 +3156,7 @@ class TestReadModifyWriteRowAsync:
                         constructor_mock.assert_called_once_with(mock_response.row)
 
 
-@CrossSync.export_sync("TestExecuteQuery")
+@CrossSync.convert_class("TestExecuteQuery")
 class TestExecuteQueryAsync:
     TABLE_NAME = "TABLE_NAME"
     INSTANCE_NAME = "INSTANCE_NAME"
