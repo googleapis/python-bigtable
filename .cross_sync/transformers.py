@@ -32,7 +32,7 @@ import copy
 import sys
 # add cross_sync to path
 sys.path.append("google/cloud/bigtable/data/_sync/cross_sync")
-from _decorators import AstDecorator, ExportSync
+from _decorators import AstDecorator, ConvertClass
 
 
 class SymbolReplacer(ast.NodeTransformer):
@@ -240,18 +240,16 @@ class CrossSyncFileProcessor(ast.NodeTransformer):
         Called for each class in file. If class has a CrossSync decorator, it will be transformed
         according to the decorator arguments. Otherwise, class is returned unchanged
         """
-        for decorator in node.decorator_list:
+        orig_decorators = node.decorator_list
+        for decorator in orig_decorators:
             try:
                 handler = AstDecorator.get_for_node(decorator)
-                if isinstance(handler, ExportSync):
-                    # transformation is handled in sync_ast_transform method of the decorator
-                    after_export = handler.sync_ast_transform(node, globals())
-                    return self.generic_visit(after_export)
+                # transformation is handled in sync_ast_transform method of the decorator
+                node = handler.sync_ast_transform(node, globals())
             except ValueError:
                 # not cross_sync decorator
                 continue
-        # cross_sync decorator not found. Drop from sync version
-        return None
+        return self.generic_visit(node) if node else None
 
     def visit_If(self, node):
         """

@@ -18,9 +18,9 @@ import ast
 from unittest import mock
 from google.cloud.bigtable.data._sync.cross_sync.cross_sync import CrossSync
 from google.cloud.bigtable.data._sync.cross_sync._decorators import (
-    ExportSync,
+    ConvertClass,
     Convert,
-    DropMethod,
+    Drop,
     Pytest,
     PytestFixture,
 )
@@ -37,9 +37,9 @@ def globals_mock():
     return global_dict
 
 
-class TestExportSyncDecorator:
+class TestConvertClassDecorator:
     def _get_class(self):
-        return ExportSync
+        return ConvertClass
 
     def test_ctor_defaults(self):
         """
@@ -116,7 +116,7 @@ class TestExportSyncDecorator:
         of the class being decorated
         """
 
-        @ExportSync.decorator(sync_name="s", docstring_format_vars=format_vars)
+        @ConvertClass.decorator(sync_name="s", docstring_format_vars=format_vars)
         class Class:
             __doc__ = docstring
 
@@ -412,9 +412,9 @@ class TestConvertDecorator:
         assert result.body[0].value.value == expected
 
 
-class TestDropMethodDecorator:
+class TestDropDecorator:
     def _get_class(self):
-        return DropMethod
+        return Drop
 
     def test_decorator_functionality(self):
         """

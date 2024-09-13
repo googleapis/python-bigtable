@@ -9,10 +9,10 @@ tests:
       - name: CrossSyncFileProcessor
     after: null
 
-  - description: "CrossSync.export_sync with default sync_name"
+  - description: "CrossSync.convert_class with default sync_name"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"
-      @CrossSync.export_sync
+      @CrossSync.convert_class
       class MyClass:
           async def my_method(self):
               pass
@@ -25,10 +25,10 @@ tests:
           async def my_method(self):
               pass
 
-  - description: "CrossSync.export_sync with custom sync_name"
+  - description: "CrossSync.convert_class with custom sync_name"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"
-      @CrossSync.export_sync(sync_name="MyClass")
+      @CrossSync.convert_class(sync_name="MyClass")
       class MyAsyncClass:
           async def my_method(self):
               pass
@@ -41,10 +41,10 @@ tests:
           async def my_method(self):
               pass
 
-  - description: "CrossSync.export_sync with replace_symbols"
+  - description: "CrossSync.convert_class with replace_symbols"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"
-      @CrossSync.export_sync(
+      @CrossSync.convert_class(
           sync_name="MyClass",
           replace_symbols={"AsyncBase": "SyncBase", "ParentA": "ParentB"}
       )
@@ -60,10 +60,10 @@ tests:
           def __init__(self, base: SyncBase):
               self.base = base
 
-  - description: "CrossSync.export_sync with docstring formatting"
+  - description: "CrossSync.convert_class with docstring formatting"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"
-      @CrossSync.export_sync(
+      @CrossSync.convert_class(
           sync_name="MyClass",
           docstring_format_vars={"type": ("async", "sync")}
       )
@@ -76,10 +76,10 @@ tests:
       class MyClass:
           """This is a sync class."""
 
-  - description: "CrossSync.export_sync with multiple decorators and methods"
+  - description: "CrossSync.convert_class with multiple decorators and methods"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"
-      @CrossSync.export_sync(sync_name="MyClass")
+      @CrossSync.convert_class(sync_name="MyClass")
       @some_other_decorator
       class MyAsyncClass:
           @CrossSync.convert
@@ -87,7 +87,7 @@ tests:
               async with self.base.connection():
                   return await self.base.my_method()
 
-          @CrossSync.drop_method
+          @CrossSync.drop
           async def async_only_method(self):
               await self.async_operation()
 
@@ -115,11 +115,12 @@ tests:
           def fixture(self):
               pass
 
-  - description: "CrossSync.export_sync with nested classes drop"
+  - description: "CrossSync.convert_class with nested classes drop"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"
-      @CrossSync.export_sync(sync_name="MyClass")
+      @CrossSync.convert_class(sync_name="MyClass")
       class MyAsyncClass:
+          @CrossSync.drop
           class NestedAsyncClass:
               async def nested_method(self, base: AsyncBase):
                   pass
@@ -137,12 +138,12 @@ tests:
               nested = self.NestedAsyncClass()
               nested.nested_method()
 
-  - description: "CrossSync.export_sync with nested classes"
+  - description: "CrossSync.convert_class with nested classes explicit"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"
-      @CrossSync.export_sync(sync_name="MyClass", replace_symbols={"AsyncBase": "SyncBase"})
+      @CrossSync.convert_class(sync_name="MyClass", replace_symbols={"AsyncBase": "SyncBase"})
       class MyAsyncClass:
-          @CrossSync.export_sync
+          @CrossSync.convert_class
           class NestedClass:
               async def nested_method(self, base: AsyncBase):
                   pass
@@ -165,10 +166,38 @@ tests:
               nested = self.NestedAsyncClass()
               nested.nested_method()
 
-  - description: "CrossSync.export_sync with add_mapping"
+  - description: "CrossSync.convert_class with nested classes implicit"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"
-      @CrossSync.export_sync(
+      @CrossSync.convert_class(sync_name="MyClass", replace_symbols={"AsyncBase": "SyncBase"})
+      class MyAsyncClass:
+
+          class NestedClass:
+              async def nested_method(self, base: AsyncBase):
+                  pass
+
+          @CrossSync.convert
+          async def use_nested(self):
+              nested = self.NestedAsyncClass()
+              CrossSync.rm_aio(await nested.nested_method())
+    transformers:
+      - name: CrossSyncFileProcessor
+    after: |
+      class MyClass:
+
+          class NestedClass:
+
+              async def nested_method(self, base: SyncBase):
+                  pass
+
+          def use_nested(self):
+              nested = self.NestedAsyncClass()
+              nested.nested_method()
+
+  - description: "CrossSync.convert_class with add_mapping"
+    before: |
+      __CROSS_SYNC_OUTPUT__ = "out.path"
+      @CrossSync.convert_class(
           sync_name="MyClass",
           add_mapping_for_name="MyClass"
       )
@@ -185,10 +214,10 @@ tests:
          async def my_method(self):
               pass
 
-  - description: "CrossSync.export_sync with rm_aio"
+  - description: "CrossSync.convert_class with rm_aio"
     before: |
         __CROSS_SYNC_OUTPUT__ = "out.path"
-        @CrossSync.export_sync(rm_aio=True)
+        @CrossSync.convert_class(rm_aio=True)
         class MyClass:
             async def my_method(self):
                 async for item in self.items:
@@ -201,10 +230,10 @@ tests:
               for item in self.items:
                   self.process(item)
 
-  - description: "CrossSync.export_sync with CrossSync calls"
+  - description: "CrossSync.convert_class with CrossSync calls"
     before: |
       __CROSS_SYNC_OUTPUT__ = "out.path"
-      @CrossSync.export_sync(sync_name="MyClass")
+      @CrossSync.convert_class(sync_name="MyClass")
       class MyAsyncClass:
           @CrossSync.convert
           async def my_method(self):
@@ -263,13 +292,26 @@ tests:
         def keep_method(self):
             pass
 
-        @CrossSync.drop_method
+        @CrossSync.drop
         async def async_only_method(self):
             await self.async_operation()
     transformers: [CrossSyncFileProcessor]
     after: |
         def keep_method(self):
             pass
+
+  - description: "Drop class from sync version"
+    before: |
+      __CROSS_SYNC_OUTPUT__ = "out.path"
+      @CrossSync.drop
+      class DropMe:
+          pass
+      class Keeper:
+          pass
+    transformers: [CrossSyncFileProcessor]
+    after: |
+      class Keeper:
+          pass
 
   - description: "Convert.pytest"
     before: |
@@ -351,7 +393,7 @@ tests:
   - description: "Convert method with multiple stacked decorators in class"
     before: |
         __CROSS_SYNC_OUTPUT__ = "out.path"
-        @CrossSync.export_sync
+        @CrossSync.convert_class
         class MyClass:
             @CrossSync.convert(sync_name="sync_multi_decorated")
             @CrossSync.pytest
@@ -413,7 +455,7 @@ tests:
     before: |
         __CROSS_SYNC_OUTPUT__ = "out.path"
         CrossSync.sleep(1)
-        @CrossSync.export_sync
+        @CrossSync.convert_class
         class MyClass:
             event = CrossSync.Event()
             def my_method(self):

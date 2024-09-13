@@ -182,9 +182,9 @@ class AstDecorator:
         raise ValueError(f"Unsupported type {type(ast_node)}")
 
 
-class ExportSync(AstDecorator):
+class ConvertClass(AstDecorator):
     """
-    Class decorator for marking async classes to be converted to sync classes
+    Class decorator for guiding generation of sync classes
 
     Args:
         sync_name: use a new name for the sync class
@@ -290,7 +290,7 @@ class ExportSync(AstDecorator):
         return wrapped_node
 
 
-class Convert(ExportSync):
+class Convert(ConvertClass):
     """
     Method decorator to mark async methods to be converted to sync methods
 
@@ -342,14 +342,14 @@ class Convert(ExportSync):
         return super().sync_ast_transform(converted, transformers_globals)
 
 
-class DropMethod(AstDecorator):
+class Drop(AstDecorator):
     """
-    Method decorator to drop async methods from the sync output
+    Method decorator to drop methods or classes from the sync output
     """
 
     def sync_ast_transform(self, wrapped_node, transformers_globals):
         """
-        Drop method from sync output
+        Drop from sync output
         """
         return None
 
