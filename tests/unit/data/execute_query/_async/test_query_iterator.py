@@ -30,7 +30,7 @@ except ImportError:  # pragma: NO COVER
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data.execute_query._sync.test_query_iterator"
 
 
-@CrossSync.export_sync(sync_name="MockIterator")
+@CrossSync.convert_class(sync_name="MockIterator")
 class MockIterator:
     def __init__(self, values, delay=None):
         self._values = values
@@ -52,7 +52,7 @@ class MockIterator:
         return value
 
 
-@CrossSync.export_sync(sync_name="TestQueryIterator")
+@CrossSync.convert_class(sync_name="TestQueryIterator")
 class TestQueryIteratorAsync:
     @staticmethod
     def _target_class():

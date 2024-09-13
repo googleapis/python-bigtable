@@ -33,7 +33,7 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_read_rows_acceptance"
 
 
-@CrossSync.export_sync(
+@CrossSync.convert_class(
     sync_name="TestReadRowsAcceptance",
 )
 class TestReadRowsAcceptanceAsync:

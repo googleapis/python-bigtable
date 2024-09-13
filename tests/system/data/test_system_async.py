@@ -30,7 +30,7 @@ from . import TEST_FAMILY, TEST_FAMILY_2
 __CROSS_SYNC_OUTPUT__ = "tests.system.data.test_system"
 
 
-@CrossSync.export_sync(
+@CrossSync.convert_class(
     sync_name="TempRowBuilder",
     add_mapping_for_name="TempRowBuilder",
 )
@@ -80,7 +80,7 @@ class TempRowBuilderAsync:
             CrossSync.rm_aio(await self.table.client._gapic_client.mutate_rows(request))
 
 
-@CrossSync.export_sync(sync_name="TestSystem")
+@CrossSync.convert_class(sync_name="TestSystem")
 class TestSystemAsync:
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
@@ -102,7 +102,7 @@ class TestSystemAsync:
         ) as table:
             yield table
 
-    @CrossSync.drop_method
+    @CrossSync.drop
     @pytest.fixture(scope="session")
     def event_loop(self):
         loop = asyncio.get_event_loop()

@@ -55,7 +55,7 @@ __CROSS_SYNC_OUTPUT__ = (
 )
 
 
-@CrossSync.export_sync(sync_name="ExecuteQueryIterator")
+@CrossSync.convert_class(sync_name="ExecuteQueryIterator")
 class ExecuteQueryIteratorAsync:
     @CrossSync.convert(
         docstring_format_vars={
