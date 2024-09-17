@@ -22,7 +22,7 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
-__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test__read_rows"
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test__read_rows"
 
 
 @CrossSync.convert_class(

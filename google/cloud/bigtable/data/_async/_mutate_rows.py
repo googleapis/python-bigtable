@@ -44,7 +44,7 @@ if TYPE_CHECKING:
         )
         from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
 
-__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync._mutate_rows"
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._mutate_rows"
 
 
 @CrossSync.convert_class("_MutateRowsOperation")

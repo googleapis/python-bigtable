@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     else:
         from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
 
-__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync._read_rows"
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._read_rows"
 
 
 @CrossSync.convert_class("_ReadRowsOperation")

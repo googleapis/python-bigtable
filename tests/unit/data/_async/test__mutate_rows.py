@@ -27,7 +27,7 @@ try:
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
-__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test__mutate_rows"
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test__mutate_rows"
 
 
 @CrossSync.convert_class("TestMutateRowsOperation")

@@ -106,7 +106,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
 
-__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync.client"
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.client"
 
 
 @CrossSync.convert_class(

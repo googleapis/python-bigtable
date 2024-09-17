@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     else:
         from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
 
-__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync.mutations_batcher"
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.mutations_batcher"
 
 
 @CrossSync.convert_class(sync_name="_FlowControl", add_mapping_for_name="_FlowControl")

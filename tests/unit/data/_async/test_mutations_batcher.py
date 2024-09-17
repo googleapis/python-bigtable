@@ -23,7 +23,7 @@ from google.cloud.bigtable.data import TABLE_DEFAULT
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
-__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_mutations_batcher"
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_mutations_batcher"
 
 
 @CrossSync.convert_class(sync_name="Test_FlowControl")

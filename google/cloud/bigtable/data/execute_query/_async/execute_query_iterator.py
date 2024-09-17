@@ -51,7 +51,7 @@ if TYPE_CHECKING:
         from google.cloud.bigtable.data import BigtableDataClient as DataClientType
 
 __CROSS_SYNC_OUTPUT__ = (
-    "google.cloud.bigtable.data.execute_query._sync.execute_query_iterator"
+    "google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator"
 )
 
 

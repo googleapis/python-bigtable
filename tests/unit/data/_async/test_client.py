@@ -47,7 +47,7 @@ else:
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
 
-__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_client"
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_client"
 
 
 @CrossSync.convert_class(
