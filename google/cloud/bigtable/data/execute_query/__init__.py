@@ -28,7 +28,9 @@ from google.cloud.bigtable.data.execute_query.values import (
     QueryResultRow,
     Struct,
 )
-
+from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+CrossSync.add_mapping("ExecuteQueryIterator", ExecuteQueryIteratorAsync)
+CrossSync._Sync_Impl.add_mapping("ExecuteQueryIterator", ExecuteQueryIterator)
 
 __all__ = [
     "ExecuteQueryValueType",
