@@ -105,7 +105,8 @@ class TocSection:
                     continue
                 # bail when toc indented block is done
                 if not line.startswith(" ") and not line.startswith("\t"):
-                    break
+                    in_toc = False
+                    continue
                 # extract entries
                 self.items.append(self.extract_toc_entry(line.strip()))
 
@@ -179,7 +180,7 @@ if __name__ == "__main__":
     toc_path = "_build/html/docfx_yaml/toc.yml"
     custom_sections = [
         TocSection(
-            dir_name="async_data_client", index_file_name="async_data_usage.rst"
+            dir_name="data_client", index_file_name="usage.rst"
         ),
         TocSection(dir_name="classic_client", index_file_name="usage.rst"),
     ]
@@ -194,7 +195,7 @@ if __name__ == "__main__":
             "bigtable APIs",
             "Changelog",
             "Multiprocessing",
-            "Async Data Client",
+            "Data Client",
             "Classic Client",
         ],
         added_sections=custom_sections,
