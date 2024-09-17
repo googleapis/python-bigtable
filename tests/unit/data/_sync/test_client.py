@@ -703,16 +703,14 @@ class TestBigtableDataClient:
                 assert id(table_1) in client._instance_owners[instance_1_key]
                 with client.get_table("instance_1", "table_1") as table_2:
                     assert table_2._register_instance_future is not None
-                    if not CrossSync._Sync_Impl.is_async:
-                        table_2._register_instance_future.result()
+                    table_2._register_instance_future.result()
                     assert len(client._instance_owners[instance_1_key]) == 2
                     assert len(client._active_instances) == 1
                     assert id(table_1) in client._instance_owners[instance_1_key]
                     assert id(table_2) in client._instance_owners[instance_1_key]
                     with client.get_table("instance_1", "table_3") as table_3:
                         assert table_3._register_instance_future is not None
-                        if not CrossSync._Sync_Impl.is_async:
-                            table_3._register_instance_future.result()
+                        table_3._register_instance_future.result()
                         instance_3_path = client._gapic_client.instance_path(
                             client.project, "instance_1"
                         )
@@ -740,12 +738,10 @@ class TestBigtableDataClient:
         with self._make_client(project="project-id") as client:
             with client.get_table("instance_1", "table_1") as table_1:
                 assert table_1._register_instance_future is not None
-                if not CrossSync._Sync_Impl.is_async:
-                    table_1._register_instance_future.result()
+                table_1._register_instance_future.result()
                 with client.get_table("instance_2", "table_2") as table_2:
                     assert table_2._register_instance_future is not None
-                    if not CrossSync._Sync_Impl.is_async:
-                        table_2._register_instance_future.result()
+                    table_2._register_instance_future.result()
                     instance_1_path = client._gapic_client.instance_path(
                         client.project, "instance_1"
                     )

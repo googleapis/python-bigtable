@@ -662,8 +662,7 @@ class TestMutationsBatcher:
         """if new mutations exist, should add a new flush task to _flush_jobs"""
         with self._make_one() as instance:
             with mock.patch.object(instance, "_flush_internal") as flush_mock:
-                if not CrossSync._Sync_Impl.is_async:
-                    flush_mock.side_effect = lambda x: time.sleep(0.1)
+                flush_mock.side_effect = lambda x: time.sleep(0.1)
                 for i in range(1, 4):
                     mutation = mock.Mock()
                     instance._staged_entries = [mutation]
@@ -708,8 +707,7 @@ class TestMutationsBatcher:
             with mock.patch.object(
                 instance, "_flush_internal", CrossSync._Sync_Impl.Mock()
             ) as flush_mock:
-                if not CrossSync._Sync_Impl.is_async:
-                    flush_mock.side_effect = lambda x: time.sleep(0.1)
+                flush_mock.side_effect = lambda x: time.sleep(0.1)
                 mutations = [self._make_mutation(count=1, size=1)]
                 instance._staged_entries = mutations
                 assert instance._flush_jobs == set()
