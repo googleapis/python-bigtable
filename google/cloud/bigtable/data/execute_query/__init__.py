@@ -15,6 +15,9 @@
 from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
     ExecuteQueryIteratorAsync,
 )
+from google.cloud.bigtable.data.execute_query._sync.execute_query_iterator import (
+    ExecuteQueryIterator,
+)
 from google.cloud.bigtable.data.execute_query.metadata import (
     Metadata,
     ProtoMetadata,
@@ -35,4 +38,5 @@ __all__ = [
     "Metadata",
     "ProtoMetadata",
     "ExecuteQueryIteratorAsync",
+    "ExecuteQueryIterator",
 ]
