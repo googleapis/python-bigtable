@@ -248,7 +248,7 @@ class CrossSyncFileProcessor(ast.NodeTransformer):
                 for target in n.targets:
                     if isinstance(target, ast.Name) and target.id == self.FILE_ANNOTATION:
                         # return the output path
-                        return n.value.value.replace(".", "/") + ".py"
+                        return n.value.s.replace(".", "/") + ".py"
 
     def visit_Module(self, node):
         # look for __CROSS_SYNC_OUTPUT__ Assign statement
