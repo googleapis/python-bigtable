@@ -1,33 +1,33 @@
 Data Client
 ===========
 
-Async Surface
--------------
-
-.. toctree::
-  :maxdepth: 2
-
-  async_client
-  async_table
-  async_mutations_batcher
-  async_execute_query_iterator
-
 Sync Surface
 ------------
 
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 3
 
   client
   table
   mutations_batcher
   execute_query_iterator
 
+Async Surface
+-------------
+
+.. toctree::
+  :maxdepth: 3
+
+  async_client
+  async_table
+  async_mutations_batcher
+  async_execute_query_iterator
+
 Common Classes
 --------------
 
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 3
 
   read_rows_query
   row
