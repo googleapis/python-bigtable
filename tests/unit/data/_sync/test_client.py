@@ -280,8 +280,8 @@ class TestBigtableDataClient:
                 client_mock, channel
             )
             assert len(result) == 0
-            assert gather.call_args.kwargs["return_exceptions"] is True
-            assert gather.call_args.kwargs["sync_executor"] == client_mock._executor
+            assert gather.call_args[1]["return_exceptions"] is True
+            assert gather.call_args[1]["sync_executor"] == client_mock._executor
             client_mock._active_instances = [
                 (mock.Mock(), mock.Mock(), mock.Mock())
             ] * 4
@@ -1158,7 +1158,7 @@ class TestTable:
                     [i for i in maybe_stream]
                 except Exception:
                     pass
-                kwargs = gapic_mock.call_args_list[0].kwargs
+                kwargs = gapic_mock.call_args_list[0][1]
                 metadata = kwargs["metadata"]
                 goog_metadata = None
                 for key, value in metadata:
@@ -2088,7 +2088,7 @@ class TestMutateRow:
                     client._gapic_client, "mutate_row", CrossSync._Sync_Impl.Mock()
                 ) as read_rows:
                     table.mutate_row("rk", mock.Mock())
-                kwargs = read_rows.call_args_list[0].kwargs
+                kwargs = read_rows.call_args_list[0][1]
                 metadata = kwargs["metadata"]
                 goog_metadata = None
                 for key, value in metadata:
