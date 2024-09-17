@@ -354,8 +354,8 @@ class TestBigtableDataClientAsync:
                 client_mock, channel
             )
             assert len(result) == 0
-            assert gather.call_args.kwargs["return_exceptions"] is True
-            assert gather.call_args.kwargs["sync_executor"] == client_mock._executor
+            assert gather.call_args[1]["return_exceptions"] is True
+            assert gather.call_args[1]["sync_executor"] == client_mock._executor
             # test with instances
             client_mock._active_instances = [
                 (mock.Mock(), mock.Mock(), mock.Mock())
@@ -1409,7 +1409,7 @@ class TestTableAsync:
                 except Exception:
                     # we expect an exception from attempting to call the mock
                     pass
-                kwargs = gapic_mock.call_args_list[0].kwargs
+                kwargs = gapic_mock.call_args_list[0][1]
                 metadata = kwargs["metadata"]
                 goog_metadata = None
                 for key, value in metadata:
@@ -2464,7 +2464,7 @@ class TestMutateRowAsync:
                     client._gapic_client, "mutate_row", CrossSync.Mock()
                 ) as read_rows:
                     await table.mutate_row("rk", mock.Mock())
-                kwargs = read_rows.call_args_list[0].kwargs
+                kwargs = read_rows.call_args_list[0][1]
                 metadata = kwargs["metadata"]
                 goog_metadata = None
                 for key, value in metadata:
