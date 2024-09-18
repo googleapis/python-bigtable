@@ -64,7 +64,7 @@ CrossSync provides a set of annotations to mark up async classes, to guide the g
 
 Generation can be initiated using `python .cross_sync/generate.py .` 
 from the root of the project. This will find all classes with the `__CROSS_SYNC_OUTPUT__ = "path/to/output"` 
-annotation, and generate a sync version of classes marked with `@CrossSync.export_sync` at the output path.
+annotation, and generate a sync version of classes marked with `@CrossSync.convert_sync` at the output path.
 
 ## Architecture
 
