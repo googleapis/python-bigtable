@@ -22,7 +22,7 @@ from google.api_core import retry
 from google.api_core.exceptions import ClientError
 from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VALUE
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 from . import TEST_FAMILY, TEST_FAMILY_2
 
 

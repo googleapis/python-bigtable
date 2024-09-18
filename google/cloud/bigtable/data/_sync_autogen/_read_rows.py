@@ -32,7 +32,7 @@ from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._sync.client import Table as TableType

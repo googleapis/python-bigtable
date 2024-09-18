@@ -31,7 +31,7 @@ from google.cloud.bigtable.data import TABLE_DEFAULT
 from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 from google.api_core import grpc_helpers
 
 CrossSync._Sync_Impl.add_mapping("grpc_helpers", grpc_helpers)
@@ -1098,7 +1098,7 @@ class TestTable:
             retry_fn += "_stream"
         retry_fn = f"CrossSync._Sync_Impl.{retry_fn}"
         with mock.patch(
-            f"google.cloud.bigtable.data._sync.cross_sync.{retry_fn}"
+            f"google.cloud.bigtable.data._cross_sync.{retry_fn}"
         ) as retry_fn_mock:
             with self._make_client() as client:
                 table = client.get_table("instance-id", "table-id")

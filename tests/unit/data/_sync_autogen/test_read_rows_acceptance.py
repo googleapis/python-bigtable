@@ -24,7 +24,7 @@ from google.cloud.bigtable_v2 import ReadRowsResponse
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.row import Row
 from ...v2_client.test_row_merger import ReadRowsTest, TestFile
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 
 class TestReadRowsAcceptance:

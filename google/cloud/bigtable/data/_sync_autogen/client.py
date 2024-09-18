@@ -66,7 +66,7 @@ from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 from typing import Iterable
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
     PooledBigtableGrpcTransport as PooledTransportType,

@@ -23,7 +23,7 @@ import google.api_core.exceptions as core_exceptions
 import google.api_core.retry
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data import TABLE_DEFAULT
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 
 class Test_FlowControl:
@@ -467,7 +467,7 @@ class TestMutationsBatcher:
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test__flush_timer(self, num_staged):
         """Timer should continue to call _schedule_flush in a loop"""
-        from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+        from google.cloud.bigtable.data._cross_sync import CrossSync
 
         with mock.patch.object(
             self._get_target_class(), "_schedule_flush"
