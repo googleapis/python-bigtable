@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.client import TableAsync as TableType
     else:
-        from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
+        from google.cloud.bigtable.data._sync_autogen.client import Table as TableType  # type: ignore
 
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._read_rows"
 

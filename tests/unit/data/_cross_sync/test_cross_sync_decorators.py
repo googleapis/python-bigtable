@@ -16,8 +16,8 @@ import pytest
 import pytest_asyncio
 import ast
 from unittest import mock
-from google.cloud.bigtable.data._sync.cross_sync.cross_sync import CrossSync
-from google.cloud.bigtable.data._sync.cross_sync._decorators import (
+from google.cloud.bigtable.data._cross_sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync._decorators import (
     ConvertClass,
     Convert,
     Drop,

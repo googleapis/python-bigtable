@@ -43,7 +43,7 @@ if CrossSync.is_async:
     CrossSync.add_mapping("grpc_helpers", grpc_helpers_async)
 else:
     from google.api_core import grpc_helpers
-    from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
+    from google.cloud.bigtable.data._sync_autogen.client import Table  # noqa: F401
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
 
