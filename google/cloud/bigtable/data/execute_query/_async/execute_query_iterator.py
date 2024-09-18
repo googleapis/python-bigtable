@@ -42,7 +42,7 @@ from google.cloud.bigtable_v2.types.bigtable import (
     ExecuteQueryRequest as ExecuteQueryRequestPB,
 )
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
     if CrossSync.is_async:
