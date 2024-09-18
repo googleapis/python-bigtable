@@ -28,7 +28,7 @@ from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 from google.cloud.bigtable.data.mutations import _EntryWithProto
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
@@ -44,7 +44,7 @@ if TYPE_CHECKING:
         )
         from google.cloud.bigtable.data._sync.client import Table as TableType  # type: ignore
 
-__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync._mutate_rows"
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._mutate_rows"
 
 
 @CrossSync.convert_class("_MutateRowsOperation")

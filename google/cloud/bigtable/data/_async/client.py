@@ -79,7 +79,7 @@ from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
@@ -107,7 +107,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
 
-__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync.client"
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.client"
 
 
 @CrossSync.convert_class(

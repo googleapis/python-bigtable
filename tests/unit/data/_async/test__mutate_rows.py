@@ -19,7 +19,7 @@ from google.rpc import status_pb2
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import Forbidden
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -27,7 +27,7 @@ try:
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
-__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test__mutate_rows"
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test__mutate_rows"
 
 
 @CrossSync.convert_class("TestMutateRowsOperation")

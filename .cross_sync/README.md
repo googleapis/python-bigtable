@@ -64,7 +64,7 @@ CrossSync provides a set of annotations to mark up async classes, to guide the g
 
 Generation can be initiated using `nox -s generate_sync`
 from the root of the project. This will find all classes with the `__CROSS_SYNC_OUTPUT__ = "path/to/output"` 
-annotation, and generate a sync version of classes marked with `@CrossSync.export_sync` at the output path.
+annotation, and generate a sync version of classes marked with `@CrossSync.convert_sync` at the output path.
 
 This will also happen automatically as part of the Owlbot CI step.
 
@@ -73,5 +73,5 @@ There is a unit test at `tests/unit/data/test_sync_up_to_date.py` that verifies 
 ## Architecture
 
 CrossSync is made up of two parts:
-- the runtime shims and annotations live in `/google/cloud/bigtable/_sync/_cross_sync`
+- the runtime shims and annotations live in `/google/cloud/bigtable/_cross_sync`
 - the code generation logic lives in `/.cross_sync/` in the repo root

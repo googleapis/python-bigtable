@@ -34,7 +34,7 @@ from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if CrossSync.is_async:
     from google.api_core import grpc_helpers_async
@@ -47,7 +47,7 @@ else:
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
 
-__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync.test_client"
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_client"
 
 
 @CrossSync.convert_class(
@@ -1343,7 +1343,7 @@ class TestTableAsync:
         else:
             retry_fn = f"CrossSync._Sync_Impl.{retry_fn}"
         with mock.patch(
-            f"google.cloud.bigtable.data._sync.cross_sync.{retry_fn}"
+            f"google.cloud.bigtable.data._cross_sync.{retry_fn}"
         ) as retry_fn_mock:
             async with self._make_client() as client:
                 table = client.get_table("instance-id", "table-id")
