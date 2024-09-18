@@ -58,7 +58,7 @@ class TestReadRowsOperationAsync:
         expected_operation_timeout = 42
         expected_request_timeout = 44
         time_gen_mock = mock.Mock()
-        subpath = "_async" if CrossSync.is_async else "_sync"
+        subpath = "_async" if CrossSync.is_async else "_sync_autogen"
         with mock.patch(
             f"google.cloud.bigtable.data.{subpath}._read_rows._attempt_timeout_generator",
             time_gen_mock,

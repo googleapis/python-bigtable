@@ -18,7 +18,7 @@ import concurrent.futures
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from .._testing import TYPE_INT, split_bytes_into_chunks, proto_rows_bytes
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -27,7 +27,7 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
-__CROSS_SYNC_OUTPUT__ = "tests.unit.data.execute_query._sync.test_query_iterator"
+__CROSS_SYNC_OUTPUT__ = "tests.unit.data.execute_query._sync_autogen.test_query_iterator"
 
 
 @CrossSync.convert_class(sync_name="MockIterator")
