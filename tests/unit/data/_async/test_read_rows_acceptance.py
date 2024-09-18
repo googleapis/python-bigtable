@@ -27,7 +27,7 @@ from google.cloud.bigtable.data.row import Row
 
 from ...v2_client.test_row_merger import ReadRowsTest, TestFile
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_read_rows_acceptance"

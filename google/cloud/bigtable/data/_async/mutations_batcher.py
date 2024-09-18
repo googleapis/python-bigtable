@@ -32,7 +32,7 @@ from google.cloud.bigtable.data.mutations import (
 )
 from google.cloud.bigtable.data.mutations import Mutation
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry

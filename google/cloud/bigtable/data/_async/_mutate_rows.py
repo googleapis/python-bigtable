@@ -28,7 +28,7 @@ from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 from google.cloud.bigtable.data.mutations import _EntryWithProto
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry

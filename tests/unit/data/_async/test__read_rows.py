@@ -13,7 +13,7 @@
 
 import pytest
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 # try/except added for compatibility with python < 3.8
 try:
