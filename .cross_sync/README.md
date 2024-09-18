@@ -69,5 +69,5 @@ annotation, and generate a sync version of classes marked with `@CrossSync.expor
 ## Architecture
 
 CrossSync is made up of two parts:
-- the runtime shims and annotations live in `/google/cloud/bigtable/_sync/_cross_sync`
+- the runtime shims and annotations live in `/google/cloud/bigtable/_cross_sync`
 - the code generation logic lives in `/.cross_sync/` in the repo root

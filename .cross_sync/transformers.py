@@ -31,7 +31,7 @@ import copy
 
 import sys
 # add cross_sync to path
-sys.path.append("google/cloud/bigtable/data/_sync/cross_sync")
+sys.path.append("google/cloud/bigtable/data/_cross_sync")
 from _decorators import AstDecorator, ConvertClass
 
 
