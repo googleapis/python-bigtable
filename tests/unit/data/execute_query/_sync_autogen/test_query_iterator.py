@@ -19,7 +19,7 @@ import pytest
 import concurrent.futures
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from .._testing import TYPE_INT, split_bytes_into_chunks, proto_rows_bytes
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 try:
     from unittest import mock

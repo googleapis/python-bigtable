@@ -35,7 +35,7 @@ from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._sync.client import Table as TableType
+    from google.cloud.bigtable.data._sync_autogen.client import Table as TableType
 
 
 class _ReadRowsOperation:

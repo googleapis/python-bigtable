@@ -71,8 +71,8 @@ from typing import Iterable
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
     PooledBigtableGrpcTransport as PooledTransportType,
 )
-from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
-from google.cloud.bigtable.data.execute_query._sync.execute_query_iterator import (
+from google.cloud.bigtable.data._sync_autogen.mutations_batcher import MutationsBatcher
+from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (
     ExecuteQueryIterator,
 )
 

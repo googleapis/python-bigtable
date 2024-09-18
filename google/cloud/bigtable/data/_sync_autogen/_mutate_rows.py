@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.client import (
         BigtableClient as GapicClientType,
     )
-    from google.cloud.bigtable.data._sync.client import Table as TableType
+    from google.cloud.bigtable.data._sync_autogen.client import Table as TableType
 
 
 class _MutateRowsOperation:

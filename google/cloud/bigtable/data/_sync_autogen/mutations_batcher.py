@@ -33,7 +33,7 @@ from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
-    from google.cloud.bigtable.data._sync.client import Table as TableType
+    from google.cloud.bigtable.data._sync_autogen.client import Table as TableType
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("_FlowControl")
