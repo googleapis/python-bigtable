@@ -237,6 +237,9 @@ class Cluster(proto.Message):
             The number of nodes allocated to this
             cluster. More nodes enable higher throughput and
             more consistent performance.
+        node_scaling_factor (google.cloud.bigtable_admin_v2.types.Cluster.NodeScalingFactor):
+            Immutable. The node scaling factor of this
+            cluster.
         cluster_config (google.cloud.bigtable_admin_v2.types.Cluster.ClusterConfig):
             Configuration for this cluster.
 
@@ -283,6 +286,28 @@ class Cluster(proto.Message):
         CREATING = 2
         RESIZING = 3
         DISABLED = 4
+
+    class NodeScalingFactor(proto.Enum):
+        r"""Possible node scaling factors of the clusters. Node scaling
+        delivers better latency and more throughput by removing node
+        boundaries.
+
+        Values:
+            NODE_SCALING_FACTOR_UNSPECIFIED (0):
+                No node scaling specified. Defaults to
+                NODE_SCALING_FACTOR_1X.
+            NODE_SCALING_FACTOR_1X (1):
+                The cluster is running with a scaling factor
+                of 1.
+            NODE_SCALING_FACTOR_2X (2):
+                The cluster is running with a scaling factor of 2. All node
+                count values must be in increments of 2 with this scaling
+                factor enabled, otherwise an INVALID_ARGUMENT error will be
+                returned.
+        """
+        NODE_SCALING_FACTOR_UNSPECIFIED = 0
+        NODE_SCALING_FACTOR_1X = 1
+        NODE_SCALING_FACTOR_2X = 2
 
     class ClusterAutoscalingConfig(proto.Message):
         r"""Autoscaling config for a cluster.
@@ -363,6 +388,11 @@ class Cluster(proto.Message):
     serve_nodes: int = proto.Field(
         proto.INT32,
         number=4,
+    )
+    node_scaling_factor: NodeScalingFactor = proto.Field(
+        proto.ENUM,
+        number=9,
+        enum=NodeScalingFactor,
     )
     cluster_config: ClusterConfig = proto.Field(
         proto.MESSAGE,
