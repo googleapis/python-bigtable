@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.27.0](https://github.com/googleapis/python-bigtable/compare/v2.26.0...v2.27.0) (2024-09-25)
+
+
+### Features
+
+* Add support for Cloud Bigtable Node Scaling Factor for CBT Clusters ([#1023](https://github.com/googleapis/python-bigtable/issues/1023)) ([0809c6a](https://github.com/googleapis/python-bigtable/commit/0809c6ac274e909103ad160a8bcab95f8bb46f31))
+
 ## [2.26.0](https://github.com/googleapis/python-bigtable/compare/v2.25.0...v2.26.0) (2024-08-12)
 
 
