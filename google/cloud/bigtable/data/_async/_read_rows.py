@@ -156,7 +156,7 @@ class _ReadRowsOperationAsync:
         chunked_stream = self.chunk_stream(gapic_stream)
         return self.merge_rows(chunked_stream)
 
-    @CrossSync.convert
+    @CrossSync.convert(rm_aio=True)
     async def chunk_stream(
         self, stream: CrossSync.Awaitable[CrossSync.Iterable[ReadRowsResponsePB]]
     ) -> CrossSync.Iterable[ReadRowsResponsePB.CellChunk]:
@@ -168,7 +168,7 @@ class _ReadRowsOperationAsync:
         Yields:
             ReadRowsResponsePB.CellChunk: the next chunk in the stream
         """
-        async for resp in CrossSync.rm_aio(await stream):
+        async for resp in await stream:
             # extract proto from proto-plus wrapper
             resp = resp._pb
 
@@ -210,7 +210,8 @@ class _ReadRowsOperationAsync:
 
     @staticmethod
     @CrossSync.convert(
-        replace_symbols={"__aiter__": "__iter__", "__anext__": "__next__"}
+        replace_symbols={"__aiter__": "__iter__", "__anext__": "__next__"},
+        rm_aio=True,
     )
     async def merge_rows(
         chunks: CrossSync.Iterable[ReadRowsResponsePB.CellChunk] | None,
@@ -229,7 +230,7 @@ class _ReadRowsOperationAsync:
         # For each row
         while True:
             try:
-                c = CrossSync.rm_aio(await it.__anext__())
+                c = await it.__anext__()
             except CrossSync.StopIteration:
                 # stream complete
                 return
@@ -278,7 +279,7 @@ class _ReadRowsOperationAsync:
                         buffer = [value]
                         while c.value_size > 0:
                             # throws when premature end
-                            c = CrossSync.rm_aio(await it.__anext__())
+                            c = await it.__anext__()
 
                             t = c.timestamp_micros
                             cl = c.labels
@@ -310,7 +311,7 @@ class _ReadRowsOperationAsync:
                     if c.commit_row:
                         yield Row(row_key, cells)
                         break
-                    c = CrossSync.rm_aio(await it.__anext__())
+                    c = await it.__anext__()
             except _ResetRow as e:
                 c = e.chunk
                 if (
