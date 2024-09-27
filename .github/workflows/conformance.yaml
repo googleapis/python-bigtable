@@ -29,11 +29,12 @@ jobs:
         client-type: [ "async", "sync", "legacy" ]
         include:
           - client-type: "sync"
-            # sync and legacy client do not support concurrent streams
+            # sync client does not support concurrent streams
             test_args: "-skip _Generic_MultiStream"
           - client-type: "legacy"
+            # legacy client is synchtonous and does not support concurrent streams
             # legacy client does not expose mutate_row. Disable those tests
-            test_argss: "-skip _Generic_MultiStream -skip TestMutateRow_"
+            test_args: "-skip _Generic_MultiStream -skip TestMutateRow_"
       fail-fast: false
     name: "${{ matrix.client-type }} client / python ${{ matrix.py-version }} / test tag ${{ matrix.test-version }}"
     steps:
