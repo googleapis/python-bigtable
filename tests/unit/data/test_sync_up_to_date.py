@@ -29,6 +29,21 @@ from generate import convert_files_in_dir, CrossSyncOutputFile  # noqa: E402
 
 sync_files = list(convert_files_in_dir(repo_root))
 
+def test_found_files():
+    """
+    Make sure sync_test is populated with some of the files we expect to see,
+    to ensure that later tests are actually running.
+    """
+    assert len(sync_files) > 0, "No sync files found"
+    assert len(sync_files) > 10, "Unexpectedly few sync files found"
+    # test for key files
+    outputs = [os.path.basename(f.output_path) for f in sync_files]
+    assert "client.py" in outputs
+    assert "execute_query_iterator.py" in outputs
+    assert "test_client.py" in outputs
+    assert "test_system_autogen.py" in outputs, "system tests not found"
+    assert "client_handler_data_sync_autogen.py" in outputs, "test proxy handler not found"
+
 
 @pytest.mark.skipif(
     sys.version_info < (3, 9), reason="ast.unparse is only available in 3.9+"
