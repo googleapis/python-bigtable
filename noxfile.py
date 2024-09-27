@@ -288,9 +288,8 @@ def system_emulated(session):
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-def conformance(session):
-    TEST_REPO_URL = "https://github.com/googleapis/cloud-bigtable-clients-test.git"
-    CLONE_REPO_DIR = "cloud-bigtable-clients-test"
+@nox.parametrize("client_type", ["async"])
+def conformance(session, client_type):
     # install dependencies
     constraints_path = str(
         CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
@@ -298,11 +297,7 @@ def conformance(session):
     install_unittest_dependencies(session, "-c", constraints_path)
     with session.chdir("test_proxy"):
         # download the conformance test suite
-        clone_dir = os.path.join(CURRENT_DIRECTORY, CLONE_REPO_DIR)
-        if not os.path.exists(clone_dir):
-            print("downloading copy of test repo")
-            session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR, external=True)
-        session.run("bash", "-e", "run_tests.sh", external=True)
+        session.run("bash", "-e", "run_tests.sh", external=True, env={"CLIENT_TYPE": client_type})
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
