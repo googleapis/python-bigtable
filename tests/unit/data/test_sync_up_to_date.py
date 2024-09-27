@@ -48,7 +48,7 @@ def test_sync_up_to_date(sync_file):
     # compare by content
     diff = unified_diff(found_render.splitlines(), new_render.splitlines(), lineterm="")
     diff_str = "\n".join(diff)
-    assert not diff_str, f"Found differences:\n{diff_str}"
+    assert not diff_str, f"Found differences. Run `nox -s generate_sync` to update:\n{diff_str}"
     # compare by hash
     new_hash = hashlib.md5(new_render.encode()).hexdigest()
     found_hash = hashlib.md5(found_render.encode()).hexdigest()
