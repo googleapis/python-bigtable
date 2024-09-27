@@ -19,50 +19,8 @@ This module contains the client handler process for proxy_server.py.
 """
 import os
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
-from google.cloud.bigtable.data import BigtableDataClientAsync
-
-
-def error_safe(func):
-    """Catch and pass errors back to the grpc_server_process
-    Also check if client is closed before processing requests"""
-
-    def wrapper(self, *args, **kwargs):
-        try:
-            if self.closed:
-                raise RuntimeError("client is closed")
-            return func(self, *args, **kwargs)
-        except (Exception, NotImplementedError) as e:
-            return encode_exception(e)
-
-    return wrapper
-
-
-def encode_exception(exc):
-    """Encode an exception or chain of exceptions to pass back to grpc_handler"""
-    from google.api_core.exceptions import GoogleAPICallError
-
-    error_msg = f"{type(exc).__name__}: {exc}"
-    result = {"error": error_msg}
-    if exc.__cause__:
-        result["cause"] = encode_exception(exc.__cause__)
-    if hasattr(exc, "exceptions"):
-        result["subexceptions"] = [encode_exception(e) for e in exc.exceptions]
-    if hasattr(exc, "index"):
-        result["index"] = exc.index
-    if isinstance(exc, GoogleAPICallError):
-        if exc.grpc_status_code is not None:
-            result["code"] = exc.grpc_status_code.value[0]
-        elif exc.code is not None:
-            result["code"] = int(exc.code)
-        else:
-            result["code"] = -1
-    elif result.get("cause", {}).get("code", None):
-        result["code"] = result["cause"]["code"]
-    elif result.get("subexceptions", None):
-        for subexc in result["subexceptions"]:
-            if subexc.get("code", None):
-                result["code"] = subexc["code"]
-    return result
+from google.cloud.bigtable.data._cross_sync import CrossSync
+from client_handler_data_async import error_safe
 
 
 class TestProxyClientHandler:
@@ -82,11 +40,11 @@ class TestProxyClientHandler:
         instance_id=None,
         app_profile_id=None,
         per_operation_timeout=None,
-        **kwargs,
+        **kwargs
     ):
         self.closed = False
         os.environ[BIGTABLE_EMULATOR] = data_target
-        self.client = BigtableDataClientAsync(project=project_id)
+        self.client = CrossSync._Sync_Impl.DataClient(project=project_id)
         self.instance_id = instance_id
         self.app_profile_id = app_profile_id
         self.per_operation_timeout = per_operation_timeout
@@ -95,7 +53,7 @@ class TestProxyClientHandler:
         self.closed = True
 
     @error_safe
-    def ReadRows(self, request, **kwargs):
+    async def ReadRows(self, request, **kwargs):
         table_id = request.pop("table_name").split("/")[-1]
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
@@ -107,7 +65,7 @@ class TestProxyClientHandler:
         return serialized_response
 
     @error_safe
-    def ReadRow(self, row_key, **kwargs):
+    async def ReadRow(self, row_key, **kwargs):
         table_id = kwargs.pop("table_name").split("/")[-1]
         app_profile_id = self.app_profile_id or kwargs.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
@@ -121,7 +79,7 @@ class TestProxyClientHandler:
             return "None"
 
     @error_safe
-    def MutateRow(self, request, **kwargs):
+    async def MutateRow(self, request, **kwargs):
         from google.cloud.bigtable.data.mutations import Mutation
 
         table_id = request["table_name"].split("/")[-1]
@@ -136,7 +94,7 @@ class TestProxyClientHandler:
         return "OK"
 
     @error_safe
-    def BulkMutateRows(self, request, **kwargs):
+    async def BulkMutateRows(self, request, **kwargs):
         from google.cloud.bigtable.data.mutations import RowMutationEntry
 
         table_id = request["table_name"].split("/")[-1]
@@ -152,7 +110,7 @@ class TestProxyClientHandler:
         return "OK"
 
     @error_safe
-    def CheckAndMutateRow(self, request, **kwargs):
+    async def CheckAndMutateRow(self, request, **kwargs):
         from google.cloud.bigtable.data.mutations import Mutation, SetCell
 
         table_id = request["table_name"].split("/")[-1]
@@ -181,12 +139,12 @@ class TestProxyClientHandler:
             predicate_filter,
             true_case_mutations=true_mutations,
             false_case_mutations=false_mutations,
-            **kwargs,
+            **kwargs
         )
         return result
 
     @error_safe
-    def ReadModifyWriteRow(self, request, **kwargs):
+    async def ReadModifyWriteRow(self, request, **kwargs):
         from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
         from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 
@@ -216,7 +174,7 @@ class TestProxyClientHandler:
             return "None"
 
     @error_safe
-    def SampleRowKeys(self, request, **kwargs):
+    async def SampleRowKeys(self, request, **kwargs):
         table_id = request["table_name"].split("/")[-1]
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
