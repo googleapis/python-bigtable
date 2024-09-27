@@ -62,9 +62,11 @@ CrossSync provides a set of annotations to mark up async classes, to guide the g
 
 ### Code Generation
 
-Generation can be initiated using `python .cross_sync/generate.py .` 
+Generation can be initiated using `nox -s generate_sync`
 from the root of the project. This will find all classes with the `__CROSS_SYNC_OUTPUT__ = "path/to/output"` 
 annotation, and generate a sync version of classes marked with `@CrossSync.convert_sync` at the output path.
+
+There is a unit test at `tests/unit/data/test_sync_up_to_date.py` that verifies that the generated code is up to date
 
 ## Architecture
 
