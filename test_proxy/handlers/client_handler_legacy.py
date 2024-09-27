@@ -25,7 +25,7 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
+class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandlerAsync):
 
     def __init__(
         self,
