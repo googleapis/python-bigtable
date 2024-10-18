@@ -256,52 +256,30 @@ class BigtableAsyncClient:
         )
 
 
-
-    async def mutate_row(
+    async def ping_and_warm(
         self,
-        request: Optional[Union[bigtable.MutateRowRequest, dict]] = None,
+        request: Optional[Union[bigtable.PingAndWarmRequest, dict]] = None,
         *,
-        table_name: Optional[str] = None,
-        row_key: Optional[bytes] = None,
-        mutations: Optional[MutableSequence[data.Mutation]] = None,
+        name: Optional[str] = None,
         app_profile_id: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
-    ) -> bigtable.MutateRowResponse:
-        r"""Mutates a row atomically. Cells already present in the row are
-        left unchanged unless explicitly changed by ``mutation``.
+    ) -> bigtable.PingAndWarmResponse:
+        r"""Warm up associated instance metadata for this
+        connection. This call is not required but may be useful
+        for connection keep-alive.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_v2.types.MutateRowRequest, dict]]):
-                The request object. Request message for
-                Bigtable.MutateRow.
-            table_name (:class:`str`):
-                Optional. The unique name of the table to which the
-                mutation should be applied.
+            request (Optional[Union[google.cloud.bigtable_v2.types.PingAndWarmRequest, dict]]):
+                The request object. Request message for client connection
+                keep-alive and warming.
+            name (:class:`str`):
+                Required. The unique name of the instance to check
+                permissions for as well as respond. Values are of the
+                form ``projects/<project>/instances/<instance>``.
 
-                Values are of the form
-                ``projects/<project>/instances/<instance>/tables/<table>``.
-
-                This corresponds to the ``table_name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            row_key (:class:`bytes`):
-                Required. The key of the row to which
-                the mutation should be applied.
-
-                This corresponds to the ``row_key`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            mutations (:class:`MutableSequence[google.cloud.bigtable_v2.types.Mutation]`):
-                Required. Changes to be atomically
-                applied to the specified row. Entries
-                are applied in order, meaning that
-                earlier mutations can be masked by later
-                ones. Must contain at least one entry
-                and at most 100000.
-
-                This corresponds to the ``mutations`` field
+                This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             app_profile_id (:class:`str`):
@@ -320,15 +298,16 @@ class BigtableAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            google.cloud.bigtable_v2.types.MutateRowResponse:
+            google.cloud.bigtable_v2.types.PingAndWarmResponse:
                 Response message for
-                Bigtable.MutateRow.
+                Bigtable.PingAndWarm connection
+                keepalive and warming.
 
         """
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any([table_name, row_key, mutations, app_profile_id])
+        has_flattened_params = any([name, app_profile_id])
         if request is not None and has_flattened_params:
             raise ValueError(
                 "If the `request` argument is set, then none of "
@@ -337,24 +316,20 @@ class BigtableAsyncClient:
 
         # - Use the request object if provided (there's no risk of modifying the input as
         #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable.MutateRowRequest):
-            request = bigtable.MutateRowRequest(request)
+        if not isinstance(request, bigtable.PingAndWarmRequest):
+            request = bigtable.PingAndWarmRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
-        if table_name is not None:
-            request.table_name = table_name
-        if row_key is not None:
-            request.row_key = row_key
+        if name is not None:
+            request.name = name
         if app_profile_id is not None:
             request.app_profile_id = app_profile_id
-        if mutations:
-            request.mutations.extend(mutations)
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
         rpc = self._client._transport._wrapped_methods[
-            self._client._transport.mutate_row
+            self._client._transport.ping_and_warm
         ]
 
         # Certain fields should be provided within the metadata header;
@@ -362,9 +337,7 @@ class BigtableAsyncClient:
         metadata = tuple(metadata)
         if all(m[0] != gapic_v1.routing_header.ROUTING_METADATA_KEY for m in metadata):
             metadata += (
-                gapic_v1.routing_header.to_grpc_metadata(
-                    (("table_name", request.table_name),)
-                ),
+                gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
             )
 
         # Validate the universe domain.
@@ -380,6 +353,7 @@ class BigtableAsyncClient:
 
         # Done; return the response.
         return response
+
 
     async def __aenter__(self) -> "BigtableAsyncClient":
         return self
