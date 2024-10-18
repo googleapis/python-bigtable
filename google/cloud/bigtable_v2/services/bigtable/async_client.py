@@ -36,6 +36,7 @@ from google.api_core.client_options import ClientOptions
 from google.api_core import exceptions as core_exceptions
 from google.api_core import gapic_v1
 from google.api_core import retry_async as retries
+from google.api_core.grpc_helpers_async import AwaitableGrpcCall
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.oauth2 import service_account  # type: ignore
 
@@ -255,8 +256,10 @@ class BigtableAsyncClient:
             client_info=client_info,
         )
 
+    async def ping_and_warm(self, *args, **kwargs):
+        return await self.ping_and_warm_w_call(*args, **kwargs)
 
-    async def ping_and_warm(
+    def ping_and_warm_w_call(
         self,
         request: Optional[Union[bigtable.PingAndWarmRequest, dict]] = None,
         *,
@@ -265,7 +268,7 @@ class BigtableAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
-    ) -> bigtable.PingAndWarmResponse:
+    ) -> AwaitableGrpcCall[bigtable.PingAndWarmResponse]:
         r"""Warm up associated instance metadata for this
         connection. This call is not required but may be useful
         for connection keep-alive.
@@ -343,16 +346,13 @@ class BigtableAsyncClient:
         # Validate the universe domain.
         self._client._validate_universe_domain()
 
-        # Send the request.
-        response = await rpc(
+        # Return the call.
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
-
-        # Done; return the response.
-        return response
 
 
     async def __aenter__(self) -> "BigtableAsyncClient":
