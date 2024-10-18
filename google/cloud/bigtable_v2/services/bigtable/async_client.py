@@ -27,6 +27,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    Awaitable,
 )
 
 from google.cloud.bigtable_v2 import gapic_version as package_version
