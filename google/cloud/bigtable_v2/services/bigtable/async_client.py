@@ -381,8 +381,6 @@ class BigtableAsyncClient:
         # Done; return the response.
         return response
 
-        return call
-
     async def __aenter__(self) -> "BigtableAsyncClient":
         return self
 
