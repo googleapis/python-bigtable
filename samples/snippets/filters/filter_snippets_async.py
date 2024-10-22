@@ -365,7 +365,6 @@ async def filter_composing_condition(project_id, instance_id, table_id):
 
 
 # [END bigtable_filters_composing_condition_asyncio]
-# [END_EXCLUDE]
 
 
 def print_row(row):

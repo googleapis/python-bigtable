@@ -13,15 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [START bigtable_filters_print]
-import datetime
-
-from google.cloud import bigtable
-import google.cloud.bigtable.row_filters as row_filters
-
-# Write your code here.
-# [START_EXCLUDE]
-
 
 # [START bigtable_filters_limit_row_sample]
 def filter_limit_row_sample(project_id, instance_id, table_id):
@@ -340,9 +331,8 @@ def filter_composing_condition(project_id, instance_id, table_id):
 
 
 # [END bigtable_filters_composing_condition]
-# [END_EXCLUDE]
 
-
+# [START bigtable_filters_print]
 def print_row(row):
     print("Reading data for {}:".format(row.row_key.decode("utf-8")))
     for cf, cols in sorted(row.cells.items()):
