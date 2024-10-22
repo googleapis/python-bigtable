@@ -11,9 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.cloud._helpers import _datetime_from_microseconds
-from google.cloud.bigtable.data import Row
-
 
 # [START bigtable_filters_limit_row_sample_asyncio]
 async def filter_limit_row_sample(project_id, instance_id, table_id):
@@ -371,7 +368,9 @@ async def filter_composing_condition(project_id, instance_id, table_id):
 # [END_EXCLUDE]
 
 
-def print_row(row: Row):
+def print_row(row):
+    from google.cloud._helpers import _datetime_from_microseconds
+
     print("Reading data for {}:".format(row.row_key.decode("utf-8")))
     last_family = None
     for cell in row.cells:
