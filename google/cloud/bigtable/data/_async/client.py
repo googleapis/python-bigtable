@@ -118,11 +118,11 @@ class BigtableDataClientAsync(ClientWithProject):
         docstring_format_vars={
             "LOOP_MESSAGE": (
                 "Client should be created within an async context (running event loop)",
-                "",
+                None,
             ),
             "RAISE_NO_LOOP": (
                 "RuntimeError: if called outside of an async context (no running event loop)",
-                "",
+                None,
             ),
         }
     )
