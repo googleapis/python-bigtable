@@ -108,6 +108,10 @@ class TestConvertClassDecorator:
             ["{A}", {"A": (1, 2)}, "1"],
             ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "1 3"],
             ["hello {world_var}", {"world_var": ("world", "moon")}, "hello world"],
+            ["{empty}", {"empty": ("", "")}, ""],
+            ["{empty}", {"empty": (None, None)}, ""],
+            ["maybe{empty}", {"empty": (None, "yes")}, "maybe"],
+            ["maybe{empty}", {"empty": (" no", None)}, "maybe no"]
         ],
     )
     def test_class_decorator_docstring_update(self, docstring, format_vars, expected):
@@ -123,8 +127,8 @@ class TestConvertClassDecorator:
         assert Class.__doc__ == expected
         # check internal state
         instance = self._get_class()(sync_name="s", docstring_format_vars=format_vars)
-        async_replacements = {k: v[0] for k, v in format_vars.items()}
-        sync_replacements = {k: v[1] for k, v in format_vars.items()}
+        async_replacements = {k: v[0] or "" for k, v in format_vars.items()}
+        sync_replacements = {k: v[1] or "" for k, v in format_vars.items()}
         assert instance.async_docstring_format_vars == async_replacements
         assert instance.sync_docstring_format_vars == sync_replacements
 
@@ -299,6 +303,10 @@ class TestConvertDecorator:
             ["{A}", {"A": (1, 2)}, "1"],
             ["{A} {B}", {"A": (1, 2), "B": (3, 4)}, "1 3"],
             ["hello {world_var}", {"world_var": ("world", "moon")}, "hello world"],
+            ["{empty}", {"empty": ("", "")}, ""],
+            ["{empty}", {"empty": (None, None)}, ""],
+            ["maybe{empty}", {"empty": (None, "yes")}, "maybe"],
+            ["maybe{empty}", {"empty": (" no", None)}, "maybe no"]
         ],
     )
     def test_async_decorator_docstring_update(self, docstring, format_vars, expected):
@@ -314,8 +322,8 @@ class TestConvertDecorator:
         assert Class.__doc__ == expected
         # check internal state
         instance = self._get_class()(docstring_format_vars=format_vars)
-        async_replacements = {k: v[0] for k, v in format_vars.items()}
-        sync_replacements = {k: v[1] for k, v in format_vars.items()}
+        async_replacements = {k: v[0] or "" for k, v in format_vars.items()}
+        sync_replacements = {k: v[1] or "" for k, v in format_vars.items()}
         assert instance.async_docstring_format_vars == async_replacements
         assert instance.sync_docstring_format_vars == sync_replacements
 
