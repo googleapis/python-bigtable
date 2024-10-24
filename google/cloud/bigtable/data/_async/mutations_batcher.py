@@ -25,7 +25,6 @@ from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
-from google.cloud.bigtable.data._helpers import _MB_SIZE
 
 from google.cloud.bigtable.data.mutations import (
     _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
@@ -43,6 +42,9 @@ if TYPE_CHECKING:
         from google.cloud.bigtable.data._sync_autogen.client import Table as TableType  # type: ignore
 
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.mutations_batcher"
+
+# used to make more readable default values
+_MB_SIZE = 1024 * 1024
 
 
 @CrossSync.convert_class(sync_name="_FlowControl", add_mapping_for_name="_FlowControl")
