@@ -16,23 +16,23 @@ Provides a set of ast.NodeTransformer subclasses that are composed to generate
 async code into sync code.
 
 At a high level:
-- The main entrypoint is CrossSyncClassDecoratorHandler, which is used to find classes
-annotated with @CrossSync.export_sync.
+- The main entrypoint is CrossSyncFileProcessor, which is used to find files in
+  the codebase that include __CROSS_SYNC_OUTPUT__, and transform them
+  according to the `CrossSync` annotations they contains
 - SymbolReplacer is used to swap out CrossSync.X with CrossSync._Sync_Impl.X
-- RmAioFunctions is then called on the class, to strip out asyncio keywords
-marked with CrossSync.rm_aio (using AsyncToSync to handle the actual transformation)
-- Finally, CrossSyncMethodDecoratorHandler is called to find methods annotated
-with AstDecorators, and call decorator.sync_ast_transform on each one to fully transform the class.
+- RmAioFunctions is used to strip out asyncio keywords marked with CrossSync.rm_aio
+  (deferring to AsyncToSync to handle the actual transformation)
+- StripAsyncConditionalBranches finds `if CrossSync.is_async:` conditionals, and strips out
+  the unneeded branch for the sync output
 """
 from __future__ import annotations
 
 import ast
-import copy
 
 import sys
 # add cross_sync to path
 sys.path.append("google/cloud/bigtable/data/_cross_sync")
-from _decorators import AstDecorator, ConvertClass
+from _decorators import AstDecorator
 
 
 class SymbolReplacer(ast.NodeTransformer):
@@ -144,35 +144,43 @@ class AsyncToSync(ast.NodeTransformer):
             generator.is_async = False
         return self.generic_visit(node)
 
+
 class RmAioFunctions(ast.NodeTransformer):
     """
     Visits all calls marked with CrossSync.rm_aio, and removes asyncio keywords
     """
+    RM_AIO_FN_NAME = "rm_aio"
+    RM_AIO_CLASS_NAME = "CrossSync"
 
     def __init__(self):
         self.to_sync = AsyncToSync()
 
+    def _is_rm_aio_call(self, node) -> bool:
+        """
+        Check if a node is a CrossSync.rm_aio call
+        """
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
+            if node.func.attr == self.RM_AIO_FN_NAME and node.func.value.id == self.RM_AIO_CLASS_NAME:
+                return True
+        return False
+
     def visit_Call(self, node):
-        if isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and \
-        node.func.attr == "rm_aio" and "CrossSync" in node.func.value.id:
+        if self._is_rm_aio_call(node):
             return self.visit(self.to_sync.visit(node.args[0]))
         return self.generic_visit(node)
 
     def visit_AsyncWith(self, node):
         """
-        Async with statements are not fully wrapped by calls
+        `async with` statements can contain multiple async context managers.
+
+        If any of them contains a CrossSync.rm_aio statement, convert into standard `with` statement
         """
-        found_rmaio = False
-        for item in node.items:
-            if isinstance(item.context_expr, ast.Call) and isinstance(item.context_expr.func, ast.Attribute) and isinstance(item.context_expr.func.value, ast.Name) and \
-            item.context_expr.func.attr == "rm_aio" and "CrossSync" in item.context_expr.func.value.id:
-                found_rmaio = True
-                break
-        if found_rmaio:
+        if any(self._is_rm_aio_call(item.context_expr) for item in node.items
+               ):
             new_node = ast.copy_location(
                 ast.With(
-                    [self.generic_visit(item) for item in node.items],
-                    [self.generic_visit(stmt) for stmt in node.body],
+                    [self.visit(item) for item in node.items],
+                    [self.visit(stmt) for stmt in node.body],
                 ),
                 node,
             )
@@ -184,8 +192,7 @@ class RmAioFunctions(ast.NodeTransformer):
         Async for statements are not fully wrapped by calls
         """
         it = node.iter
-        if isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute) and isinstance(it.func.value, ast.Name) and \
-        it.func.attr == "rm_aio" and "CrossSync" in it.func.value.id:
+        if self._is_rm_aio_call(it):
             return ast.copy_location(
                 ast.For(
                     self.visit(node.target),
@@ -235,15 +242,14 @@ class CrossSyncFileProcessor(ast.NodeTransformer):
     If found, the file is processed with the following steps:
       - Strip out asyncio keywords within CrossSync.rm_aio calls
       - transform classes and methods annotated with CrossSync decorators
-        - classes not marked with @CrossSync.export are discarded in sync version
       - statements behind CrossSync.is_async conditional branches are removed
-      - Replace remaining CrossSync statements with corresponding CrossSync._Sync calls
+      - Replace remaining CrossSync statements with corresponding CrossSync._Sync_Impl calls
       - save changes in an output file at path specified by __CROSS_SYNC_OUTPUT__
     """
     FILE_ANNOTATION = "__CROSS_SYNC_OUTPUT__"
 
     def get_output_path(self, node):
-        for i, n in enumerate(node.body):
+        for n in node.body:
             if isinstance(n, ast.Assign):
                 for target in n.targets:
                     if isinstance(target, ast.Name) and target.id == self.FILE_ANNOTATION:
