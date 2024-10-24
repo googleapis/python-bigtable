@@ -111,7 +111,7 @@ class TestConvertClassDecorator:
             ["{empty}", {"empty": ("", "")}, ""],
             ["{empty}", {"empty": (None, None)}, ""],
             ["maybe{empty}", {"empty": (None, "yes")}, "maybe"],
-            ["maybe{empty}", {"empty": (" no", None)}, "maybe no"]
+            ["maybe{empty}", {"empty": (" no", None)}, "maybe no"],
         ],
     )
     def test_class_decorator_docstring_update(self, docstring, format_vars, expected):
@@ -306,7 +306,7 @@ class TestConvertDecorator:
             ["{empty}", {"empty": ("", "")}, ""],
             ["{empty}", {"empty": (None, None)}, ""],
             ["maybe{empty}", {"empty": (None, "yes")}, "maybe"],
-            ["maybe{empty}", {"empty": (" no", None)}, "maybe no"]
+            ["maybe{empty}", {"empty": (" no", None)}, "maybe no"],
         ],
     )
     def test_async_decorator_docstring_update(self, docstring, format_vars, expected):
