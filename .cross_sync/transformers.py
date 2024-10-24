@@ -16,23 +16,23 @@ Provides a set of ast.NodeTransformer subclasses that are composed to generate
 async code into sync code.
 
 At a high level:
-- The main entrypoint is CrossSyncClassDecoratorHandler, which is used to find classes
-annotated with @CrossSync.export_sync.
+- The main entrypoint is CrossSyncFileProcessor, which is used to find files in
+  the codebase that include __CROSS_SYNC_OUTPUT__, and transform them
+  according to the `CrossSync` annotations they contains
 - SymbolReplacer is used to swap out CrossSync.X with CrossSync._Sync_Impl.X
-- RmAioFunctions is then called on the class, to strip out asyncio keywords
-marked with CrossSync.rm_aio (using AsyncToSync to handle the actual transformation)
-- Finally, CrossSyncMethodDecoratorHandler is called to find methods annotated
-with AstDecorators, and call decorator.sync_ast_transform on each one to fully transform the class.
+- RmAioFunctions is used to strip out asyncio keywords marked with CrossSync.rm_aio
+  (deferring to AsyncToSync to handle the actual transformation)
+- StripAsyncConditionalBranches finds `if CrossSync.is_async:` conditionals, and strips out
+  the unneeded branch for the sync output
 """
 from __future__ import annotations
 
 import ast
-import copy
 
 import sys
 # add cross_sync to path
 sys.path.append("google/cloud/bigtable/data/_cross_sync")
-from _decorators import AstDecorator, ConvertClass
+from _decorators import AstDecorator
 
 
 class SymbolReplacer(ast.NodeTransformer):
@@ -144,6 +144,7 @@ class AsyncToSync(ast.NodeTransformer):
             generator.is_async = False
         return self.generic_visit(node)
 
+
 class RmAioFunctions(ast.NodeTransformer):
     """
     Visits all calls marked with CrossSync.rm_aio, and removes asyncio keywords
@@ -235,15 +236,14 @@ class CrossSyncFileProcessor(ast.NodeTransformer):
     If found, the file is processed with the following steps:
       - Strip out asyncio keywords within CrossSync.rm_aio calls
       - transform classes and methods annotated with CrossSync decorators
-        - classes not marked with @CrossSync.export are discarded in sync version
       - statements behind CrossSync.is_async conditional branches are removed
-      - Replace remaining CrossSync statements with corresponding CrossSync._Sync calls
+      - Replace remaining CrossSync statements with corresponding CrossSync._Sync_Impl calls
       - save changes in an output file at path specified by __CROSS_SYNC_OUTPUT__
     """
     FILE_ANNOTATION = "__CROSS_SYNC_OUTPUT__"
 
     def get_output_path(self, node):
-        for i, n in enumerate(node.body):
+        for n in node.body:
             if isinstance(n, ast.Assign):
                 for target in n.targets:
                     if isinstance(target, ast.Name) and target.id == self.FILE_ANNOTATION:
