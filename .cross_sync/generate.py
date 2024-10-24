@@ -46,16 +46,16 @@ class CrossSyncOutputFile:
         self.tree = ast_tree
         self.header = header or ""
 
-    def render(self, with_black=True, save_to_disk: bool = False) -> str:
+    def render(self, with_formatter=True, save_to_disk: bool = False) -> str:
         """
         Render the file to a string, and optionally save to disk
 
         Args:
-            with_black: whether to run the output through black before returning
+            with_formatter: whether to run the output through black before returning
             save_to_disk: whether to write the output to the file path
         """
         full_str = self.header + ast.unparse(self.tree)
-        if with_black:
+        if with_formatter:
             import black  # type: ignore
             import autoflake  # type: ignore
 
