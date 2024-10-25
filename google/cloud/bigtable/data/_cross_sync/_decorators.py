@@ -309,7 +309,7 @@ class Convert(ConvertClass):
         *,
         replace_symbols: dict[str, str] | None = None,
         docstring_format_vars: dict[str, tuple[str, str]] | None = None,
-        rm_aio: bool = False,
+        rm_aio: bool = True,
     ):
         super().__init__(
             sync_name=sync_name,
