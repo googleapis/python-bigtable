@@ -220,7 +220,9 @@ class TestSystemAsync:
         """
         row_key = b"bulk_mutate"
         new_value = uuid.uuid4().hex.encode()
-        row_key, mutation = await self._create_row_and_mutation(table, temp_rows, new_value=new_value)
+        row_key, mutation = await self._create_row_and_mutation(
+            table, temp_rows, new_value=new_value
+        )
         await table.mutate_row(row_key, mutation)
 
         # ensure cell is updated

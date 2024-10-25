@@ -27,7 +27,9 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
-__CROSS_SYNC_OUTPUT__ = "tests.unit.data.execute_query._sync_autogen.test_query_iterator"
+__CROSS_SYNC_OUTPUT__ = (
+    "tests.unit.data.execute_query._sync_autogen.test_query_iterator"
+)
 
 
 @CrossSync.convert_class(sync_name="MockIterator")

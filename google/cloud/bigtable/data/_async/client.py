@@ -85,7 +85,8 @@ if CrossSync.is_async:
         PooledBigtableGrpcAsyncIOTransport as PooledTransportType,
     )
     from google.cloud.bigtable.data._async.mutations_batcher import (
-        MutationsBatcherAsync, _MB_SIZE
+        MutationsBatcherAsync,
+        _MB_SIZE,
     )
     from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
         ExecuteQueryIteratorAsync,
@@ -94,7 +95,8 @@ if CrossSync.is_async:
 else:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport as PooledTransportType  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import (  # noqa: F401
-        MutationsBatcher, _MB_SIZE
+        MutationsBatcher,
+        _MB_SIZE,
     )
     from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (  # noqa: F401
         ExecuteQueryIterator,
@@ -1393,9 +1395,7 @@ class TableAsync:
             true_mutations=true_case_list,
             false_mutations=false_case_list,
             predicate_filter=predicate._to_pb() if predicate is not None else None,
-            row_key=row_key.encode("utf-8")
-            if isinstance(row_key, str)
-            else row_key,
+            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
             metadata=metadata,
@@ -1447,9 +1447,7 @@ class TableAsync:
         )
         result = await self.client._gapic_client.read_modify_write_row(
             rules=[rule._to_pb() for rule in rules],
-            row_key=row_key.encode("utf-8")
-            if isinstance(row_key, str)
-            else row_key,
+            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
             metadata=metadata,
