@@ -280,12 +280,10 @@ class BigtableDataClientAsync(ClientWithProject):
         self._is_closed.set()
         for task in self._channel_refresh_tasks:
             task.cancel()
-        CrossSync.rm_aio(await self.transport.close())
+        await self.transport.close()
         if self._executor:
             self._executor.shutdown(wait=False)
-        CrossSync.rm_aio(
-            await CrossSync.wait(self._channel_refresh_tasks, timeout=timeout)
-        )
+        await CrossSync.wait(self._channel_refresh_tasks, timeout=timeout)
         self._channel_refresh_tasks = []
 
     @CrossSync.convert
@@ -325,10 +323,8 @@ class BigtableDataClientAsync(ClientWithProject):
             )
             for (instance_name, table_name, app_profile_id) in instance_list
         ]
-        result_list = CrossSync.rm_aio(
-            await CrossSync.gather_partials(
-                partial_list, return_exceptions=True, sync_executor=self._executor
-            )
+        result_list = await CrossSync.gather_partials(
+            partial_list, return_exceptions=True, sync_executor=self._executor
         )
         return [r or None for r in result_list]
 
@@ -366,31 +362,27 @@ class BigtableDataClientAsync(ClientWithProject):
         if next_sleep > 0:
             # warm the current channel immediately
             channel = self.transport.channels[channel_idx]
-            CrossSync.rm_aio(await self._ping_and_warm_instances(channel))
+            await self._ping_and_warm_instances(channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while not self._is_closed.is_set():
-            CrossSync.rm_aio(
-                await CrossSync.event_wait(
-                    self._is_closed,
-                    next_sleep,
-                    async_break_early=False,  # no need to interrupt sleep. Task will be cancelled on close
-                )
+            await CrossSync.event_wait(
+                self._is_closed,
+                next_sleep,
+                async_break_early=False,  # no need to interrupt sleep. Task will be cancelled on close
             )
             if self._is_closed.is_set():
                 # don't refresh if client is closed
                 break
             # prepare new channel for use
             new_channel = self.transport.grpc_channel._create_channel()
-            CrossSync.rm_aio(await self._ping_and_warm_instances(new_channel))
+            await self._ping_and_warm_instances(new_channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.monotonic()
-            CrossSync.rm_aio(
-                await self.transport.replace_channel(
-                    channel_idx,
-                    grace=grace_period,
-                    new_channel=new_channel,
-                    event=self._is_closed,
-                )
+            await self.transport.replace_channel(
+                channel_idx,
+                grace=grace_period,
+                new_channel=new_channel,
+                event=self._is_closed,
             )
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
@@ -429,9 +421,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 # refresh tasks already running
                 # call ping and warm on all existing channels
                 for channel in self.transport.channels:
-                    CrossSync.rm_aio(
-                        await self._ping_and_warm_instances(channel, instance_key)
-                    )
+                    await self._ping_and_warm_instances(channel, instance_key)
             else:
                 # refresh tasks aren't active. start them as background tasks
                 self._start_background_channel_refresh()
@@ -634,8 +624,8 @@ class BigtableDataClientAsync(ClientWithProject):
 
     @CrossSync.convert(sync_name="__exit__", replace_symbols={"__aexit__": "__exit__"})
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        CrossSync.rm_aio(await self.close())
-        CrossSync.rm_aio(await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb))
+        await self.close()
+        await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
 @CrossSync.convert_class(sync_name="Table", add_mapping_for_name="Table")
@@ -871,15 +861,13 @@ class TableAsync:
                 from any retries that failed
             google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
         """
-        row_generator = CrossSync.rm_aio(
-            await self.read_rows_stream(
-                query,
-                operation_timeout=operation_timeout,
-                attempt_timeout=attempt_timeout,
-                retryable_errors=retryable_errors,
-            )
+        row_generator = await self.read_rows_stream(
+            query,
+            operation_timeout=operation_timeout,
+            attempt_timeout=attempt_timeout,
+            retryable_errors=retryable_errors,
         )
-        return CrossSync.rm_aio([row async for row in row_generator])
+        return [row async for row in row_generator]
 
     @CrossSync.convert
     async def read_row(
@@ -921,13 +909,11 @@ class TableAsync:
         if row_key is None:
             raise ValueError("row_key must be string or bytes")
         query = ReadRowsQuery(row_keys=row_key, row_filter=row_filter, limit=1)
-        results = CrossSync.rm_aio(
-            await self.read_rows(
-                query,
-                operation_timeout=operation_timeout,
-                attempt_timeout=attempt_timeout,
-                retryable_errors=retryable_errors,
-            )
+        results = await self.read_rows(
+            query,
+            operation_timeout=operation_timeout,
+            attempt_timeout=attempt_timeout,
+            retryable_errors=retryable_errors,
         )
         if len(results) == 0:
             return None
@@ -988,31 +974,27 @@ class TableAsync:
 
         @CrossSync.convert
         async def read_rows_with_semaphore(query):
-            async with CrossSync.rm_aio(concurrency_sem):
+            async with concurrency_sem:
                 # calculate new timeout based on time left in overall operation
                 shard_timeout = next(rpc_timeout_generator)
                 if shard_timeout <= 0:
                     raise DeadlineExceeded(
                         "Operation timeout exceeded before starting query"
                     )
-                return CrossSync.rm_aio(
-                    await self.read_rows(
-                        query,
-                        operation_timeout=shard_timeout,
-                        attempt_timeout=min(attempt_timeout, shard_timeout),
-                        retryable_errors=retryable_errors,
-                    )
+                return await self.read_rows(
+                    query,
+                    operation_timeout=shard_timeout,
+                    attempt_timeout=min(attempt_timeout, shard_timeout),
+                    retryable_errors=retryable_errors,
                 )
 
         routine_list = [
             partial(read_rows_with_semaphore, query) for query in sharded_query
         ]
-        batch_result = CrossSync.rm_aio(
-            await CrossSync.gather_partials(
-                routine_list,
-                return_exceptions=True,
-                sync_executor=self.client._executor,
-            )
+        batch_result = await CrossSync.gather_partials(
+            routine_list,
+            return_exceptions=True,
+            sync_executor=self.client._executor,
         )
 
         # collect results and errors
@@ -1081,13 +1063,11 @@ class TableAsync:
         limit_filter = CellsRowLimitFilter(1)
         chain_filter = RowFilterChain(filters=[limit_filter, strip_filter])
         query = ReadRowsQuery(row_keys=row_key, limit=1, row_filter=chain_filter)
-        results = CrossSync.rm_aio(
-            await self.read_rows(
-                query,
-                operation_timeout=operation_timeout,
-                attempt_timeout=attempt_timeout,
-                retryable_errors=retryable_errors,
-            )
+        results = await self.read_rows(
+            query,
+            operation_timeout=operation_timeout,
+            attempt_timeout=attempt_timeout,
+            retryable_errors=retryable_errors,
         )
         return len(results) > 0
 
@@ -1150,27 +1130,21 @@ class TableAsync:
 
         @CrossSync.convert
         async def execute_rpc():
-            results = CrossSync.rm_aio(
-                await self.client._gapic_client.sample_row_keys(
-                    table_name=self.table_name,
-                    app_profile_id=self.app_profile_id,
-                    timeout=next(attempt_timeout_gen),
-                    metadata=metadata,
-                    retry=None,
-                )
+            results = await self.client._gapic_client.sample_row_keys(
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                timeout=next(attempt_timeout_gen),
+                metadata=metadata,
+                retry=None,
             )
-            return CrossSync.rm_aio(
-                [(s.row_key, s.offset_bytes) async for s in results]
-            )
+            return [(s.row_key, s.offset_bytes) async for s in results]
 
-        return CrossSync.rm_aio(
-            await CrossSync.retry_target(
-                execute_rpc,
-                predicate,
-                sleep_generator,
-                operation_timeout,
-                exception_factory=_retry_exception_factory,
-            )
+        return await CrossSync.retry_target(
+            execute_rpc,
+            predicate,
+            sleep_generator,
+            operation_timeout,
+            exception_factory=_retry_exception_factory,
         )
 
     @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
@@ -1296,14 +1270,12 @@ class TableAsync:
             ),
             retry=None,
         )
-        return CrossSync.rm_aio(
-            await CrossSync.retry_target(
-                target,
-                predicate,
-                sleep_generator,
-                operation_timeout,
-                exception_factory=_retry_exception_factory,
-            )
+        return await CrossSync.retry_target(
+            target,
+            predicate,
+            sleep_generator,
+            operation_timeout,
+            exception_factory=_retry_exception_factory,
         )
 
     @CrossSync.convert
@@ -1360,7 +1332,7 @@ class TableAsync:
             attempt_timeout,
             retryable_exceptions=retryable_excs,
         )
-        CrossSync.rm_aio(await operation.start())
+        await operation.start()
 
     @CrossSync.convert
     async def check_and_mutate_row(
@@ -1418,20 +1390,18 @@ class TableAsync:
         metadata = _make_metadata(
             self.table_name, self.app_profile_id, instance_name=None
         )
-        result = CrossSync.rm_aio(
-            await self.client._gapic_client.check_and_mutate_row(
-                true_mutations=true_case_list,
-                false_mutations=false_case_list,
-                predicate_filter=predicate._to_pb() if predicate is not None else None,
-                row_key=row_key.encode("utf-8")
-                if isinstance(row_key, str)
-                else row_key,
-                table_name=self.table_name,
-                app_profile_id=self.app_profile_id,
-                metadata=metadata,
-                timeout=operation_timeout,
-                retry=None,
-            )
+        result = await self.client._gapic_client.check_and_mutate_row(
+            true_mutations=true_case_list,
+            false_mutations=false_case_list,
+            predicate_filter=predicate._to_pb() if predicate is not None else None,
+            row_key=row_key.encode("utf-8")
+            if isinstance(row_key, str)
+            else row_key,
+            table_name=self.table_name,
+            app_profile_id=self.app_profile_id,
+            metadata=metadata,
+            timeout=operation_timeout,
+            retry=None,
         )
         return result.predicate_matched
 
@@ -1476,18 +1446,16 @@ class TableAsync:
         metadata = _make_metadata(
             self.table_name, self.app_profile_id, instance_name=None
         )
-        result = CrossSync.rm_aio(
-            await self.client._gapic_client.read_modify_write_row(
-                rules=[rule._to_pb() for rule in rules],
-                row_key=row_key.encode("utf-8")
-                if isinstance(row_key, str)
-                else row_key,
-                table_name=self.table_name,
-                app_profile_id=self.app_profile_id,
-                metadata=metadata,
-                timeout=operation_timeout,
-                retry=None,
-            )
+        result = await self.client._gapic_client.read_modify_write_row(
+            rules=[rule._to_pb() for rule in rules],
+            row_key=row_key.encode("utf-8")
+            if isinstance(row_key, str)
+            else row_key,
+            table_name=self.table_name,
+            app_profile_id=self.app_profile_id,
+            metadata=metadata,
+            timeout=operation_timeout,
+            retry=None,
         )
         # construct Row from result
         return Row._from_pb(result.row)
@@ -1499,9 +1467,7 @@ class TableAsync:
         """
         if self._register_instance_future:
             self._register_instance_future.cancel()
-        CrossSync.rm_aio(
-            await self.client._remove_instance_registration(self.instance_id, self)
-        )
+        await self.client._remove_instance_registration(self.instance_id, self)
 
     @CrossSync.convert(sync_name="__enter__")
     async def __aenter__(self):
@@ -1512,7 +1478,7 @@ class TableAsync:
         grpc channels will be warmed for the specified instance
         """
         if self._register_instance_future:
-            CrossSync.rm_aio(await self._register_instance_future)
+            await self._register_instance_future
         return self
 
     @CrossSync.convert(sync_name="__exit__")
@@ -1523,4 +1489,4 @@ class TableAsync:
         Unregister this instance with the client, so that
         grpc channels will no longer be warmed
         """
-        CrossSync.rm_aio(await self.close())
+        await self.close()

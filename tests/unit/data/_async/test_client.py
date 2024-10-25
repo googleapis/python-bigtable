@@ -1511,7 +1511,7 @@ class TestReadRowsAsync:
                 self.idx += 1
                 if len(self.chunk_list) > self.idx:
                     if sleep_time:
-                        CrossSync.rm_aio(await CrossSync.sleep(self.sleep_time))
+                        await CrossSync.sleep(self.sleep_time)
                     chunk = self.chunk_list[self.idx]
                     if isinstance(chunk, Exception):
                         raise chunk
@@ -1526,7 +1526,7 @@ class TestReadRowsAsync:
 
     @CrossSync.convert
     async def execute_fn(self, table, *args, **kwargs):
-        return CrossSync.rm_aio(await table.read_rows(*args, **kwargs))
+        return await table.read_rows(*args, **kwargs)
 
     @CrossSync.pytest
     async def test_read_rows(self):

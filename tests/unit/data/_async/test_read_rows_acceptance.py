@@ -91,7 +91,7 @@ class TestReadRowsAcceptanceAsync:
         )
         merger = self._get_operation_class().merge_rows(chunker)
         results = []
-        async for row in CrossSync.rm_aio(merger):
+        async for row in merger:
             results.append(row)
         return results
 
@@ -113,7 +113,7 @@ class TestReadRowsAcceptanceAsync:
                 instance, self._coro_wrapper(_scenerio_stream())
             )
             merger = self._get_operation_class().merge_rows(chunker)
-            async for row in CrossSync.rm_aio(merger):
+            async for row in merger:
                 for cell in row:
                     cell_result = ReadRowsTest.Result(
                         row_key=cell.row_key,

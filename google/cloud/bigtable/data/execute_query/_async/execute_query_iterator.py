@@ -159,13 +159,11 @@ class ExecuteQueryIteratorAsync:
                 "resume_token": resume_token,
             }
         )
-        return CrossSync.rm_aio(
-            await self._client._gapic_client.execute_query(
-                request,
-                timeout=next(self._attempt_timeout_gen),
-                metadata=self._req_metadata,
-                retry=None,
-            )
+        return await self._client._gapic_client.execute_query(
+            request,
+            timeout=next(self._attempt_timeout_gen),
+            metadata=self._req_metadata,
+            retry=None,
         )
 
     @CrossSync.convert(replace_symbols={"__anext__": "__next__"})
@@ -175,7 +173,7 @@ class ExecuteQueryIteratorAsync:
         is retrieved as part of this call.
         """
         if self._byte_cursor.metadata is None:
-            metadata_msg = CrossSync.rm_aio(await self._stream.__anext__())
+            metadata_msg = await self._stream.__anext__()
             self._byte_cursor.consume_metadata(metadata_msg)
 
     @CrossSync.convert
@@ -184,9 +182,9 @@ class ExecuteQueryIteratorAsync:
         Generator wrapping the response stream which parses the stream results
         and returns full `QueryResultRow`s.
         """
-        CrossSync.rm_aio(await self._fetch_metadata())
+        await self._fetch_metadata()
 
-        async for response in CrossSync.rm_aio(self._stream):
+        async for response in self._stream:
             try:
                 bytes_to_parse = self._byte_cursor.consume(response)
                 if bytes_to_parse is None:
@@ -203,13 +201,13 @@ class ExecuteQueryIteratorAsync:
 
             for result in results:
                 yield result
-        CrossSync.rm_aio(await self.close())
+        await self.close()
 
     @CrossSync.convert(sync_name="__next__", replace_symbols={"__anext__": "__next__"})
     async def __anext__(self) -> QueryResultRow:
         if self._is_closed:
             raise CrossSync.StopIteration
-        return CrossSync.rm_aio(await self._result_generator.__anext__())
+        return await self._result_generator.__anext__()
 
     @CrossSync.convert(sync_name="__iter__")
     def __aiter__(self):
@@ -226,7 +224,7 @@ class ExecuteQueryIteratorAsync:
         # Metadata should be present in the first response in a stream.
         if self._byte_cursor.metadata is None:
             try:
-                CrossSync.rm_aio(await self._fetch_metadata())
+                await self._fetch_metadata()
             except CrossSync.StopIteration:
                 return None
         return self._byte_cursor.metadata
@@ -241,6 +239,4 @@ class ExecuteQueryIteratorAsync:
         self._is_closed = True
         if self._register_instance_task is not None:
             self._register_instance_task.cancel()
-        CrossSync.rm_aio(
-            await self._client._remove_instance_registration(self._instance_id, self)
-        )
+        await self._client._remove_instance_registration(self._instance_id, self)

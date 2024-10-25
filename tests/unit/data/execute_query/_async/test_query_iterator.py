@@ -46,7 +46,7 @@ class MockIterator:
         if self.idx >= len(self._values):
             raise CrossSync.StopIteration
         if self._delay is not None:
-            CrossSync.rm_aio(await CrossSync.sleep(self._delay))
+            await CrossSync.sleep(self._delay)
         value = self._values[self.idx]
         self.idx += 1
         return value
