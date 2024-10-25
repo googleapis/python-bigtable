@@ -70,7 +70,6 @@ from google.cloud.bigtable.data._helpers import _get_error_type
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import _MB_SIZE
 from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
 
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
@@ -86,7 +85,7 @@ if CrossSync.is_async:
         PooledBigtableGrpcAsyncIOTransport as PooledTransportType,
     )
     from google.cloud.bigtable.data._async.mutations_batcher import (
-        MutationsBatcherAsync,
+        MutationsBatcherAsync, _MB_SIZE
     )
     from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
         ExecuteQueryIteratorAsync,
@@ -95,7 +94,7 @@ if CrossSync.is_async:
 else:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport as PooledTransportType  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import (  # noqa: F401
-        MutationsBatcher,
+        MutationsBatcher, _MB_SIZE
     )
     from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (  # noqa: F401
         ExecuteQueryIterator,

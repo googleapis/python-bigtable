@@ -61,7 +61,7 @@ from google.cloud.bigtable.data.execute_query._async.execute_query_iterator impo
     ExecuteQueryIteratorAsync,
 )
 
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
 CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
 CrossSync.add_mapping("PooledChannel", AsyncPooledChannel)
