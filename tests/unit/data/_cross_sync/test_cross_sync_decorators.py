@@ -266,13 +266,13 @@ class TestConvertDecorator:
         assert instance.replace_symbols is None
         assert instance.async_docstring_format_vars == {}
         assert instance.sync_docstring_format_vars == {}
-        assert instance.rm_aio is False
+        assert instance.rm_aio is True
 
     def test_ctor(self):
         sync_name = "sync_name"
         replace_symbols = {"a": "b"}
         docstring_format_vars = {"A": (1, 2)}
-        rm_aio = True
+        rm_aio = False
 
         instance = self._get_class()(
             sync_name=sync_name,
@@ -331,7 +331,7 @@ class TestConvertDecorator:
         """
         Should convert `async def` methods to `def` methods
         """
-        decorator = self._get_class()()
+        decorator = self._get_class()(rm_aio=False)
         mock_node = ast.AsyncFunctionDef(
             name="test_method", args=ast.arguments(), body=[]
         )
@@ -345,7 +345,7 @@ class TestConvertDecorator:
         """
         Should update the name of the method if sync_name is set
         """
-        decorator = self._get_class()(sync_name="new_method_name")
+        decorator = self._get_class()(sync_name="new_method_name", rm_aio=False)
         mock_node = ast.AsyncFunctionDef(
             name="old_method_name", args=ast.arguments(), body=[]
         )
@@ -375,7 +375,7 @@ class TestConvertDecorator:
         Should call SymbolReplacer with replace_symbols if replace_symbols is set
         """
         replace_symbols = {"old_symbol": "new_symbol"}
-        decorator = self._get_class()(replace_symbols=replace_symbols)
+        decorator = self._get_class()(replace_symbols=replace_symbols, rm_aio=False)
         mock_node = ast.AsyncFunctionDef(
             name="test_method", args=ast.arguments(), body=[]
         )
@@ -405,7 +405,7 @@ class TestConvertDecorator:
         """
         If docstring_format_vars is set, should format the docstring of the new method
         """
-        decorator = self._get_class()(docstring_format_vars=format_vars)
+        decorator = self._get_class()(docstring_format_vars=format_vars, rm_aio=False)
         mock_node = ast.AsyncFunctionDef(
             name="test_method",
             args=ast.arguments(),
