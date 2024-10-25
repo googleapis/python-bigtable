@@ -46,7 +46,7 @@ class CrossSyncOutputFile:
         self.tree = ast_tree
         self.header = header or ""
 
-    def render(self, with_formatter=True, save_to_disk: bool = False) -> str:
+    def render(self, with_formatter=True, save_to_disk: bool = True) -> str:
         """
         Render the file to a string, and optionally save to disk
 
