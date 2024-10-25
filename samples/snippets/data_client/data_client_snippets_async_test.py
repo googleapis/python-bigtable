@@ -31,7 +31,7 @@ def table_id():
 
     client = bigtable.Client(project=PROJECT, admin=True)
     instance = client.instance(BIGTABLE_INSTANCE)
-    table_id = TABLE_ID_STATIC or f"data-client-{str(uuid.uuid4())[:16]}"
+    table_id = TABLE_ID_STATIC or "data-client"
 
     admin_table = instance.table(table_id)
     if not admin_table.exists():

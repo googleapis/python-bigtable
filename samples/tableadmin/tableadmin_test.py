@@ -31,36 +31,38 @@ retry_429_503 = RetryErrors(exceptions.TooManyRequests, exceptions.ServiceUnavai
 
 
 def test_run_table_operations(capsys):
-    table_id = TABLE_ID_FORMAT.format(uuid.uuid4().hex[:8])
+    try:
+        table_id = TABLE_ID_FORMAT.format(uuid.uuid4().hex[:8])
 
-    retry_429_503(run_table_operations)(PROJECT, BIGTABLE_INSTANCE, table_id)
-    out, _ = capsys.readouterr()
+        retry_429_503(run_table_operations)(PROJECT, BIGTABLE_INSTANCE, table_id)
+        out, _ = capsys.readouterr()
 
-    assert "Creating the " + table_id + " table." in out
-    assert "Listing tables in current project." in out
-    assert "Creating column family cf1 with with MaxAge GC Rule" in out
-    assert "Created column family cf1 with MaxAge GC Rule." in out
-    assert "Created column family cf2 with Max Versions GC Rule." in out
-    assert "Created column family cf3 with Union GC rule" in out
-    assert "Created column family cf4 with Intersection GC rule." in out
-    assert "Created column family cf5 with a Nested GC rule." in out
-    assert "Printing Column Family and GC Rule for all column families." in out
-    assert "Updating column family cf1 GC rule..." in out
-    assert "Updated column family cf1 GC rule" in out
-    assert "Print column family cf1 GC rule after update..." in out
-    assert "Column Family: cf1" in out
-    assert "max_num_versions: 1" in out
-    assert "Delete a column family cf2..." in out
-    assert "Column family cf2 deleted successfully." in out
-
-    retry_429_503(delete_table)(PROJECT, BIGTABLE_INSTANCE, table_id)
+        assert "Creating the " + table_id + " table." in out
+        assert "Listing tables in current project." in out
+        assert "Creating column family cf1 with with MaxAge GC Rule" in out
+        assert "Created column family cf1 with MaxAge GC Rule." in out
+        assert "Created column family cf2 with Max Versions GC Rule." in out
+        assert "Created column family cf3 with Union GC rule" in out
+        assert "Created column family cf4 with Intersection GC rule." in out
+        assert "Created column family cf5 with a Nested GC rule." in out
+        assert "Printing Column Family and GC Rule for all column families." in out
+        assert "Updating column family cf1 GC rule..." in out
+        assert "Updated column family cf1 GC rule" in out
+        assert "Print column family cf1 GC rule after update..." in out
+        assert "Column Family: cf1" in out
+        assert "max_num_versions: 1" in out
+        assert "Delete a column family cf2..." in out
+        assert "Column family cf2 deleted successfully." in out
+    finally:
+        retry_429_503(delete_table)(PROJECT, BIGTABLE_INSTANCE, table_id)
 
 
 def test_delete_table(capsys):
     table_id = TABLE_ID_FORMAT.format(uuid.uuid4().hex[:8])
-    retry_429_503(create_table)(PROJECT, BIGTABLE_INSTANCE, table_id)
-
-    retry_429_503(delete_table)(PROJECT, BIGTABLE_INSTANCE, table_id)
+    try:
+        retry_429_503(create_table)(PROJECT, BIGTABLE_INSTANCE, table_id)
+    finally:
+        retry_429_503(delete_table)(PROJECT, BIGTABLE_INSTANCE, table_id)
     out, _ = capsys.readouterr()
 
     assert "Table " + table_id + " exists." in out

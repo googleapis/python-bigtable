@@ -28,7 +28,7 @@ from .write_simple import write_simple
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_ID_PREFIX = "mobile-time-series-{}"
+TABLE_ID = "mobile-time-series-writes"
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def bigtable_instance(bigtable_client):
 
 @pytest.fixture
 def table_id(bigtable_instance):
-    table_id = TABLE_ID_PREFIX.format(str(uuid.uuid4())[:16])
+    table_id = TABLE_ID
     table = bigtable_instance.table(table_id)
     if table.exists():
         table.delete()

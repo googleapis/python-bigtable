@@ -24,7 +24,7 @@ from main_async import main
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_ID_FORMAT = "quickstart-test-{}"
+TABLE_ID = "quickstart-async-test"
 
 
 @pytest_asyncio.fixture
@@ -39,12 +39,11 @@ async def table_id() -> AsyncGenerator[str, None]:
 
 def _create_table():
     from google.cloud import bigtable
-    import uuid
 
     client = bigtable.Client(project=PROJECT, admin=True)
     instance = client.instance(BIGTABLE_INSTANCE)
 
-    table_id = TABLE_ID_FORMAT.format(uuid.uuid4().hex[:8])
+    table_id = TABLE_ID
     table = instance.table(table_id)
     if table.exists():
         table.delete()

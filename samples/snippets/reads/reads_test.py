@@ -13,7 +13,6 @@
 
 import datetime
 import os
-import uuid
 import inspect
 
 from google.cloud import bigtable
@@ -25,7 +24,7 @@ from . import read_snippets
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_ID_PREFIX = "mobile-time-series-{}"
+TABLE_ID = "mobile-time-series-reads"
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -33,7 +32,7 @@ def table_id():
     client = bigtable.Client(project=PROJECT, admin=True)
     instance = client.instance(BIGTABLE_INSTANCE)
 
-    table_id = TABLE_ID_PREFIX.format(str(uuid.uuid4())[:16])
+    table_id = TABLE_ID
     table = instance.table(table_id)
     if table.exists():
         table.delete()

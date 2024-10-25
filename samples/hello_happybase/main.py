@@ -96,6 +96,7 @@ def main(project_id, instance_id, table_name):
         # [END bigtable_hw_delete_table_happybase]
 
     finally:
+        connection.delete_table(table_name)
         connection.close()
 
 

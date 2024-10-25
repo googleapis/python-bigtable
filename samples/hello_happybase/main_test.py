@@ -19,19 +19,17 @@ from main import main
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_NAME_FORMAT = "hello-world-hb-test-{}"
-TABLE_NAME_RANGE = 10000
+TABLE_ID = "hello-world-hb-test"
 
 
 def test_main(capsys):
-    table_name = TABLE_NAME_FORMAT.format(random.randrange(TABLE_NAME_RANGE))
-    main(PROJECT, BIGTABLE_INSTANCE, table_name)
+    main(PROJECT, BIGTABLE_INSTANCE, TABLE_ID)
 
     out, _ = capsys.readouterr()
-    assert "Creating the {} table.".format(table_name) in out
+    assert "Creating the {} table.".format(TABLE_ID) in out
     assert "Writing some greetings to the table." in out
     assert "Getting a single greeting by row key." in out
     assert "Hello World!" in out
     assert "Scanning for all greetings" in out
     assert "Hello Cloud Bigtable!" in out
-    assert "Deleting the {} table.".format(table_name) in out
+    assert "Deleting the {} table.".format(TABLE_ID) in out

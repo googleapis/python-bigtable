@@ -16,7 +16,6 @@
 import datetime
 import os
 import time
-import uuid
 
 from google.cloud import bigtable
 import pytest
@@ -25,7 +24,7 @@ import deletes_snippets
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_ID_PREFIX = "mobile-time-series-{}"
+TABLE_ID = "mobile-time-series-deletes"
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -35,7 +34,7 @@ def table_id():
     client = bigtable.Client(project=PROJECT, admin=True)
     instance = client.instance(BIGTABLE_INSTANCE)
 
-    table_id = TABLE_ID_PREFIX.format(str(uuid.uuid4())[:16])
+    table_id = TABLE_ID
     table = instance.table(table_id)
     if table.exists():
         table.delete()
@@ -93,6 +92,7 @@ def table_id():
         fetched = list(table.read_rows(row_set=row_set))
 
     yield table_id
+    table.delete()
 
 
 def assert_output_match(capsys, expected):

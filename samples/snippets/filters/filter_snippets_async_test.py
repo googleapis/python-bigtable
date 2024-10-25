@@ -29,40 +29,30 @@ from google.cloud._helpers import (
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_ID_PREFIX = "mobile-time-series-{}"
+TABLE_ID = "mobile-time-series-filters-async"
 
 
 @pytest_asyncio.fixture
 async def table_id() -> AsyncGenerator[str, None]:
-    table_id = _create_table()
+    table, table_id = _create_table()
     await _populate_table(table_id)
     yield table_id
-    _delete_table(table_id)
+    table.delete()
 
 
 def _create_table():
     from google.cloud import bigtable
-    import uuid
 
     client = bigtable.Client(project=PROJECT, admin=True)
     instance = client.instance(BIGTABLE_INSTANCE)
 
-    table_id = TABLE_ID_PREFIX.format(str(uuid.uuid4())[:16])
+    table_id = TABLE_ID
     table = instance.table(table_id)
     if table.exists():
         table.delete()
 
     table.create(column_families={"stats_summary": None, "cell_plan": None})
-    return table_id
-
-
-def _delete_table(table_id: str):
-    from google.cloud import bigtable
-
-    client = bigtable.Client(project=PROJECT, admin=True)
-    instance = client.instance(BIGTABLE_INSTANCE)
-    table = instance.table(table_id)
-    table.delete()
+    return table, table_id
 
 
 async def _populate_table(table_id):
