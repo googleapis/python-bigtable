@@ -15,11 +15,13 @@
 
 import datetime
 import os
+import time
 from typing import AsyncGenerator
 
 from google.cloud._helpers import _microseconds_from_datetime
 import pytest
 import pytest_asyncio
+from google.api_core.exceptions import PreconditionFailed
 
 import deletes_snippets_async
 
@@ -48,6 +50,18 @@ def _create_table():
         table.delete()
 
     table.create(column_families={"stats_summary": None, "cell_plan": None})
+
+    # let table creation complete
+    attempts = 0
+    table_ready = False
+    while not table_ready and attempts < 10:
+        try:
+            table_ready = table.exists()
+        except PreconditionFailed:
+            print("Waiting for table to become ready...")
+        attempts += 1
+        time.sleep(5)
+
     return table, table_id
 
 

@@ -14,6 +14,7 @@
 
 import datetime
 import os
+import time
 
 import inspect
 from typing import AsyncGenerator
@@ -26,6 +27,7 @@ from . import filter_snippets_async
 from google.cloud._helpers import (
     _microseconds_from_datetime,
 )
+from google.api_core.exceptions import PreconditionFailed
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
@@ -52,6 +54,18 @@ def _create_table():
         table.delete()
 
     table.create(column_families={"stats_summary": None, "cell_plan": None})
+
+    # let table creation complete
+    attempts = 0
+    table_ready = False
+    while not table_ready and attempts < 10:
+        try:
+            table_ready = table.exists()
+        except PreconditionFailed:
+            print("Waiting for table to become ready...")
+        attempts += 1
+        time.sleep(5)
+
     return table, table_id
 
 

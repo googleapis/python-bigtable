@@ -25,6 +25,8 @@ Prerequisites:
 """
 
 import argparse
+import time
+from google.api_core.exceptions import PreconditionFailed
 
 # [START bigtable_hw_imports]
 import datetime
@@ -59,6 +61,16 @@ def main(project_id, instance_id, table_id):
     else:
         print("Table {} already exists.".format(table_id))
     # [END bigtable_hw_create_table]
+    # let table creation complete
+    attempts = 0
+    table_ready = False
+    while not table_ready and attempts < 10:
+        try:
+            table_ready = table.exists()
+        except PreconditionFailed:
+            print("Waiting for table to become ready...")
+        attempts += 1
+        time.sleep(5)
 
     # [START bigtable_hw_write_rows]
     print("Writing some greetings to the table.")

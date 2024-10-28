@@ -33,7 +33,7 @@ from google.cloud.bigtable.data import row_filters
 from google.cloud.bigtable.data import RowMutationEntry
 from google.cloud.bigtable.data import SetCell
 from google.cloud.bigtable.data import ReadRowsQuery
-
+from google.api_core.exceptions import PreconditionFailed
 # [END bigtable_async_hw_imports]
 
 
@@ -64,6 +64,16 @@ async def main(project_id, instance_id, table_id):
     else:
         print("Table {} already exists.".format(table_id))
     # [END bigtable_async_hw_create_table]
+    # let table creation complete
+    attempts = 0
+    table_ready = False
+    while not table_ready and attempts < 10:
+        try:
+            table_ready = table.exists()
+        except PreconditionFailed:
+            print("Waiting for table to become ready...")
+        attempts += 1
+        await asyncio.sleep(5)
 
     # [START bigtable_async_hw_write_rows]
     print("Writing some greetings to the table.")
