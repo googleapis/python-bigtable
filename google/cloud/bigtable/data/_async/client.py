@@ -1364,7 +1364,9 @@ class TableAsync:
         """
         await self.close()
 
-    def get_authorized_view(self, view_id: str, app_profile_id:str|None=None, **kwargs) -> AuthorizedViewAsync:
+    def get_authorized_view(
+        self, view_id: str, app_profile_id: str | None = None, **kwargs
+    ) -> AuthorizedViewAsync:
         """
         Returns a table instance for making data API requests. All arguments are passed
         directly to the TableAsync constructor.
@@ -1400,26 +1402,51 @@ class TableAsync:
             RuntimeError: If called outside an async context (no running event loop)
         """
         defaults = [
-            ("default_read_rows_operation_timeout", self.default_read_rows_operation_timeout),
-            ("default_read_rows_attempt_timeout", self.default_read_rows_attempt_timeout),
-            ("default_read_rows_retryable_errors", self.default_read_rows_retryable_errors)
-            ("default_mutate_rows_operation_timeout", self.default_mutate_rows_operation_timeout),
-            ("default_mutate_rows_attempt_timeout", self.default_mutate_rows_attempt_timeout),
-            ("default_mutate_rows_retryable_errors", self.default_mutate_rows_retryable_errors),
+            (
+                "default_read_rows_operation_timeout",
+                self.default_read_rows_operation_timeout,
+            ),
+            (
+                "default_read_rows_attempt_timeout",
+                self.default_read_rows_attempt_timeout,
+            ),
+            (
+                "default_read_rows_retryable_errors",
+                self.default_read_rows_retryable_errors,
+            )(
+                "default_mutate_rows_operation_timeout",
+                self.default_mutate_rows_operation_timeout,
+            ),
+            (
+                "default_mutate_rows_attempt_timeout",
+                self.default_mutate_rows_attempt_timeout,
+            ),
+            (
+                "default_mutate_rows_retryable_errors",
+                self.default_mutate_rows_retryable_errors,
+            ),
             ("default_operation_timeout", self.default_operation_timeout),
-            ("default_attempt_timeout", self.default_attempt_timeout)
+            ("default_attempt_timeout", self.default_attempt_timeout),
             ("default_retryable_errors", self.default_retryable_errors),
         ]
         for arg_name, arg_val in defaults:
             if arg_name not in kwargs:
                 kwargs[arg_name] = arg_val
 
-        return AuthorizedViewAsync(self.client, self.instance_id, self.table_id, view_id, self.app_profile_id, **kwargs)
+        return AuthorizedViewAsync(
+            self.client,
+            self.instance_id,
+            self.table_id,
+            view_id,
+            self.app_profile_id,
+            **kwargs,
+        )
 
 
 class AuthorizedViewAsync(TableAsync):
-
-    def __init__(self, client, instance_id, table_id, view_id, app_profile_id, **kwargs):
+    def __init__(
+        self, client, instance_id, table_id, view_id, app_profile_id, **kwargs
+    ):
         """
         Initialize an AuthorizedView instance
 
