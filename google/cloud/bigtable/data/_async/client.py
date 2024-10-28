@@ -1363,3 +1363,107 @@ class TableAsync:
         grpc channels will no longer be warmed
         """
         await self.close()
+
+    def get_authorized_view(self, view_id: str, app_profile_id:str|None=None, **kwargs) -> AuthorizedViewAsync:
+        """
+        Returns a table instance for making data API requests. All arguments are passed
+        directly to the TableAsync constructor.
+
+        Args:
+            view_id: The id for the authorized view to use for requests
+            app_profile_id: The app profile to associate with requests.
+                https://cloud.google.com/bigtable/docs/app-profiles
+            default_read_rows_operation_timeout: The default timeout for read rows
+                operations, in seconds. If not set, defaults to Table's value
+            default_read_rows_attempt_timeout: The default timeout for individual
+                read rows rpc requests, in seconds. If not set, defaults Table's value
+            default_mutate_rows_operation_timeout: The default timeout for mutate rows
+                operations, in seconds. If not set, defaults to Table's value
+            default_mutate_rows_attempt_timeout: The default timeout for individual
+                mutate rows rpc requests, in seconds. If not set, defaults Table's value
+            default_operation_timeout: The default timeout for all other operations, in
+                seconds. If not set, defaults to Table's value
+            default_attempt_timeout: The default timeout for all other individual rpc
+                requests, in seconds. If not set, defaults to Table's value
+            default_read_rows_retryable_errors: a list of errors that will be retried
+                if encountered during read_rows and related operations. If not set,
+                defaults to Table's value
+            default_mutate_rows_retryable_errors: a list of errors that will be retried
+                if encountered during mutate_rows and related operations. If not set,
+                defaults to Table's value
+            default_retryable_errors: a list of errors that will be retried if
+                encountered during all other operations. If not set, defaults to
+                Table's value
+        Returns:
+            AuthorizedViewAsync: a table instance for making data API requests
+        Raises:
+            RuntimeError: If called outside an async context (no running event loop)
+        """
+        defaults = [
+            ("default_read_rows_operation_timeout", self.default_read_rows_operation_timeout),
+            ("default_read_rows_attempt_timeout", self.default_read_rows_attempt_timeout),
+            ("default_read_rows_retryable_errors", self.default_read_rows_retryable_errors)
+            ("default_mutate_rows_operation_timeout", self.default_mutate_rows_operation_timeout),
+            ("default_mutate_rows_attempt_timeout", self.default_mutate_rows_attempt_timeout),
+            ("default_mutate_rows_retryable_errors", self.default_mutate_rows_retryable_errors),
+            ("default_operation_timeout", self.default_operation_timeout),
+            ("default_attempt_timeout", self.default_attempt_timeout)
+            ("default_retryable_errors", self.default_retryable_errors),
+        ]
+        for arg_name, arg_val in defaults:
+            if arg_name not in kwargs:
+                kwargs[arg_name] = arg_val
+
+        return AuthorizedViewAsync(self.client, self.instance_id, self.table_id, view_id, self.app_profile_id, **kwargs)
+
+
+class AuthorizedViewAsync(TableAsync):
+
+    def __init__(self, client, instance_id, table_id, view_id, app_profile_id, **kwargs):
+        """
+        Initialize an AuthorizedView instance
+
+        Must be created within an async context (running event loop)
+
+        Args:
+            instance_id: The Bigtable instance ID to associate with this client.
+                instance_id is combined with the client's project to fully
+                specify the instance
+            table_id: The ID of the table. table_id is combined with the
+                instance_id and the client's project to fully specify the table
+            view_id: The id for the authorized view to use for requests
+            app_profile_id: The app profile to associate with requests.
+                https://cloud.google.com/bigtable/docs/app-profiles
+            default_read_rows_operation_timeout: The default timeout for read rows
+                operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
+            default_read_rows_attempt_timeout: The default timeout for individual
+                read rows rpc requests, in seconds. If not set, defaults to 20 seconds
+            default_mutate_rows_operation_timeout: The default timeout for mutate rows
+                operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
+            default_mutate_rows_attempt_timeout: The default timeout for individual
+                mutate rows rpc requests, in seconds. If not set, defaults to 60 seconds
+            default_operation_timeout: The default timeout for all other operations, in
+                seconds. If not set, defaults to 60 seconds
+            default_attempt_timeout: The default timeout for all other individual rpc
+                requests, in seconds. If not set, defaults to 20 seconds
+            default_read_rows_retryable_errors: a list of errors that will be retried
+                if encountered during read_rows and related operations.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+            default_mutate_rows_retryable_errors: a list of errors that will be retried
+                if encountered during mutate_rows and related operations.
+                Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+            default_retryable_errors: a list of errors that will be retried if
+                encountered during all other operations.
+                Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+        Raises:
+            RuntimeError: if called outside of an async context (no running event loop)
+        """
+        super().__init__(client, instance_id, table_id, app_profile_id, **kwargs)
+        self.authorized_view_id = view_id
+        self._authorized_view_name = self.client._gapic_client.authorized_view_path(
+            self.client.project, instance_id, table_id, view_id
+        )
+
+    @property
+    def authroized_view_name(self):
+        return self._authorized_view_name
