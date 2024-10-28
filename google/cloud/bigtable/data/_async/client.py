@@ -1401,37 +1401,21 @@ class TableAsync:
         Raises:
             RuntimeError: If called outside an async context (no running event loop)
         """
+        # pull out default values from table if not passed
         defaults = [
-            (
-                "default_read_rows_operation_timeout",
-                self.default_read_rows_operation_timeout,
-            ),
-            (
-                "default_read_rows_attempt_timeout",
-                self.default_read_rows_attempt_timeout,
-            ),
-            (
-                "default_read_rows_retryable_errors",
-                self.default_read_rows_retryable_errors,
-            )(
-                "default_mutate_rows_operation_timeout",
-                self.default_mutate_rows_operation_timeout,
-            ),
-            (
-                "default_mutate_rows_attempt_timeout",
-                self.default_mutate_rows_attempt_timeout,
-            ),
-            (
-                "default_mutate_rows_retryable_errors",
-                self.default_mutate_rows_retryable_errors,
-            ),
-            ("default_operation_timeout", self.default_operation_timeout),
-            ("default_attempt_timeout", self.default_attempt_timeout),
-            ("default_retryable_errors", self.default_retryable_errors),
+            "default_read_rows_operation_timeout",
+            "default_read_rows_attempt_timeout",
+            "default_read_rows_retryable_errors",
+            "default_mutate_rows_operation_timeout",
+            "default_mutate_rows_attempt_timeout",
+            "default_mutate_rows_retryable_errors",
+            "default_operation_timeout",
+            "default_attempt_timeout",
+            "default_retryable_errors",
         ]
-        for arg_name, arg_val in defaults:
+        for arg_name in defaults:
             if arg_name not in kwargs:
-                kwargs[arg_name] = arg_val
+                kwargs[arg_name] = getattr(self, arg_name)
 
         return AuthorizedViewAsync(
             self.client,
