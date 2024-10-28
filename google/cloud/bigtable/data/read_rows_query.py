@@ -494,6 +494,7 @@ class ReadRowsQuery:
             filter=self.filter._to_pb() if self.filter else None,
             rows_limit=self.limit or 0,
             rows=self._row_set,
+            authorized_view_name=table._authorized_view_name,
         )
 
     def __eq__(self, other):

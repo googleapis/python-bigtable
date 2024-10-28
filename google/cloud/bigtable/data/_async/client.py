@@ -654,6 +654,9 @@ class TableAsync:
         )
         self.default_retryable_errors = default_retryable_errors or ()
 
+        # set on AuthorizedView subclass
+        self._authorized_view_name: str | None = None
+
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
@@ -1016,6 +1019,7 @@ class TableAsync:
                 timeout=next(attempt_timeout_gen),
                 metadata=metadata,
                 retry=None,
+                authorized_view_name=self._authorized_view_name,
             )
             return [(s.row_key, s.offset_bytes) async for s in results]
 
@@ -1147,6 +1151,7 @@ class TableAsync:
                 self.table_name, self.app_profile_id, instance_name=None
             ),
             retry=None,
+            authorized_view_name=self._authorized_view_name,
         )
         return await retries.retry_target_async(
             target,
@@ -1276,6 +1281,7 @@ class TableAsync:
             metadata=metadata,
             timeout=operation_timeout,
             retry=None,
+            authorized_view_name=self._authorized_view_name,
         )
         return result.predicate_matched
 
@@ -1327,6 +1333,7 @@ class TableAsync:
             metadata=metadata,
             timeout=operation_timeout,
             retry=None,
+            authorized_view_name=self._authorized_view_name,
         )
         # construct Row from result
         return Row._from_pb(result.row)
