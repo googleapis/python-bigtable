@@ -15,6 +15,7 @@
 import os
 
 from main import main
+from google.cloud import bigtable
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
@@ -23,7 +24,7 @@ TABLE_ID = "hello-world-test"
 
 def test_main(capsys):
     try:
-        main(PROJECT, BIGTABLE_INSTACE, TABLE_ID)
+        main(PROJECT, BIGTABLE_INSTANCE, TABLE_ID)
 
         out, _ = capsys.readouterr()
         assert "Creating the {} table.".format(TABLE_ID) in out

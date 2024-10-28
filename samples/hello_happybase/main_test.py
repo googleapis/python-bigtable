@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import random
 
 from main import main
 

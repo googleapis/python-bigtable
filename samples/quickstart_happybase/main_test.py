@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import uuid
 
 from google.cloud import bigtable
 import pytest

@@ -16,7 +16,6 @@ import datetime
 import inspect
 import os
 import time
-import uuid
 
 from google.cloud import bigtable
 import pytest
