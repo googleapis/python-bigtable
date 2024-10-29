@@ -87,13 +87,11 @@ class _MutateRowsOperationAsync:
         metadata = _make_metadata(
             table.table_name, table.app_profile_id, instance_name=None
         )
+        self._table = table
         self._gapic_fn = functools.partial(
             gapic_client.mutate_rows,
-            table_name=table.table_name,
-            app_profile_id=table.app_profile_id,
             metadata=metadata,
             retry=None,
-            authorized_view_name=table._authorized_view_name,
         )
         # create predicate for determining which errors are retryable
         self.is_retryable = retries.if_exception_type(
@@ -175,9 +173,13 @@ class _MutateRowsOperationAsync:
         # make gapic request
         try:
             result_generator = await self._gapic_fn(
+                request=types_pb.MutateRowsRequest(
+                    table_name=self._table.table_name,
+                    entries=request_entries,
+                    authorized_view_name=self._table._authorized_view_name,
+                    app_profile_id=self._table.app_profile_id,
+                ),
                 timeout=next(self.timeout_generator),
-                entries=request_entries,
-                retry=None,
             )
             async for result_list in result_generator:
                 for result in result_list.entries:

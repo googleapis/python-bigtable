@@ -94,6 +94,10 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
     PooledChannel,
 )
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
+from google.cloud.bigtable_v2.types.bigtable import SampleRowKeysRequest
+from google.cloud.bigtable_v2.types.bigtable import MutateRowRequest
+from google.cloud.bigtable_v2.types.bigtable import CheckAndMutateRowRequest
+from google.cloud.bigtable_v2.types.bigtable import ReadModifyWriteRowRequest
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples, ShardedQuery
@@ -1014,12 +1018,14 @@ class TableAsync:
 
         async def execute_rpc():
             results = await self.client._gapic_client.sample_row_keys(
-                table_name=self.table_name,
-                app_profile_id=self.app_profile_id,
+                request=SampleRowKeysRequest(
+                    table_name=self.table_name,
+                    app_profile_id=self.app_profile_id,
+                    authorized_view_name=self._authorized_view_name,
+                ),
                 timeout=next(attempt_timeout_gen),
                 metadata=metadata,
                 retry=None,
-                authorized_view_name=self._authorized_view_name,
             )
             return [(s.row_key, s.offset_bytes) async for s in results]
 
@@ -1142,16 +1148,20 @@ class TableAsync:
 
         target = partial(
             self.client._gapic_client.mutate_row,
-            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
-            mutations=[mutation._to_pb() for mutation in mutations_list],
-            table_name=self.table_name,
-            app_profile_id=self.app_profile_id,
+            MutateRowRequest(
+                row_key=row_key.encode("utf-8")
+                if isinstance(row_key, str)
+                else row_key,
+                mutations=[mutation._to_pb() for mutation in mutations_list],
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                authorized_view_name=self._authorized_view_name,
+            ),
             timeout=attempt_timeout,
             metadata=_make_metadata(
                 self.table_name, self.app_profile_id, instance_name=None
             ),
             retry=None,
-            authorized_view_name=self._authorized_view_name,
         )
         return await retries.retry_target_async(
             target,
@@ -1272,16 +1282,20 @@ class TableAsync:
             self.table_name, self.app_profile_id, instance_name=None
         )
         result = await self.client._gapic_client.check_and_mutate_row(
-            true_mutations=true_case_list,
-            false_mutations=false_case_list,
-            predicate_filter=predicate._to_pb() if predicate is not None else None,
-            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
-            table_name=self.table_name,
-            app_profile_id=self.app_profile_id,
+            request=CheckAndMutateRowRequest(
+                true_mutations=true_case_list,
+                false_mutations=false_case_list,
+                predicate_filter=predicate._to_pb() if predicate is not None else None,
+                row_key=row_key.encode("utf-8")
+                if isinstance(row_key, str)
+                else row_key,
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                authorized_view_name=self._authorized_view_name,
+            ),
             metadata=metadata,
             timeout=operation_timeout,
             retry=None,
-            authorized_view_name=self._authorized_view_name,
         )
         return result.predicate_matched
 
@@ -1326,14 +1340,18 @@ class TableAsync:
             self.table_name, self.app_profile_id, instance_name=None
         )
         result = await self.client._gapic_client.read_modify_write_row(
-            rules=[rule._to_pb() for rule in rules],
-            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
-            table_name=self.table_name,
-            app_profile_id=self.app_profile_id,
+            request=ReadModifyWriteRowRequest(
+                rules=[rule._to_pb() for rule in rules],
+                row_key=row_key.encode("utf-8")
+                if isinstance(row_key, str)
+                else row_key,
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                authorized_view_name=self._authorized_view_name,
+            ),
             metadata=metadata,
             timeout=operation_timeout,
             retry=None,
-            authorized_view_name=self._authorized_view_name,
         )
         # construct Row from result
         return Row._from_pb(result.row)
@@ -1471,10 +1489,12 @@ class AuthorizedViewAsync(TableAsync):
         """
         super().__init__(client, instance_id, table_id, app_profile_id, **kwargs)
         self.authorized_view_id = view_id
-        self._authorized_view_name = self.client._gapic_client.authorized_view_path(
-            self.client.project, instance_id, table_id, view_id
+        self._authorized_view_name: str = (
+            self.client._gapic_client.authorized_view_path(
+                self.client.project, instance_id, table_id, view_id
+            )
         )
 
     @property
-    def authroized_view_name(self):
+    def authroized_view_name(self) -> str:
         return self._authorized_view_name
