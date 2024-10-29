@@ -15,6 +15,8 @@
 import pytest
 
 from google.cloud.bigtable_v2.types import MutateRowsResponse
+from google.cloud.bigtable.data.mutations import RowMutationEntry
+from google.cloud.bigtable.data.mutations import DeleteAllFromRow
 from google.rpc import status_pb2
 import google.api_core.exceptions as core_exceptions
 
@@ -28,9 +30,8 @@ except ImportError:  # pragma: NO COVER
 
 
 def _make_mutation(count=1, size=1):
-    mutation = mock.Mock()
-    mutation.size.return_value = size
-    mutation.mutations = [mock.Mock()] * count
+    mutation = RowMutationEntry("k", [DeleteAllFromRow() for _ in range(count)])
+    mutation.size = lambda: size
     return mutation
 
 
@@ -44,8 +45,12 @@ class TestMutateRowsOperation:
 
     def _make_one(self, *args, **kwargs):
         if not args:
+            fake_table = AsyncMock()
+            fake_table.table_name = "table"
+            fake_table.app_profile_id = None
+            fake_table._authorized_view_name = None
             kwargs["gapic_client"] = kwargs.pop("gapic_client", mock.Mock())
-            kwargs["table"] = kwargs.pop("table", AsyncMock())
+            kwargs["table"] = kwargs.pop("table", fake_table)
             kwargs["operation_timeout"] = kwargs.pop("operation_timeout", 5)
             kwargs["attempt_timeout"] = kwargs.pop("attempt_timeout", 0.1)
             kwargs["retryable_exceptions"] = kwargs.pop("retryable_exceptions", ())
@@ -95,15 +100,13 @@ class TestMutateRowsOperation:
             attempt_timeout,
             retryable_exceptions,
         )
-        # running gapic_fn should trigger a client call
+        # running gapic_fn should trigger a client call with baked-in args
         assert client.mutate_rows.call_count == 0
         instance._gapic_fn()
         assert client.mutate_rows.call_count == 1
         # gapic_fn should call with table details
         inner_kwargs = client.mutate_rows.call_args[1]
-        assert len(inner_kwargs) == 4
-        assert inner_kwargs["table_name"] == table.table_name
-        assert inner_kwargs["app_profile_id"] == table.app_profile_id
+        assert len(inner_kwargs) == 2
         assert inner_kwargs["retry"] is None
         metadata = inner_kwargs["metadata"]
         assert len(metadata) == 1
@@ -184,6 +187,9 @@ class TestMutateRowsOperation:
         """
         client = AsyncMock()
         table = mock.Mock()
+        table.table_name = "table"
+        table.app_profile_id = None
+        table._authorized_view_name = None
         entries = [_make_mutation(), _make_mutation()]
         operation_timeout = 0.05
         expected_exception = exc_type("test")
@@ -322,7 +328,8 @@ class TestMutateRowsOperation:
         assert mock_gapic_fn.call_count == 1
         _, kwargs = mock_gapic_fn.call_args
         assert kwargs["timeout"] == expected_timeout
-        assert kwargs["entries"] == [mutation._to_pb()]
+        request = kwargs["request"]
+        assert request.entries == [mutation._to_pb()]
 
     @pytest.mark.asyncio
     async def test_run_attempt_empty_request(self):

@@ -1148,7 +1148,7 @@ class TableAsync:
 
         target = partial(
             self.client._gapic_client.mutate_row,
-            MutateRowRequest(
+            request=MutateRowRequest(
                 row_key=row_key.encode("utf-8")
                 if isinstance(row_key, str)
                 else row_key,

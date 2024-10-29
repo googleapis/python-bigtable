@@ -27,6 +27,7 @@ from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
+from google.cloud.bigtable.data.mutations import DeleteAllFromRow
 from google.cloud.bigtable.data import TABLE_DEFAULT
 
 from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
@@ -1198,13 +1199,13 @@ class TestTableAsync:
             ("sample_row_keys", (), "google.api_core.retry.retry_target_async", ()),
             (
                 "mutate_row",
-                (b"row_key", [mock.Mock()]),
+                (b"row_key", [DeleteAllFromRow()]),
                 "google.api_core.retry.retry_target_async",
                 (),
             ),
             (
                 "bulk_mutate_rows",
-                ([mutations.RowMutationEntry(b"key", [mock.Mock()])],),
+                ([mutations.RowMutationEntry(b"key", [DeleteAllFromRow()])],),
                 "google.api_core.retry.retry_target_async",
                 (_MutateRowsIncomplete,),
             ),
@@ -2134,12 +2135,13 @@ class TestSampleRowKeys:
                     await table.sample_row_keys(attempt_timeout=expected_timeout)
                     args, kwargs = sample_row_keys.call_args
                     assert len(args) == 0
-                    assert len(kwargs) == 5
+                    assert len(kwargs) == 4
                     assert kwargs["timeout"] == expected_timeout
-                    assert kwargs["app_profile_id"] == expected_profile
-                    assert kwargs["table_name"] == table.table_name
                     assert kwargs["metadata"] is not None
                     assert kwargs["retry"] is None
+                    request = kwargs["request"]
+                    assert request.app_profile_id == expected_profile
+                    assert request.table_name == table.table_name
 
     @pytest.mark.parametrize(
         "retryable_exception",
@@ -2230,17 +2232,18 @@ class TestMutateRow:
                     )
                     assert mock_gapic.call_count == 1
                     kwargs = mock_gapic.call_args_list[0].kwargs
+                    request = kwargs["request"]
                     assert (
-                        kwargs["table_name"]
+                        request.table_name
                         == "projects/project/instances/instance/tables/table"
                     )
-                    assert kwargs["row_key"] == b"row_key"
+                    assert request.row_key == b"row_key"
                     formatted_mutations = (
                         [mutation._to_pb() for mutation in mutation_arg]
                         if isinstance(mutation_arg, list)
                         else [mutation_arg._to_pb()]
                     )
-                    assert kwargs["mutations"] == formatted_mutations
+                    assert request.mutations == formatted_mutations
                     assert kwargs["timeout"] == expected_attempt_timeout
                     # make sure gapic layer is not retrying
                     assert kwargs["retry"] is None
@@ -2343,7 +2346,7 @@ class TestMutateRow:
                 with mock.patch.object(
                     client._gapic_client, "mutate_row", AsyncMock()
                 ) as read_rows:
-                    await table.mutate_row("rk", mock.Mock())
+                    await table.mutate_row("rk", DeleteAllFromRow())
                 kwargs = read_rows.call_args_list[0].kwargs
                 metadata = kwargs["metadata"]
                 goog_metadata = None
@@ -2429,11 +2432,12 @@ class TestBulkMutateRows:
                     )
                     assert mock_gapic.call_count == 1
                     kwargs = mock_gapic.call_args[1]
+                    request = kwargs["request"]
                     assert (
-                        kwargs["table_name"]
+                        request.table_name
                         == "projects/project/instances/instance/tables/table"
                     )
-                    assert kwargs["entries"] == [bulk_mutation._to_pb()]
+                    assert request.entries == [bulk_mutation._to_pb()]
                     assert kwargs["timeout"] == expected_attempt_timeout
                     assert kwargs["retry"] is None
 
@@ -2454,12 +2458,13 @@ class TestBulkMutateRows:
                     )
                     assert mock_gapic.call_count == 1
                     kwargs = mock_gapic.call_args[1]
+                    request = kwargs["request"]
                     assert (
-                        kwargs["table_name"]
+                        request.table_name
                         == "projects/project/instances/instance/tables/table"
                     )
-                    assert kwargs["entries"][0] == entry_1._to_pb()
-                    assert kwargs["entries"][1] == entry_2._to_pb()
+                    assert request.entries[0] == entry_1._to_pb()
+                    assert request.entries[1] == entry_2._to_pb()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -2762,8 +2767,8 @@ class TestCheckAndMutateRow:
                     )
                     row_key = b"row_key"
                     predicate = None
-                    true_mutations = [mock.Mock()]
-                    false_mutations = [mock.Mock(), mock.Mock()]
+                    true_mutations = [DeleteAllFromRow()]
+                    false_mutations = [DeleteAllFromRow(), DeleteAllFromRow()]
                     operation_timeout = 0.2
                     found = await table.check_and_mutate_row(
                         row_key,
@@ -2774,16 +2779,17 @@ class TestCheckAndMutateRow:
                     )
                     assert found == gapic_result
                     kwargs = mock_gapic.call_args[1]
-                    assert kwargs["table_name"] == table.table_name
-                    assert kwargs["row_key"] == row_key
-                    assert kwargs["predicate_filter"] == predicate
-                    assert kwargs["true_mutations"] == [
+                    request = kwargs["request"]
+                    assert request.table_name == table.table_name
+                    assert request.row_key == row_key
+                    assert bool(request.predicate_filter) is False
+                    assert request.true_mutations == [
                         m._to_pb() for m in true_mutations
                     ]
-                    assert kwargs["false_mutations"] == [
+                    assert request.false_mutations == [
                         m._to_pb() for m in false_mutations
                     ]
-                    assert kwargs["app_profile_id"] == app_profile
+                    assert request.app_profile_id == app_profile
                     assert kwargs["timeout"] == operation_timeout
                     assert kwargs["retry"] is None
 
@@ -2825,16 +2831,18 @@ class TestCheckAndMutateRow:
                         false_case_mutations=false_mutation,
                     )
                     kwargs = mock_gapic.call_args[1]
-                    assert kwargs["true_mutations"] == [true_mutation._to_pb()]
-                    assert kwargs["false_mutations"] == [false_mutation._to_pb()]
+                    request = kwargs["request"]
+                    assert request.true_mutations == [true_mutation._to_pb()]
+                    assert request.false_mutations == [false_mutation._to_pb()]
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_predicate_object(self):
         """predicate filter should be passed to gapic request"""
         from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
+        from google.cloud.bigtable_v2.types.data import RowFilter
 
         mock_predicate = mock.Mock()
-        predicate_pb = {"predicate": "dict"}
+        predicate_pb = RowFilter({"sink": True})
         mock_predicate._to_pb.return_value = predicate_pb
         async with _make_client() as client:
             async with client.get_table("instance", "table") as table:
@@ -2847,10 +2855,11 @@ class TestCheckAndMutateRow:
                     await table.check_and_mutate_row(
                         b"row_key",
                         mock_predicate,
-                        false_case_mutations=[mock.Mock()],
+                        false_case_mutations=[DeleteAllFromRow()],
                     )
                     kwargs = mock_gapic.call_args[1]
-                    assert kwargs["predicate_filter"] == predicate_pb
+                    request = kwargs["request"]
+                    assert request.predicate_filter == predicate_pb
                     assert mock_predicate._to_pb.call_count == 1
                     assert kwargs["retry"] is None
 
@@ -2858,11 +2867,11 @@ class TestCheckAndMutateRow:
     async def test_check_and_mutate_mutations_parsing(self):
         """mutations objects should be converted to protos"""
         from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
-        from google.cloud.bigtable.data.mutations import DeleteAllFromRow
+        from google.cloud.bigtable.data.mutations import DeleteAllFromFamily
 
         mutations = [mock.Mock() for _ in range(5)]
         for idx, mutation in enumerate(mutations):
-            mutation._to_pb.return_value = f"fake {idx}"
+            mutation._to_pb.return_value = DeleteAllFromFamily(f"fake {idx}")._to_pb()
         mutations.append(DeleteAllFromRow())
         async with _make_client() as client:
             async with client.get_table("instance", "table") as table:
@@ -2879,11 +2888,15 @@ class TestCheckAndMutateRow:
                         false_case_mutations=mutations[2:],
                     )
                     kwargs = mock_gapic.call_args[1]
-                    assert kwargs["true_mutations"] == ["fake 0", "fake 1"]
-                    assert kwargs["false_mutations"] == [
-                        "fake 2",
-                        "fake 3",
-                        "fake 4",
+                    request = kwargs["request"]
+                    assert request.true_mutations == [
+                        DeleteAllFromFamily("fake 0")._to_pb(),
+                        DeleteAllFromFamily("fake 1")._to_pb(),
+                    ]
+                    assert request.false_mutations == [
+                        DeleteAllFromFamily("fake 2")._to_pb(),
+                        DeleteAllFromFamily("fake 3")._to_pb(),
+                        DeleteAllFromFamily("fake 4")._to_pb(),
                         DeleteAllFromRow()._to_pb(),
                     ]
                     assert all(
@@ -2926,7 +2939,8 @@ class TestReadModifyWriteRow:
                     await table.read_modify_write_row("key", call_rules)
                 assert mock_gapic.call_count == 1
                 found_kwargs = mock_gapic.call_args_list[0][1]
-                assert found_kwargs["rules"] == expected_rules
+                request = found_kwargs["request"]
+                assert request.rules == expected_rules
                 assert found_kwargs["retry"] is None
 
     @pytest.mark.parametrize("rules", [[], None])
@@ -2949,15 +2963,16 @@ class TestReadModifyWriteRow:
                 with mock.patch.object(
                     client._gapic_client, "read_modify_write_row"
                 ) as mock_gapic:
-                    await table.read_modify_write_row(row_key, mock.Mock())
+                    await table.read_modify_write_row(row_key, IncrementRule("f", "q"))
                     assert mock_gapic.call_count == 1
                     kwargs = mock_gapic.call_args_list[0][1]
+                    request = kwargs["request"]
                     assert (
-                        kwargs["table_name"]
+                        request.table_name
                         == f"projects/{project}/instances/{instance}/tables/{table_id}"
                     )
-                    assert kwargs["app_profile_id"] is None
-                    assert kwargs["row_key"] == row_key.encode()
+                    assert bool(request.app_profile_id) is False
+                    assert request.row_key == row_key.encode()
                     assert kwargs["timeout"] > 1
 
     @pytest.mark.asyncio
@@ -2974,13 +2989,14 @@ class TestReadModifyWriteRow:
                 ) as mock_gapic:
                     await table.read_modify_write_row(
                         row_key,
-                        mock.Mock(),
+                        IncrementRule("f", "q"),
                         operation_timeout=expected_timeout,
                     )
                     assert mock_gapic.call_count == 1
                     kwargs = mock_gapic.call_args_list[0][1]
-                    assert kwargs["app_profile_id"] is profile_id
-                    assert kwargs["row_key"] == row_key
+                    request = kwargs["request"]
+                    assert request.app_profile_id is profile_id
+                    assert request.row_key == row_key
                     assert kwargs["timeout"] == expected_timeout
 
     @pytest.mark.asyncio
@@ -2991,10 +3007,11 @@ class TestReadModifyWriteRow:
                 with mock.patch.object(
                     client._gapic_client, "read_modify_write_row"
                 ) as mock_gapic:
-                    await table.read_modify_write_row(row_key, mock.Mock())
+                    await table.read_modify_write_row(row_key, IncrementRule("f", "q"))
                     assert mock_gapic.call_count == 1
                     kwargs = mock_gapic.call_args_list[0][1]
-                    assert kwargs["row_key"] == row_key.encode()
+                    request = kwargs["request"]
+                    assert request.row_key == row_key.encode()
 
     @pytest.mark.asyncio
     async def test_read_modify_write_row_building(self):
@@ -3013,6 +3030,8 @@ class TestReadModifyWriteRow:
                 ) as mock_gapic:
                     with mock.patch.object(Row, "_from_pb") as constructor_mock:
                         mock_gapic.return_value = mock_response
-                        await table.read_modify_write_row("key", mock.Mock())
+                        await table.read_modify_write_row(
+                            "key", IncrementRule("f", "q")
+                        )
                         assert constructor_mock.call_count == 1
                         constructor_mock.assert_called_once_with(mock_response.row)
