@@ -21,14 +21,6 @@ PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
 TABLE_ID = "hello-world-test"
 
-def test_clear_tables():
-    client = bigtable.Client(PROJECT, admin=True)
-    instance = client.instance(BIGTABLE_INSTANCE)
-
-    for table in instance.list_tables():
-        print(f"Deleting table {table.table_id}...")
-        table.delete()
-        print(f"Table {table.table_id} deleted.")
 
 def test_main(capsys):
     try:
