@@ -26,7 +26,6 @@ from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
-from google.cloud.bigtable.data._helpers import _MB_SIZE
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 from google.cloud.bigtable.data.mutations import Mutation
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -34,6 +33,7 @@ from google.cloud.bigtable.data._cross_sync import CrossSync
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
     from google.cloud.bigtable.data._sync_autogen.client import Table as TableType
+_MB_SIZE = 1024 * 1024
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("_FlowControl")

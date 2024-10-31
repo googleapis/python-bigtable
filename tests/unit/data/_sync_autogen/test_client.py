@@ -2734,7 +2734,7 @@ class TestExecuteQuery:
                     raise value
                 return value
 
-            async def __anext__(self):
+            def __anext__(self):
                 return self.__next__()
 
         return MockStream(sample_list)

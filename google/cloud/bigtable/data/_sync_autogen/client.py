@@ -59,7 +59,6 @@ from google.cloud.bigtable.data._helpers import _get_error_type
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import _MB_SIZE
 from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.data.row_filters import RowFilter
@@ -71,7 +70,10 @@ from typing import Iterable
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
     PooledBigtableGrpcTransport as PooledTransportType,
 )
-from google.cloud.bigtable.data._sync_autogen.mutations_batcher import MutationsBatcher
+from google.cloud.bigtable.data._sync_autogen.mutations_batcher import (
+    MutationsBatcher,
+    _MB_SIZE,
+)
 from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (
     ExecuteQueryIterator,
 )
