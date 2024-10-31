@@ -40,7 +40,7 @@ from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._async.client import TableAsync
+    from google.cloud.bigtable.data._async.client import _ApiSurfaceAsync
 
 
 class _ResetRow(Exception):
@@ -82,7 +82,7 @@ class _ReadRowsOperationAsync:
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: "TableAsync",
+        table: "_ApiSurfaceAsync",
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),

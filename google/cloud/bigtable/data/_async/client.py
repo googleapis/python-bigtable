@@ -334,7 +334,9 @@ class BigtableDataClientAsync(ClientWithProject):
             next_sleep = next_refresh - (time.time() - start_timestamp)
 
     async def _register_instance(
-        self, instance_id: str, owner: Union[TableAsync, ExecuteQueryIteratorAsync]
+        self,
+        instance_id: str,
+        owner: Union[_ApiSurfaceAsync, ExecuteQueryIteratorAsync],
     ) -> None:
         """
         Registers an instance with the client, and warms the channel pool
@@ -366,7 +368,9 @@ class BigtableDataClientAsync(ClientWithProject):
                 self._start_background_channel_refresh()
 
     async def _remove_instance_registration(
-        self, instance_id: str, owner: Union[TableAsync, ExecuteQueryIteratorAsync]
+        self,
+        instance_id: str,
+        owner: Union[_ApiSurfaceAsync, ExecuteQueryIteratorAsync],
     ) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
@@ -479,7 +483,12 @@ class BigtableDataClientAsync(ClientWithProject):
             RuntimeError: If called outside an async context (no running event loop)
         """
         return AuthorizedViewAsync(
-            self, instance_id, table_id, view_id, *args, **kwargs,
+            self,
+            instance_id,
+            table_id,
+            view_id,
+            *args,
+            **kwargs,
         )
 
     async def execute_query(
@@ -587,12 +596,11 @@ class BigtableDataClientAsync(ClientWithProject):
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
-class TableAsync:
+class _ApiSurfaceAsync:
     """
-    Main Data API surface
+    Abstract class containing API surface for BigtableDataClient. Should not be created directly
 
-    Table object maintains table_id, and app_profile_id context, and passes them with
-    each call
+    Can be instantiated as a TableAsync, or an AuthorizedViewAsync
     """
 
     def __init__(
@@ -623,8 +631,6 @@ class TableAsync:
         ),
     ):
         """
-        Initialize a Table instance
-
         Must be created within an async context (running event loop)
 
         Args:
@@ -1429,7 +1435,26 @@ class TableAsync:
         await self.close()
 
 
-class AuthorizedViewAsync(TableAsync):
+class TableAsync(_ApiSurfaceAsync):
+    """
+    Main Data API surface for interacting with a Bigtable table.
+
+    Table object maintains table_id, and app_profile_id context, and passes them with
+    each call
+    """
+
+
+class AuthorizedViewAsync(_ApiSurfaceAsync):
+    """
+    Provides access to an authorized view of a table.
+
+    An authorized view is a subset of a table that you configure to include specific table data.
+    Then you grant access to the authorized view separately from access to the table.
+
+    AuthorizedView object maintains table_id, app_profile_id, and authorized_view_id context,
+    and passed them with each call
+    """
+
     def __init__(
         self, client, instance_id, table_id, view_id, app_profile_id, **kwargs
     ):

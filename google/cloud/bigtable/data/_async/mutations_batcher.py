@@ -35,6 +35,8 @@ from google.cloud.bigtable.data.mutations import Mutation
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
+    from google.cloud.bigtable.data._async.client import AuthorizedViewAsync
+    from google.cloud.bigtable.data._async.client import _ApiSurfaceAsync
 
 # used to make more readable default values
 _MB_SIZE = 1024 * 1024
@@ -199,7 +201,7 @@ class MutationsBatcherAsync:
 
     def __init__(
         self,
-        table: "TableAsync",
+        table: "TableAsync" | "AuthorizedViewAsync" | "_ApiSurfaceAsync",
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
