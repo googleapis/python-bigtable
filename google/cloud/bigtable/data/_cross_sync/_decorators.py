@@ -308,7 +308,7 @@ class Convert(ConvertClass):
         sync_name: str | None = None,
         *,
         replace_symbols: dict[str, str] | None = None,
-        docstring_format_vars: dict[str, tuple[str, str]] | None = None,
+        docstring_format_vars: dict[str, tuple[str | None, str | None]] | None = None,
         rm_aio: bool = True,
     ):
         super().__init__(
