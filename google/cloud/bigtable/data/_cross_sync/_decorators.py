@@ -201,7 +201,7 @@ class ConvertClass(AstDecorator):
         sync_name: str | None = None,
         *,
         replace_symbols: dict[str, str] | None = None,
-        docstring_format_vars: dict[str, tuple[str, str]] | None = None,
+        docstring_format_vars: dict[str, tuple[str | None, str | None]] | None = None,
         rm_aio: bool = False,
         add_mapping_for_name: str | None = None,
     ):
@@ -209,10 +209,10 @@ class ConvertClass(AstDecorator):
         self.replace_symbols = replace_symbols
         docstring_format_vars = docstring_format_vars or {}
         self.async_docstring_format_vars = {
-            k: v[0] for k, v in docstring_format_vars.items()
+            k: v[0] or "" for k, v in docstring_format_vars.items()
         }
         self.sync_docstring_format_vars = {
-            k: v[1] for k, v in docstring_format_vars.items()
+            k: v[1] or "" for k, v in docstring_format_vars.items()
         }
         self.rm_aio = rm_aio
         self.add_mapping_for_name = add_mapping_for_name
@@ -308,8 +308,8 @@ class Convert(ConvertClass):
         sync_name: str | None = None,
         *,
         replace_symbols: dict[str, str] | None = None,
-        docstring_format_vars: dict[str, tuple[str, str]] | None = None,
-        rm_aio: bool = False,
+        docstring_format_vars: dict[str, tuple[str | None, str | None]] | None = None,
+        rm_aio: bool = True,
     ):
         super().__init__(
             sync_name=sync_name,

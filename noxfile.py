@@ -299,7 +299,13 @@ def conformance(session, client_type):
     install_unittest_dependencies(session, "-c", constraints_path)
     with session.chdir("test_proxy"):
         # download the conformance test suite
-        session.run("bash", "-e", "run_tests.sh", external=True, env={"CLIENT_TYPE": client_type})
+        session.run(
+            "bash",
+            "-e",
+            "run_tests.sh",
+            external=True,
+            env={"CLIENT_TYPE": client_type},
+        )
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)

@@ -26,7 +26,9 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
-__CROSS_SYNC_OUTPUT__ = "tests.unit.data.execute_query._sync_autogen.test_query_iterator"
+__CROSS_SYNC_OUTPUT__ = (
+    "tests.unit.data.execute_query._sync_autogen.test_query_iterator"
+)
 
 
 @CrossSync.convert_class(sync_name="MockIterator")
@@ -45,7 +47,7 @@ class MockIterator:
         if self.idx >= len(self._values):
             raise CrossSync.StopIteration
         if self._delay is not None:
-            CrossSync.rm_aio(await CrossSync.sleep(self._delay))
+            await CrossSync.sleep(self._delay)
         value = self._values[self.idx]
         self.idx += 1
         return value

@@ -129,7 +129,7 @@ class _MutateRowsOperationAsync:
         """
         try:
             # trigger mutate_rows
-            CrossSync.rm_aio(await self._operation())
+            await self._operation()
         except Exception as exc:
             # exceptions raised by retryable are added to the list of exceptions for all unfinalized mutations
             incomplete_indices = self.remaining_indices.copy()
@@ -177,14 +177,12 @@ class _MutateRowsOperationAsync:
             return
         # make gapic request
         try:
-            result_generator = CrossSync.rm_aio(
-                await self._gapic_fn(
-                    timeout=next(self.timeout_generator),
-                    entries=request_entries,
-                    retry=None,
-                )
+            result_generator = await self._gapic_fn(
+                timeout=next(self.timeout_generator),
+                entries=request_entries,
+                retry=None,
             )
-            async for result_list in CrossSync.rm_aio(result_generator):
+            async for result_list in result_generator:
                 for result in result_list.entries:
                     # convert sub-request index to global index
                     orig_idx = active_request_indices[result.index]

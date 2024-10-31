@@ -64,7 +64,7 @@ class TempRowBuilderAsync:
                 }
             ],
         }
-        CrossSync.rm_aio(await self.table.client._gapic_client.mutate_row(request))
+        await self.table.client._gapic_client.mutate_row(request)
         self.rows.append(row_key)
 
     @CrossSync.convert
@@ -77,7 +77,7 @@ class TempRowBuilderAsync:
                     for row in self.rows
                 ],
             }
-            CrossSync.rm_aio(await self.table.client._gapic_client.mutate_rows(request))
+            await self.table.client._gapic_client.mutate_rows(request)
 
 
 @CrossSync.convert_class(sync_name="TestSystem")
@@ -86,20 +86,13 @@ class TestSystemAsync:
     @CrossSync.pytest_fixture(scope="session")
     async def client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        async with CrossSync.rm_aio(
-            CrossSync.DataClient(project=project, pool_size=4)
-        ) as client:
+        async with CrossSync.DataClient(project=project, pool_size=4) as client:
             yield client
 
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
     async def table(self, client, table_id, instance_id):
-        async with CrossSync.rm_aio(
-            client.get_table(
-                instance_id,
-                table_id,
-            )
-        ) as table:
+        async with client.get_table(instance_id, table_id) as table:
             yield table
 
     @CrossSync.drop
@@ -149,9 +142,7 @@ class TestSystemAsync:
         """
         from google.cloud.bigtable.data import ReadRowsQuery
 
-        row_list = CrossSync.rm_aio(
-            await table.read_rows(ReadRowsQuery(row_keys=row_key))
-        )
+        row_list = await table.read_rows(ReadRowsQuery(row_keys=row_key))
         assert len(row_list) == 1
         row = row_list[0]
         cell = row.cells[0]
@@ -169,16 +160,11 @@ class TestSystemAsync:
         row_key = uuid.uuid4().hex.encode()
         family = TEST_FAMILY
         qualifier = b"test-qualifier"
-        CrossSync.rm_aio(
-            await temp_rows.add_row(
-                row_key, family=family, qualifier=qualifier, value=start_value
-            )
+        await temp_rows.add_row(
+            row_key, family=family, qualifier=qualifier, value=start_value
         )
         # ensure cell is initialized
-        assert (
-            CrossSync.rm_aio(await self._retrieve_cell_value(table, row_key))
-            == start_value
-        )
+        assert await self._retrieve_cell_value(table, row_key) == start_value
 
         mutation = SetCell(family=TEST_FAMILY, qualifier=qualifier, new_value=new_value)
         return row_key, mutation
@@ -188,7 +174,7 @@ class TestSystemAsync:
     async def temp_rows(self, table):
         builder = CrossSync.TempRowBuilder(table)
         yield builder
-        CrossSync.rm_aio(await builder.delete_rows())
+        await builder.delete_rows()
 
     @pytest.mark.usefixtures("table")
     @pytest.mark.usefixtures("client")
@@ -234,8 +220,8 @@ class TestSystemAsync:
         """
         row_key = b"bulk_mutate"
         new_value = uuid.uuid4().hex.encode()
-        row_key, mutation = CrossSync.rm_aio(
-            await self._create_row_and_mutation(table, temp_rows, new_value=new_value)
+        row_key, mutation = await self._create_row_and_mutation(
+            table, temp_rows, new_value=new_value
         )
         await table.mutate_row(row_key, mutation)
 

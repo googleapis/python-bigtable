@@ -49,9 +49,6 @@ _WarmedInstanceKey = namedtuple(
     "_WarmedInstanceKey", ["instance_name", "table_name", "app_profile_id"]
 )
 
-# used to make more readable default values
-_MB_SIZE = 1024 * 1024
-
 
 # enum used on method calls when table defaults should be used
 class TABLE_DEFAULT(enum.Enum):
