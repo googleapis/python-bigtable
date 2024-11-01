@@ -220,7 +220,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._channel_refresh_task = None
 
     async def _ping_and_warm_instances(
-        self, channel: grpc.aio.Channel, instance_key: _WarmedInstanceKey | None = None
+        self, instance_key: _WarmedInstanceKey | None = None
     ) -> list[BaseException | None]:
         """
         Prepares the backend for requests on a channel
@@ -228,7 +228,6 @@ class BigtableDataClientAsync(ClientWithProject):
         Pings each Bigtable instance registered in `_active_instances` on the client
 
         Args:
-            channel: grpc channel to warm
             instance_key: if provided, only warm the instance associated with the key
         Returns:
             list[BaseException | None]: sequence of results or exceptions from the ping requests
@@ -236,7 +235,7 @@ class BigtableDataClientAsync(ClientWithProject):
         instance_list = (
             [instance_key] if instance_key is not None else self._active_instances
         )
-        ping_rpc = channel.unary_unary(
+        ping_rpc = self.transport._grpc_channel.unary_unary(
             "/google.bigtable.v2.Bigtable/PingAndWarm",
             request_serializer=PingAndWarmRequest.serialize,
         )
@@ -289,7 +288,7 @@ class BigtableDataClientAsync(ClientWithProject):
         next_sleep = max(first_refresh - time.monotonic(), 0)
         if next_sleep > 0:
             # warm the current channel immediately
-            await self._ping_and_warm_instances(self.transport._grpc_channel)
+            await self._ping_and_warm_instances()
         # continuously refresh the channel every `refresh_interval` seconds
         while True:
             await asyncio.sleep(next_sleep)
@@ -297,7 +296,7 @@ class BigtableDataClientAsync(ClientWithProject):
             # prepare new channel for use
             old_channel = self.transport._grpc_channel
             new_channel = self.transport_create_channel()
-            await self._ping_and_warm_instances(new_channel)
+            await self._ping_and_warm_instances()
             # cycle channel out of use, with long grace window before closure
             self.transport._grpc_channel = new_channel
             await old_channel.close(grace_period)
