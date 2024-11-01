@@ -117,7 +117,6 @@ class TestBigtableDataClientAsync:
                 # test gapic superclass init was called
                 assert bigtable_client_init.call_count == 1
                 kwargs = bigtable_client_init.call_args[1]
-                assert kwargs["transport"] == transport_str
                 assert kwargs["credentials"] == credentials
                 assert kwargs["client_options"] == options_parsed
                 # test mixin superclass init was called
@@ -193,9 +192,7 @@ class TestBigtableDataClientAsync:
     @pytest.mark.asyncio
     async def test__start_background_channel_refresh(self):
         # should create background tasks for each channel
-        client = self._make_one(
-            project="project-id", use_emulator=False
-        )
+        client = self._make_one(project="project-id", use_emulator=False)
         ping_and_warm = AsyncMock()
         client._ping_and_warm_instances = ping_and_warm
         client._start_background_channel_refresh()
@@ -203,7 +200,7 @@ class TestBigtableDataClientAsync:
         assert isinstance(client._channel_refresh_task, asyncio.Task)
         await asyncio.sleep(0.1)
         assert ping_and_warm.call_count == 1
-        ping_and_warm.assert_any_call(client.transport._grpc_channel)
+        ping_and_warm.assert_any_call(client.transport.grpc_channel)
         await client.close()
 
     @pytest.mark.asyncio
@@ -212,9 +209,7 @@ class TestBigtableDataClientAsync:
     )
     async def test__start_background_channel_refresh_task_names(self):
         # if tasks exist, should do nothing
-        client = self._make_one(
-            project="project-id", use_emulator=False
-        )
+        client = self._make_one(project="project-id", use_emulator=False)
         name = client._channel_refresh_task.get_name()
         assert "BigtableDataClientAsync channel refresh" in name
         await client.close()

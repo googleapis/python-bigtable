@@ -88,8 +88,9 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import (
     DEFAULT_CLIENT_INFO,
     BigtableAsyncClient,
 )
-from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
-from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcAsyncIOTransport
+from google.cloud.bigtable_v2.services.bigtable.transports import (
+    BigtableGrpcAsyncIOTransport,
+)
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 
 if TYPE_CHECKING:
@@ -105,7 +106,7 @@ class BigtableDataClientAsync(ClientWithProject):
         client_options: dict[str, Any]
         | "google.api_core.client_options.ClientOptions"
         | None = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Create a client instance for the Bigtable Data API
@@ -163,9 +164,13 @@ class BigtableDataClientAsync(ClientWithProject):
             credentials=credentials,
             client_options=client_options,
             client_info=client_info,
-            transport=lambda *args, **kwargs: BigtableGrpcAsyncIOTransport(*args, **kwargs, channel=custom_channel)
+            transport=lambda *args, **kwargs: BigtableGrpcAsyncIOTransport(
+                *args, **kwargs, channel=custom_channel
+            ),
         )
-        self.transport = self._gapic_client.transport
+        self.transport = cast(
+            BigtableGrpcAsyncIOTransport, self._gapic_client.transport
+        )
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[_WarmedInstanceKey] = set()
         # keep track of table objects associated with each instance
@@ -235,7 +240,7 @@ class BigtableDataClientAsync(ClientWithProject):
         instance_list = (
             [instance_key] if instance_key is not None else self._active_instances
         )
-        ping_rpc = self.transport._grpc_channel.unary_unary(
+        ping_rpc = self.transport.grpc_channel.unary_unary(
             "/google.bigtable.v2.Bigtable/PingAndWarm",
             request_serializer=PingAndWarmRequest.serialize,
         )
@@ -294,8 +299,8 @@ class BigtableDataClientAsync(ClientWithProject):
             await asyncio.sleep(next_sleep)
             start_timestamp = time.time()
             # prepare new channel for use
-            old_channel = self.transport._grpc_channel
-            new_channel = self.transport_create_channel()
+            old_channel = self.transport.grpc_channel
+            new_channel = self.transport.create_channel()
             await self._ping_and_warm_instances()
             # cycle channel out of use, with long grace window before closure
             self.transport._grpc_channel = new_channel
