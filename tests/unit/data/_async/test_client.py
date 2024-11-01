@@ -51,7 +51,7 @@ def _make_client(*args, use_emulator=True, **kwargs):
 
     env_mask = {}
     # by default, use emulator mode to avoid auth issues in CI
-    # emulator mode must be disabled by tests that check channel pooling/refresh background tasks
+    # emulator mode must be disabled by tests that check refresh background tasks
     if use_emulator:
         env_mask["BIGTABLE_EMULATOR_HOST"] = "localhost"
     else:
@@ -74,19 +74,16 @@ class TestBigtableDataClientAsync:
     @pytest.mark.asyncio
     async def test_ctor(self):
         expected_project = "project-id"
-        expected_pool_size = 11
         expected_credentials = AnonymousCredentials()
         client = self._make_one(
             project="project-id",
-            pool_size=expected_pool_size,
             credentials=expected_credentials,
             use_emulator=False,
         )
         await asyncio.sleep(0)
         assert client.project == expected_project
-        assert len(client.transport._grpc_channel._pool) == expected_pool_size
         assert not client._active_instances
-        assert len(client._channel_refresh_tasks) == expected_pool_size
+        assert client._channel_refresh_tasks is not None
         assert client.transport._credentials == expected_credentials
         await client.close()
 
@@ -99,11 +96,9 @@ class TestBigtableDataClientAsync:
         from google.api_core import client_options as client_options_lib
 
         project = "project-id"
-        pool_size = 11
         credentials = AnonymousCredentials()
         client_options = {"api_endpoint": "foo.bar:1234"}
         options_parsed = client_options_lib.from_dict(client_options)
-        transport_str = f"pooled_grpc_asyncio_{pool_size}"
         with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
             bigtable_client_init.return_value = None
             with mock.patch.object(
@@ -113,7 +108,6 @@ class TestBigtableDataClientAsync:
                 try:
                     self._make_one(
                         project=project,
-                        pool_size=pool_size,
                         credentials=credentials,
                         client_options=options_parsed,
                         use_emulator=False,
@@ -179,78 +173,6 @@ class TestBigtableDataClientAsync:
                 ), f"'{wrapped_user_agent_sorted}' does not match {VENEER_HEADER_REGEX}"
             await client.close()
 
-    @pytest.mark.asyncio
-    async def test_channel_pool_creation(self):
-        pool_size = 14
-        with mock.patch(
-            "google.api_core.grpc_helpers_async.create_channel"
-        ) as create_channel:
-            create_channel.return_value = AsyncMock()
-            client = self._make_one(project="project-id", pool_size=pool_size)
-            assert create_channel.call_count == pool_size
-            await client.close()
-        # channels should be unique
-        client = self._make_one(project="project-id", pool_size=pool_size)
-        pool_list = list(client.transport._grpc_channel._pool)
-        pool_set = set(client.transport._grpc_channel._pool)
-        assert len(pool_list) == len(pool_set)
-        await client.close()
-
-    @pytest.mark.asyncio
-    async def test_channel_pool_rotation(self):
-        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-            PooledChannel,
-        )
-
-        pool_size = 7
-
-        with mock.patch.object(PooledChannel, "next_channel") as next_channel:
-            client = self._make_one(project="project-id", pool_size=pool_size)
-            assert len(client.transport._grpc_channel._pool) == pool_size
-            next_channel.reset_mock()
-            with mock.patch.object(
-                type(client.transport._grpc_channel._pool[0]), "unary_unary"
-            ) as unary_unary:
-                # calling an rpc `pool_size` times should use a different channel each time
-                channel_next = None
-                for i in range(pool_size):
-                    channel_last = channel_next
-                    channel_next = client.transport.grpc_channel._pool[i]
-                    assert channel_last != channel_next
-                    next_channel.return_value = channel_next
-                    client.transport.ping_and_warm()
-                    assert next_channel.call_count == i + 1
-                    unary_unary.assert_called_once()
-                    unary_unary.reset_mock()
-        await client.close()
-
-    @pytest.mark.asyncio
-    async def test_channel_pool_replace(self):
-        with mock.patch.object(asyncio, "sleep"):
-            pool_size = 7
-            client = self._make_one(project="project-id", pool_size=pool_size)
-            for replace_idx in range(pool_size):
-                start_pool = [
-                    channel for channel in client.transport._grpc_channel._pool
-                ]
-                grace_period = 9
-                with mock.patch.object(
-                    type(client.transport._grpc_channel._pool[0]), "close"
-                ) as close:
-                    new_channel = grpc.aio.insecure_channel("localhost:8080")
-                    await client.transport.replace_channel(
-                        replace_idx, grace=grace_period, new_channel=new_channel
-                    )
-                    close.assert_called_once_with(grace=grace_period)
-                    close.assert_awaited_once()
-                assert client.transport._grpc_channel._pool[replace_idx] == new_channel
-                for i in range(pool_size):
-                    if i != replace_idx:
-                        assert client.transport._grpc_channel._pool[i] == start_pool[i]
-                    else:
-                        assert client.transport._grpc_channel._pool[i] != start_pool[i]
-            await client.close()
-
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test__start_background_channel_refresh_sync(self):
         # should raise RuntimeError if called in a sync context
@@ -259,48 +181,42 @@ class TestBigtableDataClientAsync:
             client._start_background_channel_refresh()
 
     @pytest.mark.asyncio
-    async def test__start_background_channel_refresh_tasks_exist(self):
+    async def test__start_background_channel_refresh_task_exists(self):
         # if tasks exist, should do nothing
         client = self._make_one(project="project-id", use_emulator=False)
-        assert len(client._channel_refresh_tasks) > 0
+        assert client._channel_refresh_task is not None
         with mock.patch.object(asyncio, "create_task") as create_task:
             client._start_background_channel_refresh()
             create_task.assert_not_called()
         await client.close()
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("pool_size", [1, 3, 7])
-    async def test__start_background_channel_refresh(self, pool_size):
+    async def test__start_background_channel_refresh(self):
         # should create background tasks for each channel
         client = self._make_one(
-            project="project-id", pool_size=pool_size, use_emulator=False
+            project="project-id", use_emulator=False
         )
         ping_and_warm = AsyncMock()
         client._ping_and_warm_instances = ping_and_warm
         client._start_background_channel_refresh()
-        assert len(client._channel_refresh_tasks) == pool_size
-        for task in client._channel_refresh_tasks:
-            assert isinstance(task, asyncio.Task)
+        assert client._channel_refresh_task is not None
+        assert isinstance(client._channel_refresh_task, asyncio.Task)
         await asyncio.sleep(0.1)
-        assert ping_and_warm.call_count == pool_size
-        for channel in client.transport._grpc_channel._pool:
-            ping_and_warm.assert_any_call(channel)
+        assert ping_and_warm.call_count == 1
+        ping_and_warm.assert_any_call(client.transport._grpc_channel)
         await client.close()
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(
         sys.version_info < (3, 8), reason="Task.name requires python3.8 or higher"
     )
-    async def test__start_background_channel_refresh_tasks_names(self):
+    async def test__start_background_channel_refresh_task_names(self):
         # if tasks exist, should do nothing
-        pool_size = 3
         client = self._make_one(
-            project="project-id", pool_size=pool_size, use_emulator=False
+            project="project-id", use_emulator=False
         )
-        for i in range(pool_size):
-            name = client._channel_refresh_tasks[i].get_name()
-            assert str(i) in name
-            assert "BigtableDataClientAsync channel refresh " in name
+        name = client._channel_refresh_task.get_name()
+        assert "BigtableDataClientAsync channel refresh" in name
         await client.close()
 
     @pytest.mark.asyncio
@@ -594,7 +510,7 @@ class TestBigtableDataClientAsync:
         instance_owners = {}
         client_mock._active_instances = active_instances
         client_mock._instance_owners = instance_owners
-        client_mock._channel_refresh_tasks = []
+        client_mock._channel_refresh_task is None
         client_mock._start_background_channel_refresh.side_effect = (
             lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
         )
