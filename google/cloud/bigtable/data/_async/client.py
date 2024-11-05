@@ -262,7 +262,7 @@ class BigtableDataClientAsync(ClientWithProject):
         )
         # prepare list of coroutines to run
         tasks = []
-        for (instance_name, table_name, app_profile_id) in instance_list:
+        for instance_name, table_name, app_profile_id in instance_list:
             metadata_str = f"name={instance_name}"
             if app_profile_id is not None:
                 metadata_str = f"{metadata_str}&app_profile_id={app_profile_id}"

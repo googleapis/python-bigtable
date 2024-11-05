@@ -19,7 +19,6 @@ from typing import (
     Any,
     AsyncIterator,
     Dict,
-    List,
     Optional,
     Sequence,
     Tuple,
@@ -83,8 +82,8 @@ class ExecuteQueryIteratorAsync:
         request_body: Dict[str, Any],
         attempt_timeout: float | None,
         operation_timeout: float,
-        req_metadata: Sequence[Tuple[str, str]] | None = None,
-        retryable_excs: List[type[Exception]] | None = None,
+        req_metadata: Sequence[Tuple[str, str]] = (),
+        retryable_excs: Sequence[type[Exception]] = (),
     ) -> None:
         self._table_name = None
         self._app_profile_id = app_profile_id
