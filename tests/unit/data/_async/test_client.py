@@ -378,6 +378,8 @@ class TestBigtableDataClientAsync:
         import time
         import random
 
+        channel = mock.Mock()
+        channel.close = mock.AsyncMock()
         with mock.patch.object(random, "uniform") as uniform:
             uniform.side_effect = lambda min_, max_: min_
             with mock.patch.object(time, "time") as time:
@@ -388,7 +390,10 @@ class TestBigtableDataClientAsync:
                     ]
                     try:
                         client = self._make_one(project="project-id")
-                        with mock.patch.object(client.transport, "create_channel"):
+                        client.transport._grpc_channel = channel
+                        with mock.patch.object(
+                            client.transport, "create_channel", return_value=channel
+                        ):
                             if refresh_interval is not None:
                                 await client._manage_channel(
                                     refresh_interval, refresh_interval
