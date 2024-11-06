@@ -220,7 +220,10 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         if self._channel_refresh_task:
             self._channel_refresh_task.cancel()
-            await asyncio.wait_for(self._channel_refresh_task, timeout=timeout)
+            try:
+                await asyncio.wait_for(self._channel_refresh_task, timeout=timeout)
+            except asyncio.CancelledError:
+                pass
         await self.transport.close()
         self._channel_refresh_task = None
 
