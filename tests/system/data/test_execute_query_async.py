@@ -23,7 +23,6 @@ from .test_execute_query_utils import (
 )
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data import BigtableDataClientAsync
-import google.cloud.bigtable.data._async.client
 
 TABLE_NAME = "TABLE_NAME"
 INSTANCE_NAME = "INSTANCE_NAME"
