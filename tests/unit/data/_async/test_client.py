@@ -388,12 +388,13 @@ class TestBigtableDataClientAsync:
                     ]
                     try:
                         client = self._make_one(project="project-id")
-                        if refresh_interval is not None:
-                            await client._manage_channel(
-                                refresh_interval, refresh_interval
-                            )
-                        else:
-                            await client._manage_channel()
+                        with mock.patch.object(client.transport, "create_channel"):
+                            if refresh_interval is not None:
+                                await client._manage_channel(
+                                    refresh_interval, refresh_interval
+                                )
+                            else:
+                                await client._manage_channel()
                     except asyncio.CancelledError:
                         pass
                     assert sleep.call_count == num_cycles
@@ -417,19 +418,20 @@ class TestBigtableDataClientAsync:
                     uniform.side_effect = None
                     uniform.reset_mock()
                     sleep.reset_mock()
-                min_val = 200
-                max_val = 205
-                uniform.side_effect = lambda min_, max_: min_
-                sleep.side_effect = [None, asyncio.CancelledError]
-                try:
-                    await client._manage_channel(min_val, max_val)
-                except asyncio.CancelledError:
-                    pass
-                assert uniform.call_count == 2
-                uniform_args = [call[0] for call in uniform.call_args_list]
-                for found_min, found_max in uniform_args:
-                    assert found_min == min_val
-                    assert found_max == max_val
+                with mock.patch.object(client.transport, "create_channel"):
+                    min_val = 200
+                    max_val = 205
+                    uniform.side_effect = lambda min_, max_: min_
+                    sleep.side_effect = [None, asyncio.CancelledError]
+                    try:
+                        await client._manage_channel(min_val, max_val)
+                    except asyncio.CancelledError:
+                        pass
+                    assert uniform.call_count == 2
+                    uniform_args = [call[0] for call in uniform.call_args_list]
+                    for found_min, found_max in uniform_args:
+                        assert found_min == min_val
+                        assert found_max == max_val
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("num_cycles", [0, 1, 10, 100])
