@@ -14,7 +14,6 @@
 
 from unittest import mock
 
-import google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio as pga
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from google.cloud.bigtable_v2.types.data import ProtoRows, Value as PBValue
 import grpc.aio
@@ -143,7 +142,7 @@ class ChannelMock:
         return mock.MagicMock()
 
 
-class ChannelMockAsync(pga.PooledChannel, mock.MagicMock):
+class ChannelMockAsync(grpc.aio.Channel, mock.MagicMock):
     def __init__(self, *args, **kwargs):
         mock.MagicMock.__init__(self, *args, **kwargs)
         self.execute_query_calls = []
