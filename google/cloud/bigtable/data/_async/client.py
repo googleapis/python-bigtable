@@ -228,7 +228,9 @@ class BigtableDataClientAsync(ClientWithProject):
         self._channel_refresh_task = None
 
     async def _ping_and_warm_instances(
-        self, instance_key: _WarmedInstanceKey | None = None, channel: grpc.aio.Channel|None=None
+        self,
+        instance_key: _WarmedInstanceKey | None = None,
+        channel: grpc.aio.Channel | None = None,
     ) -> list[BaseException | None]:
         """
         Prepares the backend for requests on a channel

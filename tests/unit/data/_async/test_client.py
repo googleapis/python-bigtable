@@ -283,7 +283,9 @@ class TestBigtableDataClientAsync:
             # should only have been called with test instance
             assert len(result) == 1
             # check grpc call arguments
-            grpc_call_args = client_mock.transport.grpc_channel.unary_unary().call_args_list
+            grpc_call_args = (
+                client_mock.transport.grpc_channel.unary_unary().call_args_list
+            )
             assert len(grpc_call_args) == 1
             kwargs = grpc_call_args[0][1]
             request = kwargs["request"]
@@ -348,9 +350,7 @@ class TestBigtableDataClientAsync:
             ping_and_warm = client_mock._ping_and_warm_instances = AsyncMock()
             # should ping and warm old channel then new if sleep > 0
             try:
-                await self._get_target_class()._manage_channel(
-                    client_mock, 10
-                )
+                await self._get_target_class()._manage_channel(client_mock, 10)
             except asyncio.CancelledError:
                 pass
             # should have called at loop start, and after replacement
@@ -501,7 +501,10 @@ class TestBigtableDataClientAsync:
             client_mock, "instance-2", table_mock2
         )
         assert client_mock._start_background_channel_refresh.call_count == 1
-        assert client_mock._ping_and_warm_instances.call_args[0][0][0] == "prefix/instance-2"
+        assert (
+            client_mock._ping_and_warm_instances.call_args[0][0][0]
+            == "prefix/instance-2"
+        )
         # but it should call ping and warm with new instance key
         assert client_mock._ping_and_warm_instances.call_count == 1
         # check for updated lists
@@ -812,15 +815,11 @@ class TestBigtableDataClientAsync:
 
     @pytest.mark.asyncio
     async def test_close(self):
-        client = self._make_one(
-            project="project-id", use_emulator=False
-        )
+        client = self._make_one(project="project-id", use_emulator=False)
         task = client._channel_refresh_task
         assert task is not None
         assert not task.done()
-        with mock.patch.object(
-            client.transport, "close", AsyncMock()
-        ) as close_mock:
+        with mock.patch.object(client.transport, "close", AsyncMock()) as close_mock:
             await client.close()
             close_mock.assert_called_once()
             close_mock.assert_awaited()
