@@ -14,6 +14,7 @@
 import datetime
 import os
 import inspect
+import uuid
 
 import pytest
 
@@ -24,7 +25,7 @@ from ...utils import create_table_cm
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_ID = "mobile-time-series-reads"
+TABLE_ID = f"mobile-time-series-reads-{str(uuid.uuid4())[:16]}"
 
 
 @pytest.fixture(scope="module", autouse=True)

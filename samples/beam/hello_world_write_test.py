@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import uuid
 
 import pytest
 
@@ -20,7 +21,7 @@ from ..utils import create_table_cm
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_ID = "mobile-time-series-beam"
+TABLE_ID = f"mobile-time-series-beam-{str(uuid.uuid4())[:16]}"
 
 
 @pytest.fixture(scope="module", autouse=True)

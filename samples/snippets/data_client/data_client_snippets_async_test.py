@@ -13,6 +13,7 @@
 import pytest
 import pytest_asyncio
 import os
+import uuid
 
 from . import data_client_snippets_async as data_snippets
 from ...utils import create_table_cm
@@ -20,7 +21,7 @@ from ...utils import create_table_cm
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_ID = "data-client"
+TABLE_ID = f"data-client-{str(uuid.uuid4())[:16]}"
 
 
 @pytest.fixture(scope="session")

@@ -16,6 +16,7 @@
 import datetime
 import os
 import time
+import uuid
 
 import pytest
 
@@ -24,7 +25,7 @@ from ...utils import create_table_cm
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_ID = "mobile-time-series-deletes"
+TABLE_ID = f"mobile-time-series-deletes-{str(uuid.uuid4())[:16]}"
 
 
 @pytest.fixture(scope="module")
@@ -126,7 +127,7 @@ def test_delete_column_family(capsys, table_id):
 
 
 def test_delete_table(capsys):
-    delete_table_id = "to-delete-table"
+    delete_table_id = f"to-delete-table-{str(uuid.uuid4())[:16]}"
     with create_table_cm(PROJECT, BIGTABLE_INSTANCE, delete_table_id, verbose=False):
         deletes_snippets.delete_table(PROJECT, BIGTABLE_INSTANCE, delete_table_id)
         assert_output_match(capsys, "")
