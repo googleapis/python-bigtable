@@ -52,7 +52,7 @@ def main(project_id, instance_id, table_name):
         )
         # [END bigtable_hw_create_table_happybase]
 
-        wait_for_table(connection.table(table_name))
+        wait_for_table(instance.table(table_name))
 
         # [START bigtable_hw_write_rows_happybase]
         print("Writing some greetings to the table.")
