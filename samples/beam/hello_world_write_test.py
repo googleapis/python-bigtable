@@ -13,10 +13,10 @@
 # limitations under the License.
 import os
 
-from google.cloud import bigtable
 import pytest
 
-import hello_world_write
+from . import hello_world_write
+from ..utils import create_table_cm
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
@@ -24,19 +24,11 @@ TABLE_ID = "mobile-time-series-beam"
 
 
 @pytest.fixture(scope="module", autouse=True)
-def table_id():
-    client = bigtable.Client(project=PROJECT, admin=True)
-    instance = client.instance(BIGTABLE_INSTANCE)
-
-    table_id = TABLE_ID
-    table = instance.table(table_id)
-    if table.exists():
-        table.delete()
-
-    table.create(column_families={"stats_summary": None})
-    yield table
-
-    table.delete()
+def table():
+    with create_table_cm(
+        PROJECT, BIGTABLE_INSTANCE, TABLE_ID, {"stats_summary": None}
+    ) as table:
+        yield table
 
 
 def test_hello_world_write(table):

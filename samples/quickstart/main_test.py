@@ -14,10 +14,11 @@
 
 import os
 
-from google.cloud import bigtable
 import pytest
 
-from main import main
+from .main import main
+
+from ..utils import create_table_cm
 
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
@@ -27,21 +28,14 @@ TABLE_ID = "quickstart-test"
 
 @pytest.fixture()
 def table():
-    table_id = TABLE_ID
-    client = bigtable.Client(project=PROJECT, admin=True)
-    instance = client.instance(BIGTABLE_INSTANCE)
-    table = instance.table(table_id)
     column_family_id = "cf1"
     column_families = {column_family_id: None}
-    table.create(column_families=column_families)
+    with create_table_cm(PROJECT, BIGTABLE_INSTANCE, TABLE_ID, column_families) as table:
+        row = table.direct_row("r1")
+        row.set_cell(column_family_id, "c1", "test-value")
+        row.commit()
 
-    row = table.direct_row("r1")
-    row.set_cell(column_family_id, "c1", "test-value")
-    row.commit()
-
-    yield table_id
-
-    table.delete()
+        yield TABLE_ID
 
 
 def test_main(capsys, table):

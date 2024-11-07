@@ -14,7 +14,6 @@
 
 import datetime
 import os
-import time
 
 import inspect
 from typing import AsyncGenerator
@@ -24,49 +23,21 @@ import pytest_asyncio
 from .snapshots.snap_filters_test import snapshots
 
 from . import filter_snippets_async
+from ...utils import create_table_cm
 from google.cloud._helpers import (
     _microseconds_from_datetime,
 )
-from google.api_core.exceptions import PreconditionFailed
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
 TABLE_ID = "mobile-time-series-filters-async"
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="module", autouse=True)
 async def table_id() -> AsyncGenerator[str, None]:
-    table, table_id = _create_table()
-    await _populate_table(table_id)
-    yield table_id
-    table.delete()
-
-
-def _create_table():
-    from google.cloud import bigtable
-
-    client = bigtable.Client(project=PROJECT, admin=True)
-    instance = client.instance(BIGTABLE_INSTANCE)
-
-    table_id = TABLE_ID
-    table = instance.table(table_id)
-    if table.exists():
-        table.delete()
-
-    table.create(column_families={"stats_summary": None, "cell_plan": None})
-
-    # let table creation complete
-    attempts = 0
-    table_ready = False
-    while not table_ready and attempts < 10:
-        try:
-            table_ready = table.exists()
-        except PreconditionFailed:
-            print("Waiting for table to become ready...")
-        attempts += 1
-        time.sleep(5)
-
-    return table, table_id
+    with create_table_cm(PROJECT, BIGTABLE_INSTANCE, TABLE_ID, {"stats_summary": None, "cell_plan": None}):
+        await _populate_table(TABLE_ID)
+        yield TABLE_ID
 
 
 async def _populate_table(table_id):

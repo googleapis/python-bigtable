@@ -14,8 +14,7 @@
 
 import os
 
-from main import main
-from google.cloud import bigtable
+from .main import main
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
@@ -23,21 +22,13 @@ TABLE_ID = "hello-world-test"
 
 
 def test_main(capsys):
-    try:
-        main(PROJECT, BIGTABLE_INSTANCE, TABLE_ID)
+    main(PROJECT, BIGTABLE_INSTANCE, TABLE_ID)
 
-        out, _ = capsys.readouterr()
-        assert "Creating the {} table.".format(TABLE_ID) in out
-        assert "Writing some greetings to the table." in out
-        assert "Getting a single greeting by row key." in out
-        assert "Hello World!" in out
-        assert "Scanning for all greetings" in out
-        assert "Hello Cloud Bigtable!" in out
-        assert "Deleting the {} table.".format(TABLE_ID) in out
-    finally:
-        # delete table
-        client = bigtable.Client(PROJECT, admin=True)
-        instance = client.instance(BIGTABLE_INSTANCE)
-        table = instance.table(TABLE_ID)
-        if table.exists():
-            table.delete()
+    out, _ = capsys.readouterr()
+    assert "Creating the {} table.".format(TABLE_ID) in out
+    assert "Writing some greetings to the table." in out
+    assert "Getting a single greeting by row key." in out
+    assert "Hello World!" in out
+    assert "Scanning for all greetings" in out
+    assert "Hello Cloud Bigtable!" in out
+    assert "Deleting the {} table.".format(TABLE_ID) in out
