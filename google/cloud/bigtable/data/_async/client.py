@@ -448,7 +448,7 @@ class BigtableDataClientAsync(ClientWithProject):
         directly to the AuthorizedViewAsync constructor.
 
         Args:
-           instance_id: The Bigtable instance ID to associate with this client.
+            instance_id: The Bigtable instance ID to associate with this client.
                 instance_id is combined with the client's project to fully
                 specify the instance
             table_id: The ID of the table. table_id is combined with the
