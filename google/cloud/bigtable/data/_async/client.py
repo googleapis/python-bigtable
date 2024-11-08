@@ -60,7 +60,6 @@ from google.cloud.bigtable.data._helpers import (
     _get_error_type,
     _get_retryable_errors,
     _get_timeouts,
-    _make_metadata,
     _retry_exception_factory,
     _validate_timeouts,
     _WarmedInstanceKey,
@@ -252,19 +251,18 @@ class BigtableDataClientAsync(ClientWithProject):
             request_serializer=PingAndWarmRequest.serialize,
         )
         # prepare list of coroutines to run
-        tasks = [
-            ping_rpc(
-                request={"name": instance_name, "app_profile_id": app_profile_id},
-                metadata=[
-                    (
-                        "x-goog-request-params",
-                        f"name={instance_name}&app_profile_id={app_profile_id}",
-                    )
-                ],
-                wait_for_ready=True,
+        tasks = []
+        for instance_name, table_name, app_profile_id in instance_list:
+            metadata_str = f"name={instance_name}"
+            if app_profile_id is not None:
+                metadata_str = f"{metadata_str}&app_profile_id={app_profile_id}"
+            tasks.append(
+                ping_rpc(
+                    request={"name": instance_name, "app_profile_id": app_profile_id},
+                    metadata=[("x-goog-request-params", metadata_str)],
+                    wait_for_ready=True,
+                )
             )
-            for (instance_name, table_name, app_profile_id) in instance_list
-        ]
         # execute coroutines in parallel
         result_list = await asyncio.gather(*tasks, return_exceptions=True)
         # return None in place of empty successful responses
@@ -493,15 +491,6 @@ class BigtableDataClientAsync(ClientWithProject):
             "proto_format": {},
         }
 
-        # app_profile_id should be set to an empty string for ExecuteQueryRequest only
-        app_profile_id_for_metadata = app_profile_id or ""
-
-        req_metadata = _make_metadata(
-            table_name=None,
-            app_profile_id=app_profile_id_for_metadata,
-            instance_name=instance_name,
-        )
-
         return ExecuteQueryIteratorAsync(
             self,
             instance_id,
@@ -509,8 +498,7 @@ class BigtableDataClientAsync(ClientWithProject):
             request_body,
             attempt_timeout,
             operation_timeout,
-            req_metadata,
-            retryable_excs,
+            retryable_excs=retryable_excs,
         )
 
     async def __aenter__(self):
@@ -990,16 +978,11 @@ class TableAsync:
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
 
         # prepare request
-        metadata = _make_metadata(
-            self.table_name, self.app_profile_id, instance_name=None
-        )
-
         async def execute_rpc():
             results = await self.client._gapic_client.sample_row_keys(
                 table_name=self.table_name,
                 app_profile_id=self.app_profile_id,
                 timeout=next(attempt_timeout_gen),
-                metadata=metadata,
                 retry=None,
             )
             return [(s.row_key, s.offset_bytes) async for s in results]
@@ -1128,9 +1111,6 @@ class TableAsync:
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
             timeout=attempt_timeout,
-            metadata=_make_metadata(
-                self.table_name, self.app_profile_id, instance_name=None
-            ),
             retry=None,
         )
         return await retries.retry_target_async(
@@ -1248,9 +1228,6 @@ class TableAsync:
         ):
             false_case_mutations = [false_case_mutations]
         false_case_list = [m._to_pb() for m in false_case_mutations or []]
-        metadata = _make_metadata(
-            self.table_name, self.app_profile_id, instance_name=None
-        )
         result = await self.client._gapic_client.check_and_mutate_row(
             true_mutations=true_case_list,
             false_mutations=false_case_list,
@@ -1258,7 +1235,6 @@ class TableAsync:
             row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
-            metadata=metadata,
             timeout=operation_timeout,
             retry=None,
         )
@@ -1301,15 +1277,11 @@ class TableAsync:
             rules = [rules]
         if not rules:
             raise ValueError("rules must contain at least one item")
-        metadata = _make_metadata(
-            self.table_name, self.app_profile_id, instance_name=None
-        )
         result = await self.client._gapic_client.read_modify_write_row(
             rules=[rule._to_pb() for rule in rules],
             row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
-            metadata=metadata,
             timeout=operation_timeout,
             retry=None,
         )
