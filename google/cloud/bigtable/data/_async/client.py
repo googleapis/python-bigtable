@@ -361,8 +361,8 @@ class BigtableDataClientAsync(ClientWithProject):
             start_timestamp = time.monotonic()
             # prepare new channel for use
             old_channel = self.transport.grpc_channel
-            new_channel = self.transport.grpc_channel._create_channel()
-            await self._ping_and_warm_instances(new_channel)
+            new_channel = self.transport.create_channel()
+            await self._ping_and_warm_instances(channel=new_channel)
             # cycle channel out of use, with long grace window before closure
             self.transport._grpc_channel = new_channel
             await old_channel.close(grace_period)

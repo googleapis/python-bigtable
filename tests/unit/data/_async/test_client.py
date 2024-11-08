@@ -106,7 +106,6 @@ class TestBigtableDataClientAsync:
         client_options = {"api_endpoint": "foo.bar:1234"}
         options_parsed = client_options_lib.from_dict(client_options)
         asyncio_portion = "-async" if CrossSync.is_async else ""
-        transport_str = f"bt-{bigtable_version}-data{asyncio_portion}-{pool_size}"
         with mock.patch.object(
             CrossSync.GapicClient, "__init__"
         ) as bigtable_client_init:
@@ -503,7 +502,7 @@ class TestBigtableDataClientAsync:
         grpc_lib = grpc.aio if CrossSync.is_async else grpc
         new_channel = grpc_lib.insecure_channel("localhost:8080")
 
-        with mock.patch.object(asyncio, "sleep") as sleep:
+        with mock.patch.object(CrossSync, "event_wait") as sleep:
             sleep.side_effect = [None for i in range(num_cycles)] + [
                 asyncio.CancelledError
             ]
@@ -602,7 +601,7 @@ class TestBigtableDataClientAsync:
         instance_owners = {}
         client_mock._active_instances = active_instances
         client_mock._instance_owners = instance_owners
-        client_mock._channel_refresh_tasks = [object()]
+        client_mock._channel_refresh_task = object()
         mock_channels = [mock.Mock()]
         client_mock.transport.channels = mock_channels
         client_mock._ping_and_warm_instances = CrossSync.Mock()
@@ -659,12 +658,7 @@ class TestBigtableDataClientAsync:
         instance_owners = {}
         client_mock._active_instances = active_instances
         client_mock._instance_owners = instance_owners
-        client_mock._channel_refresh_tasks = []
-        client_mock._start_background_channel_refresh.side_effect = (
-            lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
-        )
-        mock_channels = [mock.Mock() for i in range(5)]
-        client_mock.transport.channels = mock_channels
+        client_mock._channel_refresh_task = None
         client_mock._ping_and_warm_instances = CrossSync.Mock()
         table_mock = mock.Mock()
         # register instances
@@ -951,7 +945,6 @@ class TestBigtableDataClientAsync:
     async def test_close_with_timeout(self):
         expected_timeout = 19
         client = self._make_client(project="project-id", use_emulator=False)
-        tasks = list(client._channel_refresh_tasks)
         with mock.patch.object(CrossSync, "wait", CrossSync.Mock()) as wait_for_mock:
             await client.close(timeout=expected_timeout)
             wait_for_mock.assert_called_once()
@@ -1275,36 +1268,37 @@ class TestTableAsync:
     @CrossSync.pytest
     @CrossSync.convert
     async def test_call_metadata(self, include_app_profile, fn_name, fn_args, gapic_fn):
-        """check that all requests attach proper metadata headers"""
-        profile = "profile" if include_app_profile else None
-        with mock.patch.object(
-            CrossSync.GapicClient, gapic_fn, CrossSync.Mock()
-        ) as gapic_mock:
-            gapic_mock.side_effect = RuntimeError("stop early")
-            async with self._make_client() as client:
-                table = self._get_target_class()(
-                    client, "instance-id", "table-id", profile
-                )
-                try:
-                    test_fn = table.__getattribute__(fn_name)
-                    maybe_stream = await test_fn(*fn_args)
-                    [i async for i in maybe_stream]
-                except Exception:
-                    # we expect an exception from attempting to call the mock
-                    pass
-                kwargs = gapic_mock.call_args_list[0][1]
-                metadata = kwargs["metadata"]
-                goog_metadata = None
-                for key, value in metadata:
-                    if key == "x-goog-request-params":
-                        goog_metadata = value
-                assert goog_metadata is not None, "x-goog-request-params not found"
-                assert "table_name=" + table.table_name in goog_metadata
-                if include_app_profile:
-                    assert "app_profile_id=profile" in goog_metadata
-                else:
-                    assert "app_profile_id=" not in goog_metadata
+        from google.cloud.bigtable.data import TableAsync
 
+        profile = "profile" if include_app_profile else None
+        client = self._make_client()
+        # create mock for rpc stub
+        transport_mock = mock.MagicMock()
+        rpc_mock = mock.AsyncMock()
+        transport_mock._wrapped_methods.__getitem__.return_value = rpc_mock
+        client._gapic_client._client._transport = transport_mock
+        client._gapic_client._client._is_universe_domain_valid = True
+        table = self._get_target_class()(client, "instance-id", "table-id", profile)
+        try:
+            test_fn = table.__getattribute__(fn_name)
+            maybe_stream = await test_fn(*fn_args)
+            [i async for i in maybe_stream]
+        except Exception:
+            # we expect an exception from attempting to call the mock
+            pass
+        assert rpc_mock.call_count == 1
+        kwargs = rpc_mock.call_args_list[0].kwargs
+        metadata = kwargs["metadata"]
+        # expect single metadata entry
+        assert len(metadata) == 1
+        # expect x-goog-request-params tag
+        assert metadata[0][0] == "x-goog-request-params"
+        routing_str = metadata[0][1]
+        assert "table_name=" + table.table_name in routing_str
+        if include_app_profile:
+            assert "app_profile_id=profile" in routing_str
+        else:
+            assert "app_profile_id=" not in routing_str
 
 @CrossSync.convert_class(
     "TestReadRows",
