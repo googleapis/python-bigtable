@@ -73,7 +73,7 @@ def create_table(project, instance_id, table_id, column_families={}):
         exceptions.PreconditionFailed,
         exceptions.FailedPrecondition,
         exceptions.NotFound,
-    )
+    ),
     timeout=120,
 )
 def wait_for_table(table):
