@@ -17,7 +17,6 @@ from __future__ import annotations
 from typing import (
     Any,
     Dict,
-    List,
     Optional,
     Sequence,
     Tuple,
@@ -74,8 +73,8 @@ class ExecuteQueryIteratorAsync:
         request_body: Dict[str, Any],
         attempt_timeout: float | None,
         operation_timeout: float,
-        req_metadata: Sequence[Tuple[str, str]],
-        retryable_excs: List[type[Exception]],
+        req_metadata: Sequence[Tuple[str, str]] = (),
+        retryable_excs: Sequence[type[Exception]] = (),
     ) -> None:
         """
         Collects responses from ExecuteQuery requests and parses them into QueryResultRows.
