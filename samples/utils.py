@@ -10,6 +10,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Provides helper logic used across samples
+"""
 
 
 from google.cloud import bigtable
@@ -20,6 +23,10 @@ from google.api_core.retry import if_exception_type
 delete_retry = Retry(if_exception_type(exceptions.TooManyRequests, exceptions.ServiceUnavailable))
 
 class create_table_cm:
+    """
+    Create a new table using a context manager, to ensure that table.delete() is called to clean up
+    the table, even if an exception is thrown 
+    """
     def __init__(self, *args, verbose=True, **kwargs):
         self._args = args
         self._kwargs = kwargs
@@ -42,6 +49,9 @@ class create_table_cm:
 
 
 def create_table(project, instance_id, table_id, column_families={}):
+    """
+    Creates a new table, and blocks until it reaches a ready state
+    """
     client = bigtable.Client(project=project, admin=True)
     instance = client.instance(instance_id)
 
@@ -64,7 +74,14 @@ def create_table(project, instance_id, table_id, column_families={}):
         exceptions.FailedPrecondition,
         exceptions.NotFound,
     )
+    timeout=120,
 )
 def wait_for_table(table):
+    """
+    raises an exception if the table does not exist or is not ready to use
+
+    Because this method is wrapped with an api_core.Retry decorator, it will
+    retry with backoff if the table is not ready
+    """
     if not table.exists():
         raise exceptions.NotFound
