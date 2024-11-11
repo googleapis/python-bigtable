@@ -365,8 +365,14 @@ class BigtableDataClientAsync(ClientWithProject):
             await self._ping_and_warm_instances(channel=new_channel)
             # cycle channel out of use, with long grace window before closure
             self.transport._grpc_channel = new_channel
-            await old_channel.close(grace_period)
-            # subtract the time spent waiting for the channel to be replaced
+            # give old_channel a chance to complete existing rpcs
+            if CrossSync.is_async:
+                await old_channel.close(grace_period)
+            else:
+                if grace_period:
+                    self._is_closed.wait(grace_period)
+                old_channel.close()
+            # subtract thed time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
 
