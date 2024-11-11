@@ -230,9 +230,15 @@ class StripAsyncConditionalBranches(ast.NodeTransformer):
 
     def _is_async_check(self, node) -> bool:
         """
-        Check for CrossSync.is_async nodes
+        Check for CrossSync.is_async or CrossSync.is_async == True checks
         """
-        return isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "CrossSync" and node.attr == "is_async"
+        if isinstance(node, ast.Attribute):
+            # for CrossSync.is_async
+            return isinstance(node.value, ast.Name) and node.value.id == "CrossSync" and node.attr == "is_async"
+        elif isinstance(node, ast.Compare):
+            # for CrossSync.is_async == True
+            return self._is_async_check(node.left) and (isinstance(node.ops[0], ast.Eq) or isinstance(node.ops[0], ast.Is)) and len(node.comparators) == 1 and node.comparators[0].value == True
+        return False
 
 
 class CrossSyncFileProcessor(ast.NodeTransformer):

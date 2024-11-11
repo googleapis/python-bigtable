@@ -82,7 +82,7 @@ tests:
       @CrossSync.convert_class(sync_name="MyClass")
       @some_other_decorator
       class MyAsyncClass:
-          @CrossSync.convert
+          @CrossSync.convert(rm_aio=False)
           async def my_method(self):
               async with self.base.connection():
                   return await self.base.my_method()
@@ -269,7 +269,7 @@ tests:
     transformers: [CrossSyncFileProcessor]
     after: |
         def sync_method(self, arg):
-            return await self.helper(arg)
+            return self.helper(arg)
 
   - description: "Convert async method with rm_aio=True"
     before: |

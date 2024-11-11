@@ -48,12 +48,6 @@ from google.cloud.bigtable.data._helpers import RowKeySamples
 from google.cloud.bigtable.data._helpers import ShardedQuery
 
 # setup custom CrossSync mappings for library
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledBigtableGrpcAsyncIOTransport,
-)
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledChannel as AsyncPooledChannel,
-)
 from google.cloud.bigtable_v2.services.bigtable.async_client import (
     BigtableAsyncClient,
 )
@@ -76,10 +70,6 @@ from google.cloud.bigtable.data._cross_sync import CrossSync
 
 CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
 CrossSync._Sync_Impl.add_mapping("GapicClient", BigtableClient)
-CrossSync.add_mapping("PooledChannel", AsyncPooledChannel)
-CrossSync._Sync_Impl.add_mapping("PooledChannel", PooledChannel)
-CrossSync.add_mapping("PooledTransport", PooledBigtableGrpcAsyncIOTransport)
-CrossSync._Sync_Impl.add_mapping("PooledTransport", PooledBigtableGrpcTransport)
 CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
 CrossSync._Sync_Impl.add_mapping("_ReadRowsOperation", _ReadRowsOperation)
 CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
