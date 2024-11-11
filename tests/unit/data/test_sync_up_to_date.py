@@ -56,10 +56,10 @@ def test_sync_up_to_date(sync_file):
     If this test fails, run `nox -s generate_sync` to update the sync files.
     """
     path = sync_file.output_path
-    new_render = sync_file.render(with_black=True, save_to_disk=False)
+    new_render = sync_file.render(with_formatter=True, save_to_disk=False)
     found_render = CrossSyncOutputFile(
         output_path="", ast_tree=ast.parse(open(path).read()), header=sync_file.header
-    ).render(with_black=True, save_to_disk=False)
+    ).render(with_formatter=True, save_to_disk=False)
     # compare by content
     diff = unified_diff(found_render.splitlines(), new_render.splitlines(), lineterm="")
     diff_str = "\n".join(diff)
