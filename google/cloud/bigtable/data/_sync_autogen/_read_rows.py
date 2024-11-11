@@ -28,7 +28,6 @@ from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import _ResetRow
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
@@ -64,7 +63,6 @@ class _ReadRowsOperation:
         "request",
         "table",
         "_predicate",
-        "_metadata",
         "_last_yielded_row_key",
         "_remaining_count",
     )
@@ -91,9 +89,6 @@ class _ReadRowsOperation:
             self.request = query._to_pb(table)
         self.table = table
         self._predicate = retries.if_exception_type(*retryable_exceptions)
-        self._metadata = _make_metadata(
-            table.table_name, table.app_profile_id, instance_name=None
-        )
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
 
@@ -131,10 +126,7 @@ class _ReadRowsOperation:
             if self._remaining_count == 0:
                 return self.merge_rows(None)
         gapic_stream = self.table.client._gapic_client.read_rows(
-            self.request,
-            timeout=next(self.attempt_timeout_gen),
-            metadata=self._metadata,
-            retry=None,
+            self.request, timeout=next(self.attempt_timeout_gen), retry=None
         )
         chunked_stream = self.chunk_stream(gapic_stream)
         return self.merge_rows(chunked_stream)

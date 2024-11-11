@@ -21,7 +21,6 @@ import functools
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
 import google.cloud.bigtable.data.exceptions as bt_exceptions
-from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
@@ -69,14 +68,10 @@ class _MutateRowsOperation:
             raise ValueError(
                 f"mutate_rows requests can contain at most {_MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across all entries. Found {total_mutations}."
             )
-        metadata = _make_metadata(
-            table.table_name, table.app_profile_id, instance_name=None
-        )
         self._gapic_fn = functools.partial(
             gapic_client.mutate_rows,
             table_name=table.table_name,
             app_profile_id=table.app_profile_id,
-            metadata=metadata,
             retry=None,
         )
         self.is_retryable = retries.if_exception_type(

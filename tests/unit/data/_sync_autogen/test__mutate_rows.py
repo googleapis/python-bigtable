@@ -93,15 +93,10 @@ class TestMutateRowsOperation:
         instance._gapic_fn()
         assert client.mutate_rows.call_count == 1
         inner_kwargs = client.mutate_rows.call_args[1]
-        assert len(inner_kwargs) == 4
+        assert len(inner_kwargs) == 3
         assert inner_kwargs["table_name"] == table.table_name
         assert inner_kwargs["app_profile_id"] == table.app_profile_id
         assert inner_kwargs["retry"] is None
-        metadata = inner_kwargs["metadata"]
-        assert len(metadata) == 1
-        assert metadata[0][0] == "x-goog-request-params"
-        assert str(table.table_name) in metadata[0][1]
-        assert str(table.app_profile_id) in metadata[0][1]
         entries_w_pb = [_EntryWithProto(e, e._to_pb()) for e in entries]
         assert instance.mutations == entries_w_pb
         assert next(instance.timeout_generator) == attempt_timeout

@@ -158,11 +158,7 @@ class TestSystem:
     )
     def test_ping_and_warm(self, client, table):
         """Test ping and warm from handwritten client"""
-        try:
-            channel = client.transport._grpc_channel.pool[0]
-        except Exception:
-            channel = client.transport._grpc_channel
-        results = client._ping_and_warm_instances(channel)
+        results = client._ping_and_warm_instances()
         assert len(results) == 1
         assert results[0] is None
 
