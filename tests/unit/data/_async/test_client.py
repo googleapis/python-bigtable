@@ -422,7 +422,7 @@ class TestBigtableDataClientAsync:
         import threading
 
         channel = mock.Mock()
-        channel.close = mock.AsyncMock()
+        channel.close = CrossSync.Mock()
         with mock.patch.object(random, "uniform") as uniform:
             uniform.side_effect = lambda min_, max_: min_
             with mock.patch.object(time, "time") as time_mock:
@@ -438,16 +438,15 @@ class TestBigtableDataClientAsync:
                     ]
                     client = self._make_client(project="project-id")
                     client.transport._grpc_channel = channel
-                    with mock.patch.object(client.transport, "replace_channel", return_value=channel):
-                        try:
-                            if refresh_interval is not None:
-                                await client._manage_channel(
-                                    refresh_interval, refresh_interval
-                                )
-                            else:
-                                await client._manage_channel()
-                        except asyncio.CancelledError:
-                            pass
+                    try:
+                        if refresh_interval is not None:
+                            await client._manage_channel(
+                                refresh_interval, refresh_interval
+                            )
+                        else:
+                            await client._manage_channel()
+                    except asyncio.CancelledError:
+                        pass
                     assert sleep.call_count == num_cycles
                     if CrossSync.is_async:
                         total_sleep = sum([call[0][0] for call in sleep.call_args_list])
@@ -1274,7 +1273,7 @@ class TestTableAsync:
         client = self._make_client()
         # create mock for rpc stub
         transport_mock = mock.MagicMock()
-        rpc_mock = mock.AsyncMock()
+        rpc_mock = CrossSync.Mock()
         transport_mock._wrapped_methods.__getitem__.return_value = rpc_mock
         client._gapic_client._client._transport = transport_mock
         client._gapic_client._client._is_universe_domain_valid = True
