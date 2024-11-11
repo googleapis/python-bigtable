@@ -54,12 +54,6 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import (
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-    PooledBigtableGrpcTransport,
-)
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-    PooledChannel,
-)
 from google.cloud.bigtable_v2.services.bigtable.client import (
     BigtableClient,
 )
