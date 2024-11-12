@@ -431,7 +431,9 @@ class TestBigtableDataClientAsync:
                     ]
                     client = self._make_client(project="project-id")
                     client.transport._grpc_channel = channel
-                    with mock.patch.object(client.transport, "create_channel", CrossSync.Mock):
+                    with mock.patch.object(
+                        client.transport, "create_channel", CrossSync.Mock
+                    ):
                         try:
                             if refresh_interval is not None:
                                 await client._manage_channel(
