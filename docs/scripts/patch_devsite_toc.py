@@ -195,9 +195,7 @@ if __name__ == "__main__":
     # Add secrtions for the async_data_client and classic_client directories
     toc_path = "_build/html/docfx_yaml/toc.yml"
     custom_sections = [
-        TocSection(
-            dir_name="data_client", index_file_name="usage.rst"
-        ),
+        TocSection(dir_name="data_client", index_file_name="usage.rst"),
         TocSection(dir_name="classic_client", index_file_name="usage.rst"),
     ]
     add_sections(toc_path, custom_sections)

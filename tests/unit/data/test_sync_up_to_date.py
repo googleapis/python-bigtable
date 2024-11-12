@@ -29,6 +29,7 @@ from generate import convert_files_in_dir, CrossSyncOutputFile  # noqa: E402
 
 sync_files = list(convert_files_in_dir(repo_root))
 
+
 def test_found_files():
     """
     Make sure sync_test is populated with some of the files we expect to see,
@@ -42,7 +43,9 @@ def test_found_files():
     assert "execute_query_iterator.py" in outputs
     assert "test_client.py" in outputs
     assert "test_system_autogen.py" in outputs, "system tests not found"
-    assert "client_handler_data_sync_autogen.py" in outputs, "test proxy handler not found"
+    assert (
+        "client_handler_data_sync_autogen.py" in outputs
+    ), "test proxy handler not found"
 
 
 @pytest.mark.skipif(
@@ -63,7 +66,9 @@ def test_sync_up_to_date(sync_file):
     # compare by content
     diff = unified_diff(found_render.splitlines(), new_render.splitlines(), lineterm="")
     diff_str = "\n".join(diff)
-    assert not diff_str, f"Found differences. Run `nox -s generate_sync` to update:\n{diff_str}"
+    assert (
+        not diff_str
+    ), f"Found differences. Run `nox -s generate_sync` to update:\n{diff_str}"
     # compare by hash
     new_hash = hashlib.md5(new_render.encode()).hexdigest()
     found_hash = hashlib.md5(found_render.encode()).hexdigest()
