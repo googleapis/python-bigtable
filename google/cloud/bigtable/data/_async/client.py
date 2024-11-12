@@ -83,29 +83,24 @@ if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.transports import (
         BigtableGrpcAsyncIOTransport as TransportType,
     )
-    from google.cloud.bigtable.data._async.mutations_batcher import (
-        MutationsBatcherAsync,
-        _MB_SIZE,
-    )
-    from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
-        ExecuteQueryIteratorAsync,
-    )
-
+    from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 else:
     from grpc import insecure_channel
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
-    from google.cloud.bigtable.data._sync_autogen.mutations_batcher import (  # noqa: F401
-        MutationsBatcher,
-        _MB_SIZE,
-    )
-    from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (  # noqa: F401
-        ExecuteQueryIterator,
-    )
 
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
+
+    if CrossSync.is_async:
+        from google.cloud.bigtable.data._async.mutations_batcher import (
+            MutationsBatcherAsync,
+        )
+        from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
+            ExecuteQueryIteratorAsync,
+        )
+
 
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.client"
 
@@ -372,8 +367,8 @@ class BigtableDataClientAsync(ClientWithProject):
                 await old_channel.close(grace_period)
             else:
                 if grace_period:
-                    self._is_closed.wait(grace_period)
-                old_channel.close()
+                    self._is_closed.wait(grace_period)  # type: ignore
+                old_channel.close()  # type: ignore
             # subtract thed time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
@@ -421,7 +416,7 @@ class BigtableDataClientAsync(ClientWithProject):
         }
     )
     async def _remove_instance_registration(
-        self, instance_id: str, owner: TableAsync | ExecuteQueryIteratorAsync
+        self, instance_id: str, owner: TableAsync | "ExecuteQueryIteratorAsync"
     ) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
@@ -585,7 +580,7 @@ class BigtableDataClientAsync(ClientWithProject):
             "proto_format": {},
         }
 
-        return ExecuteQueryIteratorAsync(
+        return CrossSync.ExecuteQueryIterator(
             self,
             instance_id,
             app_profile_id,
@@ -1132,7 +1127,7 @@ class TableAsync:
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-    ) -> MutationsBatcherAsync:
+    ) -> "MutationsBatcherAsync":
         """
         Returns a new mutations batcher instance.
 

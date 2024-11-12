@@ -61,6 +61,7 @@ CrossSync.add_mapping("GapicClient", BigtableAsyncClient)
 CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
 CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
 CrossSync.add_mapping("ExecuteQueryIterator", ExecuteQueryIteratorAsync)
+CrossSync.add_mapping("MutationsBatcher", MutationsBatcherAsync)
 
 
 __version__: str = package_version.__version__
