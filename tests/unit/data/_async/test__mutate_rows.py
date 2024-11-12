@@ -104,10 +104,6 @@ class TestMutateRowsOperation:
         assert client.mutate_rows.call_count == 0
         instance._gapic_fn()
         assert client.mutate_rows.call_count == 1
-        # gapic_fn should call with table details
-        inner_kwargs = client.mutate_rows.call_args[1]
-        assert len(inner_kwargs) == 3
-        assert inner_kwargs["retry"] is None
         # entries should be passed down
         entries_w_pb = [_EntryWithProto(e, e._to_pb()) for e in entries]
         assert instance.mutations == entries_w_pb

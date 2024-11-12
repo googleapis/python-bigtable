@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from typing import Sequence, TYPE_CHECKING
 from dataclasses import dataclass
-import functools
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
@@ -82,14 +81,8 @@ class _MutateRowsOperationAsync:
                 f"{_MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across "
                 f"all entries. Found {total_mutations}."
             )
-        # create partial function to pass to trigger rpc call
         self._table = table
-        self._gapic_fn = functools.partial(
-            gapic_client.mutate_rows,
-            table_name=table.table_name,
-            app_profile_id=table.app_profile_id,
-            retry=None,
-        )
+        self._gapic_fn = gapic_client.mutate_rows
         # create predicate for determining which errors are retryable
         self.is_retryable = retries.if_exception_type(
             # RPC level errors
@@ -177,6 +170,7 @@ class _MutateRowsOperationAsync:
                     app_profile_id=self._table.app_profile_id,
                 ),
                 timeout=next(self.timeout_generator),
+                retry=None
             )
             async for result_list in result_generator:
                 for result in result_list.entries:
