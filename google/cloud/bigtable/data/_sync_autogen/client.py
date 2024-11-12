@@ -69,17 +69,17 @@ from grpc import insecure_channel
 from google.cloud.bigtable_v2.services.bigtable.transports import (
     BigtableGrpcTransport as TransportType,
 )
-from google.cloud.bigtable.data._sync_autogen.mutations_batcher import (
-    MutationsBatcher,
-    _MB_SIZE,
-)
-from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (
-    ExecuteQueryIterator,
-)
+from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
+    from google.cloud.bigtable.data._sync_autogen.mutations_batcher import (
+        MutationsBatcher,
+    )
+    from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (
+        ExecuteQueryIterator,
+    )
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("DataClient")
@@ -284,7 +284,9 @@ class BigtableDataClient(ClientWithProject):
             new_channel = self.transport.create_channel()
             self._ping_and_warm_instances(channel=new_channel)
             self.transport._grpc_channel = new_channel
-            old_channel.close(grace_period)
+            if grace_period:
+                self._is_closed.wait(grace_period)
+            old_channel.close()
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
 
@@ -314,7 +316,7 @@ class BigtableDataClient(ClientWithProject):
                 self._start_background_channel_refresh()
 
     def _remove_instance_registration(
-        self, instance_id: str, owner: Table | ExecuteQueryIterator
+        self, instance_id: str, owner: Table | "ExecuteQueryIterator"
     ) -> bool:
         """Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
@@ -452,7 +454,7 @@ class BigtableDataClient(ClientWithProject):
             "params": pb_params,
             "proto_format": {},
         }
-        return ExecuteQueryIterator(
+        return CrossSync._Sync_Impl.ExecuteQueryIterator(
             self,
             instance_id,
             app_profile_id,
@@ -945,7 +947,7 @@ class Table:
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-    ) -> MutationsBatcher:
+    ) -> "MutationsBatcher":
         """Returns a new mutations batcher instance.
 
         Can be used to iteratively add mutations that are flushed as a group,

@@ -68,6 +68,8 @@ CrossSync.add_mapping("_ReadRowsOperation", _ReadRowsOperationAsync)
 CrossSync._Sync_Impl.add_mapping("_ReadRowsOperation", _ReadRowsOperation)
 CrossSync.add_mapping("_MutateRowsOperation", _MutateRowsOperationAsync)
 CrossSync._Sync_Impl.add_mapping("_MutateRowsOperation", _MutateRowsOperation)
+CrossSync.add_mapping("MutationsBatcher", MutationsBatcherAsync)
+CrossSync._Sync_Impl.add_mapping("MutationsBatcher", MutationsBatcher)
 
 __version__: str = package_version.__version__
 

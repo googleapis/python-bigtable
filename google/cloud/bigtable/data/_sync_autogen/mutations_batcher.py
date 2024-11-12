@@ -146,7 +146,6 @@ class _FlowControl:
             yield mutations[start_idx:end_idx]
 
 
-@CrossSync._Sync_Impl.add_mapping_decorator("MutationsBatcher")
 class MutationsBatcher:
     """
     Allows users to send batches using context manager API:

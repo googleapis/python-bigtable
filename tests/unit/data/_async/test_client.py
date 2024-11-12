@@ -99,13 +99,11 @@ class TestBigtableDataClientAsync:
     async def test_ctor_super_inits(self):
         from google.cloud.client import ClientWithProject
         from google.api_core import client_options as client_options_lib
-        from google.cloud.bigtable import __version__ as bigtable_version
 
         project = "project-id"
         credentials = AnonymousCredentials()
         client_options = {"api_endpoint": "foo.bar:1234"}
         options_parsed = client_options_lib.from_dict(client_options)
-        asyncio_portion = "-async" if CrossSync.is_async else ""
         with mock.patch.object(
             CrossSync.GapicClient, "__init__"
         ) as bigtable_client_init:
@@ -213,15 +211,17 @@ class TestBigtableDataClientAsync:
     @CrossSync.pytest
     async def test__start_background_channel_refresh(self):
         # should create background tasks for each channel
-        client = self._make_client(project="project-id", use_emulator=False)
-        ping_and_warm = CrossSync.Mock()
-        client._ping_and_warm_instances = ping_and_warm
-        client._start_background_channel_refresh()
-        assert client._channel_refresh_task is not None
-        assert isinstance(client._channel_refresh_task, asyncio.Task)
-        await asyncio.sleep(0.1)
-        assert ping_and_warm.call_count == 1
-        await client.close()
+        client = self._make_client(project="project-id")
+        with mock.patch.object(
+            client, "_ping_and_warm_instances", CrossSync.Mock()
+        ) as ping_and_warm:
+            client._emulator_host = None
+            client._start_background_channel_refresh()
+            assert client._channel_refresh_task is not None
+            assert isinstance(client._channel_refresh_task, CrossSync.Task)
+            await CrossSync.sleep(0.1)
+            assert ping_and_warm.call_count == 1
+            await client.close()
 
     @CrossSync.drop
     @CrossSync.pytest
@@ -310,7 +310,6 @@ class TestBigtableDataClientAsync:
             CrossSync, "gather_partials", CrossSync.Mock()
         ) as gather:
             gather.side_effect = lambda *args, **kwargs: [fn() for fn in args[0]]
-            channel = mock.Mock()
             # test with large set of instances
             client_mock._active_instances = [mock.Mock()] * 100
             test_key = ("test-instance", "test-table", "test-app-profile")
@@ -419,7 +418,6 @@ class TestBigtableDataClientAsync:
         # make sure that sleeps work as expected
         import time
         import random
-        import threading
 
         channel = mock.Mock()
         channel.close = CrossSync.Mock()
@@ -427,12 +425,7 @@ class TestBigtableDataClientAsync:
             uniform.side_effect = lambda min_, max_: min_
             with mock.patch.object(time, "time") as time_mock:
                 time_mock.return_value = 0
-                sleep_tuple = (
-                    (asyncio, "sleep")
-                    if CrossSync.is_async
-                    else (threading.Event, "wait")
-                )
-                with mock.patch.object(*sleep_tuple) as sleep:
+                with mock.patch.object(CrossSync, "event_wait") as sleep:
                     sleep.side_effect = [None for i in range(num_cycles - 1)] + [
                         asyncio.CancelledError
                     ]
@@ -441,19 +434,14 @@ class TestBigtableDataClientAsync:
                     try:
                         if refresh_interval is not None:
                             await client._manage_channel(
-                                refresh_interval, refresh_interval
+                                refresh_interval, refresh_interval, grace_period=0
                             )
                         else:
-                            await client._manage_channel()
+                            await client._manage_channel(grace_period=0)
                     except asyncio.CancelledError:
                         pass
                     assert sleep.call_count == num_cycles
-                    if CrossSync.is_async:
-                        total_sleep = sum([call[0][0] for call in sleep.call_args_list])
-                    else:
-                        total_sleep = sum(
-                            [call[1]["timeout"] for call in sleep.call_args_list]
-                        )
+                    total_sleep = sum([call[0][1] for call in sleep.call_args_list])
                     assert (
                         abs(total_sleep - expected_sleep) < 0.1
                     ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
@@ -462,12 +450,8 @@ class TestBigtableDataClientAsync:
     @CrossSync.pytest
     async def test__manage_channel_random(self):
         import random
-        import threading
 
-        sleep_tuple = (
-            (asyncio, "sleep") if CrossSync.is_async else (threading.Event, "wait")
-        )
-        with mock.patch.object(*sleep_tuple) as sleep:
+        with mock.patch.object(CrossSync, "event_wait") as sleep:
             with mock.patch.object(random, "uniform") as uniform:
                 uniform.return_value = 0
                 try:
@@ -483,7 +467,7 @@ class TestBigtableDataClientAsync:
                     uniform.side_effect = lambda min_, max_: min_
                     sleep.side_effect = [None, asyncio.CancelledError]
                     try:
-                        await client._manage_channel(min_val, max_val)
+                        await client._manage_channel(min_val, max_val, grace_period=0)
                     except asyncio.CancelledError:
                         pass
                     assert uniform.call_count == 2
@@ -496,28 +480,25 @@ class TestBigtableDataClientAsync:
     @pytest.mark.parametrize("num_cycles", [0, 1, 10, 100])
     async def test__manage_channel_refresh(self, num_cycles):
         # make sure that channels are properly refreshed
-        expected_grace = 9
         expected_refresh = 0.5
         grpc_lib = grpc.aio if CrossSync.is_async else grpc
         new_channel = grpc_lib.insecure_channel("localhost:8080")
 
         with mock.patch.object(CrossSync, "event_wait") as sleep:
-            sleep.side_effect = [None for i in range(num_cycles)] + [
-                asyncio.CancelledError
-            ]
+            sleep.side_effect = [None for i in range(num_cycles)] + [RuntimeError]
             with mock.patch.object(
                 CrossSync.grpc_helpers, "create_channel"
             ) as create_channel:
                 create_channel.return_value = new_channel
-                client = self._make_client(project="project-id", use_emulator=False)
+                client = self._make_client(project="project-id")
                 create_channel.reset_mock()
                 try:
                     await client._manage_channel(
                         refresh_interval_min=expected_refresh,
                         refresh_interval_max=expected_refresh,
-                        grace_period=expected_grace,
+                        grace_period=0,
                     )
-                except asyncio.CancelledError:
+                except RuntimeError:
                     pass
                 assert sleep.call_count == num_cycles + 1
                 assert create_channel.call_count == num_cycles
@@ -932,12 +913,14 @@ class TestBigtableDataClientAsync:
         task = client._channel_refresh_task
         assert task is not None
         assert not task.done()
-        with mock.patch.object(client.transport, "close", CrossSync.Mock()) as close_mock:
+        with mock.patch.object(
+            client.transport, "close", CrossSync.Mock()
+        ) as close_mock:
             await client.close()
             close_mock.assert_called_once()
-            close_mock.assert_awaited()
+            if CrossSync.is_async:
+                close_mock.assert_awaited()
         assert task.done()
-        assert task.cancelled()
         assert client._channel_refresh_task is None
 
     @CrossSync.pytest
@@ -954,11 +937,16 @@ class TestBigtableDataClientAsync:
 
     @CrossSync.pytest
     async def test_context_manager(self):
+        from functools import partial
+
         # context manager should close the client cleanly
         close_mock = CrossSync.Mock()
         true_close = None
-        async with self._make_client(project="project-id", use_emulator=False) as client:
-            true_close = client.close()
+        async with self._make_client(
+            project="project-id", use_emulator=False
+        ) as client:
+            # grab reference to close coro for async test
+            true_close = partial(client.close)
             client.close = close_mock
             assert not client._channel_refresh_task.done()
             assert client.project == "project-id"
@@ -968,7 +956,7 @@ class TestBigtableDataClientAsync:
         if CrossSync.is_async:
             close_mock.assert_awaited()
         # actually close the client
-        await true_close
+        await true_close()
 
     @CrossSync.drop
     def test_client_ctor_sync(self):
@@ -1267,16 +1255,18 @@ class TestTableAsync:
     @CrossSync.pytest
     @CrossSync.convert
     async def test_call_metadata(self, include_app_profile, fn_name, fn_args, gapic_fn):
-        from google.cloud.bigtable.data import TableAsync
-
         profile = "profile" if include_app_profile else None
         client = self._make_client()
         # create mock for rpc stub
         transport_mock = mock.MagicMock()
         rpc_mock = CrossSync.Mock()
         transport_mock._wrapped_methods.__getitem__.return_value = rpc_mock
-        client._gapic_client._client._transport = transport_mock
-        client._gapic_client._client._is_universe_domain_valid = True
+        gapic_client = client._gapic_client
+        if CrossSync.is_async:
+            # inner BigtableClient is held as ._client for BigtableAsyncClient
+            gapic_client = gapic_client._client
+        gapic_client._transport = transport_mock
+        gapic_client._is_universe_domain_valid = True
         table = self._get_target_class()(client, "instance-id", "table-id", profile)
         try:
             test_fn = table.__getattribute__(fn_name)
@@ -1298,6 +1288,7 @@ class TestTableAsync:
             assert "app_profile_id=profile" in routing_str
         else:
             assert "app_profile_id=" not in routing_str
+
 
 @CrossSync.convert_class(
     "TestReadRows",
