@@ -27,7 +27,7 @@ __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_mutations_batcher"
 
 
 @CrossSync.convert_class(sync_name="Test_FlowControl")
-class Test_FlowControl:
+class Test_FlowControlAsync:
     @staticmethod
     @CrossSync.convert
     def _target_class():
