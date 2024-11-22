@@ -15,92 +15,117 @@
 
 from __future__ import annotations
 
-import asyncio
-from functools import partial
-import os
-import random
-import sys
-import time
 from typing import (
-    TYPE_CHECKING,
+    cast,
     Any,
     AsyncIterable,
-    Dict,
     Optional,
-    Sequence,
     Set,
-    Union,
-    cast,
+    Sequence,
+    TYPE_CHECKING,
 )
+
+import time
 import warnings
+import random
+import os
+import concurrent.futures
 
-from google.api_core import client_options as client_options_lib
-from google.api_core import retry as retries
-from google.api_core.exceptions import Aborted, DeadlineExceeded, ServiceUnavailable
-import google.auth._default
-import google.auth.credentials
-from google.cloud.client import ClientWithProject
-from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
-import grpc
+from functools import partial
+from grpc import Channel
 
-from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
-from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
-    ExecuteQueryIteratorAsync,
-)
-from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-from google.cloud.bigtable.data._async.mutations_batcher import (
-    _MB_SIZE,
-    MutationsBatcherAsync,
-)
-from google.cloud.bigtable.data._helpers import (
-    _CONCURRENCY_LIMIT,
-    TABLE_DEFAULT,
-    _attempt_timeout_generator,
-    _get_error_type,
-    _get_retryable_errors,
-    _get_timeouts,
-    _retry_exception_factory,
-    _validate_timeouts,
-    _WarmedInstanceKey,
-)
-from google.cloud.bigtable.data.exceptions import (
-    FailedQueryShardError,
-    ShardedReadRowsExceptionGroup,
-)
-from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
-from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
-from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable.data.row import Row
-from google.cloud.bigtable.data.row_filters import (
-    CellsRowLimitFilter,
-    RowFilter,
-    RowFilterChain,
-    StripValueTransformerFilter,
-)
 from google.cloud.bigtable.data.execute_query.values import ExecuteQueryValueType
 from google.cloud.bigtable.data.execute_query.metadata import SqlType
 from google.cloud.bigtable.data.execute_query._parameters_formatting import (
     _format_execute_query_params,
 )
-from google.cloud.bigtable_v2.services.bigtable.async_client import (
+from google.cloud.bigtable_v2.services.bigtable.transports.base import (
     DEFAULT_CLIENT_INFO,
-    BigtableAsyncClient,
-)
-from google.cloud.bigtable_v2.services.bigtable.transports import (
-    BigtableGrpcAsyncIOTransport,
 )
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.bigtable_v2.types.bigtable import SampleRowKeysRequest
 from google.cloud.bigtable_v2.types.bigtable import MutateRowRequest
 from google.cloud.bigtable_v2.types.bigtable import CheckAndMutateRowRequest
 from google.cloud.bigtable_v2.types.bigtable import ReadModifyWriteRowRequest
+from google.cloud.client import ClientWithProject
+from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
+from google.api_core import retry as retries
+from google.api_core.exceptions import DeadlineExceeded
+from google.api_core.exceptions import ServiceUnavailable
+from google.api_core.exceptions import Aborted
+
+import google.auth.credentials
+import google.auth._default
+from google.api_core import client_options as client_options_lib
+from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
+from google.cloud.bigtable.data.row import Row
+from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable.data.exceptions import FailedQueryShardError
+from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+
+from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
+from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
+from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
+from google.cloud.bigtable.data._helpers import _retry_exception_factory
+from google.cloud.bigtable.data._helpers import _validate_timeouts
+from google.cloud.bigtable.data._helpers import _get_error_type
+from google.cloud.bigtable.data._helpers import _get_retryable_errors
+from google.cloud.bigtable.data._helpers import _get_timeouts
+from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
+from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
+
+from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
+from google.cloud.bigtable.data.row_filters import RowFilter
+from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
+from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
+from google.cloud.bigtable.data.row_filters import RowFilterChain
+
+from google.cloud.bigtable.data._cross_sync import CrossSync
+
+if CrossSync.is_async:
+    from grpc.aio import insecure_channel
+    from google.cloud.bigtable_v2.services.bigtable.transports import (
+        BigtableGrpcAsyncIOTransport as TransportType,
+    )
+    from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
+else:
+    from grpc import insecure_channel
+    from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
+
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._helpers import RowKeySamples, ShardedQuery
+    from google.cloud.bigtable.data._helpers import RowKeySamples
+    from google.cloud.bigtable.data._helpers import ShardedQuery
+
+    if CrossSync.is_async:
+        from google.cloud.bigtable.data._async.mutations_batcher import (
+            MutationsBatcherAsync,
+        )
+        from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
+            ExecuteQueryIteratorAsync,
+        )
 
 
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.client"
+
+
+@CrossSync.convert_class(
+    sync_name="BigtableDataClient",
+    add_mapping_for_name="DataClient",
+)
 class BigtableDataClientAsync(ClientWithProject):
+    @CrossSync.convert(
+        docstring_format_vars={
+            "LOOP_MESSAGE": (
+                "Client should be created within an async context (running event loop)",
+                None,
+            ),
+            "RAISE_NO_LOOP": (
+                "RuntimeError: if called outside of an async context (no running event loop)",
+                None,
+            ),
+        }
+    )
     def __init__(
         self,
         *,
@@ -114,7 +139,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         Create a client instance for the Bigtable Data API
 
-        Client should be created within an async context (running event loop)
+        {LOOP_MESSAGE}
 
         Args:
             project: the project which the client acts on behalf of.
@@ -129,7 +154,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 Client options used to set user options
                 on the client. API Endpoint should be set through client_options.
         Raises:
-            RuntimeError: if called outside of an async context (no running event loop)
+            {RAISE_NO_LOOP}
         """
         if "pool_size" in kwargs:
             warnings.warn("pool_size no longer supported")
@@ -151,7 +176,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 stacklevel=2,
             )
             # use insecure channel if emulator is set
-            custom_channel = grpc.aio.insecure_channel(self._emulator_host)
+            custom_channel = insecure_channel(self._emulator_host)
             if credentials is None:
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
@@ -163,24 +188,26 @@ class BigtableDataClientAsync(ClientWithProject):
             project=project,
             client_options=client_options,
         )
-        self._gapic_client = BigtableAsyncClient(
+        self._gapic_client = CrossSync.GapicClient(
             credentials=credentials,
             client_options=client_options,
             client_info=client_info,
-            transport=lambda *args, **kwargs: BigtableGrpcAsyncIOTransport(
+            transport=lambda *args, **kwargs: TransportType(
                 *args, **kwargs, channel=custom_channel
             ),
         )
-        self.transport = cast(
-            BigtableGrpcAsyncIOTransport, self._gapic_client.transport
-        )
+        self._is_closed = CrossSync.Event()
+        self.transport = cast(TransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[_WarmedInstanceKey] = set()
         # keep track of table objects associated with each instance
         # only remove instance from _active_instances when all associated tables remove it
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
-        self._channel_refresh_task: asyncio.Task[None] | None = None
+        self._channel_refresh_task: CrossSync.Task[None] | None = None
+        self._executor = (
+            concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
+        )
         if self._emulator_host is None:
             # attempt to start background channel refresh tasks
             try:
@@ -198,42 +225,58 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         Helper function to return the client version string for this client
         """
-        return f"{google.cloud.bigtable.__version__}-data-async"
+        version_str = f"{google.cloud.bigtable.__version__}-data"
+        if CrossSync.is_async:
+            version_str += "-async"
+        return version_str
 
+    @CrossSync.convert(
+        docstring_format_vars={
+            "RAISE_NO_LOOP": (
+                "RuntimeError: if not called in an asyncio event loop",
+                "None",
+            )
+        }
+    )
     def _start_background_channel_refresh(self) -> None:
         """
         Starts a background task to ping and warm grpc channel
 
         Raises:
-          RuntimeError: if not called in an asyncio event loop
+            {RAISE_NO_LOOP}
         """
-        if not self._channel_refresh_task and not self._emulator_host:
-            # raise RuntimeError if there is no event loop
-            asyncio.get_running_loop()
-            self._channel_refresh_task = asyncio.create_task(self._manage_channel())
-            if sys.version_info >= (3, 8):
-                # task names supported in Python 3.8+
-                self._channel_refresh_task.set_name(
-                    f"{self.__class__.__name__} channel refresh"
-                )
+        if (
+            not self._channel_refresh_task
+            and not self._emulator_host
+            and not self._is_closed.is_set()
+        ):
+            # raise error if not in an event loop in async client
+            CrossSync.verify_async_event_loop()
+            self._channel_refresh_task = CrossSync.create_task(
+                self._manage_channel,
+                sync_executor=self._executor,
+                task_name=f"{self.__class__.__name__} channel refresh",
+            )
 
-    async def close(self, timeout: float = 2.0):
+    @CrossSync.convert
+    async def close(self, timeout: float | None = 2.0):
         """
         Cancel all background tasks
         """
-        if self._channel_refresh_task:
+        self._is_closed.set()
+        if self._channel_refresh_task is not None:
             self._channel_refresh_task.cancel()
-            try:
-                await asyncio.wait_for(self._channel_refresh_task, timeout=timeout)
-            except asyncio.CancelledError:
-                pass
+            await CrossSync.wait([self._channel_refresh_task], timeout=timeout)
         await self.transport.close()
+        if self._executor:
+            self._executor.shutdown(wait=False)
         self._channel_refresh_task = None
 
+    @CrossSync.convert
     async def _ping_and_warm_instances(
         self,
         instance_key: _WarmedInstanceKey | None = None,
-        channel: grpc.aio.Channel | None = None,
+        channel: Channel | None = None,
     ) -> list[BaseException | None]:
         """
         Prepares the backend for requests on a channel
@@ -255,23 +298,26 @@ class BigtableDataClientAsync(ClientWithProject):
             request_serializer=PingAndWarmRequest.serialize,
         )
         # prepare list of coroutines to run
-        tasks = []
-        for instance_name, table_name, app_profile_id in instance_list:
-            metadata_str = f"name={instance_name}"
-            if app_profile_id is not None:
-                metadata_str = f"{metadata_str}&app_profile_id={app_profile_id}"
-            tasks.append(
-                ping_rpc(
-                    request={"name": instance_name, "app_profile_id": app_profile_id},
-                    metadata=[("x-goog-request-params", metadata_str)],
-                    wait_for_ready=True,
-                )
+        partial_list = [
+            partial(
+                ping_rpc,
+                request={"name": instance_name, "app_profile_id": app_profile_id},
+                metadata=[
+                    (
+                        "x-goog-request-params",
+                        f"name={instance_name}&app_profile_id={app_profile_id}",
+                    )
+                ],
+                wait_for_ready=True,
             )
-        # execute coroutines in parallel
-        result_list = await asyncio.gather(*tasks, return_exceptions=True)
-        # return None in place of empty successful responses
+            for (instance_name, table_name, app_profile_id) in instance_list
+        ]
+        result_list = await CrossSync.gather_partials(
+            partial_list, return_exceptions=True, sync_executor=self._executor
+        )
         return [r or None for r in result_list]
 
+    @CrossSync.convert
     async def _manage_channel(
         self,
         refresh_interval_min: float = 60 * 35,
@@ -279,7 +325,7 @@ class BigtableDataClientAsync(ClientWithProject):
         grace_period: float = 60 * 10,
     ) -> None:
         """
-        Background coroutine that periodically refreshes and warms a grpc channel
+        Background task that periodically refreshes and warms a grpc channel
 
         The backend will automatically close channels after 60 minutes, so
         `refresh_interval` + `grace_period` should be < 60 minutes
@@ -304,20 +350,39 @@ class BigtableDataClientAsync(ClientWithProject):
             # warm the current channel immediately
             await self._ping_and_warm_instances(channel=self.transport.grpc_channel)
         # continuously refresh the channel every `refresh_interval` seconds
-        while True:
-            await asyncio.sleep(next_sleep)
-            start_timestamp = time.time()
+        while not self._is_closed.is_set():
+            await CrossSync.event_wait(
+                self._is_closed,
+                next_sleep,
+                async_break_early=False,  # no need to interrupt sleep. Task will be cancelled on close
+            )
+            if self._is_closed.is_set():
+                # don't refresh if client is closed
+                break
+            start_timestamp = time.monotonic()
             # prepare new channel for use
             old_channel = self.transport.grpc_channel
             new_channel = self.transport.create_channel()
             await self._ping_and_warm_instances(channel=new_channel)
             # cycle channel out of use, with long grace window before closure
             self.transport._grpc_channel = new_channel
-            await old_channel.close(grace_period)
-            # subtract the time spent waiting for the channel to be replaced
+            # give old_channel a chance to complete existing rpcs
+            if CrossSync.is_async:
+                await old_channel.close(grace_period)
+            else:
+                if grace_period:
+                    self._is_closed.wait(grace_period)  # type: ignore
+                old_channel.close()  # type: ignore
+            # subtract thed time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
-            next_sleep = next_refresh - (time.time() - start_timestamp)
+            next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
 
+    @CrossSync.convert(
+        replace_symbols={
+            "TableAsync": "Table",
+            "ExecuteQueryIteratorAsync": "ExecuteQueryIterator",
+        }
+    )
     async def _register_instance(
         self,
         instance_id: str,
@@ -350,6 +415,12 @@ class BigtableDataClientAsync(ClientWithProject):
                 # refresh tasks aren't active. start them as background tasks
                 self._start_background_channel_refresh()
 
+    @CrossSync.convert(
+        replace_symbols={
+            "TableAsync": "Table",
+            "ExecuteQueryIteratorAsync": "ExecuteQueryIterator",
+        }
+    )
     async def _remove_instance_registration(
         self,
         instance_id: str,
@@ -382,10 +453,25 @@ class BigtableDataClientAsync(ClientWithProject):
         except KeyError:
             return False
 
+    @CrossSync.convert(
+        replace_symbols={"TableAsync": "Table"},
+        docstring_format_vars={
+            "LOOP_MESSAGE": (
+                "Must be created within an async context (running event loop)",
+                "",
+            ),
+            "RAISE_NO_LOOP": (
+                "RuntimeError: if called outside of an async context (no running event loop)",
+                "None",
+            ),
+        },
+    )
     def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> TableAsync:
         """
         Returns a table instance for making data API requests. All arguments are passed
         directly to the TableAsync constructor.
+
+        {LOOP_MESSAGE}
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -419,7 +505,7 @@ class BigtableDataClientAsync(ClientWithProject):
         Returns:
             TableAsync: a table instance for making data API requests
         Raises:
-            RuntimeError: if called outside of an async context (no running event loop)
+            {RAISE_NO_LOOP}
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
@@ -465,7 +551,7 @@ class BigtableDataClientAsync(ClientWithProject):
         Raises:
             RuntimeError: If called outside an async context (no running event loop)
         """
-        return AuthorizedViewAsync(
+        return CrossSync.AuthorizedView(
             self,
             instance_id,
             table_id,
@@ -474,13 +560,16 @@ class BigtableDataClientAsync(ClientWithProject):
             **kwargs,
         )
 
+    @CrossSync.convert(
+        replace_symbols={"ExecuteQueryIteratorAsync": "ExecuteQueryIterator"}
+    )
     async def execute_query(
         self,
         query: str,
         instance_id: str,
         *,
-        parameters: Dict[str, ExecuteQueryValueType] | None = None,
-        parameter_types: Dict[str, SqlType.Type] | None = None,
+        parameters: dict[str, ExecuteQueryValueType] | None = None,
+        parameter_types: dict[str, SqlType.Type] | None = None,
         app_profile_id: str | None = None,
         operation_timeout: float = 600,
         attempt_timeout: float | None = 20,
@@ -550,7 +639,7 @@ class BigtableDataClientAsync(ClientWithProject):
             "proto_format": {},
         }
 
-        return ExecuteQueryIteratorAsync(
+        return CrossSync.ExecuteQueryIterator(
             self,
             instance_id,
             app_profile_id,
@@ -560,15 +649,18 @@ class BigtableDataClientAsync(ClientWithProject):
             retryable_excs=retryable_excs,
         )
 
+    @CrossSync.convert(sync_name="__enter__")
     async def __aenter__(self):
         self._start_background_channel_refresh()
         return self
 
+    @CrossSync.convert(sync_name="__exit__", replace_symbols={"__aexit__": "__exit__"})
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
+@CrossSync.convert_class(sync_name="_ApiSurface")
 class _ApiSurfaceAsync:
     """
     Abstract class containing API surface for BigtableDataClient. Should not be created directly
@@ -576,6 +668,19 @@ class _ApiSurfaceAsync:
     Can be instantiated as a TableAsync, or an AuthorizedViewAsync
     """
 
+    @CrossSync.convert(
+        replace_symbols={"BigtableDataClientAsync": "BigtableDataClient"},
+        docstring_format_vars={
+            "LOOP_MESSAGE": (
+                "Must be created within an async context (running event loop)",
+                "",
+            ),
+            "RAISE_NO_LOOP": (
+                "RuntimeError: if called outside of an async context (no running event loop)",
+                "None",
+            ),
+        },
+    )
     def __init__(
         self,
         client: BigtableDataClientAsync,
@@ -604,7 +709,9 @@ class _ApiSurfaceAsync:
         ),
     ):
         """
-        Must be created within an async context (running event loop)
+        Initialize a Table instance
+
+        {LOOP_MESSAGE}
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -636,7 +743,7 @@ class _ApiSurfaceAsync:
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Raises:
-            RuntimeError: if called outside of an async context (no running event loop)
+            {RAISE_NO_LOOP}
         """
         # NOTE: any changes to the signature of this method should also be reflected
         # in client.get_table()
@@ -688,14 +795,18 @@ class _ApiSurfaceAsync:
 
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
-            self._register_instance_task = asyncio.create_task(
-                self.client._register_instance(instance_id, self)
+            self._register_instance_future = CrossSync.create_task(
+                self.client._register_instance,
+                self.instance_id,
+                self,
+                sync_executor=self.client._executor,
             )
         except RuntimeError as e:
             raise RuntimeError(
                 f"{self.__class__.__name__} must be created within an async event loop context."
             ) from e
 
+    @CrossSync.convert(replace_symbols={"AsyncIterable": "Iterable"})
     async def read_rows_stream(
         self,
         query: ReadRowsQuery,
@@ -737,7 +848,7 @@ class _ApiSurfaceAsync:
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
-        row_merger = _ReadRowsOperationAsync(
+        row_merger = CrossSync._ReadRowsOperation(
             query,
             self,
             operation_timeout=operation_timeout,
@@ -746,6 +857,7 @@ class _ApiSurfaceAsync:
         )
         return row_merger.start_operation()
 
+    @CrossSync.convert
     async def read_rows(
         self,
         query: ReadRowsQuery,
@@ -793,6 +905,7 @@ class _ApiSurfaceAsync:
         )
         return [row async for row in row_generator]
 
+    @CrossSync.convert
     async def read_row(
         self,
         row_key: str | bytes,
@@ -842,6 +955,7 @@ class _ApiSurfaceAsync:
             return None
         return results[0]
 
+    @CrossSync.convert
     async def read_rows_sharded(
         self,
         sharded_query: ShardedQuery,
@@ -892,8 +1006,9 @@ class _ApiSurfaceAsync:
         )
 
         # limit the number of concurrent requests using a semaphore
-        concurrency_sem = asyncio.Semaphore(_CONCURRENCY_LIMIT)
+        concurrency_sem = CrossSync.Semaphore(_CONCURRENCY_LIMIT)
 
+        @CrossSync.convert
         async def read_rows_with_semaphore(query):
             async with concurrency_sem:
                 # calculate new timeout based on time left in overall operation
@@ -909,8 +1024,14 @@ class _ApiSurfaceAsync:
                     retryable_errors=retryable_errors,
                 )
 
-        routine_list = [read_rows_with_semaphore(query) for query in sharded_query]
-        batch_result = await asyncio.gather(*routine_list, return_exceptions=True)
+        routine_list = [
+            partial(read_rows_with_semaphore, query) for query in sharded_query
+        ]
+        batch_result = await CrossSync.gather_partials(
+            routine_list,
+            return_exceptions=True,
+            sync_executor=self.client._executor,
+        )
 
         # collect results and errors
         error_dict = {}
@@ -937,6 +1058,7 @@ class _ApiSurfaceAsync:
             )
         return results_list
 
+    @CrossSync.convert
     async def row_exists(
         self,
         row_key: str | bytes,
@@ -985,6 +1107,7 @@ class _ApiSurfaceAsync:
         )
         return len(results) > 0
 
+    @CrossSync.convert
     async def sample_row_keys(
         self,
         *,
@@ -1036,7 +1159,7 @@ class _ApiSurfaceAsync:
 
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
 
-        # prepare request
+        @CrossSync.convert
         async def execute_rpc():
             results = await self.client._gapic_client.sample_row_keys(
                 request=SampleRowKeysRequest(
@@ -1049,7 +1172,7 @@ class _ApiSurfaceAsync:
             )
             return [(s.row_key, s.offset_bytes) async for s in results]
 
-        return await retries.retry_target_async(
+        return await CrossSync.retry_target(
             execute_rpc,
             predicate,
             sleep_generator,
@@ -1057,6 +1180,7 @@ class _ApiSurfaceAsync:
             exception_factory=_retry_exception_factory,
         )
 
+    @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
     def mutations_batcher(
         self,
         *,
@@ -1069,7 +1193,7 @@ class _ApiSurfaceAsync:
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-    ) -> MutationsBatcherAsync:
+    ) -> "MutationsBatcherAsync":
         """
         Returns a new mutations batcher instance.
 
@@ -1094,7 +1218,7 @@ class _ApiSurfaceAsync:
         Returns:
             MutationsBatcherAsync: a MutationsBatcherAsync context manager that can batch requests
         """
-        return MutationsBatcherAsync(
+        return CrossSync.MutationsBatcher(
             self,
             flush_interval=flush_interval,
             flush_limit_mutation_count=flush_limit_mutation_count,
@@ -1106,6 +1230,7 @@ class _ApiSurfaceAsync:
             batch_retryable_errors=batch_retryable_errors,
         )
 
+    @CrossSync.convert
     async def mutate_row(
         self,
         row_key: str | bytes,
@@ -1180,7 +1305,7 @@ class _ApiSurfaceAsync:
             timeout=attempt_timeout,
             retry=None,
         )
-        return await retries.retry_target_async(
+        return await CrossSync.retry_target(
             target,
             predicate,
             sleep_generator,
@@ -1188,6 +1313,7 @@ class _ApiSurfaceAsync:
             exception_factory=_retry_exception_factory,
         )
 
+    @CrossSync.convert
     async def bulk_mutate_rows(
         self,
         mutation_entries: list[RowMutationEntry],
@@ -1233,7 +1359,7 @@ class _ApiSurfaceAsync:
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
-        operation = _MutateRowsOperationAsync(
+        operation = CrossSync._MutateRowsOperation(
             self.client._gapic_client,
             self,
             mutation_entries,
@@ -1243,6 +1369,7 @@ class _ApiSurfaceAsync:
         )
         await operation.start()
 
+    @CrossSync.convert
     async def check_and_mutate_row(
         self,
         row_key: str | bytes,
@@ -1312,6 +1439,7 @@ class _ApiSurfaceAsync:
         )
         return result.predicate_matched
 
+    @CrossSync.convert
     async def read_modify_write_row(
         self,
         row_key: str | bytes,
@@ -1365,13 +1493,16 @@ class _ApiSurfaceAsync:
         # construct Row from result
         return Row._from_pb(result.row)
 
+    @CrossSync.convert
     async def close(self):
         """
         Called to close the Table instance and release any resources held by it.
         """
-        self._register_instance_task.cancel()
+        if self._register_instance_future:
+            self._register_instance_future.cancel()
         await self.client._remove_instance_registration(self.instance_id, self)
 
+    @CrossSync.convert(sync_name="__enter__")
     async def __aenter__(self):
         """
         Implement async context manager protocol
@@ -1379,9 +1510,11 @@ class _ApiSurfaceAsync:
         Ensure registration task has time to run, so that
         grpc channels will be warmed for the specified instance
         """
-        await self._register_instance_task
+        if self._register_instance_future:
+            await self._register_instance_future
         return self
 
+    @CrossSync.convert(sync_name="__exit__")
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
         Implement async context manager protocol
@@ -1392,6 +1525,7 @@ class _ApiSurfaceAsync:
         await self.close()
 
 
+@CrossSync.convert_class(sync_name="Table", add_mapping_for_name="Table")
 class TableAsync(_ApiSurfaceAsync):
     """
     Main Data API surface for interacting with a Bigtable table.
@@ -1401,6 +1535,7 @@ class TableAsync(_ApiSurfaceAsync):
     """
 
 
+@CrossSync.convert_class(sync_name="AuthorizedView", add_mapping_for_name="AuthorizedView")
 class AuthorizedViewAsync(_ApiSurfaceAsync):
     """
     Provides access to an authorized view of a table.
