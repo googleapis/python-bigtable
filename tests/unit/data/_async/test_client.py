@@ -1069,7 +1069,7 @@ class TestTableAsync:
         await CrossSync.yield_to_event_loop()
         assert table.table_id == expected_table_id
         assert table.instance_id == expected_instance_id
-        assert table.app_profile_id is None
+        assert table.app_profile_id == "default"
         assert table.client is client
         assert table.default_operation_timeout == 60
         assert table.default_read_rows_operation_timeout == 600
@@ -1290,7 +1290,7 @@ class TestTableAsync:
         if include_app_profile:
             assert "app_profile_id=profile" in routing_str
         else:
-            assert "app_profile_id=" not in routing_str
+            assert "app_profile_id=default" in routing_str
 
 
 @CrossSync.convert_class(
@@ -2938,7 +2938,7 @@ class TestReadModifyWriteRowAsync:
                         kwargs["table_name"]
                         == f"projects/{project}/instances/{instance}/tables/{table_id}"
                     )
-                    assert kwargs["app_profile_id"] is None
+                    assert kwargs["app_profile_id"] == "default"
                     assert kwargs["row_key"] == row_key.encode()
                     assert kwargs["timeout"] > 1
 
