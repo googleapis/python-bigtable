@@ -665,7 +665,7 @@ class _ApiSurfaceAsync:
     """
     Abstract class containing API surface for BigtableDataClient. Should not be created directly
 
-    Can be instantiated as a TableAsync, or an AuthorizedViewAsync
+    Can be instantiated as a Table or an AuthorizedView
     """
 
     @CrossSync.convert(
@@ -793,7 +793,6 @@ class _ApiSurfaceAsync:
         # set on AuthorizedView subclass
         self._authorized_view_name: str | None = None
 
-        # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_future = CrossSync.create_task(
                 self.client._register_instance,
