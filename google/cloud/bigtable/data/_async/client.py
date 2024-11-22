@@ -718,9 +718,7 @@ class TableAsync:
         self.table_name = self.client._gapic_client.table_path(
             self.client.project, instance_id, table_id
         )
-        self.app_profile_id = (
-            app_profile_id if app_profile_id is not None else ""
-        )
+        self.app_profile_id = app_profile_id if app_profile_id is not None else ""
 
         self.default_operation_timeout = default_operation_timeout
         self.default_attempt_timeout = default_attempt_timeout
