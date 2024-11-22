@@ -37,7 +37,7 @@ if TYPE_CHECKING:
             BigtableAsyncClient as GapicClientType,
         )
         from google.cloud.bigtable_v2.services.bigtable.client import (  # type: ignore
-            _ApiSurfaceAsync as ApiSurfaceType
+            _ApiSurfaceAsync as ApiSurfaceType,
         )
         from google.cloud.bigtable.data._async.client import TableAsync as TableType
     else:
@@ -45,7 +45,7 @@ if TYPE_CHECKING:
             BigtableClient as GapicClientType,
         )
         from google.cloud.bigtable_v2.services.bigtable.client import (  # type: ignore
-            _ApiSurface as ApiSurfaceType
+            _ApiSurface as ApiSurfaceType,
         )
         from google.cloud.bigtable.data._sync_autogen.client import Table as TableType  # type: ignore
 
@@ -181,7 +181,7 @@ class _MutateRowsOperationAsync:
                     app_profile_id=self._table.app_profile_id,
                 ),
                 timeout=next(self.timeout_generator),
-                retry=None
+                retry=None,
             )
             async for result_list in result_generator:
                 for result in result_list.entries:

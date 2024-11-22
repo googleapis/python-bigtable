@@ -37,7 +37,9 @@ from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
     if CrossSync.is_async:
-        from google.cloud.bigtable.data._async.client import _ApiSurfaceAsync as ApiSurfaceType
+        from google.cloud.bigtable.data._async.client import (
+            _ApiSurfaceAsync as ApiSurfaceType,
+        )
     else:
         from google.cloud.bigtable.data._sync_autogen.client import _ApiSurface as ApiSurfaceType  # type: ignore
 

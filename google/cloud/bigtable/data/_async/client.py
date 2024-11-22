@@ -1534,7 +1534,9 @@ class TableAsync(_ApiSurfaceAsync):
     """
 
 
-@CrossSync.convert_class(sync_name="AuthorizedView", add_mapping_for_name="AuthorizedView")
+@CrossSync.convert_class(
+    sync_name="AuthorizedView", add_mapping_for_name="AuthorizedView"
+)
 class AuthorizedViewAsync(_ApiSurfaceAsync):
     """
     Provides access to an authorized view of a table.
