@@ -40,9 +40,9 @@ class Test_FlowControlAsync:
 
     @staticmethod
     def _make_mutation(count=1, size=1):
-        mutation = mock.Mock()
-        mutation.size.return_value = size
-        mutation.mutations = [mock.Mock()] * count
+        mutation = RowMutationEntry("k", DeleteAllFromRow())
+        mutation.mutations = [DeleteAllFromRow() for _ in range(count)]
+        mutation.size = lambda: size
         return mutation
 
     def test_ctor(self):

@@ -52,9 +52,8 @@ class TestMutateRowsOperationAsync:
         return self._target_class()(*args, **kwargs)
 
     def _make_mutation(self, count=1, size=1):
-        mutation = mock.Mock()
-        mutation.size.return_value = size
-        mutation.mutations = [mock.Mock()] * count
+        mutation = RowMutationEntry("k", [DeleteAllFromRow() for _ in range(count)])
+        mutation.size = lambda: size
         return mutation
 
     @CrossSync.convert

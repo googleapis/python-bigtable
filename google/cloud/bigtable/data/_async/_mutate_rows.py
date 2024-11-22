@@ -18,6 +18,7 @@ from typing import Sequence, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
+import google.cloud.bigtable_v2.types.bigtable as types_pb
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
