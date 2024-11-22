@@ -472,7 +472,7 @@ class BigtableDataClientAsync(ClientWithProject):
             table_id: The ID of the table. table_id is combined with the
                 instance_id and the client's project to fully specify the table
             app_profile_id: The app profile to associate with requests.
-                If not set, will use "default".
+                If not set, will use empty string.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_read_rows_operation_timeout: The default timeout for read rows
                 operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
@@ -543,7 +543,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 detected automatically (i.e. the value can be None, an empty list or
                 an empty dict).
             app_profile_id: The app profile to associate with requests.
-                If not set, will use "default".
+                If not set, will use empty string.
                 https://cloud.google.com/bigtable/docs/app-profiles
             operation_timeout: the time budget for the entire operation, in seconds.
                 Failed requests will be retried within the budget.
@@ -574,7 +574,7 @@ class BigtableDataClientAsync(ClientWithProject):
 
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         if app_profile_id is None:
-            app_profile_id = "default"
+            app_profile_id = ""
 
         request_body = {
             "instance_name": instance_name,
@@ -666,7 +666,7 @@ class TableAsync:
             table_id: The ID of the table. table_id is combined with the
                 instance_id and the client's project to fully specify the table
             app_profile_id: The app profile to associate with requests.
-                If not set, will use "default".
+                If not set, will use empty string.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_read_rows_operation_timeout: The default timeout for read rows
                 operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
@@ -719,7 +719,7 @@ class TableAsync:
             self.client.project, instance_id, table_id
         )
         self.app_profile_id = (
-            app_profile_id if app_profile_id is not None else "default"
+            app_profile_id if app_profile_id is not None else ""
         )
 
         self.default_operation_timeout = default_operation_timeout
