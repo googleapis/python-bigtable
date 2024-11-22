@@ -386,7 +386,7 @@ class BigtableDataClientAsync(ClientWithProject):
     async def _register_instance(
         self,
         instance_id: str,
-        owner: Union[_ApiSurfaceAsync, ExecuteQueryIteratorAsync],
+        owner: _ApiSurfaceAsync | ExecuteQueryIteratorAsync,
     ) -> None:
         """
         Registers an instance with the client, and warms the channel for the instance
@@ -424,7 +424,7 @@ class BigtableDataClientAsync(ClientWithProject):
     async def _remove_instance_registration(
         self,
         instance_id: str,
-        owner: Union[_ApiSurfaceAsync, ExecuteQueryIteratorAsync],
+        owner: _ApiSurfaceAsync | ExecuteQueryIteratorAsync,
     ) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
