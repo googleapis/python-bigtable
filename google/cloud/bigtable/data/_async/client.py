@@ -789,9 +789,8 @@ class _ApiSurfaceAsync:
             default_mutate_rows_retryable_errors or ()
         )
         self.default_retryable_errors = default_retryable_errors or ()
-
-        # set on AuthorizedView subclass
-        self._authorized_view_name: str | None = None
+        # used to populate table_name or authorized_view_name fields in request protos
+        self._request_path = {"table_name": self.table_name}
 
         try:
             self._register_instance_future = CrossSync.create_task(
@@ -804,6 +803,7 @@ class _ApiSurfaceAsync:
             raise RuntimeError(
                 f"{self.__class__.__name__} must be created within an async event loop context."
             ) from e
+
 
     @CrossSync.convert(replace_symbols={"AsyncIterable": "Iterable"})
     async def read_rows_stream(
@@ -1162,9 +1162,8 @@ class _ApiSurfaceAsync:
         async def execute_rpc():
             results = await self.client._gapic_client.sample_row_keys(
                 request=SampleRowKeysRequest(
-                    table_name=self.table_name,
                     app_profile_id=self.app_profile_id,
-                    authorized_view_name=self._authorized_view_name,
+                    **self._request_path
                 ),
                 timeout=next(attempt_timeout_gen),
                 retry=None,
@@ -1297,9 +1296,8 @@ class _ApiSurfaceAsync:
                 if isinstance(row_key, str)
                 else row_key,
                 mutations=[mutation._to_pb() for mutation in mutations_list],
-                table_name=self.table_name,
                 app_profile_id=self.app_profile_id,
-                authorized_view_name=self._authorized_view_name,
+                **self._request_path,
             ),
             timeout=attempt_timeout,
             retry=None,
@@ -1429,9 +1427,8 @@ class _ApiSurfaceAsync:
                 row_key=row_key.encode("utf-8")
                 if isinstance(row_key, str)
                 else row_key,
-                table_name=self.table_name,
                 app_profile_id=self.app_profile_id,
-                authorized_view_name=self._authorized_view_name,
+                **self._request_path,
             ),
             timeout=operation_timeout,
             retry=None,
@@ -1482,9 +1479,8 @@ class _ApiSurfaceAsync:
                 row_key=row_key.encode("utf-8")
                 if isinstance(row_key, str)
                 else row_key,
-                table_name=self.table_name,
                 app_profile_id=self.app_profile_id,
-                authorized_view_name=self._authorized_view_name,
+                **self._request_path,
             ),
             timeout=operation_timeout,
             retry=None,
@@ -1549,7 +1545,7 @@ class AuthorizedViewAsync(_ApiSurfaceAsync):
     """
 
     def __init__(
-        self, client, instance_id, table_id, view_id, app_profile_id, **kwargs
+        self, client, instance_id, table_id, view_id, app_profile_id: str | None = None, **kwargs
     ):
         """
         Initialize an AuthorizedView instance
@@ -1591,12 +1587,9 @@ class AuthorizedViewAsync(_ApiSurfaceAsync):
         """
         super().__init__(client, instance_id, table_id, app_profile_id, **kwargs)
         self.authorized_view_id = view_id
-        self._authorized_view_name: str = (
+        self.authorized_view_name: str = (
             self.client._gapic_client.authorized_view_path(
                 self.client.project, instance_id, table_id, view_id
             )
         )
-
-    @property
-    def authroized_view_name(self) -> str:
-        return self._authorized_view_name
+        self._request_path = {"authorized_view_name": self.authorized_view_name}

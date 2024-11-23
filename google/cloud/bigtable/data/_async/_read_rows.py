@@ -92,9 +92,8 @@ class _ReadRowsOperationAsync:
         if isinstance(query, dict):
             self.request = ReadRowsRequestPB(
                 **query,
-                table_name=table.table_name,
+                **table._request_path,
                 app_profile_id=table.app_profile_id,
-                authorized_view_name=table._authorized_view_name,
             )
         else:
             self.request = query._to_pb(table)

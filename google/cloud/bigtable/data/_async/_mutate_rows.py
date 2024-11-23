@@ -175,10 +175,9 @@ class _MutateRowsOperationAsync:
         try:
             result_generator = await self._gapic_fn(
                 request=types_pb.MutateRowsRequest(
-                    table_name=self._table.table_name,
                     entries=request_entries,
-                    authorized_view_name=self._table._authorized_view_name,
                     app_profile_id=self._table.app_profile_id,
+                    **self._table._request_path,
                 ),
                 timeout=next(self.timeout_generator),
                 retry=None,
