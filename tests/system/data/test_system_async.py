@@ -90,10 +90,19 @@ class TestSystemAsync:
             yield client
 
     @CrossSync.convert
-    @CrossSync.pytest_fixture(scope="session")
-    async def table(self, client, table_id, instance_id):
-        async with client.get_table(instance_id, table_id) as table:
-            yield table
+    @CrossSync.pytest_fixture(scope="session", params=["table", "authorized_view"])
+    async def table(self, client, table_id, authorized_view_id, instance_id, request):
+        """
+        This fixture runs twice: once for a standard table, and once with an authorized view
+        """
+        if request.param == "table":
+            async with client.get_table(instance_id, table_id) as table:
+                yield table
+        elif request.param == "authorized_view":
+            async with client.get_authorized_view(instance_id, table_id, authorized_view_id) as view:
+                yield view
+        else:
+            raise ValueError(f"unknown table type: {request.param}")
 
     @CrossSync.drop
     @pytest.fixture(scope="session")
