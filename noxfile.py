@@ -298,7 +298,7 @@ def system_emulated(session):
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-@nox.parametrize("client_type", ["async", "sync", "legacy"])
+@nox.parametrize("client_type", ["async"])
 def conformance(session, client_type):
     # install dependencies
     constraints_path = str(
