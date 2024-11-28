@@ -334,15 +334,18 @@ class TestBigtableDataClient:
                     ]
                     client = self._make_client(project="project-id")
                     client.transport._grpc_channel = channel
-                    try:
-                        if refresh_interval is not None:
-                            client._manage_channel(
-                                refresh_interval, refresh_interval, grace_period=0
-                            )
-                        else:
-                            client._manage_channel(grace_period=0)
-                    except asyncio.CancelledError:
-                        pass
+                    with mock.patch.object(
+                        client.transport, "create_channel", CrossSync._Sync_Impl.Mock
+                    ):
+                        try:
+                            if refresh_interval is not None:
+                                client._manage_channel(
+                                    refresh_interval, refresh_interval, grace_period=0
+                                )
+                            else:
+                                client._manage_channel(grace_period=0)
+                        except asyncio.CancelledError:
+                            pass
                     assert sleep.call_count == num_cycles
                     total_sleep = sum([call[0][1] for call in sleep.call_args_list])
                     assert (

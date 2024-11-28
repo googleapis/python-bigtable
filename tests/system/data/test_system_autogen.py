@@ -75,7 +75,7 @@ class TestSystem:
     @pytest.fixture(scope="session")
     def client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        with CrossSync._Sync_Impl.DataClient(project=project, pool_size=4) as client:
+        with CrossSync._Sync_Impl.DataClient(project=project) as client:
             yield client
 
     @pytest.fixture(scope="session")
