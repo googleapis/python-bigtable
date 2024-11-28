@@ -31,7 +31,7 @@ __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test__mutate_rows"
 
 
 @CrossSync.convert_class("TestMutateRowsOperation")
-class TestMutateRowsOperation:
+class TestMutateRowsOperationAsync:
     def _target_class(self):
         return CrossSync._MutateRowsOperation
 

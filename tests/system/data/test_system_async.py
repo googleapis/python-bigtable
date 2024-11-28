@@ -86,7 +86,7 @@ class TestSystemAsync:
     @CrossSync.pytest_fixture(scope="session")
     async def client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        async with CrossSync.DataClient(project=project, pool_size=4) as client:
+        async with CrossSync.DataClient(project=project) as client:
             yield client
 
     @CrossSync.convert
