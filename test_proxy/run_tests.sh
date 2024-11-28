@@ -45,5 +45,4 @@ trap finish EXIT
 
 # run tests
 pushd cloud-bigtable-clients-test/tests
-echo "Running with $TEST_ARGS"
 go test -v -proxy_addr=:$PROXY_SERVER_PORT
