@@ -20,6 +20,11 @@ import pytest
 import os
 import uuid
 
+from . import TEST_FAMILY, TEST_FAMILY_2
+# authorized view subset to allow all qualifiers
+ALLOW_ALL = ""
+ALL_QUALIFIERS = {"qualifier_prefixes": [ALLOW_ALL]}
+
 
 @pytest.fixture(scope="session")
 def admin_client():
@@ -171,7 +176,12 @@ def authorized_view_id(
             request={
                 "parent": parent_path,
                 "authorized_view_id": new_view_id,
-                "authorized_view": {"subset_view": {"row_prefixes": [""]}}
+                "authorized_view": {
+                    "subset_view": {
+                        "row_prefixes": [ALLOW_ALL],
+                        "family_subsets": {TEST_FAMILY: ALL_QUALIFIERS, TEST_FAMILY_2: ALL_QUALIFIERS},
+                    },
+                },
             },
             retry=retry,
         )
