@@ -36,6 +36,10 @@ from google.cloud.bigtable import row_filters
 
 # [END bigtable_hw_imports]
 
+# use to avoid warnings
+row_filters
+column_family
+
 
 def main(project_id, instance_id, table_id):
     # [START bigtable_hw_connect]

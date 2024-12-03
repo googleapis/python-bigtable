@@ -33,6 +33,9 @@ from google.cloud import bigtable
 from google.cloud.bigtable.data import row_filters
 # [END bigtable_async_hw_imports]
 
+# use to ignore warnings
+row_filters
+
 
 async def main(project_id, instance_id, table_id):
     # [START bigtable_async_hw_connect]
