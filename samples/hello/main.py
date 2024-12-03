@@ -31,6 +31,8 @@ from ..utils import wait_for_table
 import datetime
 
 from google.cloud import bigtable
+from google.cloud.bigtable import column_family
+from google.cloud.bigtable import row_filters
 
 # [END bigtable_hw_imports]
 
