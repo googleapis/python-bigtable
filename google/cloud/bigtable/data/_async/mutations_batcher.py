@@ -37,9 +37,11 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     if CrossSync.is_async:
-        from google.cloud.bigtable.data._async.client import TableAsync as TableType
+        from google.cloud.bigtable.data._async.client import (
+            _ApiSurfaceAsync as ApiSurfaceType,
+        )
     else:
-        from google.cloud.bigtable.data._sync_autogen.client import Table as TableType  # type: ignore
+        from google.cloud.bigtable.data._sync_autogen.client import _ApiSurface as ApiSurfaceType  # type: ignore
 
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.mutations_batcher"
 
@@ -210,7 +212,7 @@ class MutationsBatcherAsync:
 
     def __init__(
         self,
-        table: TableType,
+        table: ApiSurfaceType,
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
