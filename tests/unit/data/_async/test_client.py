@@ -804,8 +804,12 @@ class TestBigtableDataClientAsync:
             assert len(client._instance_owners[instance_1_key]) == 0
             assert len(client._instance_owners[instance_2_key]) == 0
 
+    @pytest.mark.parametrize("method", ["get_table", "get_authorized_view"])
     @CrossSync.pytest
-    async def test_get_table(self):
+    async def test_get_api_surface(self, method):
+        """
+        test client.get_table and client.get_authorized_view
+        """
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
         client = self._make_client(project="project-id")
@@ -813,67 +817,84 @@ class TestBigtableDataClientAsync:
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
         expected_app_profile_id = "app-profile-id"
-        table = client.get_table(
-            expected_instance_id,
-            expected_table_id,
-            expected_app_profile_id,
-        )
+        if method == "get_table":
+            surface = client.get_table(
+                expected_instance_id,
+                expected_table_id,
+                expected_app_profile_id,
+            )
+            assert isinstance(surface, CrossSync.TestTable._get_target_class())
+        elif method == "get_authorized_view":
+            surface = client.get_authorized_view(
+                expected_instance_id,
+                expected_table_id,
+                "view_id",
+                expected_app_profile_id, 
+            )
+            assert isinstance(surface, CrossSync.TestAuthorizedView._get_target_class())
+            assert (
+                surface.authorized_view_name
+                == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}/authorizedViews/view_id"
+            )
+        else:
+            raise TypeError(f"unexpected method: {method}")
         await CrossSync.yield_to_event_loop()
-        assert isinstance(table, CrossSync.TestTable._get_target_class())
-        assert table.table_id == expected_table_id
+        assert surface.table_id == expected_table_id
         assert (
-            table.table_name
+            surface.table_name
             == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}"
         )
-        assert table.instance_id == expected_instance_id
+        assert surface.instance_id == expected_instance_id
         assert (
-            table.instance_name
+            surface.instance_name
             == f"projects/{client.project}/instances/{expected_instance_id}"
         )
-        assert table.app_profile_id == expected_app_profile_id
-        assert table.client is client
+        assert surface.app_profile_id == expected_app_profile_id
+        assert surface.client is client
         instance_key = _WarmedInstanceKey(
-            table.instance_name, table.table_name, table.app_profile_id
+            surface.instance_name, surface.table_name, surface.app_profile_id
         )
         assert instance_key in client._active_instances
-        assert client._instance_owners[instance_key] == {id(table)}
+        assert client._instance_owners[instance_key] == {id(surface)}
         await client.close()
 
+    @pytest.mark.parametrize("method", ["get_table", "get_authorized_view"])
     @CrossSync.pytest
-    async def test_get_table_arg_passthrough(self):
+    async def test_api_surface_arg_passthrough(self, method):
         """
-        All arguments passed in get_table should be sent to constructor
+        All arguments passed in get_table and get_authorized_view should be sent to constructor
         """
+        if method == "get_table":
+            surface_type = CrossSync.TestTable._get_target_class()
+        elif method == "get_authorized_view":
+            surface_type = CrossSync.TestAuthorizedView._get_target_class()
+        else:
+            raise TypeError(f"unexpected method: {method}")
+
         async with self._make_client(project="project-id") as client:
-            with mock.patch.object(
-                CrossSync.TestTable._get_target_class(), "__init__"
-            ) as mock_constructor:
+            with mock.patch.object(surface_type, "__init__") as mock_constructor:
                 mock_constructor.return_value = None
                 assert not client._active_instances
-                expected_table_id = "table-id"
-                expected_instance_id = "instance-id"
-                expected_app_profile_id = "app-profile-id"
-                expected_args = (1, "test", {"test": 2})
+                expected_args = ("table", "instance", "view", "app_profile", 1, "test", {"test": 2})
                 expected_kwargs = {"hello": "world", "test": 2}
 
-                client.get_table(
-                    expected_instance_id,
-                    expected_table_id,
-                    expected_app_profile_id,
+                getattr(client, method)(
                     *expected_args,
                     **expected_kwargs,
                 )
                 mock_constructor.assert_called_once_with(
                     client,
-                    expected_instance_id,
-                    expected_table_id,
-                    expected_app_profile_id,
                     *expected_args,
                     **expected_kwargs,
                 )
 
+    @pytest.mark.parametrize("method", ["get_table", "get_authorized_view"])
     @CrossSync.pytest
-    async def test_get_table_context_manager(self):
+    async def test_api_surface_context_manager(self, method):
+        """
+        get_table and get_authorized_view should work as context managers
+        """
+        from functools import partial
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
         expected_table_id = "table-id"
@@ -881,17 +902,24 @@ class TestBigtableDataClientAsync:
         expected_app_profile_id = "app-profile-id"
         expected_project_id = "project-id"
 
-        with mock.patch.object(
-            CrossSync.TestTable._get_target_class(), "close"
-        ) as close_mock:
+        if method == "get_table":
+            surface_type = CrossSync.TestTable._get_target_class()
+        elif method == "get_authorized_view":
+            surface_type = CrossSync.TestAuthorizedView._get_target_class()
+        else:
+            raise TypeError(f"unexpected method: {method}")
+
+        with mock.patch.object(surface_type, "close") as close_mock:
             async with self._make_client(project=expected_project_id) as client:
-                async with client.get_table(
-                    expected_instance_id,
-                    expected_table_id,
-                    expected_app_profile_id,
-                ) as table:
+                if method == "get_table":
+                    fn = partial(client.get_table, expected_instance_id, expected_table_id, expected_app_profile_id)
+                elif method == "get_authorized_view":
+                    fn = partial(client.get_authorized_view, expected_instance_id, expected_table_id, "view_id", expected_app_profile_id)
+                else:
+                    raise TypeError(f"unexpected method: {method}")
+                async with fn() as table:
                     await CrossSync.yield_to_event_loop()
-                    assert isinstance(table, CrossSync.TestTable._get_target_class())
+                    assert isinstance(table, surface_type)
                     assert table.table_id == expected_table_id
                     assert (
                         table.table_name
@@ -1298,7 +1326,7 @@ class TestTableAsync:
         return f"table_name={table.table_name}"
 
 
-@CrossSync.convert_class("TestAuthorizedView")
+@CrossSync.convert_class("TestAuthorizedView", add_mapping_for_name="TestAuthorizedView")
 class TestAuthorizedViewsAsync(CrossSync.TestTable):
     """
     Inherit tests from TestTableAsync, with some modifications
