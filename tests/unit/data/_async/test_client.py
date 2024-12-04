@@ -989,8 +989,11 @@ class TestTableAsync:
     def _get_target_class():
         return CrossSync.Table
 
+    def _make_one(self, client, instance_id="instance", table_id="table", app_profile_id=None, **kwargs):
+        return self._get_target_class()(client, instance_id, table_id, app_profile_id, **kwargs)
+
     @CrossSync.pytest
-    async def test_table_ctor(self):
+    async def test_ctor(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
         expected_table_id = "table-id"
@@ -1020,6 +1023,8 @@ class TestTableAsync:
         await CrossSync.yield_to_event_loop()
         assert table.table_id == expected_table_id
         assert table.instance_id == expected_instance_id
+        assert table.table_name == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}"
+        assert table.instance_name == f"projects/{client.project}/instances/{expected_instance_id}"
         assert table.app_profile_id == expected_app_profile_id
         assert table.client is client
         instance_key = _WarmedInstanceKey(
@@ -1053,23 +1058,15 @@ class TestTableAsync:
         await client.close()
 
     @CrossSync.pytest
-    async def test_table_ctor_defaults(self):
+    async def test_ctor_defaults(self):
         """
         should provide default timeout values and app_profile_id
         """
-        expected_table_id = "table-id"
-        expected_instance_id = "instance-id"
         client = self._make_client()
         assert not client._active_instances
 
-        table = self._get_target_class()(
-            client,
-            expected_instance_id,
-            expected_table_id,
-        )
+        table = self._make_one(client)
         await CrossSync.yield_to_event_loop()
-        assert table.table_id == expected_table_id
-        assert table.instance_id == expected_instance_id
         assert table.app_profile_id is None
         assert table.client is client
         assert table.default_operation_timeout == 60
@@ -1081,7 +1078,7 @@ class TestTableAsync:
         await client.close()
 
     @CrossSync.pytest
-    async def test_table_ctor_invalid_timeout_values(self):
+    async def test_ctor_invalid_timeout_values(self):
         """
         bad timeout values should raise ValueError
         """
@@ -1100,10 +1097,10 @@ class TestTableAsync:
         ]
         for operation_timeout, attempt_timeout in timeout_pairs:
             with pytest.raises(ValueError) as e:
-                self._get_target_class()(client, "", "", **{attempt_timeout: -1})
+                self._make_one(client, **{attempt_timeout: -1})
             assert "attempt_timeout must be greater than 0" in str(e.value)
             with pytest.raises(ValueError) as e:
-                self._get_target_class()(client, "", "", **{operation_timeout: -1})
+                self._make_one(client, **{operation_timeout: -1})
             assert "operation_timeout must be greater than 0" in str(e.value)
         await client.close()
 
@@ -1271,7 +1268,7 @@ class TestTableAsync:
             gapic_client = gapic_client._client
         gapic_client._transport = transport_mock
         gapic_client._is_universe_domain_valid = True
-        table = self._get_target_class()(client, "instance-id", "table-id", profile)
+        table = self._make_one(client, app_profile_id=profile)
         try:
             test_fn = table.__getattribute__(fn_name)
             maybe_stream = await test_fn(*fn_args)
@@ -1287,11 +1284,109 @@ class TestTableAsync:
         # expect x-goog-request-params tag
         assert metadata[0][0] == "x-goog-request-params"
         routing_str = metadata[0][1]
-        assert "table_name=" + table.table_name in routing_str
+        assert self._expected_routing_header(table) in routing_str
         if include_app_profile:
             assert "app_profile_id=profile" in routing_str
         else:
             assert "app_profile_id=" not in routing_str
+
+    @staticmethod
+    def _expected_routing_header(table):
+        """
+        the expected routing header for this _ApiSurface type
+        """
+        return f"table_name={table.table_name}"
+
+
+@CrossSync.convert_class("TestAuthorizedView")
+class TestAuthorizedViewsAsync(CrossSync.TestTable):
+    """
+    Inherit tests from TestTableAsync, with some modifications
+    """
+
+    @staticmethod
+    @CrossSync.convert
+    def _get_target_class():
+        return CrossSync.AuthorizedView
+
+    def _make_one(self, client, instance_id="instance", table_id="table", view_id="view", app_profile_id=None, **kwargs):
+        return self._get_target_class()(client, instance_id, table_id, view_id, app_profile_id, **kwargs)
+
+    @staticmethod
+    def _expected_routing_header(view):
+        """
+        the expected routing header for this _ApiSurface type
+        """
+        return f"authorized_view_name={view.authorized_view_name}"
+
+    @CrossSync.pytest
+    async def test_ctor(self):
+        from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
+
+        expected_table_id = "table-id"
+        expected_instance_id = "instance-id"
+        expected_view_id = "view_id"
+        expected_app_profile_id = "app-profile-id"
+        expected_operation_timeout = 123
+        expected_attempt_timeout = 12
+        expected_read_rows_operation_timeout = 1.5
+        expected_read_rows_attempt_timeout = 0.5
+        expected_mutate_rows_operation_timeout = 2.5
+        expected_mutate_rows_attempt_timeout = 0.75
+        client = self._make_client()
+        assert not client._active_instances
+
+        table = self._get_target_class()(
+            client,
+            expected_instance_id,
+            expected_table_id,
+            expected_view_id,
+            expected_app_profile_id,
+            default_operation_timeout=expected_operation_timeout,
+            default_attempt_timeout=expected_attempt_timeout,
+            default_read_rows_operation_timeout=expected_read_rows_operation_timeout,
+            default_read_rows_attempt_timeout=expected_read_rows_attempt_timeout,
+            default_mutate_rows_operation_timeout=expected_mutate_rows_operation_timeout,
+            default_mutate_rows_attempt_timeout=expected_mutate_rows_attempt_timeout,
+        )
+        await CrossSync.yield_to_event_loop()
+        assert table.table_id == expected_table_id
+        assert table.table_name == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}"
+        assert table.instance_id == expected_instance_id
+        assert table.instance_name == f"projects/{client.project}/instances/{expected_instance_id}"
+        assert table.authorized_view_id == expected_view_id
+        assert table.authorized_view_name == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}/authorizedViews/{expected_view_id}"
+        assert table.app_profile_id == expected_app_profile_id
+        assert table.client is client
+        instance_key = _WarmedInstanceKey(
+            table.instance_name, table.table_name, table.app_profile_id
+        )
+        assert instance_key in client._active_instances
+        assert client._instance_owners[instance_key] == {id(table)}
+        assert table.default_operation_timeout == expected_operation_timeout
+        assert table.default_attempt_timeout == expected_attempt_timeout
+        assert (
+            table.default_read_rows_operation_timeout
+            == expected_read_rows_operation_timeout
+        )
+        assert (
+            table.default_read_rows_attempt_timeout
+            == expected_read_rows_attempt_timeout
+        )
+        assert (
+            table.default_mutate_rows_operation_timeout
+            == expected_mutate_rows_operation_timeout
+        )
+        assert (
+            table.default_mutate_rows_attempt_timeout
+            == expected_mutate_rows_attempt_timeout
+        )
+        # ensure task reaches completion
+        await table._register_instance_future
+        assert table._register_instance_future.done()
+        assert not table._register_instance_future.cancelled()
+        assert table._register_instance_future.exception() is None
+        await client.close()
 
 
 @CrossSync.convert_class(
