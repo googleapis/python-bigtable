@@ -1669,7 +1669,7 @@ class TestReadRowsSharded:
         from google.api_core.exceptions import DeadlineExceeded
 
         def mock_call(*args, **kwargs):
-            CrossSync._Sync_Impl.sleep(0.05)
+            CrossSync._Sync_Impl.sleep(0.06)
             return [mock.Mock()]
 
         with self._make_client() as client:
@@ -1679,7 +1679,7 @@ class TestReadRowsSharded:
                     num_calls = 15
                     queries = [ReadRowsQuery() for _ in range(num_calls)]
                     with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
-                        table.read_rows_sharded(queries, operation_timeout=0.01)
+                        table.read_rows_sharded(queries, operation_timeout=0.05)
                     assert isinstance(exc.value, ShardedReadRowsExceptionGroup)
                     assert len(exc.value.exceptions) >= num_calls - _CONCURRENCY_LIMIT
                     assert all(

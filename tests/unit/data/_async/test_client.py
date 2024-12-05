@@ -2009,7 +2009,7 @@ class TestReadRowsShardedAsync:
         from google.api_core.exceptions import DeadlineExceeded
 
         async def mock_call(*args, **kwargs):
-            await CrossSync.sleep(0.05)
+            await CrossSync.sleep(0.06)
             return [mock.Mock()]
 
         async with self._make_client() as client:
@@ -2019,11 +2019,11 @@ class TestReadRowsShardedAsync:
                     num_calls = 15
                     queries = [ReadRowsQuery() for _ in range(num_calls)]
                     with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
-                        await table.read_rows_sharded(queries, operation_timeout=0.01)
+                        await table.read_rows_sharded(queries, operation_timeout=0.05)
                     assert isinstance(exc.value, ShardedReadRowsExceptionGroup)
                     # _CONCURRENCY_LIMIT calls will run, and won't be interrupted
                     # calls after the limit will be cancelled due to timeout
-                    assert len(exc.value.exceptions) >= num_calls - _CONCURRENCY_LIMIT
+                    assert len(exc.value.exceptions) == num_calls - _CONCURRENCY_LIMIT
                     assert all(
                         isinstance(e.__cause__, DeadlineExceeded)
                         for e in exc.value.exceptions
