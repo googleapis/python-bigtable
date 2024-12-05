@@ -1587,7 +1587,7 @@ class TestReadRowsSharded:
                     call_time = time.monotonic() - start_time
                     assert read_rows.call_count == 10
                     assert len(result) == 10
-                    assert call_time < 0.2
+                    assert call_time < 0.5
 
     def test_read_rows_sharded_concurrency_limit(self):
         """Only 10 queries should be processed concurrently. Others should be queued

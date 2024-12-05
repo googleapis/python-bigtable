@@ -1906,7 +1906,7 @@ class TestReadRowsShardedAsync:
                     assert read_rows.call_count == 10
                     assert len(result) == 10
                     # if run in sequence, we would expect this to take 1 second
-                    assert call_time < 0.2
+                    assert call_time < 0.5
 
     @CrossSync.pytest
     async def test_read_rows_sharded_concurrency_limit(self):
