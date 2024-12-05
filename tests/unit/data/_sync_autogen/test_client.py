@@ -1028,7 +1028,7 @@ class TestTable:
         except Exception:
             pass
         assert rpc_mock.call_count == 1
-        kwargs = rpc_mock.call_args_list[0].kwargs
+        kwargs = rpc_mock.call_args_list[0][1]
         metadata = kwargs["metadata"]
         assert len(metadata) == 1
         assert metadata[0][0] == "x-goog-request-params"

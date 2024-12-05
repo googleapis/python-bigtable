@@ -1279,7 +1279,7 @@ class TestTableAsync:
             # we expect an exception from attempting to call the mock
             pass
         assert rpc_mock.call_count == 1
-        kwargs = rpc_mock.call_args_list[0].kwargs
+        kwargs = rpc_mock.call_args_list[0][1]
         metadata = kwargs["metadata"]
         # expect single metadata entry
         assert len(metadata) == 1
