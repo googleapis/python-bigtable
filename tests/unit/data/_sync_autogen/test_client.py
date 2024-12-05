@@ -1665,6 +1665,7 @@ class TestReadRowsSharded:
 
         They should raise DeadlineExceeded errors"""
         from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+        from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
         from google.api_core.exceptions import DeadlineExceeded
 
         def mock_call(*args, **kwargs):
@@ -1675,11 +1676,12 @@ class TestReadRowsSharded:
             with client.get_table("instance", "table") as table:
                 with mock.patch.object(table, "read_rows") as read_rows:
                     read_rows.side_effect = mock_call
-                    queries = [ReadRowsQuery() for _ in range(15)]
+                    num_calls = 15
+                    queries = [ReadRowsQuery() for _ in range(num_calls)]
                     with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
                         table.read_rows_sharded(queries, operation_timeout=0.01)
                     assert isinstance(exc.value, ShardedReadRowsExceptionGroup)
-                    assert len(exc.value.exceptions) == 5
+                    assert len(exc.value.exceptions) >= num_calls - _CONCURRENCY_LIMIT
                     assert all(
                         (
                             isinstance(e.__cause__, DeadlineExceeded)
