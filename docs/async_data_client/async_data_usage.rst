@@ -6,6 +6,7 @@ Async Data Client
 
   async_data_client
   async_data_table
+  async_data_authorized_view
   async_data_mutations_batcher
   async_data_read_rows_query
   async_data_row
