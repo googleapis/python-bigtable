@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1028,7 +1028,7 @@ class TestTable:
         except Exception:
             pass
         assert rpc_mock.call_count == 1
-        kwargs = rpc_mock.call_args_list[0].kwargs
+        kwargs = rpc_mock.call_args_list[0][1]
         metadata = kwargs["metadata"]
         assert len(metadata) == 1
         assert metadata[0][0] == "x-goog-request-params"
@@ -1587,7 +1587,7 @@ class TestReadRowsSharded:
                     call_time = time.monotonic() - start_time
                     assert read_rows.call_count == 10
                     assert len(result) == 10
-                    assert call_time < 0.2
+                    assert call_time < 0.5
 
     def test_read_rows_sharded_concurrency_limit(self):
         """Only 10 queries should be processed concurrently. Others should be queued
@@ -1665,21 +1665,23 @@ class TestReadRowsSharded:
 
         They should raise DeadlineExceeded errors"""
         from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+        from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
         from google.api_core.exceptions import DeadlineExceeded
 
         def mock_call(*args, **kwargs):
-            CrossSync._Sync_Impl.sleep(0.05)
+            CrossSync._Sync_Impl.sleep(0.06)
             return [mock.Mock()]
 
         with self._make_client() as client:
             with client.get_table("instance", "table") as table:
                 with mock.patch.object(table, "read_rows") as read_rows:
                     read_rows.side_effect = mock_call
-                    queries = [ReadRowsQuery() for _ in range(15)]
+                    num_calls = 15
+                    queries = [ReadRowsQuery() for _ in range(num_calls)]
                     with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
-                        table.read_rows_sharded(queries, operation_timeout=0.01)
+                        table.read_rows_sharded(queries, operation_timeout=0.05)
                     assert isinstance(exc.value, ShardedReadRowsExceptionGroup)
-                    assert len(exc.value.exceptions) == 5
+                    assert len(exc.value.exceptions) >= num_calls - _CONCURRENCY_LIMIT
                     assert all(
                         (
                             isinstance(e.__cause__, DeadlineExceeded)

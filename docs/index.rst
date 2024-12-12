@@ -7,7 +7,7 @@ Client Types
 .. toctree::
    :maxdepth: 3
 
-   data_client/usage
+   data_client/data_client_usage
    classic_client/usage
 
 
