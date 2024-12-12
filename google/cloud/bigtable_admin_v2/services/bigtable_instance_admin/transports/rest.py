@@ -13,9 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import logging
+import json  # type: ignore
 
 from google.auth.transport.requests import AuthorizedSession  # type: ignore
-import json  # type: ignore
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
@@ -48,6 +49,14 @@ try:
 except AttributeError:  # pragma: NO COVER
     OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
+try:
+    from google.api_core import client_logging  # type: ignore
+
+    CLIENT_LOGGING_SUPPORTED = True  # pragma: NO COVER
+except ImportError:  # pragma: NO COVER
+    CLIENT_LOGGING_SUPPORTED = False
+
+_LOGGER = logging.getLogger(__name__)
 
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=BASE_DEFAULT_CLIENT_INFO.gapic_version,
@@ -236,9 +245,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_create_app_profile(
         self,
         request: bigtable_instance_admin.CreateAppProfileRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_instance_admin.CreateAppProfileRequest, Sequence[Tuple[str, str]]
+        bigtable_instance_admin.CreateAppProfileRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for create_app_profile
 
@@ -261,8 +271,11 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_create_cluster(
         self,
         request: bigtable_instance_admin.CreateClusterRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_instance_admin.CreateClusterRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.CreateClusterRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for create_cluster
 
         Override in a subclass to manipulate the request or metadata
@@ -284,9 +297,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_create_instance(
         self,
         request: bigtable_instance_admin.CreateInstanceRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_instance_admin.CreateInstanceRequest, Sequence[Tuple[str, str]]
+        bigtable_instance_admin.CreateInstanceRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for create_instance
 
@@ -309,9 +323,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_delete_app_profile(
         self,
         request: bigtable_instance_admin.DeleteAppProfileRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_instance_admin.DeleteAppProfileRequest, Sequence[Tuple[str, str]]
+        bigtable_instance_admin.DeleteAppProfileRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for delete_app_profile
 
@@ -323,8 +338,11 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_delete_cluster(
         self,
         request: bigtable_instance_admin.DeleteClusterRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_instance_admin.DeleteClusterRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.DeleteClusterRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for delete_cluster
 
         Override in a subclass to manipulate the request or metadata
@@ -335,9 +353,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_delete_instance(
         self,
         request: bigtable_instance_admin.DeleteInstanceRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_instance_admin.DeleteInstanceRequest, Sequence[Tuple[str, str]]
+        bigtable_instance_admin.DeleteInstanceRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for delete_instance
 
@@ -349,8 +368,11 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_get_app_profile(
         self,
         request: bigtable_instance_admin.GetAppProfileRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_instance_admin.GetAppProfileRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.GetAppProfileRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for get_app_profile
 
         Override in a subclass to manipulate the request or metadata
@@ -372,8 +394,11 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_get_cluster(
         self,
         request: bigtable_instance_admin.GetClusterRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_instance_admin.GetClusterRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.GetClusterRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for get_cluster
 
         Override in a subclass to manipulate the request or metadata
@@ -393,8 +418,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_get_iam_policy(
         self,
         request: iam_policy_pb2.GetIamPolicyRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[iam_policy_pb2.GetIamPolicyRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        iam_policy_pb2.GetIamPolicyRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for get_iam_policy
 
         Override in a subclass to manipulate the request or metadata
@@ -414,8 +441,11 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_get_instance(
         self,
         request: bigtable_instance_admin.GetInstanceRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_instance_admin.GetInstanceRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.GetInstanceRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for get_instance
 
         Override in a subclass to manipulate the request or metadata
@@ -435,9 +465,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_list_app_profiles(
         self,
         request: bigtable_instance_admin.ListAppProfilesRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_instance_admin.ListAppProfilesRequest, Sequence[Tuple[str, str]]
+        bigtable_instance_admin.ListAppProfilesRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for list_app_profiles
 
@@ -460,8 +491,11 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_list_clusters(
         self,
         request: bigtable_instance_admin.ListClustersRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_instance_admin.ListClustersRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.ListClustersRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for list_clusters
 
         Override in a subclass to manipulate the request or metadata
@@ -483,9 +517,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_list_hot_tablets(
         self,
         request: bigtable_instance_admin.ListHotTabletsRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_instance_admin.ListHotTabletsRequest, Sequence[Tuple[str, str]]
+        bigtable_instance_admin.ListHotTabletsRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for list_hot_tablets
 
@@ -508,8 +543,11 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_list_instances(
         self,
         request: bigtable_instance_admin.ListInstancesRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_instance_admin.ListInstancesRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.ListInstancesRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for list_instances
 
         Override in a subclass to manipulate the request or metadata
@@ -531,9 +569,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_partial_update_cluster(
         self,
         request: bigtable_instance_admin.PartialUpdateClusterRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_instance_admin.PartialUpdateClusterRequest, Sequence[Tuple[str, str]]
+        bigtable_instance_admin.PartialUpdateClusterRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for partial_update_cluster
 
@@ -556,9 +595,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_partial_update_instance(
         self,
         request: bigtable_instance_admin.PartialUpdateInstanceRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_instance_admin.PartialUpdateInstanceRequest, Sequence[Tuple[str, str]]
+        bigtable_instance_admin.PartialUpdateInstanceRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for partial_update_instance
 
@@ -581,8 +621,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_set_iam_policy(
         self,
         request: iam_policy_pb2.SetIamPolicyRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[iam_policy_pb2.SetIamPolicyRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        iam_policy_pb2.SetIamPolicyRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for set_iam_policy
 
         Override in a subclass to manipulate the request or metadata
@@ -602,8 +644,11 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_test_iam_permissions(
         self,
         request: iam_policy_pb2.TestIamPermissionsRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[iam_policy_pb2.TestIamPermissionsRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        iam_policy_pb2.TestIamPermissionsRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for test_iam_permissions
 
         Override in a subclass to manipulate the request or metadata
@@ -625,9 +670,10 @@ class BigtableInstanceAdminRestInterceptor:
     def pre_update_app_profile(
         self,
         request: bigtable_instance_admin.UpdateAppProfileRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_instance_admin.UpdateAppProfileRequest, Sequence[Tuple[str, str]]
+        bigtable_instance_admin.UpdateAppProfileRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for update_app_profile
 
@@ -648,8 +694,10 @@ class BigtableInstanceAdminRestInterceptor:
         return response
 
     def pre_update_cluster(
-        self, request: instance.Cluster, metadata: Sequence[Tuple[str, str]]
-    ) -> Tuple[instance.Cluster, Sequence[Tuple[str, str]]]:
+        self,
+        request: instance.Cluster,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[instance.Cluster, Sequence[Tuple[str, Union[str, bytes]]]]:
         """Pre-rpc interceptor for update_cluster
 
         Override in a subclass to manipulate the request or metadata
@@ -669,8 +717,10 @@ class BigtableInstanceAdminRestInterceptor:
         return response
 
     def pre_update_instance(
-        self, request: instance.Instance, metadata: Sequence[Tuple[str, str]]
-    ) -> Tuple[instance.Instance, Sequence[Tuple[str, str]]]:
+        self,
+        request: instance.Instance,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[instance.Instance, Sequence[Tuple[str, Union[str, bytes]]]]:
         """Pre-rpc interceptor for update_instance
 
         Override in a subclass to manipulate the request or metadata
@@ -866,7 +916,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> instance.AppProfile:
             r"""Call the create app profile method over HTTP.
 
@@ -877,8 +927,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.instance.AppProfile:
@@ -891,6 +943,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseCreateAppProfile._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_create_app_profile(
                 request, metadata
             )
@@ -906,6 +959,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseCreateAppProfile._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.CreateAppProfile",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "CreateAppProfile",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = (
@@ -930,7 +1010,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = instance.AppProfile.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_create_app_profile(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = instance.AppProfile.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.create_app_profile",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "CreateAppProfile",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _CreateCluster(
@@ -969,7 +1071,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the create cluster method over HTTP.
 
@@ -980,8 +1082,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -994,6 +1098,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseCreateCluster._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_create_cluster(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseCreateCluster._get_transcoded_request(
                 http_options, request
@@ -1007,6 +1112,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseCreateCluster._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.CreateCluster",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "CreateCluster",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._CreateCluster._get_response(
@@ -1027,7 +1159,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_create_cluster(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.create_cluster",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "CreateCluster",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _CreateInstance(
@@ -1066,7 +1220,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the create instance method over HTTP.
 
@@ -1077,8 +1231,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -1091,6 +1247,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseCreateInstance._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_create_instance(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseCreateInstance._get_transcoded_request(
                 http_options, request
@@ -1104,6 +1261,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseCreateInstance._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.CreateInstance",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "CreateInstance",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._CreateInstance._get_response(
@@ -1124,7 +1308,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_create_instance(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.create_instance",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "CreateInstance",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _DeleteAppProfile(
@@ -1162,7 +1368,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ):
             r"""Call the delete app profile method over HTTP.
 
@@ -1173,13 +1379,16 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
             """
 
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseDeleteAppProfile._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_delete_app_profile(
                 request, metadata
             )
@@ -1191,6 +1400,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseDeleteAppProfile._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.DeleteAppProfile",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "DeleteAppProfile",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = (
@@ -1244,7 +1480,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ):
             r"""Call the delete cluster method over HTTP.
 
@@ -1255,13 +1491,16 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
             """
 
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseDeleteCluster._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_delete_cluster(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseDeleteCluster._get_transcoded_request(
                 http_options, request
@@ -1271,6 +1510,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseDeleteCluster._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.DeleteCluster",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "DeleteCluster",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._DeleteCluster._get_response(
@@ -1322,7 +1588,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ):
             r"""Call the delete instance method over HTTP.
 
@@ -1333,13 +1599,16 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
             """
 
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseDeleteInstance._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_delete_instance(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseDeleteInstance._get_transcoded_request(
                 http_options, request
@@ -1349,6 +1618,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseDeleteInstance._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.DeleteInstance",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "DeleteInstance",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._DeleteInstance._get_response(
@@ -1400,7 +1696,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> instance.AppProfile:
             r"""Call the get app profile method over HTTP.
 
@@ -1411,8 +1707,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.instance.AppProfile:
@@ -1425,6 +1723,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseGetAppProfile._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_get_app_profile(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseGetAppProfile._get_transcoded_request(
                 http_options, request
@@ -1434,6 +1733,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseGetAppProfile._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.GetAppProfile",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetAppProfile",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._GetAppProfile._get_response(
@@ -1455,7 +1781,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = instance.AppProfile.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_get_app_profile(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = instance.AppProfile.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.get_app_profile",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetAppProfile",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _GetCluster(
@@ -1493,7 +1841,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> instance.Cluster:
             r"""Call the get cluster method over HTTP.
 
@@ -1504,8 +1852,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.instance.Cluster:
@@ -1519,6 +1869,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseGetCluster._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_get_cluster(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseGetCluster._get_transcoded_request(
                 http_options, request
@@ -1528,6 +1879,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseGetCluster._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.GetCluster",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetCluster",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._GetCluster._get_response(
@@ -1549,7 +1927,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = instance.Cluster.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_get_cluster(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = instance.Cluster.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.get_cluster",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetCluster",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _GetIamPolicy(
@@ -1588,7 +1988,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> policy_pb2.Policy:
             r"""Call the get iam policy method over HTTP.
 
@@ -1598,8 +1998,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.policy_pb2.Policy:
@@ -1684,6 +2086,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseGetIamPolicy._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_get_iam_policy(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseGetIamPolicy._get_transcoded_request(
                 http_options, request
@@ -1697,6 +2100,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseGetIamPolicy._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.GetIamPolicy",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetIamPolicy",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._GetIamPolicy._get_response(
@@ -1719,7 +2149,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = resp
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_get_iam_policy(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.get_iam_policy",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetIamPolicy",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _GetInstance(
@@ -1757,7 +2209,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> instance.Instance:
             r"""Call the get instance method over HTTP.
 
@@ -1768,8 +2220,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.instance.Instance:
@@ -1785,6 +2239,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseGetInstance._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_get_instance(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseGetInstance._get_transcoded_request(
                 http_options, request
@@ -1794,6 +2249,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseGetInstance._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.GetInstance",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetInstance",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._GetInstance._get_response(
@@ -1815,7 +2297,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = instance.Instance.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_get_instance(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = instance.Instance.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.get_instance",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetInstance",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _ListAppProfiles(
@@ -1853,7 +2357,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable_instance_admin.ListAppProfilesResponse:
             r"""Call the list app profiles method over HTTP.
 
@@ -1864,8 +2368,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable_instance_admin.ListAppProfilesResponse:
@@ -1877,6 +2383,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseListAppProfiles._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_list_app_profiles(
                 request, metadata
             )
@@ -1888,6 +2395,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseListAppProfiles._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.ListAppProfiles",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListAppProfiles",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = (
@@ -1911,7 +2445,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = bigtable_instance_admin.ListAppProfilesResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_list_app_profiles(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_instance_admin.ListAppProfilesResponse.to_json(
+                            response
+                        )
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.list_app_profiles",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListAppProfiles",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _ListClusters(
@@ -1949,7 +2509,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable_instance_admin.ListClustersResponse:
             r"""Call the list clusters method over HTTP.
 
@@ -1960,8 +2520,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable_instance_admin.ListClustersResponse:
@@ -1973,6 +2535,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseListClusters._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_list_clusters(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseListClusters._get_transcoded_request(
                 http_options, request
@@ -1982,6 +2545,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseListClusters._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.ListClusters",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListClusters",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._ListClusters._get_response(
@@ -2003,7 +2593,31 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = bigtable_instance_admin.ListClustersResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_list_clusters(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_instance_admin.ListClustersResponse.to_json(response)
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.list_clusters",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListClusters",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _ListHotTablets(
@@ -2041,7 +2655,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable_instance_admin.ListHotTabletsResponse:
             r"""Call the list hot tablets method over HTTP.
 
@@ -2052,8 +2666,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable_instance_admin.ListHotTabletsResponse:
@@ -2065,6 +2681,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseListHotTablets._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_list_hot_tablets(
                 request, metadata
             )
@@ -2076,6 +2693,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseListHotTablets._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.ListHotTablets",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListHotTablets",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._ListHotTablets._get_response(
@@ -2097,7 +2741,31 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = bigtable_instance_admin.ListHotTabletsResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_list_hot_tablets(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_instance_admin.ListHotTabletsResponse.to_json(response)
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.list_hot_tablets",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListHotTablets",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _ListInstances(
@@ -2135,7 +2803,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable_instance_admin.ListInstancesResponse:
             r"""Call the list instances method over HTTP.
 
@@ -2146,8 +2814,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable_instance_admin.ListInstancesResponse:
@@ -2159,6 +2829,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseListInstances._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_list_instances(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseListInstances._get_transcoded_request(
                 http_options, request
@@ -2168,6 +2839,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseListInstances._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.ListInstances",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListInstances",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._ListInstances._get_response(
@@ -2189,7 +2887,31 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = bigtable_instance_admin.ListInstancesResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_list_instances(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_instance_admin.ListInstancesResponse.to_json(response)
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.list_instances",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListInstances",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _PartialUpdateCluster(
@@ -2228,7 +2950,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the partial update cluster method over HTTP.
 
@@ -2239,8 +2961,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -2253,6 +2977,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BasePartialUpdateCluster._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_partial_update_cluster(
                 request, metadata
             )
@@ -2268,6 +2993,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BasePartialUpdateCluster._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.PartialUpdateCluster",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "PartialUpdateCluster",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = (
@@ -2290,7 +3042,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_partial_update_cluster(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.partial_update_cluster",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "PartialUpdateCluster",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _PartialUpdateInstance(
@@ -2329,7 +3103,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the partial update instance method over HTTP.
 
@@ -2340,8 +3114,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -2354,6 +3130,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BasePartialUpdateInstance._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_partial_update_instance(
                 request, metadata
             )
@@ -2369,6 +3146,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BasePartialUpdateInstance._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.PartialUpdateInstance",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "PartialUpdateInstance",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = (
@@ -2391,7 +3195,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_partial_update_instance(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.partial_update_instance",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "PartialUpdateInstance",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _SetIamPolicy(
@@ -2430,7 +3256,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> policy_pb2.Policy:
             r"""Call the set iam policy method over HTTP.
 
@@ -2440,8 +3266,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.policy_pb2.Policy:
@@ -2526,6 +3354,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseSetIamPolicy._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_set_iam_policy(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseSetIamPolicy._get_transcoded_request(
                 http_options, request
@@ -2539,6 +3368,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseSetIamPolicy._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.SetIamPolicy",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "SetIamPolicy",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._SetIamPolicy._get_response(
@@ -2561,7 +3417,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = resp
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_set_iam_policy(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.set_iam_policy",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "SetIamPolicy",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _TestIamPermissions(
@@ -2600,7 +3478,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> iam_policy_pb2.TestIamPermissionsResponse:
             r"""Call the test iam permissions method over HTTP.
 
@@ -2610,8 +3488,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.iam_policy_pb2.TestIamPermissionsResponse:
@@ -2621,6 +3501,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseTestIamPermissions._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_test_iam_permissions(
                 request, metadata
             )
@@ -2636,6 +3517,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseTestIamPermissions._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.TestIamPermissions",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "TestIamPermissions",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = (
@@ -2660,7 +3568,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = resp
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_test_iam_permissions(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.test_iam_permissions",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "TestIamPermissions",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _UpdateAppProfile(
@@ -2699,7 +3629,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the update app profile method over HTTP.
 
@@ -2710,8 +3640,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -2724,6 +3656,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseUpdateAppProfile._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_update_app_profile(
                 request, metadata
             )
@@ -2739,6 +3672,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseUpdateAppProfile._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.UpdateAppProfile",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "UpdateAppProfile",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = (
@@ -2761,7 +3721,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_update_app_profile(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.update_app_profile",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "UpdateAppProfile",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _UpdateCluster(
@@ -2800,7 +3782,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the update cluster method over HTTP.
 
@@ -2813,8 +3795,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -2827,6 +3811,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseUpdateCluster._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_update_cluster(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseUpdateCluster._get_transcoded_request(
                 http_options, request
@@ -2840,6 +3825,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseUpdateCluster._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.UpdateCluster",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "UpdateCluster",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._UpdateCluster._get_response(
@@ -2860,7 +3872,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_update_cluster(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.update_cluster",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "UpdateCluster",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _UpdateInstance(
@@ -2899,7 +3933,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> instance.Instance:
             r"""Call the update instance method over HTTP.
 
@@ -2914,8 +3948,10 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.instance.Instance:
@@ -2931,6 +3967,7 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             http_options = (
                 _BaseBigtableInstanceAdminRestTransport._BaseUpdateInstance._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_update_instance(request, metadata)
             transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseUpdateInstance._get_transcoded_request(
                 http_options, request
@@ -2944,6 +3981,33 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             query_params = _BaseBigtableInstanceAdminRestTransport._BaseUpdateInstance._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.UpdateInstance",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "UpdateInstance",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._UpdateInstance._get_response(
@@ -2966,7 +4030,29 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
             pb_resp = instance.Instance.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_update_instance(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = instance.Instance.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.update_instance",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "UpdateInstance",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     @property
