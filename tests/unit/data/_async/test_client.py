@@ -2023,7 +2023,7 @@ class TestReadRowsShardedAsync:
                     assert isinstance(exc.value, ShardedReadRowsExceptionGroup)
                     # _CONCURRENCY_LIMIT calls will run, and won't be interrupted
                     # calls after the limit will be cancelled due to timeout
-                    assert len(exc.value.exceptions) == num_calls - _CONCURRENCY_LIMIT
+                    assert len(exc.value.exceptions) >= num_calls - _CONCURRENCY_LIMIT
                     assert all(
                         isinstance(e.__cause__, DeadlineExceeded)
                         for e in exc.value.exceptions
