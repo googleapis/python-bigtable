@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1681,7 +1681,7 @@ class TestReadRowsSharded:
                     with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
                         table.read_rows_sharded(queries, operation_timeout=0.05)
                     assert isinstance(exc.value, ShardedReadRowsExceptionGroup)
-                    assert len(exc.value.exceptions) >= num_calls - _CONCURRENCY_LIMIT
+                    assert len(exc.value.exceptions) == num_calls - _CONCURRENCY_LIMIT
                     assert all(
                         (
                             isinstance(e.__cause__, DeadlineExceeded)
