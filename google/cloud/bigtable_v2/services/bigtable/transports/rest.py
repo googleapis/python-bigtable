@@ -13,9 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import logging
+import json  # type: ignore
 
 from google.auth.transport.requests import AuthorizedSession  # type: ignore
-import json  # type: ignore
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
@@ -42,6 +43,14 @@ try:
 except AttributeError:  # pragma: NO COVER
     OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
+try:
+    from google.api_core import client_logging  # type: ignore
+
+    CLIENT_LOGGING_SUPPORTED = True  # pragma: NO COVER
+except ImportError:  # pragma: NO COVER
+    CLIENT_LOGGING_SUPPORTED = False
+
+_LOGGER = logging.getLogger(__name__)
 
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=BASE_DEFAULT_CLIENT_INFO.gapic_version,
@@ -154,8 +163,10 @@ class BigtableRestInterceptor:
     def pre_check_and_mutate_row(
         self,
         request: bigtable.CheckAndMutateRowRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable.CheckAndMutateRowRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable.CheckAndMutateRowRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for check_and_mutate_row
 
         Override in a subclass to manipulate the request or metadata
@@ -175,8 +186,10 @@ class BigtableRestInterceptor:
         return response
 
     def pre_execute_query(
-        self, request: bigtable.ExecuteQueryRequest, metadata: Sequence[Tuple[str, str]]
-    ) -> Tuple[bigtable.ExecuteQueryRequest, Sequence[Tuple[str, str]]]:
+        self,
+        request: bigtable.ExecuteQueryRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[bigtable.ExecuteQueryRequest, Sequence[Tuple[str, Union[str, bytes]]]]:
         """Pre-rpc interceptor for execute_query
 
         Override in a subclass to manipulate the request or metadata
@@ -198,9 +211,10 @@ class BigtableRestInterceptor:
     def pre_generate_initial_change_stream_partitions(
         self,
         request: bigtable.GenerateInitialChangeStreamPartitionsRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable.GenerateInitialChangeStreamPartitionsRequest, Sequence[Tuple[str, str]]
+        bigtable.GenerateInitialChangeStreamPartitionsRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for generate_initial_change_stream_partitions
 
@@ -221,8 +235,10 @@ class BigtableRestInterceptor:
         return response
 
     def pre_mutate_row(
-        self, request: bigtable.MutateRowRequest, metadata: Sequence[Tuple[str, str]]
-    ) -> Tuple[bigtable.MutateRowRequest, Sequence[Tuple[str, str]]]:
+        self,
+        request: bigtable.MutateRowRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[bigtable.MutateRowRequest, Sequence[Tuple[str, Union[str, bytes]]]]:
         """Pre-rpc interceptor for mutate_row
 
         Override in a subclass to manipulate the request or metadata
@@ -242,8 +258,10 @@ class BigtableRestInterceptor:
         return response
 
     def pre_mutate_rows(
-        self, request: bigtable.MutateRowsRequest, metadata: Sequence[Tuple[str, str]]
-    ) -> Tuple[bigtable.MutateRowsRequest, Sequence[Tuple[str, str]]]:
+        self,
+        request: bigtable.MutateRowsRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[bigtable.MutateRowsRequest, Sequence[Tuple[str, Union[str, bytes]]]]:
         """Pre-rpc interceptor for mutate_rows
 
         Override in a subclass to manipulate the request or metadata
@@ -263,8 +281,10 @@ class BigtableRestInterceptor:
         return response
 
     def pre_ping_and_warm(
-        self, request: bigtable.PingAndWarmRequest, metadata: Sequence[Tuple[str, str]]
-    ) -> Tuple[bigtable.PingAndWarmRequest, Sequence[Tuple[str, str]]]:
+        self,
+        request: bigtable.PingAndWarmRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[bigtable.PingAndWarmRequest, Sequence[Tuple[str, Union[str, bytes]]]]:
         """Pre-rpc interceptor for ping_and_warm
 
         Override in a subclass to manipulate the request or metadata
@@ -286,8 +306,10 @@ class BigtableRestInterceptor:
     def pre_read_change_stream(
         self,
         request: bigtable.ReadChangeStreamRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable.ReadChangeStreamRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable.ReadChangeStreamRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for read_change_stream
 
         Override in a subclass to manipulate the request or metadata
@@ -309,8 +331,10 @@ class BigtableRestInterceptor:
     def pre_read_modify_write_row(
         self,
         request: bigtable.ReadModifyWriteRowRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable.ReadModifyWriteRowRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable.ReadModifyWriteRowRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for read_modify_write_row
 
         Override in a subclass to manipulate the request or metadata
@@ -330,8 +354,10 @@ class BigtableRestInterceptor:
         return response
 
     def pre_read_rows(
-        self, request: bigtable.ReadRowsRequest, metadata: Sequence[Tuple[str, str]]
-    ) -> Tuple[bigtable.ReadRowsRequest, Sequence[Tuple[str, str]]]:
+        self,
+        request: bigtable.ReadRowsRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[bigtable.ReadRowsRequest, Sequence[Tuple[str, Union[str, bytes]]]]:
         """Pre-rpc interceptor for read_rows
 
         Override in a subclass to manipulate the request or metadata
@@ -353,8 +379,8 @@ class BigtableRestInterceptor:
     def pre_sample_row_keys(
         self,
         request: bigtable.SampleRowKeysRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable.SampleRowKeysRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[bigtable.SampleRowKeysRequest, Sequence[Tuple[str, Union[str, bytes]]]]:
         """Pre-rpc interceptor for sample_row_keys
 
         Override in a subclass to manipulate the request or metadata
@@ -496,7 +522,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable.CheckAndMutateRowResponse:
             r"""Call the check and mutate row method over HTTP.
 
@@ -507,8 +533,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable.CheckAndMutateRowResponse:
@@ -520,6 +548,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             http_options = (
                 _BaseBigtableRestTransport._BaseCheckAndMutateRow._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_check_and_mutate_row(
                 request, metadata
             )
@@ -535,6 +564,33 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             query_params = _BaseBigtableRestTransport._BaseCheckAndMutateRow._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable_v2.BigtableClient.CheckAndMutateRow",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "CheckAndMutateRow",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableRestTransport._CheckAndMutateRow._get_response(
@@ -557,7 +613,31 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             pb_resp = bigtable.CheckAndMutateRowResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_check_and_mutate_row(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = bigtable.CheckAndMutateRowResponse.to_json(
+                        response
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable_v2.BigtableClient.check_and_mutate_row",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "CheckAndMutateRow",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _ExecuteQuery(_BaseBigtableRestTransport._BaseExecuteQuery, BigtableRestStub):
@@ -594,7 +674,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> rest_streaming.ResponseIterator:
             r"""Call the execute query method over HTTP.
 
@@ -605,8 +685,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable.ExecuteQueryResponse:
@@ -618,6 +700,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             http_options = (
                 _BaseBigtableRestTransport._BaseExecuteQuery._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_execute_query(request, metadata)
             transcoded_request = (
                 _BaseBigtableRestTransport._BaseExecuteQuery._get_transcoded_request(
@@ -635,6 +718,33 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                     transcoded_request
                 )
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable_v2.BigtableClient.ExecuteQuery",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "ExecuteQuery",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableRestTransport._ExecuteQuery._get_response(
@@ -656,6 +766,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp = rest_streaming.ResponseIterator(
                 response, bigtable.ExecuteQueryResponse
             )
+
             resp = self._interceptor.post_execute_query(resp)
             return resp
 
@@ -696,7 +807,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> rest_streaming.ResponseIterator:
             r"""Call the generate initial change
             stream partitions method over HTTP.
@@ -710,8 +821,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                     retry (google.api_core.retry.Retry): Designation of what errors, if any,
                         should be retried.
                     timeout (float): The timeout for this request.
-                    metadata (Sequence[Tuple[str, str]]): Strings which should be
-                        sent along with the request as metadata.
+                    metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                        sent along with the request as metadata. Normally, each value must be of type `str`,
+                        but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                        be of type `bytes`.
 
                 Returns:
                     ~.bigtable.GenerateInitialChangeStreamPartitionsResponse:
@@ -725,6 +838,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             http_options = (
                 _BaseBigtableRestTransport._BaseGenerateInitialChangeStreamPartitions._get_http_options()
             )
+
             (
                 request,
                 metadata,
@@ -743,6 +857,33 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             query_params = _BaseBigtableRestTransport._BaseGenerateInitialChangeStreamPartitions._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable_v2.BigtableClient.GenerateInitialChangeStreamPartitions",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "GenerateInitialChangeStreamPartitions",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableRestTransport._GenerateInitialChangeStreamPartitions._get_response(
@@ -764,6 +905,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp = rest_streaming.ResponseIterator(
                 response, bigtable.GenerateInitialChangeStreamPartitionsResponse
             )
+
             resp = self._interceptor.post_generate_initial_change_stream_partitions(
                 resp
             )
@@ -802,7 +944,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable.MutateRowResponse:
             r"""Call the mutate row method over HTTP.
 
@@ -813,8 +955,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable.MutateRowResponse:
@@ -824,6 +968,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             """
 
             http_options = _BaseBigtableRestTransport._BaseMutateRow._get_http_options()
+
             request, metadata = self._interceptor.pre_mutate_row(request, metadata)
             transcoded_request = (
                 _BaseBigtableRestTransport._BaseMutateRow._get_transcoded_request(
@@ -841,6 +986,33 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                     transcoded_request
                 )
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable_v2.BigtableClient.MutateRow",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "MutateRow",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableRestTransport._MutateRow._get_response(
@@ -863,7 +1035,29 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             pb_resp = bigtable.MutateRowResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_mutate_row(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = bigtable.MutateRowResponse.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable_v2.BigtableClient.mutate_row",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "MutateRow",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _MutateRows(_BaseBigtableRestTransport._BaseMutateRows, BigtableRestStub):
@@ -900,7 +1094,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> rest_streaming.ResponseIterator:
             r"""Call the mutate rows method over HTTP.
 
@@ -911,8 +1105,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable.MutateRowsResponse:
@@ -924,6 +1120,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             http_options = (
                 _BaseBigtableRestTransport._BaseMutateRows._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_mutate_rows(request, metadata)
             transcoded_request = (
                 _BaseBigtableRestTransport._BaseMutateRows._get_transcoded_request(
@@ -941,6 +1138,33 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                     transcoded_request
                 )
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable_v2.BigtableClient.MutateRows",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "MutateRows",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableRestTransport._MutateRows._get_response(
@@ -962,6 +1186,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp = rest_streaming.ResponseIterator(
                 response, bigtable.MutateRowsResponse
             )
+
             resp = self._interceptor.post_mutate_rows(resp)
             return resp
 
@@ -998,7 +1223,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable.PingAndWarmResponse:
             r"""Call the ping and warm method over HTTP.
 
@@ -1009,8 +1234,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable.PingAndWarmResponse:
@@ -1023,6 +1250,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             http_options = (
                 _BaseBigtableRestTransport._BasePingAndWarm._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_ping_and_warm(request, metadata)
             transcoded_request = (
                 _BaseBigtableRestTransport._BasePingAndWarm._get_transcoded_request(
@@ -1040,6 +1268,33 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                     transcoded_request
                 )
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable_v2.BigtableClient.PingAndWarm",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "PingAndWarm",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableRestTransport._PingAndWarm._get_response(
@@ -1062,7 +1317,29 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             pb_resp = bigtable.PingAndWarmResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_ping_and_warm(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = bigtable.PingAndWarmResponse.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable_v2.BigtableClient.ping_and_warm",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "PingAndWarm",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _ReadChangeStream(
@@ -1101,7 +1378,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> rest_streaming.ResponseIterator:
             r"""Call the read change stream method over HTTP.
 
@@ -1113,8 +1390,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable.ReadChangeStreamResponse:
@@ -1127,6 +1406,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             http_options = (
                 _BaseBigtableRestTransport._BaseReadChangeStream._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_read_change_stream(
                 request, metadata
             )
@@ -1146,6 +1426,33 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                     transcoded_request
                 )
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable_v2.BigtableClient.ReadChangeStream",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "ReadChangeStream",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableRestTransport._ReadChangeStream._get_response(
@@ -1167,6 +1474,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp = rest_streaming.ResponseIterator(
                 response, bigtable.ReadChangeStreamResponse
             )
+
             resp = self._interceptor.post_read_change_stream(resp)
             return resp
 
@@ -1205,7 +1513,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable.ReadModifyWriteRowResponse:
             r"""Call the read modify write row method over HTTP.
 
@@ -1216,8 +1524,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable.ReadModifyWriteRowResponse:
@@ -1229,6 +1539,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             http_options = (
                 _BaseBigtableRestTransport._BaseReadModifyWriteRow._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_read_modify_write_row(
                 request, metadata
             )
@@ -1244,6 +1555,33 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             query_params = _BaseBigtableRestTransport._BaseReadModifyWriteRow._get_query_params_json(
                 transcoded_request
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable_v2.BigtableClient.ReadModifyWriteRow",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "ReadModifyWriteRow",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableRestTransport._ReadModifyWriteRow._get_response(
@@ -1266,7 +1604,31 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             pb_resp = bigtable.ReadModifyWriteRowResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_read_modify_write_row(resp)
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = bigtable.ReadModifyWriteRowResponse.to_json(
+                        response
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable_v2.BigtableClient.read_modify_write_row",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "ReadModifyWriteRow",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _ReadRows(_BaseBigtableRestTransport._BaseReadRows, BigtableRestStub):
@@ -1303,7 +1665,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> rest_streaming.ResponseIterator:
             r"""Call the read rows method over HTTP.
 
@@ -1314,8 +1676,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable.ReadRowsResponse:
@@ -1325,6 +1689,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             """
 
             http_options = _BaseBigtableRestTransport._BaseReadRows._get_http_options()
+
             request, metadata = self._interceptor.pre_read_rows(request, metadata)
             transcoded_request = (
                 _BaseBigtableRestTransport._BaseReadRows._get_transcoded_request(
@@ -1342,6 +1707,33 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                     transcoded_request
                 )
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable_v2.BigtableClient.ReadRows",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "ReadRows",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableRestTransport._ReadRows._get_response(
@@ -1361,6 +1753,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
 
             # Return the response
             resp = rest_streaming.ResponseIterator(response, bigtable.ReadRowsResponse)
+
             resp = self._interceptor.post_read_rows(resp)
             return resp
 
@@ -1399,7 +1792,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> rest_streaming.ResponseIterator:
             r"""Call the sample row keys method over HTTP.
 
@@ -1410,8 +1803,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable.SampleRowKeysResponse:
@@ -1423,6 +1818,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             http_options = (
                 _BaseBigtableRestTransport._BaseSampleRowKeys._get_http_options()
             )
+
             request, metadata = self._interceptor.pre_sample_row_keys(request, metadata)
             transcoded_request = (
                 _BaseBigtableRestTransport._BaseSampleRowKeys._get_transcoded_request(
@@ -1436,6 +1832,33 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
                     transcoded_request
                 )
             )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable_v2.BigtableClient.SampleRowKeys",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "SampleRowKeys",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
             response = BigtableRestTransport._SampleRowKeys._get_response(
@@ -1456,6 +1879,7 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp = rest_streaming.ResponseIterator(
                 response, bigtable.SampleRowKeysResponse
             )
+
             resp = self._interceptor.post_sample_row_keys(resp)
             return resp
 
