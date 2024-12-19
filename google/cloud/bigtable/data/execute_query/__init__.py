@@ -15,6 +15,9 @@
 from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
     ExecuteQueryIteratorAsync,
 )
+from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (
+    ExecuteQueryIterator,
+)
 from google.cloud.bigtable.data.execute_query.metadata import (
     Metadata,
     ProtoMetadata,
@@ -25,7 +28,10 @@ from google.cloud.bigtable.data.execute_query.values import (
     QueryResultRow,
     Struct,
 )
+from google.cloud.bigtable.data._cross_sync import CrossSync
 
+CrossSync.add_mapping("ExecuteQueryIterator", ExecuteQueryIteratorAsync)
+CrossSync._Sync_Impl.add_mapping("ExecuteQueryIterator", ExecuteQueryIterator)
 
 __all__ = [
     "ExecuteQueryValueType",
@@ -35,4 +41,5 @@ __all__ = [
     "Metadata",
     "ProtoMetadata",
     "ExecuteQueryIteratorAsync",
+    "ExecuteQueryIterator",
 ]

@@ -28,7 +28,7 @@ import warnings
 import nox
 
 FLAKE8_VERSION = "flake8==6.1.0"
-BLACK_VERSION = "black[jupyter]==23.7.0"
+BLACK_VERSION = "black[jupyter]==23.3.0"
 ISORT_VERSION = "isort==5.11.0"
 LINT_PATHS = ["docs", "google", "tests", "noxfile.py", "setup.py"]
 
@@ -49,6 +49,8 @@ UNIT_TEST_STANDARD_DEPENDENCIES = [
     "pytest",
     "pytest-cov",
     "pytest-asyncio",
+    BLACK_VERSION,
+    "autoflake",
 ]
 UNIT_TEST_EXTERNAL_DEPENDENCIES: List[str] = []
 UNIT_TEST_LOCAL_DEPENDENCIES: List[str] = []
@@ -64,7 +66,7 @@ SYSTEM_TEST_STANDARD_DEPENDENCIES: List[str] = [
 ]
 SYSTEM_TEST_EXTERNAL_DEPENDENCIES: List[str] = [
     "pytest-asyncio==0.21.2",
-    "black==23.7.0",
+    BLACK_VERSION,
     "pyyaml==6.0.2",
 ]
 SYSTEM_TEST_LOCAL_DEPENDENCIES: List[str] = []
@@ -157,6 +159,8 @@ def mypy(session):
         "tests/system/v2_client",
         "--exclude",
         "tests/unit/v2_client",
+        "--disable-error-code",
+        "func-returns-value",  # needed for CrossSync.rm_aio
     )
 
 
@@ -294,9 +298,8 @@ def system_emulated(session):
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-def conformance(session):
-    TEST_REPO_URL = "https://github.com/googleapis/cloud-bigtable-clients-test.git"
-    CLONE_REPO_DIR = "cloud-bigtable-clients-test"
+@nox.parametrize("client_type", ["async", "sync", "legacy"])
+def conformance(session, client_type):
     # install dependencies
     constraints_path = str(
         CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
@@ -304,11 +307,13 @@ def conformance(session):
     install_unittest_dependencies(session, "-c", constraints_path)
     with session.chdir("test_proxy"):
         # download the conformance test suite
-        clone_dir = os.path.join(CURRENT_DIRECTORY, CLONE_REPO_DIR)
-        if not os.path.exists(clone_dir):
-            print("downloading copy of test repo")
-            session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR, external=True)
-        session.run("bash", "-e", "run_tests.sh", external=True)
+        session.run(
+            "bash",
+            "-e",
+            "run_tests.sh",
+            external=True,
+            env={"CLIENT_TYPE": client_type},
+        )
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
@@ -558,3 +563,13 @@ def prerelease_deps(session, protobuf_implementation):
                 "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": protobuf_implementation,
             },
         )
+
+
+@nox.session(python="3.10")
+def generate_sync(session):
+    """
+    Re-generate sync files for the library from CrossSync-annotated async source
+    """
+    session.install(BLACK_VERSION)
+    session.install("autoflake")
+    session.run("python", ".cross_sync/generate.py", ".")
