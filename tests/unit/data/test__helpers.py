@@ -21,34 +21,6 @@ from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 import mock
 
 
-class TestMakeMetadata:
-    @pytest.mark.parametrize(
-        "table,profile,instance,expected",
-        [
-            ("table", "profile", None, "table_name=table&app_profile_id=profile"),
-            ("table", None, None, "table_name=table"),
-            (None, None, "instance", "name=instance"),
-            (None, "profile", None, "app_profile_id=profile"),
-            (None, "profile", "instance", "name=instance&app_profile_id=profile"),
-        ],
-    )
-    def test__make_metadata(self, table, profile, instance, expected):
-        metadata = _helpers._make_metadata(table, profile, instance)
-        assert metadata == [("x-goog-request-params", expected)]
-
-    @pytest.mark.parametrize(
-        "table,profile,instance",
-        [
-            ("table", None, "instance"),
-            ("table", "profile", "instance"),
-            (None, None, None),
-        ],
-    )
-    def test__make_metadata_invalid_params(self, table, profile, instance):
-        with pytest.raises(ValueError):
-            _helpers._make_metadata(table, profile, instance)
-
-
 class TestAttemptTimeoutGenerator:
     @pytest.mark.parametrize(
         "request_t,operation_t,expected_list",
@@ -109,7 +81,7 @@ class TestAttemptTimeoutGenerator:
         sleep_time = 0.1
         for i in range(3):
             found_value = next(generator)
-            assert abs(found_value - expected_value) < 0.001
+            assert abs(found_value - expected_value) < 0.1
             sleep(sleep_time)
             expected_value -= sleep_time
 

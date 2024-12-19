@@ -29,6 +29,7 @@ from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 if TYPE_CHECKING:
     import grpc
     from google.cloud.bigtable.data import TableAsync
+    from google.cloud.bigtable.data import Table
 
 """
 Helper functions used in various places in the library.
@@ -57,31 +58,6 @@ class TABLE_DEFAULT(enum.Enum):
     READ_ROWS = "READ_ROWS_DEFAULT"
     # default for bulk_mutate_rows and mutations_batcher
     MUTATE_ROWS = "MUTATE_ROWS_DEFAULT"
-
-
-def _make_metadata(
-    table_name: str | None, app_profile_id: str | None, instance_name: str | None
-) -> list[tuple[str, str]]:
-    """
-    Create properly formatted gRPC metadata for requests.
-    """
-    params = []
-
-    if table_name is not None and instance_name is not None:
-        raise ValueError("metadata can't contain both instance_name and table_name")
-
-    if table_name is not None:
-        params.append(f"table_name={table_name}")
-    if instance_name is not None:
-        params.append(f"name={instance_name}")
-    if app_profile_id is not None:
-        params.append(f"app_profile_id={app_profile_id}")
-    if len(params) == 0:
-        raise ValueError(
-            "At least one of table_name and app_profile_id should be not None."
-        )
-    params_str = "&".join(params)
-    return [("x-goog-request-params", params_str)]
 
 
 def _attempt_timeout_generator(
@@ -145,7 +121,7 @@ def _retry_exception_factory(
 def _get_timeouts(
     operation: float | TABLE_DEFAULT,
     attempt: float | None | TABLE_DEFAULT,
-    table: "TableAsync",
+    table: "TableAsync" | "Table",
 ) -> tuple[float, float]:
     """
     Convert passed in timeout values to floats, using table defaults if necessary.
@@ -232,7 +208,7 @@ def _get_error_type(
 
 def _get_retryable_errors(
     call_codes: Sequence["grpc.StatusCode" | int | type[Exception]] | TABLE_DEFAULT,
-    table: "TableAsync",
+    table: "TableAsync" | "Table",
 ) -> list[type[Exception]]:
     """
     Convert passed in retryable error codes to a list of exception types.

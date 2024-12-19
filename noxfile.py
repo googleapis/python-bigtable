@@ -28,19 +28,29 @@ import warnings
 import nox
 
 FLAKE8_VERSION = "flake8==6.1.0"
-BLACK_VERSION = "black[jupyter]==23.7.0"
+BLACK_VERSION = "black[jupyter]==23.3.0"
 ISORT_VERSION = "isort==5.11.0"
 LINT_PATHS = ["docs", "google", "tests", "noxfile.py", "setup.py"]
 
 DEFAULT_PYTHON_VERSION = "3.8"
 
-UNIT_TEST_PYTHON_VERSIONS: List[str] = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
+UNIT_TEST_PYTHON_VERSIONS: List[str] = [
+    "3.7",
+    "3.8",
+    "3.9",
+    "3.10",
+    "3.11",
+    "3.12",
+    "3.13",
+]
 UNIT_TEST_STANDARD_DEPENDENCIES = [
     "mock",
     "asyncmock",
     "pytest",
     "pytest-cov",
     "pytest-asyncio",
+    BLACK_VERSION,
+    "autoflake",
 ]
 UNIT_TEST_EXTERNAL_DEPENDENCIES: List[str] = []
 UNIT_TEST_LOCAL_DEPENDENCIES: List[str] = []
@@ -48,7 +58,7 @@ UNIT_TEST_DEPENDENCIES: List[str] = []
 UNIT_TEST_EXTRAS: List[str] = []
 UNIT_TEST_EXTRAS_BY_PYTHON: Dict[str, List[str]] = {}
 
-SYSTEM_TEST_PYTHON_VERSIONS: List[str] = ["3.8"]
+SYSTEM_TEST_PYTHON_VERSIONS: List[str] = ["3.8", "3.12"]
 SYSTEM_TEST_STANDARD_DEPENDENCIES: List[str] = [
     "mock",
     "pytest",
@@ -56,6 +66,8 @@ SYSTEM_TEST_STANDARD_DEPENDENCIES: List[str] = [
 ]
 SYSTEM_TEST_EXTERNAL_DEPENDENCIES: List[str] = [
     "pytest-asyncio==0.21.2",
+    BLACK_VERSION,
+    "pyyaml==6.0.2",
 ]
 SYSTEM_TEST_LOCAL_DEPENDENCIES: List[str] = []
 SYSTEM_TEST_DEPENDENCIES: List[str] = []
@@ -147,6 +159,8 @@ def mypy(session):
         "tests/system/v2_client",
         "--exclude",
         "tests/unit/v2_client",
+        "--disable-error-code",
+        "func-returns-value",  # needed for CrossSync.rm_aio
     )
 
 
@@ -193,7 +207,7 @@ def install_unittest_dependencies(session, *constraints):
 def unit(session, protobuf_implementation):
     # Install all test dependencies, then install this package in-place.
 
-    if protobuf_implementation == "cpp" and session.python in ("3.11", "3.12"):
+    if protobuf_implementation == "cpp" and session.python in ("3.11", "3.12", "3.13"):
         session.skip("cpp implementation is not supported in python 3.11+")
 
     constraints_path = str(
@@ -256,7 +270,7 @@ def install_systemtest_dependencies(session, *constraints):
         session.install("-e", ".", *constraints)
 
 
-@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
+@nox.session(python="3.8")
 def system_emulated(session):
     import subprocess
     import signal
@@ -284,9 +298,8 @@ def system_emulated(session):
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-def conformance(session):
-    TEST_REPO_URL = "https://github.com/googleapis/cloud-bigtable-clients-test.git"
-    CLONE_REPO_DIR = "cloud-bigtable-clients-test"
+@nox.parametrize("client_type", ["async", "sync", "legacy"])
+def conformance(session, client_type):
     # install dependencies
     constraints_path = str(
         CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
@@ -294,11 +307,13 @@ def conformance(session):
     install_unittest_dependencies(session, "-c", constraints_path)
     with session.chdir("test_proxy"):
         # download the conformance test suite
-        clone_dir = os.path.join(CURRENT_DIRECTORY, CLONE_REPO_DIR)
-        if not os.path.exists(clone_dir):
-            print("downloading copy of test repo")
-            session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR, external=True)
-        session.run("bash", "-e", "run_tests.sh", external=True)
+        session.run(
+            "bash",
+            "-e",
+            "run_tests.sh",
+            external=True,
+            env={"CLIENT_TYPE": client_type},
+        )
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
@@ -357,7 +372,7 @@ def cover(session):
     session.run("coverage", "erase")
 
 
-@nox.session(python="3.9")
+@nox.session(python="3.10")
 def docs(session):
     """Build the docs for this library."""
 
@@ -449,7 +464,7 @@ def docfx(session):
 def prerelease_deps(session, protobuf_implementation):
     """Run all tests with prerelease versions of dependencies installed."""
 
-    if protobuf_implementation == "cpp" and session.python in ("3.11", "3.12"):
+    if protobuf_implementation == "cpp" and session.python in ("3.11", "3.12", "3.13"):
         session.skip("cpp implementation is not supported in python 3.11+")
 
     # Install all dependencies
@@ -548,3 +563,13 @@ def prerelease_deps(session, protobuf_implementation):
                 "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": protobuf_implementation,
             },
         )
+
+
+@nox.session(python="3.10")
+def generate_sync(session):
+    """
+    Re-generate sync files for the library from CrossSync-annotated async source
+    """
+    session.install(BLACK_VERSION)
+    session.install("autoflake")
+    session.run("python", ".cross_sync/generate.py", ".")
