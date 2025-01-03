@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test-version: [ "main" ]
+        test-version: [ "v0.0.3" ]
         py-version: [ 3.8 ]
         client-type: [ "async", "sync" ]
         include:
