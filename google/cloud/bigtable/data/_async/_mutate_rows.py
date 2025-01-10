@@ -36,7 +36,7 @@ if TYPE_CHECKING:
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
             BigtableAsyncClient as GapicClientType,
         )
-        from google.cloud.bigtable_v2.services.bigtable.client import (  # type: ignore
+        from google.cloud.bigtable.data._async.client import (  # type: ignore
             _ApiSurfaceAsync as ApiSurfaceType,
         )
         from google.cloud.bigtable.data._async.client import TableAsync as TableType
@@ -44,7 +44,7 @@ if TYPE_CHECKING:
         from google.cloud.bigtable_v2.services.bigtable.client import (  # type: ignore
             BigtableClient as GapicClientType,
         )
-        from google.cloud.bigtable_v2.services.bigtable.client import (  # type: ignore
+        from google.cloud.bigtable.data._sync_autogen.client import (  # type: ignore
             _ApiSurface as ApiSurfaceType,
         )
         from google.cloud.bigtable.data._sync_autogen.client import Table as TableType  # type: ignore

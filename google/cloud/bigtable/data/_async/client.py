@@ -518,12 +518,26 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
+    @CrossSync.convert(
+        replace_symbols={"AuthorizedViewAsync": "AuthorizedView"},
+                docstring_format_vars={
+        "LOOP_MESSAGE": (
+            "Must be created within an async context (running event loop)",
+            "",
+        ),
+        "RAISE_NO_LOOP": (
+            "RuntimeError: if called outside of an async context (no running event loop)",
+            "None",
+        )}
+    )
     def get_authorized_view(
         self, instance_id: str, table_id: str, view_id: str, *args, **kwargs
     ) -> AuthorizedViewAsync:
         """
         Returns an authorized view nstance for making data API requests. All arguments are passed
         directly to the AuthorizedViewAsync constructor.
+
+        {LOOP_MESSAGE}
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -558,7 +572,7 @@ class BigtableDataClientAsync(ClientWithProject):
         Returns:
             AuthorizedViewAsync: a table instance for making data API requests
         Raises:
-            RuntimeError: If called outside an async context (no running event loop)
+            {RAISE_NO_LOOP}
         """
         return CrossSync.AuthorizedView(
             self,
@@ -1553,13 +1567,25 @@ class AuthorizedViewAsync(_ApiSurfaceAsync):
     and passed them with each call
     """
 
+    @CrossSync.convert(
+        docstring_format_vars={
+            "LOOP_MESSAGE": (
+                "Must be created within an async context (running event loop)",
+                "",
+            ),
+            "RAISE_NO_LOOP": (
+                "RuntimeError: if called outside of an async context (no running event loop)",
+                "None",
+            ),
+        }
+    )
     def __init__(
         self, client, instance_id, table_id, view_id, app_profile_id: str | None = None, **kwargs
     ):
         """
         Initialize an AuthorizedView instance
 
-        Must be created within an async context (running event loop)
+        {LOOP_MESSAGE}
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -1592,7 +1618,7 @@ class AuthorizedViewAsync(_ApiSurfaceAsync):
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Raises:
-            RuntimeError: if called outside of an async context (no running event loop)
+            {RAISE_NO_LOOP}
         """
         super().__init__(client, instance_id, table_id, app_profile_id, **kwargs)
         self.authorized_view_id = view_id
