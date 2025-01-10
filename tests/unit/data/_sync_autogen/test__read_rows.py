@@ -50,6 +50,7 @@ class TestReadRowsOperation:
         table._client = client
         table.table_name = "test_table"
         table.app_profile_id = "test_profile"
+        table._authorized_view_name = "authorized_view"
         expected_operation_timeout = 42
         expected_request_timeout = 44
         time_gen_mock = mock.Mock()
@@ -74,6 +75,7 @@ class TestReadRowsOperation:
         assert client.read_rows.call_count == 0
         assert instance.request.table_name == table.table_name
         assert instance.request.app_profile_id == table.app_profile_id
+        assert instance.request.authorized_view_name == table._authorized_view_name
         assert instance.request.rows_limit == row_limit
 
     @pytest.mark.parametrize(
@@ -254,6 +256,7 @@ class TestReadRowsOperation:
         table = mock.Mock()
         table.table_name = "table_name"
         table.app_profile_id = "app_profile_id"
+        table._authorized_view_name = None
         instance = self._make_one(query, table, 10, 10)
         assert instance._remaining_count == start_limit
         for val in instance.chunk_stream(awaitable_stream()):
@@ -289,6 +292,7 @@ class TestReadRowsOperation:
         table = mock.Mock()
         table.table_name = "table_name"
         table.app_profile_id = "app_profile_id"
+        table._authorized_view_name = None
         instance = self._make_one(query, table, 10, 10)
         assert instance._remaining_count == start_limit
         with pytest.raises(InvalidChunk) as e:

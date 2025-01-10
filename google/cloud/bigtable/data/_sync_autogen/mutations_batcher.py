@@ -32,7 +32,9 @@ from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
-    from google.cloud.bigtable.data._sync_autogen.client import Table as TableType
+    from google.cloud.bigtable.data._sync_autogen.client import (
+        _ApiSurface as ApiSurfaceType,
+    )
 _MB_SIZE = 1024 * 1024
 
 
@@ -179,7 +181,7 @@ class MutationsBatcher:
 
     def __init__(
         self,
-        table: TableType,
+        table: ApiSurfaceType,
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
