@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -89,8 +89,10 @@ if CrossSync.is_async:
     )
     from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 else:
+    from typing import Iterable  # noqa: F401
     from grpc import insecure_channel
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
+    from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
 
 
 if TYPE_CHECKING:
@@ -103,6 +105,13 @@ if TYPE_CHECKING:
         )
         from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
             ExecuteQueryIteratorAsync,
+        )
+    else:
+        from google.cloud.bigtable.data._sync_autogen.mutations_batcher import (  # noqa: F401
+            MutationsBatcher,
+        )
+        from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (  # noqa: F401
+            ExecuteQueryIterator,
         )
 
 

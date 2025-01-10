@@ -46,6 +46,8 @@ from google.cloud.bigtable.data._cross_sync import CrossSync
 if TYPE_CHECKING:
     if CrossSync.is_async:
         from google.cloud.bigtable.data import BigtableDataClientAsync as DataClientType
+    else:
+        from google.cloud.bigtable.data import BigtableDataClient as DataClientType
 
 __CROSS_SYNC_OUTPUT__ = (
     "google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator"
