@@ -829,7 +829,7 @@ class TestBigtableDataClientAsync:
                 expected_instance_id,
                 expected_table_id,
                 "view_id",
-                expected_app_profile_id, 
+                expected_app_profile_id,
             )
             assert isinstance(surface, CrossSync.TestAuthorizedView._get_target_class())
             assert (
@@ -875,7 +875,15 @@ class TestBigtableDataClientAsync:
             with mock.patch.object(surface_type, "__init__") as mock_constructor:
                 mock_constructor.return_value = None
                 assert not client._active_instances
-                expected_args = ("table", "instance", "view", "app_profile", 1, "test", {"test": 2})
+                expected_args = (
+                    "table",
+                    "instance",
+                    "view",
+                    "app_profile",
+                    1,
+                    "test",
+                    {"test": 2},
+                )
                 expected_kwargs = {"hello": "world", "test": 2}
 
                 getattr(client, method)(
@@ -912,9 +920,20 @@ class TestBigtableDataClientAsync:
         with mock.patch.object(surface_type, "close") as close_mock:
             async with self._make_client(project=expected_project_id) as client:
                 if method == "get_table":
-                    fn = partial(client.get_table, expected_instance_id, expected_table_id, expected_app_profile_id)
+                    fn = partial(
+                        client.get_table,
+                        expected_instance_id,
+                        expected_table_id,
+                        expected_app_profile_id,
+                    )
                 elif method == "get_authorized_view":
-                    fn = partial(client.get_authorized_view, expected_instance_id, expected_table_id, "view_id", expected_app_profile_id)
+                    fn = partial(
+                        client.get_authorized_view,
+                        expected_instance_id,
+                        expected_table_id,
+                        "view_id",
+                        expected_app_profile_id,
+                    )
                 else:
                     raise TypeError(f"unexpected method: {method}")
                 async with fn() as table:
@@ -1017,8 +1036,17 @@ class TestTableAsync:
     def _get_target_class():
         return CrossSync.Table
 
-    def _make_one(self, client, instance_id="instance", table_id="table", app_profile_id=None, **kwargs):
-        return self._get_target_class()(client, instance_id, table_id, app_profile_id, **kwargs)
+    def _make_one(
+        self,
+        client,
+        instance_id="instance",
+        table_id="table",
+        app_profile_id=None,
+        **kwargs,
+    ):
+        return self._get_target_class()(
+            client, instance_id, table_id, app_profile_id, **kwargs
+        )
 
     @CrossSync.pytest
     async def test_ctor(self):
@@ -1051,8 +1079,14 @@ class TestTableAsync:
         await CrossSync.yield_to_event_loop()
         assert table.table_id == expected_table_id
         assert table.instance_id == expected_instance_id
-        assert table.table_name == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}"
-        assert table.instance_name == f"projects/{client.project}/instances/{expected_instance_id}"
+        assert (
+            table.table_name
+            == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}"
+        )
+        assert (
+            table.instance_name
+            == f"projects/{client.project}/instances/{expected_instance_id}"
+        )
         assert table.app_profile_id == expected_app_profile_id
         assert table.client is client
         instance_key = _WarmedInstanceKey(
@@ -1326,7 +1360,9 @@ class TestTableAsync:
         return f"table_name={table.table_name}"
 
 
-@CrossSync.convert_class("TestAuthorizedView", add_mapping_for_name="TestAuthorizedView")
+@CrossSync.convert_class(
+    "TestAuthorizedView", add_mapping_for_name="TestAuthorizedView"
+)
 class TestAuthorizedViewsAsync(CrossSync.TestTable):
     """
     Inherit tests from TestTableAsync, with some modifications
@@ -1337,8 +1373,18 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
     def _get_target_class():
         return CrossSync.AuthorizedView
 
-    def _make_one(self, client, instance_id="instance", table_id="table", view_id="view", app_profile_id=None, **kwargs):
-        return self._get_target_class()(client, instance_id, table_id, view_id, app_profile_id, **kwargs)
+    def _make_one(
+        self,
+        client,
+        instance_id="instance",
+        table_id="table",
+        view_id="view",
+        app_profile_id=None,
+        **kwargs,
+    ):
+        return self._get_target_class()(
+            client, instance_id, table_id, view_id, app_profile_id, **kwargs
+        )
 
     @staticmethod
     def _expected_routing_header(view):
@@ -1379,11 +1425,20 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
         )
         await CrossSync.yield_to_event_loop()
         assert table.table_id == expected_table_id
-        assert table.table_name == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}"
+        assert (
+            table.table_name
+            == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}"
+        )
         assert table.instance_id == expected_instance_id
-        assert table.instance_name == f"projects/{client.project}/instances/{expected_instance_id}"
+        assert (
+            table.instance_name
+            == f"projects/{client.project}/instances/{expected_instance_id}"
+        )
         assert table.authorized_view_id == expected_view_id
-        assert table.authorized_view_name == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}/authorizedViews/{expected_view_id}"
+        assert (
+            table.authorized_view_name
+            == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}/authorizedViews/{expected_view_id}"
+        )
         assert table.app_profile_id == expected_app_profile_id
         assert table.client is client
         instance_key = _WarmedInstanceKey(

@@ -99,7 +99,9 @@ class TestSystemAsync:
             async with client.get_table(instance_id, table_id) as table:
                 yield table
         elif request.param == "authorized_view":
-            async with client.get_authorized_view(instance_id, table_id, authorized_view_id) as view:
+            async with client.get_authorized_view(
+                instance_id, table_id, authorized_view_id
+            ) as view:
                 yield view
         else:
             raise ValueError(f"unknown table type: {request.param}")
@@ -1032,7 +1034,10 @@ class TestSystemAsync:
         Requesting family outside authorized family_subset should raise exception
         """
         from google.cloud.bigtable.data.mutations import SetCell
-        async with client.get_authorized_view(instance_id, table_id, authorized_view_id) as view:
+
+        async with client.get_authorized_view(
+            instance_id, table_id, authorized_view_id
+        ) as view:
             mutation = SetCell(family="unauthorized", qualifier="q", new_value="v")
             with pytest.raises(PermissionDenied) as e:
                 await view.mutate_row(b"row-key", mutation)

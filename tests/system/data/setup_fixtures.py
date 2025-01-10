@@ -21,6 +21,7 @@ import os
 import uuid
 
 from . import TEST_FAMILY, TEST_FAMILY_2
+
 # authorized view subset to allow all qualifiers
 ALLOW_ALL = ""
 ALL_QUALIFIERS = {"qualifier_prefixes": [ALLOW_ALL]}
@@ -179,7 +180,10 @@ def authorized_view_id(
                 "authorized_view": {
                     "subset_view": {
                         "row_prefixes": [ALLOW_ALL],
-                        "family_subsets": {TEST_FAMILY: ALL_QUALIFIERS, TEST_FAMILY_2: ALL_QUALIFIERS},
+                        "family_subsets": {
+                            TEST_FAMILY: ALL_QUALIFIERS,
+                            TEST_FAMILY_2: ALL_QUALIFIERS,
+                        },
                     },
                 },
             },
@@ -190,12 +194,9 @@ def authorized_view_id(
     yield new_view_id
     print(f"Deleting view: {new_path}")
     try:
-        admin_client.table_admin_client.delete_authorized_view(
-            name=new_path
-        )
+        admin_client.table_admin_client.delete_authorized_view(name=new_path)
     except exceptions.NotFound:
         print(f"View {new_view_id} not found, skipping deletion")
-
 
 
 @pytest.fixture(scope="session")

@@ -390,6 +390,7 @@ class BigtableDataClientAsync(ClientWithProject):
         replace_symbols={
             "TableAsync": "Table",
             "ExecuteQueryIteratorAsync": "ExecuteQueryIterator",
+            "_ApiSurfaceAsync": "_ApiSurface",
         }
     )
     async def _register_instance(
@@ -428,6 +429,7 @@ class BigtableDataClientAsync(ClientWithProject):
         replace_symbols={
             "TableAsync": "Table",
             "ExecuteQueryIteratorAsync": "ExecuteQueryIterator",
+            "_ApiSurfaceAsync": "_ApiSurface",
         }
     )
     async def _remove_instance_registration(
@@ -520,15 +522,16 @@ class BigtableDataClientAsync(ClientWithProject):
 
     @CrossSync.convert(
         replace_symbols={"AuthorizedViewAsync": "AuthorizedView"},
-                docstring_format_vars={
-        "LOOP_MESSAGE": (
-            "Must be created within an async context (running event loop)",
-            "",
-        ),
-        "RAISE_NO_LOOP": (
-            "RuntimeError: if called outside of an async context (no running event loop)",
-            "None",
-        )}
+        docstring_format_vars={
+            "LOOP_MESSAGE": (
+                "Must be created within an async context (running event loop)",
+                "",
+            ),
+            "RAISE_NO_LOOP": (
+                "RuntimeError: if called outside of an async context (no running event loop)",
+                "None",
+            ),
+        },
     )
     def get_authorized_view(
         self, instance_id: str, table_id: str, view_id: str, *args, **kwargs
@@ -826,7 +829,6 @@ class _ApiSurfaceAsync:
             raise RuntimeError(
                 f"{self.__class__.__name__} must be created within an async event loop context."
             ) from e
-
 
     @CrossSync.convert(replace_symbols={"AsyncIterable": "Iterable"})
     async def read_rows_stream(
@@ -1185,8 +1187,7 @@ class _ApiSurfaceAsync:
         async def execute_rpc():
             results = await self.client._gapic_client.sample_row_keys(
                 request=SampleRowKeysRequest(
-                    app_profile_id=self.app_profile_id,
-                    **self._request_path
+                    app_profile_id=self.app_profile_id, **self._request_path
                 ),
                 timeout=next(attempt_timeout_gen),
                 retry=None,
@@ -1543,7 +1544,11 @@ class _ApiSurfaceAsync:
         await self.close()
 
 
-@CrossSync.convert_class(sync_name="Table", add_mapping_for_name="Table")
+@CrossSync.convert_class(
+    sync_name="Table",
+    add_mapping_for_name="Table",
+    replace_symbols={"_ApiSurfaceAsync": "_ApiSurface"},
+)
 class TableAsync(_ApiSurfaceAsync):
     """
     Main Data API surface for interacting with a Bigtable table.
@@ -1554,7 +1559,9 @@ class TableAsync(_ApiSurfaceAsync):
 
 
 @CrossSync.convert_class(
-    sync_name="AuthorizedView", add_mapping_for_name="AuthorizedView"
+    sync_name="AuthorizedView",
+    add_mapping_for_name="AuthorizedView",
+    replace_symbols={"_ApiSurfaceAsync": "_ApiSurface"},
 )
 class AuthorizedViewAsync(_ApiSurfaceAsync):
     """
@@ -1580,7 +1587,13 @@ class AuthorizedViewAsync(_ApiSurfaceAsync):
         }
     )
     def __init__(
-        self, client, instance_id, table_id, view_id, app_profile_id: str | None = None, **kwargs
+        self,
+        client,
+        instance_id,
+        table_id,
+        view_id,
+        app_profile_id: str | None = None,
+        **kwargs,
     ):
         """
         Initialize an AuthorizedView instance
@@ -1622,9 +1635,7 @@ class AuthorizedViewAsync(_ApiSurfaceAsync):
         """
         super().__init__(client, instance_id, table_id, app_profile_id, **kwargs)
         self.authorized_view_id = view_id
-        self.authorized_view_name: str = (
-            self.client._gapic_client.authorized_view_path(
-                self.client.project, instance_id, table_id, view_id
-            )
+        self.authorized_view_name: str = self.client._gapic_client.authorized_view_path(
+            self.client.project, instance_id, table_id, view_id
         )
         self._request_path = {"authorized_view_name": self.authorized_view_name}

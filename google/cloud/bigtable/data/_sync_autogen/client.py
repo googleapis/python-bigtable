@@ -295,7 +295,7 @@ class BigtableDataClient(ClientWithProject):
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
 
     def _register_instance(
-        self, instance_id: str, owner: _ApiSurfaceAsync | ExecuteQueryIterator
+        self, instance_id: str, owner: _ApiSurface | ExecuteQueryIterator
     ) -> None:
         """Registers an instance with the client, and warms the channel for the instance
         The client will periodically refresh grpc channel used to make
@@ -320,7 +320,7 @@ class BigtableDataClient(ClientWithProject):
                 self._start_background_channel_refresh()
 
     def _remove_instance_registration(
-        self, instance_id: str, owner: _ApiSurfaceAsync | ExecuteQueryIterator
+        self, instance_id: str, owner: _ApiSurface | ExecuteQueryIterator
     ) -> bool:
         """Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
@@ -1297,7 +1297,7 @@ class _ApiSurface:
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("Table")
-class Table(_ApiSurfaceAsync):
+class Table(_ApiSurface):
     """
     Main Data API surface for interacting with a Bigtable table.
 
@@ -1307,7 +1307,7 @@ class Table(_ApiSurfaceAsync):
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("AuthorizedView")
-class AuthorizedView(_ApiSurfaceAsync):
+class AuthorizedView(_ApiSurface):
     """
     Provides access to an authorized view of a table.
 
