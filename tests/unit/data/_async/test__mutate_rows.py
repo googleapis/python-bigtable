@@ -40,9 +40,8 @@ class TestMutateRowsOperationAsync:
     def _make_one(self, *args, **kwargs):
         if not args:
             fake_table = CrossSync.Mock()
-            fake_table.table_name = "table"
+            fake_table._request_path = {"table_name": "table"}
             fake_table.app_profile_id = None
-            fake_table._authorized_view_name = None
             kwargs["gapic_client"] = kwargs.pop("gapic_client", mock.Mock())
             kwargs["table"] = kwargs.pop("table", fake_table)
             kwargs["operation_timeout"] = kwargs.pop("operation_timeout", 5)
@@ -173,9 +172,8 @@ class TestMutateRowsOperationAsync:
         """
         client = CrossSync.Mock()
         table = mock.Mock()
-        table.table_name = "table"
+        table._request_path = {"table_name": "table"}
         table.app_profile_id = None
-        table._authorized_view_name = None
         entries = [self._make_mutation(), self._make_mutation()]
         operation_timeout = 0.05
         expected_exception = exc_type("test")

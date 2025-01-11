@@ -54,9 +54,8 @@ class TestReadRowsOperationAsync:
         client.read_rows.return_value = None
         table = mock.Mock()
         table._client = client
-        table.table_name = "test_table"
+        table._request_path = {"table_name": "test_table"}
         table.app_profile_id = "test_profile"
-        table._authorized_view_name = "authorized_view"
         expected_operation_timeout = 42
         expected_request_timeout = 44
         time_gen_mock = mock.Mock()
@@ -79,9 +78,8 @@ class TestReadRowsOperationAsync:
         assert instance._remaining_count == row_limit
         assert instance.operation_timeout == expected_operation_timeout
         assert client.read_rows.call_count == 0
-        assert instance.request.table_name == table.table_name
+        assert instance.request.table_name == "test_table"
         assert instance.request.app_profile_id == table.app_profile_id
-        assert instance.request.authorized_view_name == table._authorized_view_name
         assert instance.request.rows_limit == row_limit
 
     @pytest.mark.parametrize(
@@ -269,9 +267,8 @@ class TestReadRowsOperationAsync:
 
         query = ReadRowsQuery(limit=start_limit)
         table = mock.Mock()
-        table.table_name = "table_name"
+        table._request_path = {"table_name": "table_name"}
         table.app_profile_id = "app_profile_id"
-        table._authorized_view_name = None
         instance = self._make_one(query, table, 10, 10)
         assert instance._remaining_count == start_limit
         # read emit_num rows
@@ -309,9 +306,8 @@ class TestReadRowsOperationAsync:
 
         query = ReadRowsQuery(limit=start_limit)
         table = mock.Mock()
-        table.table_name = "table_name"
+        table._request_path = {"table_name": "table_name"}
         table.app_profile_id = "app_profile_id"
-        table._authorized_view_name = None
         instance = self._make_one(query, table, 10, 10)
         assert instance._remaining_count == start_limit
         with pytest.raises(InvalidChunk) as e:
