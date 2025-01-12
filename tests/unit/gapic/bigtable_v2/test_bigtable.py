@@ -4218,6 +4218,7 @@ def test_read_rows_rest_flattened():
         json_return_value = "[{}]".format(json_return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         with mock.patch.object(response_value, "iter_content") as iter_content:
             iter_content.return_value = iter(json_return_value)
@@ -4318,6 +4319,7 @@ def test_sample_row_keys_rest_flattened():
         json_return_value = "[{}]".format(json_return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         with mock.patch.object(response_value, "iter_content") as iter_content:
             iter_content.return_value = iter(json_return_value)
@@ -4451,6 +4453,7 @@ def test_mutate_row_rest_required_fields(request_type=bigtable.MutateRowRequest)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.mutate_row(request)
 
@@ -4513,6 +4516,7 @@ def test_mutate_row_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.mutate_row(**mock_args)
 
@@ -4646,6 +4650,7 @@ def test_mutate_rows_rest_required_fields(request_type=bigtable.MutateRowsReques
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             with mock.patch.object(response_value, "iter_content") as iter_content:
                 iter_content.return_value = iter(json_return_value)
@@ -4698,6 +4703,7 @@ def test_mutate_rows_rest_flattened():
         json_return_value = "[{}]".format(json_return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         with mock.patch.object(response_value, "iter_content") as iter_content:
             iter_content.return_value = iter(json_return_value)
@@ -4838,6 +4844,7 @@ def test_check_and_mutate_row_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.check_and_mutate_row(request)
 
@@ -4908,6 +4915,7 @@ def test_check_and_mutate_row_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.check_and_mutate_row(**mock_args)
 
@@ -5061,6 +5069,7 @@ def test_ping_and_warm_rest_required_fields(request_type=bigtable.PingAndWarmReq
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.ping_and_warm(request)
 
@@ -5107,6 +5116,7 @@ def test_ping_and_warm_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.ping_and_warm(**mock_args)
 
@@ -5243,6 +5253,7 @@ def test_read_modify_write_row_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.read_modify_write_row(request)
 
@@ -5301,6 +5312,7 @@ def test_read_modify_write_row_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.read_modify_write_row(**mock_args)
 
@@ -5448,6 +5460,7 @@ def test_generate_initial_change_stream_partitions_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             with mock.patch.object(response_value, "iter_content") as iter_content:
                 iter_content.return_value = iter(json_return_value)
@@ -5505,6 +5518,7 @@ def test_generate_initial_change_stream_partitions_rest_flattened():
         json_return_value = "[{}]".format(json_return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         with mock.patch.object(response_value, "iter_content") as iter_content:
             iter_content.return_value = iter(json_return_value)
@@ -5647,6 +5661,7 @@ def test_read_change_stream_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             with mock.patch.object(response_value, "iter_content") as iter_content:
                 iter_content.return_value = iter(json_return_value)
@@ -5698,6 +5713,7 @@ def test_read_change_stream_rest_flattened():
         json_return_value = "[{}]".format(json_return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         with mock.patch.object(response_value, "iter_content") as iter_content:
             iter_content.return_value = iter(json_return_value)
@@ -5836,6 +5852,7 @@ def test_execute_query_rest_required_fields(request_type=bigtable.ExecuteQueryRe
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             with mock.patch.object(response_value, "iter_content") as iter_content:
                 iter_content.return_value = iter(json_return_value)
@@ -5895,6 +5912,7 @@ def test_execute_query_rest_flattened():
         json_return_value = "[{}]".format(json_return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         with mock.patch.object(response_value, "iter_content") as iter_content:
             iter_content.return_value = iter(json_return_value)
@@ -7955,6 +7973,7 @@ def test_read_rows_rest_bad_request(request_type=bigtable.ReadRowsRequest):
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.read_rows(request)
 
 
@@ -7991,6 +8010,7 @@ def test_read_rows_rest_call_success(request_type):
         json_return_value = "[{}]".format(json_return_value)
         response_value.iter_content = mock.Mock(return_value=iter(json_return_value))
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.read_rows(request)
 
     assert isinstance(response, Iterable)
@@ -8030,6 +8050,7 @@ def test_read_rows_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable.ReadRowsResponse.to_json(bigtable.ReadRowsResponse())
         req.return_value.iter_content = mock.Mock(return_value=iter(return_value))
 
@@ -8072,6 +8093,7 @@ def test_sample_row_keys_rest_bad_request(request_type=bigtable.SampleRowKeysReq
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.sample_row_keys(request)
 
 
@@ -8109,6 +8131,7 @@ def test_sample_row_keys_rest_call_success(request_type):
         json_return_value = "[{}]".format(json_return_value)
         response_value.iter_content = mock.Mock(return_value=iter(json_return_value))
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.sample_row_keys(request)
 
     assert isinstance(response, Iterable)
@@ -8149,6 +8172,7 @@ def test_sample_row_keys_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable.SampleRowKeysResponse.to_json(
             bigtable.SampleRowKeysResponse()
         )
@@ -8193,6 +8217,7 @@ def test_mutate_row_rest_bad_request(request_type=bigtable.MutateRowRequest):
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.mutate_row(request)
 
 
@@ -8226,6 +8251,7 @@ def test_mutate_row_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.mutate_row(request)
 
     # Establish that the response is the type that we expect.
@@ -8261,6 +8287,7 @@ def test_mutate_row_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable.MutateRowResponse.to_json(bigtable.MutateRowResponse())
         req.return_value.content = return_value
 
@@ -8303,6 +8330,7 @@ def test_mutate_rows_rest_bad_request(request_type=bigtable.MutateRowsRequest):
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.mutate_rows(request)
 
 
@@ -8337,6 +8365,7 @@ def test_mutate_rows_rest_call_success(request_type):
         json_return_value = "[{}]".format(json_return_value)
         response_value.iter_content = mock.Mock(return_value=iter(json_return_value))
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.mutate_rows(request)
 
     assert isinstance(response, Iterable)
@@ -8375,6 +8404,7 @@ def test_mutate_rows_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable.MutateRowsResponse.to_json(
             bigtable.MutateRowsResponse()
         )
@@ -8421,6 +8451,7 @@ def test_check_and_mutate_row_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.check_and_mutate_row(request)
 
 
@@ -8456,6 +8487,7 @@ def test_check_and_mutate_row_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.check_and_mutate_row(request)
 
     # Establish that the response is the type that we expect.
@@ -8494,6 +8526,7 @@ def test_check_and_mutate_row_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable.CheckAndMutateRowResponse.to_json(
             bigtable.CheckAndMutateRowResponse()
         )
@@ -8538,6 +8571,7 @@ def test_ping_and_warm_rest_bad_request(request_type=bigtable.PingAndWarmRequest
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.ping_and_warm(request)
 
 
@@ -8571,6 +8605,7 @@ def test_ping_and_warm_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.ping_and_warm(request)
 
     # Establish that the response is the type that we expect.
@@ -8606,6 +8641,7 @@ def test_ping_and_warm_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable.PingAndWarmResponse.to_json(
             bigtable.PingAndWarmResponse()
         )
@@ -8652,6 +8688,7 @@ def test_read_modify_write_row_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.read_modify_write_row(request)
 
 
@@ -8685,6 +8722,7 @@ def test_read_modify_write_row_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.read_modify_write_row(request)
 
     # Establish that the response is the type that we expect.
@@ -8722,6 +8760,7 @@ def test_read_modify_write_row_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable.ReadModifyWriteRowResponse.to_json(
             bigtable.ReadModifyWriteRowResponse()
         )
@@ -8768,6 +8807,7 @@ def test_generate_initial_change_stream_partitions_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.generate_initial_change_stream_partitions(request)
 
 
@@ -8804,6 +8844,7 @@ def test_generate_initial_change_stream_partitions_rest_call_success(request_typ
         json_return_value = "[{}]".format(json_return_value)
         response_value.iter_content = mock.Mock(return_value=iter(json_return_value))
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.generate_initial_change_stream_partitions(request)
 
     assert isinstance(response, Iterable)
@@ -8846,6 +8887,7 @@ def test_generate_initial_change_stream_partitions_rest_interceptors(null_interc
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable.GenerateInitialChangeStreamPartitionsResponse.to_json(
             bigtable.GenerateInitialChangeStreamPartitionsResponse()
         )
@@ -8892,6 +8934,7 @@ def test_read_change_stream_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.read_change_stream(request)
 
 
@@ -8926,6 +8969,7 @@ def test_read_change_stream_rest_call_success(request_type):
         json_return_value = "[{}]".format(json_return_value)
         response_value.iter_content = mock.Mock(return_value=iter(json_return_value))
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.read_change_stream(request)
 
     assert isinstance(response, Iterable)
@@ -8966,6 +9010,7 @@ def test_read_change_stream_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable.ReadChangeStreamResponse.to_json(
             bigtable.ReadChangeStreamResponse()
         )
@@ -9010,6 +9055,7 @@ def test_execute_query_rest_bad_request(request_type=bigtable.ExecuteQueryReques
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.execute_query(request)
 
 
@@ -9044,6 +9090,7 @@ def test_execute_query_rest_call_success(request_type):
         json_return_value = "[{}]".format(json_return_value)
         response_value.iter_content = mock.Mock(return_value=iter(json_return_value))
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.execute_query(request)
 
     assert isinstance(response, Iterable)
@@ -9082,6 +9129,7 @@ def test_execute_query_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable.ExecuteQueryResponse.to_json(
             bigtable.ExecuteQueryResponse()
         )
