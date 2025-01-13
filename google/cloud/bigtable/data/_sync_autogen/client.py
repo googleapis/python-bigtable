@@ -391,7 +391,7 @@ class BigtableDataClient(ClientWithProject):
     def get_authorized_view(
         self, instance_id: str, table_id: str, view_id: str, *args, **kwargs
     ) -> AuthorizedView:
-        """Returns an authorized view nstance for making data API requests. All arguments are passed
+        """Returns an authorized view instance for making data API requests. All arguments are passed
         directly to the AuthorizedView constructor.
 
 

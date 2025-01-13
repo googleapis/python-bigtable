@@ -537,7 +537,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self, instance_id: str, table_id: str, view_id: str, *args, **kwargs
     ) -> AuthorizedViewAsync:
         """
-        Returns an authorized view nstance for making data API requests. All arguments are passed
+        Returns an authorized view instance for making data API requests. All arguments are passed
         directly to the AuthorizedViewAsync constructor.
 
         {LOOP_MESSAGE}
