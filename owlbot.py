@@ -113,18 +113,3 @@ s.replace(
 INSTALL_LIBRARY_FROM_SOURCE = False""")
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
-
-# ----------------------------------------------------------------------------
-# Customize execute_query rpc to support empty app_profile_id headers
-# ----------------------------------------------------------------------------
-
-s.replace(
-    "google/cloud/bigtable_v2/services/bigtable/client.py",
-    "if request.app_profile_id:",
-    "if request.app_profile_id is not None:  # temporary fix: support empty headers for btql routing"
-)
-s.replace(
-    "google/cloud/bigtable_v2/services/bigtable/async_client.py",
-    "if request.app_profile_id:",
-    "if request.app_profile_id is not None:  # temporary fix: support empty headers for btql routing"
-)
