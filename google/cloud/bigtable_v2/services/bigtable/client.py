@@ -768,7 +768,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if request.app_profile_id is not None:  # temporary fix: support empty headers for btql routing
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -884,7 +884,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if request.app_profile_id is not None:  # temporary fix: support empty headers for btql routing
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -1021,7 +1021,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if request.app_profile_id is not None:  # temporary fix: support empty headers for btql routing
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -1152,7 +1152,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if request.app_profile_id is not None:  # temporary fix: support empty headers for btql routing
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -1326,7 +1326,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if request.app_profile_id is not None:  # temporary fix: support empty headers for btql routing
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -1437,7 +1437,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("name"):
             header_params["name"] = regex_match.group("name")
 
-        if request.app_profile_id:
+        if request.app_profile_id is not None:  # temporary fix: support empty headers for btql routing
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:
@@ -1571,7 +1571,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if request.app_profile_id is not None:  # temporary fix: support empty headers for btql routing
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
