@@ -1396,9 +1396,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
                         core_exceptions.DeadlineExceeded,
                         core_exceptions.ServiceUnavailable,
                     ),
-                    deadline=60.0,
+                    deadline=3600.0,
                 ),
-                default_timeout=60.0,
+                default_timeout=3600.0,
                 client_info=client_info,
             ),
             self.snapshot_table: self._wrap_method(
