@@ -67,6 +67,14 @@ from google.type import date_pb2  # type: ignore
 import google.auth
 
 
+CRED_INFO_JSON = {
+    "credential_source": "/path/to/file",
+    "credential_type": "service account credentials",
+    "principal": "service-account@example.com",
+}
+CRED_INFO_STRING = json.dumps(CRED_INFO_JSON)
+
+
 async def mock_async_gen(data, chunk_size=1):
     for i in range(0, len(data)):  # pragma: NO COVER
         chunk = data[i : i + chunk_size]
@@ -294,6 +302,49 @@ def test__get_universe_domain():
     with pytest.raises(ValueError) as excinfo:
         BigtableClient._get_universe_domain("", None)
     assert str(excinfo.value) == "Universe Domain cannot be an empty string."
+
+
+@pytest.mark.parametrize(
+    "error_code,cred_info_json,show_cred_info",
+    [
+        (401, CRED_INFO_JSON, True),
+        (403, CRED_INFO_JSON, True),
+        (404, CRED_INFO_JSON, True),
+        (500, CRED_INFO_JSON, False),
+        (401, None, False),
+        (403, None, False),
+        (404, None, False),
+        (500, None, False),
+    ],
+)
+def test__add_cred_info_for_auth_errors(error_code, cred_info_json, show_cred_info):
+    cred = mock.Mock(["get_cred_info"])
+    cred.get_cred_info = mock.Mock(return_value=cred_info_json)
+    client = BigtableClient(credentials=cred)
+    client._transport._credentials = cred
+
+    error = core_exceptions.GoogleAPICallError("message", details=["foo"])
+    error.code = error_code
+
+    client._add_cred_info_for_auth_errors(error)
+    if show_cred_info:
+        assert error.details == ["foo", CRED_INFO_STRING]
+    else:
+        assert error.details == ["foo"]
+
+
+@pytest.mark.parametrize("error_code", [401, 403, 404, 500])
+def test__add_cred_info_for_auth_errors_no_get_cred_info(error_code):
+    cred = mock.Mock([])
+    assert not hasattr(cred, "get_cred_info")
+    client = BigtableClient(credentials=cred)
+    client._transport._credentials = cred
+
+    error = core_exceptions.GoogleAPICallError("message", details=[])
+    error.code = error_code
+
+    client._add_cred_info_for_auth_errors(error)
+    assert error.details == []
 
 
 @pytest.mark.parametrize(
@@ -8036,10 +8087,13 @@ def test_read_rows_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableRestInterceptor, "post_read_rows"
     ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_read_rows_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableRestInterceptor, "pre_read_rows"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable.ReadRowsRequest.pb(bigtable.ReadRowsRequest())
         transcode.return_value = {
             "method": "post",
@@ -8061,6 +8115,7 @@ def test_read_rows_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable.ReadRowsResponse()
+        post_with_metadata.return_value = bigtable.ReadRowsResponse(), metadata
 
         client.read_rows(
             request,
@@ -8072,6 +8127,7 @@ def test_read_rows_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_sample_row_keys_rest_bad_request(request_type=bigtable.SampleRowKeysRequest):
@@ -8158,10 +8214,13 @@ def test_sample_row_keys_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableRestInterceptor, "post_sample_row_keys"
     ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_sample_row_keys_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableRestInterceptor, "pre_sample_row_keys"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable.SampleRowKeysRequest.pb(bigtable.SampleRowKeysRequest())
         transcode.return_value = {
             "method": "post",
@@ -8185,6 +8244,7 @@ def test_sample_row_keys_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable.SampleRowKeysResponse()
+        post_with_metadata.return_value = bigtable.SampleRowKeysResponse(), metadata
 
         client.sample_row_keys(
             request,
@@ -8196,6 +8256,7 @@ def test_sample_row_keys_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_mutate_row_rest_bad_request(request_type=bigtable.MutateRowRequest):
@@ -8273,10 +8334,13 @@ def test_mutate_row_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableRestInterceptor, "post_mutate_row"
     ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_mutate_row_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableRestInterceptor, "pre_mutate_row"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable.MutateRowRequest.pb(bigtable.MutateRowRequest())
         transcode.return_value = {
             "method": "post",
@@ -8298,6 +8362,7 @@ def test_mutate_row_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable.MutateRowResponse()
+        post_with_metadata.return_value = bigtable.MutateRowResponse(), metadata
 
         client.mutate_row(
             request,
@@ -8309,6 +8374,7 @@ def test_mutate_row_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_mutate_rows_rest_bad_request(request_type=bigtable.MutateRowsRequest):
@@ -8390,10 +8456,13 @@ def test_mutate_rows_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableRestInterceptor, "post_mutate_rows"
     ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_mutate_rows_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableRestInterceptor, "pre_mutate_rows"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable.MutateRowsRequest.pb(bigtable.MutateRowsRequest())
         transcode.return_value = {
             "method": "post",
@@ -8417,6 +8486,7 @@ def test_mutate_rows_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable.MutateRowsResponse()
+        post_with_metadata.return_value = bigtable.MutateRowsResponse(), metadata
 
         client.mutate_rows(
             request,
@@ -8428,6 +8498,7 @@ def test_mutate_rows_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_check_and_mutate_row_rest_bad_request(
@@ -8510,10 +8581,13 @@ def test_check_and_mutate_row_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableRestInterceptor, "post_check_and_mutate_row"
     ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_check_and_mutate_row_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableRestInterceptor, "pre_check_and_mutate_row"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable.CheckAndMutateRowRequest.pb(
             bigtable.CheckAndMutateRowRequest()
         )
@@ -8539,6 +8613,7 @@ def test_check_and_mutate_row_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable.CheckAndMutateRowResponse()
+        post_with_metadata.return_value = bigtable.CheckAndMutateRowResponse(), metadata
 
         client.check_and_mutate_row(
             request,
@@ -8550,6 +8625,7 @@ def test_check_and_mutate_row_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_ping_and_warm_rest_bad_request(request_type=bigtable.PingAndWarmRequest):
@@ -8627,10 +8703,13 @@ def test_ping_and_warm_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableRestInterceptor, "post_ping_and_warm"
     ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_ping_and_warm_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableRestInterceptor, "pre_ping_and_warm"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable.PingAndWarmRequest.pb(bigtable.PingAndWarmRequest())
         transcode.return_value = {
             "method": "post",
@@ -8654,6 +8733,7 @@ def test_ping_and_warm_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable.PingAndWarmResponse()
+        post_with_metadata.return_value = bigtable.PingAndWarmResponse(), metadata
 
         client.ping_and_warm(
             request,
@@ -8665,6 +8745,7 @@ def test_ping_and_warm_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_read_modify_write_row_rest_bad_request(
@@ -8744,10 +8825,13 @@ def test_read_modify_write_row_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableRestInterceptor, "post_read_modify_write_row"
     ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_read_modify_write_row_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableRestInterceptor, "pre_read_modify_write_row"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable.ReadModifyWriteRowRequest.pb(
             bigtable.ReadModifyWriteRowRequest()
         )
@@ -8773,6 +8857,10 @@ def test_read_modify_write_row_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable.ReadModifyWriteRowResponse()
+        post_with_metadata.return_value = (
+            bigtable.ReadModifyWriteRowResponse(),
+            metadata,
+        )
 
         client.read_modify_write_row(
             request,
@@ -8784,6 +8872,7 @@ def test_read_modify_write_row_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_generate_initial_change_stream_partitions_rest_bad_request(
@@ -8871,10 +8960,14 @@ def test_generate_initial_change_stream_partitions_rest_interceptors(null_interc
         "post_generate_initial_change_stream_partitions",
     ) as post, mock.patch.object(
         transports.BigtableRestInterceptor,
+        "post_generate_initial_change_stream_partitions_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
+        transports.BigtableRestInterceptor,
         "pre_generate_initial_change_stream_partitions",
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable.GenerateInitialChangeStreamPartitionsRequest.pb(
             bigtable.GenerateInitialChangeStreamPartitionsRequest()
         )
@@ -8900,6 +8993,10 @@ def test_generate_initial_change_stream_partitions_rest_interceptors(null_interc
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable.GenerateInitialChangeStreamPartitionsResponse()
+        post_with_metadata.return_value = (
+            bigtable.GenerateInitialChangeStreamPartitionsResponse(),
+            metadata,
+        )
 
         client.generate_initial_change_stream_partitions(
             request,
@@ -8911,6 +9008,7 @@ def test_generate_initial_change_stream_partitions_rest_interceptors(null_interc
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_read_change_stream_rest_bad_request(
@@ -8994,10 +9092,13 @@ def test_read_change_stream_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableRestInterceptor, "post_read_change_stream"
     ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_read_change_stream_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableRestInterceptor, "pre_read_change_stream"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable.ReadChangeStreamRequest.pb(
             bigtable.ReadChangeStreamRequest()
         )
@@ -9023,6 +9124,7 @@ def test_read_change_stream_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable.ReadChangeStreamResponse()
+        post_with_metadata.return_value = bigtable.ReadChangeStreamResponse(), metadata
 
         client.read_change_stream(
             request,
@@ -9034,6 +9136,7 @@ def test_read_change_stream_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_execute_query_rest_bad_request(request_type=bigtable.ExecuteQueryRequest):
@@ -9115,10 +9218,13 @@ def test_execute_query_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableRestInterceptor, "post_execute_query"
     ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_execute_query_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableRestInterceptor, "pre_execute_query"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable.ExecuteQueryRequest.pb(bigtable.ExecuteQueryRequest())
         transcode.return_value = {
             "method": "post",
@@ -9142,6 +9248,7 @@ def test_execute_query_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable.ExecuteQueryResponse()
+        post_with_metadata.return_value = bigtable.ExecuteQueryResponse(), metadata
 
         client.execute_query(
             request,
@@ -9153,6 +9260,7 @@ def test_execute_query_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_initialize_client_w_rest():

@@ -179,11 +179,36 @@ class BigtableRestInterceptor:
     ) -> bigtable.CheckAndMutateRowResponse:
         """Post-rpc interceptor for check_and_mutate_row
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_check_and_mutate_row_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the Bigtable server but before
-        it is returned to user code.
+        it is returned to user code. This `post_check_and_mutate_row` interceptor runs
+        before the `post_check_and_mutate_row_with_metadata` interceptor.
         """
         return response
+
+    def post_check_and_mutate_row_with_metadata(
+        self,
+        response: bigtable.CheckAndMutateRowResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable.CheckAndMutateRowResponse, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
+        """Post-rpc interceptor for check_and_mutate_row
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the Bigtable server but before it is returned to user code.
+
+        We recommend only using this `post_check_and_mutate_row_with_metadata`
+        interceptor in new development instead of the `post_check_and_mutate_row` interceptor.
+        When both interceptors are used, this `post_check_and_mutate_row_with_metadata` interceptor runs after the
+        `post_check_and_mutate_row` interceptor. The (possibly modified) response returned by
+        `post_check_and_mutate_row` will be passed to
+        `post_check_and_mutate_row_with_metadata`.
+        """
+        return response, metadata
 
     def pre_execute_query(
         self,
@@ -202,11 +227,36 @@ class BigtableRestInterceptor:
     ) -> rest_streaming.ResponseIterator:
         """Post-rpc interceptor for execute_query
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_execute_query_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the Bigtable server but before
-        it is returned to user code.
+        it is returned to user code. This `post_execute_query` interceptor runs
+        before the `post_execute_query_with_metadata` interceptor.
         """
         return response
+
+    def post_execute_query_with_metadata(
+        self,
+        response: rest_streaming.ResponseIterator,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        rest_streaming.ResponseIterator, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
+        """Post-rpc interceptor for execute_query
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the Bigtable server but before it is returned to user code.
+
+        We recommend only using this `post_execute_query_with_metadata`
+        interceptor in new development instead of the `post_execute_query` interceptor.
+        When both interceptors are used, this `post_execute_query_with_metadata` interceptor runs after the
+        `post_execute_query` interceptor. The (possibly modified) response returned by
+        `post_execute_query` will be passed to
+        `post_execute_query_with_metadata`.
+        """
+        return response, metadata
 
     def pre_generate_initial_change_stream_partitions(
         self,
@@ -228,11 +278,36 @@ class BigtableRestInterceptor:
     ) -> rest_streaming.ResponseIterator:
         """Post-rpc interceptor for generate_initial_change_stream_partitions
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_generate_initial_change_stream_partitions_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the Bigtable server but before
-        it is returned to user code.
+        it is returned to user code. This `post_generate_initial_change_stream_partitions` interceptor runs
+        before the `post_generate_initial_change_stream_partitions_with_metadata` interceptor.
         """
         return response
+
+    def post_generate_initial_change_stream_partitions_with_metadata(
+        self,
+        response: rest_streaming.ResponseIterator,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        rest_streaming.ResponseIterator, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
+        """Post-rpc interceptor for generate_initial_change_stream_partitions
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the Bigtable server but before it is returned to user code.
+
+        We recommend only using this `post_generate_initial_change_stream_partitions_with_metadata`
+        interceptor in new development instead of the `post_generate_initial_change_stream_partitions` interceptor.
+        When both interceptors are used, this `post_generate_initial_change_stream_partitions_with_metadata` interceptor runs after the
+        `post_generate_initial_change_stream_partitions` interceptor. The (possibly modified) response returned by
+        `post_generate_initial_change_stream_partitions` will be passed to
+        `post_generate_initial_change_stream_partitions_with_metadata`.
+        """
+        return response, metadata
 
     def pre_mutate_row(
         self,
@@ -251,11 +326,34 @@ class BigtableRestInterceptor:
     ) -> bigtable.MutateRowResponse:
         """Post-rpc interceptor for mutate_row
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_mutate_row_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the Bigtable server but before
-        it is returned to user code.
+        it is returned to user code. This `post_mutate_row` interceptor runs
+        before the `post_mutate_row_with_metadata` interceptor.
         """
         return response
+
+    def post_mutate_row_with_metadata(
+        self,
+        response: bigtable.MutateRowResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[bigtable.MutateRowResponse, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for mutate_row
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the Bigtable server but before it is returned to user code.
+
+        We recommend only using this `post_mutate_row_with_metadata`
+        interceptor in new development instead of the `post_mutate_row` interceptor.
+        When both interceptors are used, this `post_mutate_row_with_metadata` interceptor runs after the
+        `post_mutate_row` interceptor. The (possibly modified) response returned by
+        `post_mutate_row` will be passed to
+        `post_mutate_row_with_metadata`.
+        """
+        return response, metadata
 
     def pre_mutate_rows(
         self,
@@ -274,11 +372,36 @@ class BigtableRestInterceptor:
     ) -> rest_streaming.ResponseIterator:
         """Post-rpc interceptor for mutate_rows
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_mutate_rows_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the Bigtable server but before
-        it is returned to user code.
+        it is returned to user code. This `post_mutate_rows` interceptor runs
+        before the `post_mutate_rows_with_metadata` interceptor.
         """
         return response
+
+    def post_mutate_rows_with_metadata(
+        self,
+        response: rest_streaming.ResponseIterator,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        rest_streaming.ResponseIterator, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
+        """Post-rpc interceptor for mutate_rows
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the Bigtable server but before it is returned to user code.
+
+        We recommend only using this `post_mutate_rows_with_metadata`
+        interceptor in new development instead of the `post_mutate_rows` interceptor.
+        When both interceptors are used, this `post_mutate_rows_with_metadata` interceptor runs after the
+        `post_mutate_rows` interceptor. The (possibly modified) response returned by
+        `post_mutate_rows` will be passed to
+        `post_mutate_rows_with_metadata`.
+        """
+        return response, metadata
 
     def pre_ping_and_warm(
         self,
@@ -297,11 +420,34 @@ class BigtableRestInterceptor:
     ) -> bigtable.PingAndWarmResponse:
         """Post-rpc interceptor for ping_and_warm
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_ping_and_warm_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the Bigtable server but before
-        it is returned to user code.
+        it is returned to user code. This `post_ping_and_warm` interceptor runs
+        before the `post_ping_and_warm_with_metadata` interceptor.
         """
         return response
+
+    def post_ping_and_warm_with_metadata(
+        self,
+        response: bigtable.PingAndWarmResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[bigtable.PingAndWarmResponse, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for ping_and_warm
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the Bigtable server but before it is returned to user code.
+
+        We recommend only using this `post_ping_and_warm_with_metadata`
+        interceptor in new development instead of the `post_ping_and_warm` interceptor.
+        When both interceptors are used, this `post_ping_and_warm_with_metadata` interceptor runs after the
+        `post_ping_and_warm` interceptor. The (possibly modified) response returned by
+        `post_ping_and_warm` will be passed to
+        `post_ping_and_warm_with_metadata`.
+        """
+        return response, metadata
 
     def pre_read_change_stream(
         self,
@@ -322,11 +468,36 @@ class BigtableRestInterceptor:
     ) -> rest_streaming.ResponseIterator:
         """Post-rpc interceptor for read_change_stream
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_read_change_stream_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the Bigtable server but before
-        it is returned to user code.
+        it is returned to user code. This `post_read_change_stream` interceptor runs
+        before the `post_read_change_stream_with_metadata` interceptor.
         """
         return response
+
+    def post_read_change_stream_with_metadata(
+        self,
+        response: rest_streaming.ResponseIterator,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        rest_streaming.ResponseIterator, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
+        """Post-rpc interceptor for read_change_stream
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the Bigtable server but before it is returned to user code.
+
+        We recommend only using this `post_read_change_stream_with_metadata`
+        interceptor in new development instead of the `post_read_change_stream` interceptor.
+        When both interceptors are used, this `post_read_change_stream_with_metadata` interceptor runs after the
+        `post_read_change_stream` interceptor. The (possibly modified) response returned by
+        `post_read_change_stream` will be passed to
+        `post_read_change_stream_with_metadata`.
+        """
+        return response, metadata
 
     def pre_read_modify_write_row(
         self,
@@ -347,11 +518,36 @@ class BigtableRestInterceptor:
     ) -> bigtable.ReadModifyWriteRowResponse:
         """Post-rpc interceptor for read_modify_write_row
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_read_modify_write_row_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the Bigtable server but before
-        it is returned to user code.
+        it is returned to user code. This `post_read_modify_write_row` interceptor runs
+        before the `post_read_modify_write_row_with_metadata` interceptor.
         """
         return response
+
+    def post_read_modify_write_row_with_metadata(
+        self,
+        response: bigtable.ReadModifyWriteRowResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable.ReadModifyWriteRowResponse, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
+        """Post-rpc interceptor for read_modify_write_row
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the Bigtable server but before it is returned to user code.
+
+        We recommend only using this `post_read_modify_write_row_with_metadata`
+        interceptor in new development instead of the `post_read_modify_write_row` interceptor.
+        When both interceptors are used, this `post_read_modify_write_row_with_metadata` interceptor runs after the
+        `post_read_modify_write_row` interceptor. The (possibly modified) response returned by
+        `post_read_modify_write_row` will be passed to
+        `post_read_modify_write_row_with_metadata`.
+        """
+        return response, metadata
 
     def pre_read_rows(
         self,
@@ -370,11 +566,36 @@ class BigtableRestInterceptor:
     ) -> rest_streaming.ResponseIterator:
         """Post-rpc interceptor for read_rows
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_read_rows_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the Bigtable server but before
-        it is returned to user code.
+        it is returned to user code. This `post_read_rows` interceptor runs
+        before the `post_read_rows_with_metadata` interceptor.
         """
         return response
+
+    def post_read_rows_with_metadata(
+        self,
+        response: rest_streaming.ResponseIterator,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        rest_streaming.ResponseIterator, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
+        """Post-rpc interceptor for read_rows
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the Bigtable server but before it is returned to user code.
+
+        We recommend only using this `post_read_rows_with_metadata`
+        interceptor in new development instead of the `post_read_rows` interceptor.
+        When both interceptors are used, this `post_read_rows_with_metadata` interceptor runs after the
+        `post_read_rows` interceptor. The (possibly modified) response returned by
+        `post_read_rows` will be passed to
+        `post_read_rows_with_metadata`.
+        """
+        return response, metadata
 
     def pre_sample_row_keys(
         self,
@@ -393,11 +614,36 @@ class BigtableRestInterceptor:
     ) -> rest_streaming.ResponseIterator:
         """Post-rpc interceptor for sample_row_keys
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_sample_row_keys_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the Bigtable server but before
-        it is returned to user code.
+        it is returned to user code. This `post_sample_row_keys` interceptor runs
+        before the `post_sample_row_keys_with_metadata` interceptor.
         """
         return response
+
+    def post_sample_row_keys_with_metadata(
+        self,
+        response: rest_streaming.ResponseIterator,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        rest_streaming.ResponseIterator, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
+        """Post-rpc interceptor for sample_row_keys
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the Bigtable server but before it is returned to user code.
+
+        We recommend only using this `post_sample_row_keys_with_metadata`
+        interceptor in new development instead of the `post_sample_row_keys` interceptor.
+        When both interceptors are used, this `post_sample_row_keys_with_metadata` interceptor runs after the
+        `post_sample_row_keys` interceptor. The (possibly modified) response returned by
+        `post_sample_row_keys` will be passed to
+        `post_sample_row_keys_with_metadata`.
+        """
+        return response, metadata
 
 
 @dataclasses.dataclass
@@ -615,6 +861,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_check_and_mutate_row(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_check_and_mutate_row_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -768,6 +1018,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             )
 
             resp = self._interceptor.post_execute_query(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_execute_query_with_metadata(
+                resp, response_metadata
+            )
             return resp
 
     class _GenerateInitialChangeStreamPartitions(
@@ -909,6 +1163,13 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp = self._interceptor.post_generate_initial_change_stream_partitions(
                 resp
             )
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            (
+                resp,
+                _,
+            ) = self._interceptor.post_generate_initial_change_stream_partitions_with_metadata(
+                resp, response_metadata
+            )
             return resp
 
     class _MutateRow(_BaseBigtableRestTransport._BaseMutateRow, BigtableRestStub):
@@ -1037,6 +1298,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_mutate_row(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_mutate_row_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -1188,6 +1453,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             )
 
             resp = self._interceptor.post_mutate_rows(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_mutate_rows_with_metadata(
+                resp, response_metadata
+            )
             return resp
 
     class _PingAndWarm(_BaseBigtableRestTransport._BasePingAndWarm, BigtableRestStub):
@@ -1319,6 +1588,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_ping_and_warm(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_ping_and_warm_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -1476,6 +1749,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             )
 
             resp = self._interceptor.post_read_change_stream(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_read_change_stream_with_metadata(
+                resp, response_metadata
+            )
             return resp
 
     class _ReadModifyWriteRow(
@@ -1606,6 +1883,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_read_modify_write_row(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_read_modify_write_row_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -1755,6 +2036,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp = rest_streaming.ResponseIterator(response, bigtable.ReadRowsResponse)
 
             resp = self._interceptor.post_read_rows(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_read_rows_with_metadata(
+                resp, response_metadata
+            )
             return resp
 
     class _SampleRowKeys(
@@ -1881,6 +2166,10 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             )
 
             resp = self._interceptor.post_sample_row_keys(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_sample_row_keys_with_metadata(
+                resp, response_metadata
+            )
             return resp
 
     @property

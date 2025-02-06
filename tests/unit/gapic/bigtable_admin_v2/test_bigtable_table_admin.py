@@ -83,6 +83,14 @@ from google.type import expr_pb2  # type: ignore
 import google.auth
 
 
+CRED_INFO_JSON = {
+    "credential_source": "/path/to/file",
+    "credential_type": "service account credentials",
+    "principal": "service-account@example.com",
+}
+CRED_INFO_STRING = json.dumps(CRED_INFO_JSON)
+
+
 async def mock_async_gen(data, chunk_size=1):
     for i in range(0, len(data)):  # pragma: NO COVER
         chunk = data[i : i + chunk_size]
@@ -351,6 +359,49 @@ def test__get_universe_domain():
     with pytest.raises(ValueError) as excinfo:
         BigtableTableAdminClient._get_universe_domain("", None)
     assert str(excinfo.value) == "Universe Domain cannot be an empty string."
+
+
+@pytest.mark.parametrize(
+    "error_code,cred_info_json,show_cred_info",
+    [
+        (401, CRED_INFO_JSON, True),
+        (403, CRED_INFO_JSON, True),
+        (404, CRED_INFO_JSON, True),
+        (500, CRED_INFO_JSON, False),
+        (401, None, False),
+        (403, None, False),
+        (404, None, False),
+        (500, None, False),
+    ],
+)
+def test__add_cred_info_for_auth_errors(error_code, cred_info_json, show_cred_info):
+    cred = mock.Mock(["get_cred_info"])
+    cred.get_cred_info = mock.Mock(return_value=cred_info_json)
+    client = BigtableTableAdminClient(credentials=cred)
+    client._transport._credentials = cred
+
+    error = core_exceptions.GoogleAPICallError("message", details=["foo"])
+    error.code = error_code
+
+    client._add_cred_info_for_auth_errors(error)
+    if show_cred_info:
+        assert error.details == ["foo", CRED_INFO_STRING]
+    else:
+        assert error.details == ["foo"]
+
+
+@pytest.mark.parametrize("error_code", [401, 403, 404, 500])
+def test__add_cred_info_for_auth_errors_no_get_cred_info(error_code):
+    cred = mock.Mock([])
+    assert not hasattr(cred, "get_cred_info")
+    client = BigtableTableAdminClient(credentials=cred)
+    client._transport._credentials = cred
+
+    error = core_exceptions.GoogleAPICallError("message", details=[])
+    error.code = error_code
+
+    client._add_cred_info_for_auth_errors(error)
+    assert error.details == []
 
 
 @pytest.mark.parametrize(
@@ -19513,10 +19564,13 @@ def test_create_table_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_create_table"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_create_table_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_create_table"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.CreateTableRequest.pb(
             bigtable_table_admin.CreateTableRequest()
         )
@@ -19540,6 +19594,7 @@ def test_create_table_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = gba_table.Table()
+        post_with_metadata.return_value = gba_table.Table(), metadata
 
         client.create_table(
             request,
@@ -19551,6 +19606,7 @@ def test_create_table_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_create_table_from_snapshot_rest_bad_request(
@@ -19631,10 +19687,14 @@ def test_create_table_from_snapshot_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_create_table_from_snapshot"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_create_table_from_snapshot_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_create_table_from_snapshot"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.CreateTableFromSnapshotRequest.pb(
             bigtable_table_admin.CreateTableFromSnapshotRequest()
         )
@@ -19658,6 +19718,7 @@ def test_create_table_from_snapshot_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.create_table_from_snapshot(
             request,
@@ -19669,6 +19730,7 @@ def test_create_table_from_snapshot_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_list_tables_rest_bad_request(
@@ -19753,10 +19815,13 @@ def test_list_tables_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_list_tables"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_list_tables_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_list_tables"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.ListTablesRequest.pb(
             bigtable_table_admin.ListTablesRequest()
         )
@@ -19782,6 +19847,10 @@ def test_list_tables_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable_table_admin.ListTablesResponse()
+        post_with_metadata.return_value = (
+            bigtable_table_admin.ListTablesResponse(),
+            metadata,
+        )
 
         client.list_tables(
             request,
@@ -19793,6 +19862,7 @@ def test_list_tables_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_get_table_rest_bad_request(request_type=bigtable_table_admin.GetTableRequest):
@@ -19879,10 +19949,13 @@ def test_get_table_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_get_table"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_get_table_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_get_table"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.GetTableRequest.pb(
             bigtable_table_admin.GetTableRequest()
         )
@@ -19906,6 +19979,7 @@ def test_get_table_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = table.Table()
+        post_with_metadata.return_value = table.Table(), metadata
 
         client.get_table(
             request,
@@ -19917,6 +19991,7 @@ def test_get_table_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_update_table_rest_bad_request(
@@ -20087,10 +20162,13 @@ def test_update_table_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_update_table"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_update_table_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_update_table"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.UpdateTableRequest.pb(
             bigtable_table_admin.UpdateTableRequest()
         )
@@ -20114,6 +20192,7 @@ def test_update_table_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.update_table(
             request,
@@ -20125,6 +20204,7 @@ def test_update_table_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_delete_table_rest_bad_request(
@@ -20314,10 +20394,14 @@ def test_undelete_table_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_undelete_table"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_undelete_table_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_undelete_table"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.UndeleteTableRequest.pb(
             bigtable_table_admin.UndeleteTableRequest()
         )
@@ -20341,6 +20425,7 @@ def test_undelete_table_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.undelete_table(
             request,
@@ -20352,6 +20437,7 @@ def test_undelete_table_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_create_authorized_view_rest_bad_request(
@@ -20510,10 +20596,14 @@ def test_create_authorized_view_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_create_authorized_view"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_create_authorized_view_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_create_authorized_view"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.CreateAuthorizedViewRequest.pb(
             bigtable_table_admin.CreateAuthorizedViewRequest()
         )
@@ -20537,6 +20627,7 @@ def test_create_authorized_view_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.create_authorized_view(
             request,
@@ -20548,6 +20639,7 @@ def test_create_authorized_view_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_list_authorized_views_rest_bad_request(
@@ -20632,10 +20724,14 @@ def test_list_authorized_views_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_list_authorized_views"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_list_authorized_views_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_list_authorized_views"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.ListAuthorizedViewsRequest.pb(
             bigtable_table_admin.ListAuthorizedViewsRequest()
         )
@@ -20661,6 +20757,10 @@ def test_list_authorized_views_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable_table_admin.ListAuthorizedViewsResponse()
+        post_with_metadata.return_value = (
+            bigtable_table_admin.ListAuthorizedViewsResponse(),
+            metadata,
+        )
 
         client.list_authorized_views(
             request,
@@ -20672,6 +20772,7 @@ def test_list_authorized_views_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_get_authorized_view_rest_bad_request(
@@ -20764,10 +20865,14 @@ def test_get_authorized_view_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_get_authorized_view"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_get_authorized_view_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_get_authorized_view"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.GetAuthorizedViewRequest.pb(
             bigtable_table_admin.GetAuthorizedViewRequest()
         )
@@ -20791,6 +20896,7 @@ def test_get_authorized_view_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = table.AuthorizedView()
+        post_with_metadata.return_value = table.AuthorizedView(), metadata
 
         client.get_authorized_view(
             request,
@@ -20802,6 +20908,7 @@ def test_get_authorized_view_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_update_authorized_view_rest_bad_request(
@@ -20968,10 +21075,14 @@ def test_update_authorized_view_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_update_authorized_view"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_update_authorized_view_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_update_authorized_view"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.UpdateAuthorizedViewRequest.pb(
             bigtable_table_admin.UpdateAuthorizedViewRequest()
         )
@@ -20995,6 +21106,7 @@ def test_update_authorized_view_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.update_authorized_view(
             request,
@@ -21006,6 +21118,7 @@ def test_update_authorized_view_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_delete_authorized_view_rest_bad_request(
@@ -21207,10 +21320,14 @@ def test_modify_column_families_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_modify_column_families"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_modify_column_families_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_modify_column_families"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.ModifyColumnFamiliesRequest.pb(
             bigtable_table_admin.ModifyColumnFamiliesRequest()
         )
@@ -21234,6 +21351,7 @@ def test_modify_column_families_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = table.Table()
+        post_with_metadata.return_value = table.Table(), metadata
 
         client.modify_column_families(
             request,
@@ -21245,6 +21363,7 @@ def test_modify_column_families_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_drop_row_range_rest_bad_request(
@@ -21440,10 +21559,14 @@ def test_generate_consistency_token_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_generate_consistency_token"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_generate_consistency_token_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_generate_consistency_token"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.GenerateConsistencyTokenRequest.pb(
             bigtable_table_admin.GenerateConsistencyTokenRequest()
         )
@@ -21469,6 +21592,10 @@ def test_generate_consistency_token_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable_table_admin.GenerateConsistencyTokenResponse()
+        post_with_metadata.return_value = (
+            bigtable_table_admin.GenerateConsistencyTokenResponse(),
+            metadata,
+        )
 
         client.generate_consistency_token(
             request,
@@ -21480,6 +21607,7 @@ def test_generate_consistency_token_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_check_consistency_rest_bad_request(
@@ -21564,10 +21692,14 @@ def test_check_consistency_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_check_consistency"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_check_consistency_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_check_consistency"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.CheckConsistencyRequest.pb(
             bigtable_table_admin.CheckConsistencyRequest()
         )
@@ -21593,6 +21725,10 @@ def test_check_consistency_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable_table_admin.CheckConsistencyResponse()
+        post_with_metadata.return_value = (
+            bigtable_table_admin.CheckConsistencyResponse(),
+            metadata,
+        )
 
         client.check_consistency(
             request,
@@ -21604,6 +21740,7 @@ def test_check_consistency_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_snapshot_table_rest_bad_request(
@@ -21684,10 +21821,14 @@ def test_snapshot_table_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_snapshot_table"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_snapshot_table_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_snapshot_table"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.SnapshotTableRequest.pb(
             bigtable_table_admin.SnapshotTableRequest()
         )
@@ -21711,6 +21852,7 @@ def test_snapshot_table_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.snapshot_table(
             request,
@@ -21722,6 +21864,7 @@ def test_snapshot_table_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_get_snapshot_rest_bad_request(
@@ -21816,10 +21959,13 @@ def test_get_snapshot_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_get_snapshot"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_get_snapshot_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_get_snapshot"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.GetSnapshotRequest.pb(
             bigtable_table_admin.GetSnapshotRequest()
         )
@@ -21843,6 +21989,7 @@ def test_get_snapshot_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = table.Snapshot()
+        post_with_metadata.return_value = table.Snapshot(), metadata
 
         client.get_snapshot(
             request,
@@ -21854,6 +22001,7 @@ def test_get_snapshot_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_list_snapshots_rest_bad_request(
@@ -21938,10 +22086,14 @@ def test_list_snapshots_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_list_snapshots"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_list_snapshots_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_list_snapshots"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.ListSnapshotsRequest.pb(
             bigtable_table_admin.ListSnapshotsRequest()
         )
@@ -21967,6 +22119,10 @@ def test_list_snapshots_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable_table_admin.ListSnapshotsResponse()
+        post_with_metadata.return_value = (
+            bigtable_table_admin.ListSnapshotsResponse(),
+            metadata,
+        )
 
         client.list_snapshots(
             request,
@@ -21978,6 +22134,7 @@ def test_list_snapshots_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_delete_snapshot_rest_bad_request(
@@ -22264,10 +22421,13 @@ def test_create_backup_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_create_backup"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_create_backup_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_create_backup"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.CreateBackupRequest.pb(
             bigtable_table_admin.CreateBackupRequest()
         )
@@ -22291,6 +22451,7 @@ def test_create_backup_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.create_backup(
             request,
@@ -22302,6 +22463,7 @@ def test_create_backup_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_get_backup_rest_bad_request(
@@ -22400,10 +22562,13 @@ def test_get_backup_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_get_backup"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_get_backup_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_get_backup"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.GetBackupRequest.pb(
             bigtable_table_admin.GetBackupRequest()
         )
@@ -22427,6 +22592,7 @@ def test_get_backup_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = table.Backup()
+        post_with_metadata.return_value = table.Backup(), metadata
 
         client.get_backup(
             request,
@@ -22438,6 +22604,7 @@ def test_get_backup_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_update_backup_rest_bad_request(
@@ -22633,10 +22800,13 @@ def test_update_backup_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_update_backup"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_update_backup_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_update_backup"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.UpdateBackupRequest.pb(
             bigtable_table_admin.UpdateBackupRequest()
         )
@@ -22660,6 +22830,7 @@ def test_update_backup_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = table.Backup()
+        post_with_metadata.return_value = table.Backup(), metadata
 
         client.update_backup(
             request,
@@ -22671,6 +22842,7 @@ def test_update_backup_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_delete_backup_rest_bad_request(
@@ -22868,10 +23040,13 @@ def test_list_backups_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_list_backups"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_list_backups_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_list_backups"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.ListBackupsRequest.pb(
             bigtable_table_admin.ListBackupsRequest()
         )
@@ -22897,6 +23072,10 @@ def test_list_backups_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable_table_admin.ListBackupsResponse()
+        post_with_metadata.return_value = (
+            bigtable_table_admin.ListBackupsResponse(),
+            metadata,
+        )
 
         client.list_backups(
             request,
@@ -22908,6 +23087,7 @@ def test_list_backups_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_restore_table_rest_bad_request(
@@ -22988,10 +23168,13 @@ def test_restore_table_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_restore_table"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_restore_table_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_restore_table"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.RestoreTableRequest.pb(
             bigtable_table_admin.RestoreTableRequest()
         )
@@ -23015,6 +23198,7 @@ def test_restore_table_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.restore_table(
             request,
@@ -23026,6 +23210,7 @@ def test_restore_table_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_copy_backup_rest_bad_request(
@@ -23106,10 +23291,13 @@ def test_copy_backup_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_copy_backup"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_copy_backup_with_metadata"
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_copy_backup"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_table_admin.CopyBackupRequest.pb(
             bigtable_table_admin.CopyBackupRequest()
         )
@@ -23133,6 +23321,7 @@ def test_copy_backup_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.copy_backup(
             request,
@@ -23144,6 +23333,7 @@ def test_copy_backup_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_get_iam_policy_rest_bad_request(
@@ -23227,10 +23417,14 @@ def test_get_iam_policy_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_get_iam_policy"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_get_iam_policy_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_get_iam_policy"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = iam_policy_pb2.GetIamPolicyRequest()
         transcode.return_value = {
             "method": "post",
@@ -23252,6 +23446,7 @@ def test_get_iam_policy_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = policy_pb2.Policy()
+        post_with_metadata.return_value = policy_pb2.Policy(), metadata
 
         client.get_iam_policy(
             request,
@@ -23263,6 +23458,7 @@ def test_get_iam_policy_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_set_iam_policy_rest_bad_request(
@@ -23346,10 +23542,14 @@ def test_set_iam_policy_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_set_iam_policy"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_set_iam_policy_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_set_iam_policy"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = iam_policy_pb2.SetIamPolicyRequest()
         transcode.return_value = {
             "method": "post",
@@ -23371,6 +23571,7 @@ def test_set_iam_policy_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = policy_pb2.Policy()
+        post_with_metadata.return_value = policy_pb2.Policy(), metadata
 
         client.set_iam_policy(
             request,
@@ -23382,6 +23583,7 @@ def test_set_iam_policy_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_test_iam_permissions_rest_bad_request(
@@ -23463,10 +23665,14 @@ def test_test_iam_permissions_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "post_test_iam_permissions"
     ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor,
+        "post_test_iam_permissions_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableTableAdminRestInterceptor, "pre_test_iam_permissions"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = iam_policy_pb2.TestIamPermissionsRequest()
         transcode.return_value = {
             "method": "post",
@@ -23490,6 +23696,10 @@ def test_test_iam_permissions_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = iam_policy_pb2.TestIamPermissionsResponse()
+        post_with_metadata.return_value = (
+            iam_policy_pb2.TestIamPermissionsResponse(),
+            metadata,
+        )
 
         client.test_iam_permissions(
             request,
@@ -23501,6 +23711,7 @@ def test_test_iam_permissions_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_initialize_client_w_rest():

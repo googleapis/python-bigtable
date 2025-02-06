@@ -327,11 +327,37 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.CheckConsistencyResponse:
         """Post-rpc interceptor for check_consistency
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_check_consistency_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_check_consistency` interceptor runs
+        before the `post_check_consistency_with_metadata` interceptor.
         """
         return response
+
+    def post_check_consistency_with_metadata(
+        self,
+        response: bigtable_table_admin.CheckConsistencyResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.CheckConsistencyResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for check_consistency
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_check_consistency_with_metadata`
+        interceptor in new development instead of the `post_check_consistency` interceptor.
+        When both interceptors are used, this `post_check_consistency_with_metadata` interceptor runs after the
+        `post_check_consistency` interceptor. The (possibly modified) response returned by
+        `post_check_consistency` will be passed to
+        `post_check_consistency_with_metadata`.
+        """
+        return response, metadata
 
     def pre_copy_backup(
         self,
@@ -352,11 +378,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for copy_backup
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_copy_backup_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_copy_backup` interceptor runs
+        before the `post_copy_backup_with_metadata` interceptor.
         """
         return response
+
+    def post_copy_backup_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for copy_backup
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_copy_backup_with_metadata`
+        interceptor in new development instead of the `post_copy_backup` interceptor.
+        When both interceptors are used, this `post_copy_backup_with_metadata` interceptor runs after the
+        `post_copy_backup` interceptor. The (possibly modified) response returned by
+        `post_copy_backup` will be passed to
+        `post_copy_backup_with_metadata`.
+        """
+        return response, metadata
 
     def pre_create_authorized_view(
         self,
@@ -378,11 +427,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for create_authorized_view
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_create_authorized_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_create_authorized_view` interceptor runs
+        before the `post_create_authorized_view_with_metadata` interceptor.
         """
         return response
+
+    def post_create_authorized_view_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_authorized_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_authorized_view_with_metadata`
+        interceptor in new development instead of the `post_create_authorized_view` interceptor.
+        When both interceptors are used, this `post_create_authorized_view_with_metadata` interceptor runs after the
+        `post_create_authorized_view` interceptor. The (possibly modified) response returned by
+        `post_create_authorized_view` will be passed to
+        `post_create_authorized_view_with_metadata`.
+        """
+        return response, metadata
 
     def pre_create_backup(
         self,
@@ -404,11 +476,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for create_backup
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_create_backup_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_create_backup` interceptor runs
+        before the `post_create_backup_with_metadata` interceptor.
         """
         return response
+
+    def post_create_backup_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_backup
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_backup_with_metadata`
+        interceptor in new development instead of the `post_create_backup` interceptor.
+        When both interceptors are used, this `post_create_backup_with_metadata` interceptor runs after the
+        `post_create_backup` interceptor. The (possibly modified) response returned by
+        `post_create_backup` will be passed to
+        `post_create_backup_with_metadata`.
+        """
+        return response, metadata
 
     def pre_create_table(
         self,
@@ -427,11 +522,34 @@ class BigtableTableAdminRestInterceptor:
     def post_create_table(self, response: gba_table.Table) -> gba_table.Table:
         """Post-rpc interceptor for create_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_create_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_create_table` interceptor runs
+        before the `post_create_table_with_metadata` interceptor.
         """
         return response
+
+    def post_create_table_with_metadata(
+        self,
+        response: gba_table.Table,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[gba_table.Table, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_table_with_metadata`
+        interceptor in new development instead of the `post_create_table` interceptor.
+        When both interceptors are used, this `post_create_table_with_metadata` interceptor runs after the
+        `post_create_table` interceptor. The (possibly modified) response returned by
+        `post_create_table` will be passed to
+        `post_create_table_with_metadata`.
+        """
+        return response, metadata
 
     def pre_create_table_from_snapshot(
         self,
@@ -453,11 +571,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for create_table_from_snapshot
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_create_table_from_snapshot_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_create_table_from_snapshot` interceptor runs
+        before the `post_create_table_from_snapshot_with_metadata` interceptor.
         """
         return response
+
+    def post_create_table_from_snapshot_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_table_from_snapshot
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_table_from_snapshot_with_metadata`
+        interceptor in new development instead of the `post_create_table_from_snapshot` interceptor.
+        When both interceptors are used, this `post_create_table_from_snapshot_with_metadata` interceptor runs after the
+        `post_create_table_from_snapshot` interceptor. The (possibly modified) response returned by
+        `post_create_table_from_snapshot` will be passed to
+        `post_create_table_from_snapshot_with_metadata`.
+        """
+        return response, metadata
 
     def pre_delete_authorized_view(
         self,
@@ -553,11 +694,37 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.GenerateConsistencyTokenResponse:
         """Post-rpc interceptor for generate_consistency_token
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_generate_consistency_token_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_generate_consistency_token` interceptor runs
+        before the `post_generate_consistency_token_with_metadata` interceptor.
         """
         return response
+
+    def post_generate_consistency_token_with_metadata(
+        self,
+        response: bigtable_table_admin.GenerateConsistencyTokenResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.GenerateConsistencyTokenResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for generate_consistency_token
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_generate_consistency_token_with_metadata`
+        interceptor in new development instead of the `post_generate_consistency_token` interceptor.
+        When both interceptors are used, this `post_generate_consistency_token_with_metadata` interceptor runs after the
+        `post_generate_consistency_token` interceptor. The (possibly modified) response returned by
+        `post_generate_consistency_token` will be passed to
+        `post_generate_consistency_token_with_metadata`.
+        """
+        return response, metadata
 
     def pre_get_authorized_view(
         self,
@@ -579,11 +746,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> table.AuthorizedView:
         """Post-rpc interceptor for get_authorized_view
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_get_authorized_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_get_authorized_view` interceptor runs
+        before the `post_get_authorized_view_with_metadata` interceptor.
         """
         return response
+
+    def post_get_authorized_view_with_metadata(
+        self,
+        response: table.AuthorizedView,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[table.AuthorizedView, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_authorized_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_authorized_view_with_metadata`
+        interceptor in new development instead of the `post_get_authorized_view` interceptor.
+        When both interceptors are used, this `post_get_authorized_view_with_metadata` interceptor runs after the
+        `post_get_authorized_view` interceptor. The (possibly modified) response returned by
+        `post_get_authorized_view` will be passed to
+        `post_get_authorized_view_with_metadata`.
+        """
+        return response, metadata
 
     def pre_get_backup(
         self,
@@ -602,11 +792,32 @@ class BigtableTableAdminRestInterceptor:
     def post_get_backup(self, response: table.Backup) -> table.Backup:
         """Post-rpc interceptor for get_backup
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_get_backup_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_get_backup` interceptor runs
+        before the `post_get_backup_with_metadata` interceptor.
         """
         return response
+
+    def post_get_backup_with_metadata(
+        self, response: table.Backup, metadata: Sequence[Tuple[str, Union[str, bytes]]]
+    ) -> Tuple[table.Backup, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_backup
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_backup_with_metadata`
+        interceptor in new development instead of the `post_get_backup` interceptor.
+        When both interceptors are used, this `post_get_backup_with_metadata` interceptor runs after the
+        `post_get_backup` interceptor. The (possibly modified) response returned by
+        `post_get_backup` will be passed to
+        `post_get_backup_with_metadata`.
+        """
+        return response, metadata
 
     def pre_get_iam_policy(
         self,
@@ -625,11 +836,34 @@ class BigtableTableAdminRestInterceptor:
     def post_get_iam_policy(self, response: policy_pb2.Policy) -> policy_pb2.Policy:
         """Post-rpc interceptor for get_iam_policy
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_get_iam_policy_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_get_iam_policy` interceptor runs
+        before the `post_get_iam_policy_with_metadata` interceptor.
         """
         return response
+
+    def post_get_iam_policy_with_metadata(
+        self,
+        response: policy_pb2.Policy,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[policy_pb2.Policy, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_iam_policy
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_iam_policy_with_metadata`
+        interceptor in new development instead of the `post_get_iam_policy` interceptor.
+        When both interceptors are used, this `post_get_iam_policy_with_metadata` interceptor runs after the
+        `post_get_iam_policy` interceptor. The (possibly modified) response returned by
+        `post_get_iam_policy` will be passed to
+        `post_get_iam_policy_with_metadata`.
+        """
+        return response, metadata
 
     def pre_get_snapshot(
         self,
@@ -648,11 +882,34 @@ class BigtableTableAdminRestInterceptor:
     def post_get_snapshot(self, response: table.Snapshot) -> table.Snapshot:
         """Post-rpc interceptor for get_snapshot
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_get_snapshot_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_get_snapshot` interceptor runs
+        before the `post_get_snapshot_with_metadata` interceptor.
         """
         return response
+
+    def post_get_snapshot_with_metadata(
+        self,
+        response: table.Snapshot,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[table.Snapshot, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_snapshot
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_snapshot_with_metadata`
+        interceptor in new development instead of the `post_get_snapshot` interceptor.
+        When both interceptors are used, this `post_get_snapshot_with_metadata` interceptor runs after the
+        `post_get_snapshot` interceptor. The (possibly modified) response returned by
+        `post_get_snapshot` will be passed to
+        `post_get_snapshot_with_metadata`.
+        """
+        return response, metadata
 
     def pre_get_table(
         self,
@@ -671,11 +928,32 @@ class BigtableTableAdminRestInterceptor:
     def post_get_table(self, response: table.Table) -> table.Table:
         """Post-rpc interceptor for get_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_get_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_get_table` interceptor runs
+        before the `post_get_table_with_metadata` interceptor.
         """
         return response
+
+    def post_get_table_with_metadata(
+        self, response: table.Table, metadata: Sequence[Tuple[str, Union[str, bytes]]]
+    ) -> Tuple[table.Table, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_table_with_metadata`
+        interceptor in new development instead of the `post_get_table` interceptor.
+        When both interceptors are used, this `post_get_table_with_metadata` interceptor runs after the
+        `post_get_table` interceptor. The (possibly modified) response returned by
+        `post_get_table` will be passed to
+        `post_get_table_with_metadata`.
+        """
+        return response, metadata
 
     def pre_list_authorized_views(
         self,
@@ -697,11 +975,37 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.ListAuthorizedViewsResponse:
         """Post-rpc interceptor for list_authorized_views
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_list_authorized_views_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_list_authorized_views` interceptor runs
+        before the `post_list_authorized_views_with_metadata` interceptor.
         """
         return response
+
+    def post_list_authorized_views_with_metadata(
+        self,
+        response: bigtable_table_admin.ListAuthorizedViewsResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListAuthorizedViewsResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for list_authorized_views
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_authorized_views_with_metadata`
+        interceptor in new development instead of the `post_list_authorized_views` interceptor.
+        When both interceptors are used, this `post_list_authorized_views_with_metadata` interceptor runs after the
+        `post_list_authorized_views` interceptor. The (possibly modified) response returned by
+        `post_list_authorized_views` will be passed to
+        `post_list_authorized_views_with_metadata`.
+        """
+        return response, metadata
 
     def pre_list_backups(
         self,
@@ -722,11 +1026,37 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.ListBackupsResponse:
         """Post-rpc interceptor for list_backups
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_list_backups_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_list_backups` interceptor runs
+        before the `post_list_backups_with_metadata` interceptor.
         """
         return response
+
+    def post_list_backups_with_metadata(
+        self,
+        response: bigtable_table_admin.ListBackupsResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListBackupsResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for list_backups
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_backups_with_metadata`
+        interceptor in new development instead of the `post_list_backups` interceptor.
+        When both interceptors are used, this `post_list_backups_with_metadata` interceptor runs after the
+        `post_list_backups` interceptor. The (possibly modified) response returned by
+        `post_list_backups` will be passed to
+        `post_list_backups_with_metadata`.
+        """
+        return response, metadata
 
     def pre_list_snapshots(
         self,
@@ -748,11 +1078,37 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.ListSnapshotsResponse:
         """Post-rpc interceptor for list_snapshots
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_list_snapshots_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_list_snapshots` interceptor runs
+        before the `post_list_snapshots_with_metadata` interceptor.
         """
         return response
+
+    def post_list_snapshots_with_metadata(
+        self,
+        response: bigtable_table_admin.ListSnapshotsResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListSnapshotsResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for list_snapshots
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_snapshots_with_metadata`
+        interceptor in new development instead of the `post_list_snapshots` interceptor.
+        When both interceptors are used, this `post_list_snapshots_with_metadata` interceptor runs after the
+        `post_list_snapshots` interceptor. The (possibly modified) response returned by
+        `post_list_snapshots` will be passed to
+        `post_list_snapshots_with_metadata`.
+        """
+        return response, metadata
 
     def pre_list_tables(
         self,
@@ -773,11 +1129,36 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.ListTablesResponse:
         """Post-rpc interceptor for list_tables
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_list_tables_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_list_tables` interceptor runs
+        before the `post_list_tables_with_metadata` interceptor.
         """
         return response
+
+    def post_list_tables_with_metadata(
+        self,
+        response: bigtable_table_admin.ListTablesResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListTablesResponse, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
+        """Post-rpc interceptor for list_tables
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_tables_with_metadata`
+        interceptor in new development instead of the `post_list_tables` interceptor.
+        When both interceptors are used, this `post_list_tables_with_metadata` interceptor runs after the
+        `post_list_tables` interceptor. The (possibly modified) response returned by
+        `post_list_tables` will be passed to
+        `post_list_tables_with_metadata`.
+        """
+        return response, metadata
 
     def pre_modify_column_families(
         self,
@@ -797,11 +1178,32 @@ class BigtableTableAdminRestInterceptor:
     def post_modify_column_families(self, response: table.Table) -> table.Table:
         """Post-rpc interceptor for modify_column_families
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_modify_column_families_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_modify_column_families` interceptor runs
+        before the `post_modify_column_families_with_metadata` interceptor.
         """
         return response
+
+    def post_modify_column_families_with_metadata(
+        self, response: table.Table, metadata: Sequence[Tuple[str, Union[str, bytes]]]
+    ) -> Tuple[table.Table, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for modify_column_families
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_modify_column_families_with_metadata`
+        interceptor in new development instead of the `post_modify_column_families` interceptor.
+        When both interceptors are used, this `post_modify_column_families_with_metadata` interceptor runs after the
+        `post_modify_column_families` interceptor. The (possibly modified) response returned by
+        `post_modify_column_families` will be passed to
+        `post_modify_column_families_with_metadata`.
+        """
+        return response, metadata
 
     def pre_restore_table(
         self,
@@ -823,11 +1225,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for restore_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_restore_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_restore_table` interceptor runs
+        before the `post_restore_table_with_metadata` interceptor.
         """
         return response
+
+    def post_restore_table_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for restore_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_restore_table_with_metadata`
+        interceptor in new development instead of the `post_restore_table` interceptor.
+        When both interceptors are used, this `post_restore_table_with_metadata` interceptor runs after the
+        `post_restore_table` interceptor. The (possibly modified) response returned by
+        `post_restore_table` will be passed to
+        `post_restore_table_with_metadata`.
+        """
+        return response, metadata
 
     def pre_set_iam_policy(
         self,
@@ -846,11 +1271,34 @@ class BigtableTableAdminRestInterceptor:
     def post_set_iam_policy(self, response: policy_pb2.Policy) -> policy_pb2.Policy:
         """Post-rpc interceptor for set_iam_policy
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_set_iam_policy_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_set_iam_policy` interceptor runs
+        before the `post_set_iam_policy_with_metadata` interceptor.
         """
         return response
+
+    def post_set_iam_policy_with_metadata(
+        self,
+        response: policy_pb2.Policy,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[policy_pb2.Policy, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for set_iam_policy
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_set_iam_policy_with_metadata`
+        interceptor in new development instead of the `post_set_iam_policy` interceptor.
+        When both interceptors are used, this `post_set_iam_policy_with_metadata` interceptor runs after the
+        `post_set_iam_policy` interceptor. The (possibly modified) response returned by
+        `post_set_iam_policy` will be passed to
+        `post_set_iam_policy_with_metadata`.
+        """
+        return response, metadata
 
     def pre_snapshot_table(
         self,
@@ -872,11 +1320,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for snapshot_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_snapshot_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_snapshot_table` interceptor runs
+        before the `post_snapshot_table_with_metadata` interceptor.
         """
         return response
+
+    def post_snapshot_table_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for snapshot_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_snapshot_table_with_metadata`
+        interceptor in new development instead of the `post_snapshot_table` interceptor.
+        When both interceptors are used, this `post_snapshot_table_with_metadata` interceptor runs after the
+        `post_snapshot_table` interceptor. The (possibly modified) response returned by
+        `post_snapshot_table` will be passed to
+        `post_snapshot_table_with_metadata`.
+        """
+        return response, metadata
 
     def pre_test_iam_permissions(
         self,
@@ -898,11 +1369,37 @@ class BigtableTableAdminRestInterceptor:
     ) -> iam_policy_pb2.TestIamPermissionsResponse:
         """Post-rpc interceptor for test_iam_permissions
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_test_iam_permissions_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_test_iam_permissions` interceptor runs
+        before the `post_test_iam_permissions_with_metadata` interceptor.
         """
         return response
+
+    def post_test_iam_permissions_with_metadata(
+        self,
+        response: iam_policy_pb2.TestIamPermissionsResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        iam_policy_pb2.TestIamPermissionsResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for test_iam_permissions
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_test_iam_permissions_with_metadata`
+        interceptor in new development instead of the `post_test_iam_permissions` interceptor.
+        When both interceptors are used, this `post_test_iam_permissions_with_metadata` interceptor runs after the
+        `post_test_iam_permissions` interceptor. The (possibly modified) response returned by
+        `post_test_iam_permissions` will be passed to
+        `post_test_iam_permissions_with_metadata`.
+        """
+        return response, metadata
 
     def pre_undelete_table(
         self,
@@ -924,11 +1421,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for undelete_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_undelete_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_undelete_table` interceptor runs
+        before the `post_undelete_table_with_metadata` interceptor.
         """
         return response
+
+    def post_undelete_table_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for undelete_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_undelete_table_with_metadata`
+        interceptor in new development instead of the `post_undelete_table` interceptor.
+        When both interceptors are used, this `post_undelete_table_with_metadata` interceptor runs after the
+        `post_undelete_table` interceptor. The (possibly modified) response returned by
+        `post_undelete_table` will be passed to
+        `post_undelete_table_with_metadata`.
+        """
+        return response, metadata
 
     def pre_update_authorized_view(
         self,
@@ -950,11 +1470,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for update_authorized_view
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_update_authorized_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_update_authorized_view` interceptor runs
+        before the `post_update_authorized_view_with_metadata` interceptor.
         """
         return response
+
+    def post_update_authorized_view_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for update_authorized_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_update_authorized_view_with_metadata`
+        interceptor in new development instead of the `post_update_authorized_view` interceptor.
+        When both interceptors are used, this `post_update_authorized_view_with_metadata` interceptor runs after the
+        `post_update_authorized_view` interceptor. The (possibly modified) response returned by
+        `post_update_authorized_view` will be passed to
+        `post_update_authorized_view_with_metadata`.
+        """
+        return response, metadata
 
     def pre_update_backup(
         self,
@@ -974,11 +1517,32 @@ class BigtableTableAdminRestInterceptor:
     def post_update_backup(self, response: table.Backup) -> table.Backup:
         """Post-rpc interceptor for update_backup
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_update_backup_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_update_backup` interceptor runs
+        before the `post_update_backup_with_metadata` interceptor.
         """
         return response
+
+    def post_update_backup_with_metadata(
+        self, response: table.Backup, metadata: Sequence[Tuple[str, Union[str, bytes]]]
+    ) -> Tuple[table.Backup, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for update_backup
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_update_backup_with_metadata`
+        interceptor in new development instead of the `post_update_backup` interceptor.
+        When both interceptors are used, this `post_update_backup_with_metadata` interceptor runs after the
+        `post_update_backup` interceptor. The (possibly modified) response returned by
+        `post_update_backup` will be passed to
+        `post_update_backup_with_metadata`.
+        """
+        return response, metadata
 
     def pre_update_table(
         self,
@@ -999,11 +1563,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for update_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_update_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_update_table` interceptor runs
+        before the `post_update_table_with_metadata` interceptor.
         """
         return response
+
+    def post_update_table_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for update_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_update_table_with_metadata`
+        interceptor in new development instead of the `post_update_table` interceptor.
+        When both interceptors are used, this `post_update_table_with_metadata` interceptor runs after the
+        `post_update_table` interceptor. The (possibly modified) response returned by
+        `post_update_table` will be passed to
+        `post_update_table_with_metadata`.
+        """
+        return response, metadata
 
 
 @dataclasses.dataclass
@@ -1278,6 +1865,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_check_consistency(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_check_consistency_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -1428,6 +2019,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_copy_backup(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_copy_backup_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -1581,6 +2176,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_create_authorized_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_authorized_view_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -1730,6 +2329,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_create_backup(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_backup_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -1882,6 +2485,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_create_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_table_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -2043,6 +2650,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_create_table_from_snapshot(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_table_from_snapshot_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -2755,6 +3366,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_generate_consistency_token(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_generate_consistency_token_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -2909,6 +3524,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_get_authorized_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_authorized_view_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -3050,6 +3669,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_get_backup(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_backup_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -3272,6 +3895,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_get_iam_policy(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_iam_policy_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -3434,6 +4061,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_get_snapshot(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_snapshot_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -3579,6 +4210,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_get_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_table_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -3727,6 +4362,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_list_authorized_views(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_authorized_views_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -3875,6 +4514,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_list_backups(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_backups_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -4035,6 +4678,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_list_snapshots(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_snapshots_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -4180,6 +4827,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_list_tables(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_tables_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -4338,6 +4989,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_modify_column_families(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_modify_column_families_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -4487,6 +5142,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_restore_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_restore_table_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -4709,6 +5368,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_set_iam_policy(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_set_iam_policy_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -4865,6 +5528,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_snapshot_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_snapshot_table_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -5016,6 +5683,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_test_iam_permissions(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_test_iam_permissions_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -5165,6 +5836,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_undelete_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_undelete_table_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -5318,6 +5993,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_update_authorized_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_update_authorized_view_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -5466,6 +6145,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_update_backup(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_update_backup_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
@@ -5615,6 +6298,10 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
 
             resp = self._interceptor.post_update_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_update_table_with_metadata(
+                resp, response_metadata
+            )
             if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
                 logging.DEBUG
             ):  # pragma: NO COVER
