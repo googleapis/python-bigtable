@@ -24,6 +24,7 @@ from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core.retry import RetryFailureReason
+from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 
 if TYPE_CHECKING:
@@ -229,3 +230,28 @@ def _get_retryable_errors(
         call_codes = table.default_mutate_rows_retryable_errors
 
     return [_get_error_type(e) for e in call_codes]
+
+
+class BackoffGenerator:
+    """
+    Generator class for exponential backoff sleep times.
+    This implementation builds on top of api_core.retries.exponential_sleep_generator,
+    with the ability to override the next backoff value
+    """
+
+    def __init__(self, initial=0.01, multiplier=2, maximum=60):
+        self.subgenerator = exponential_sleep_generator(initial, multiplier, maximum)
+        self._next_value = None
+
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> float:
+        if self._next_value:
+            backoff, self._next_value = self._next_value, None
+        else:
+            backoff = next(self.subgenerator)
+        return backoff
+
+    def insert_value(self, value: float):
+        self._next_value = value
