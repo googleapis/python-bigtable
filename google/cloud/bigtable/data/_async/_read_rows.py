@@ -31,6 +31,7 @@ from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 
 from google.api_core import retry as retries
+from google.api_core.exceptions import GoogleAPICallError
 from google.api_core.retry import exponential_sleep_generator
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -73,6 +74,7 @@ class _ReadRowsOperationAsync:
         "_predicate",
         "_last_yielded_row_key",
         "_remaining_count",
+        "_metadata",
     )
 
     def __init__(
@@ -99,6 +101,7 @@ class _ReadRowsOperationAsync:
         self._predicate = retries.if_exception_type(*retryable_exceptions)
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
+        self._metadata = ()
 
     def start_operation(self) -> CrossSync.Iterable[Row]:
         """
@@ -112,8 +115,13 @@ class _ReadRowsOperationAsync:
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
+            on_error=self._capture_routing_cookie,
             exception_factory=_retry_exception_factory,
         )
+
+    def _capture_routing_cookie(self, e: GoogleAPICallError):
+        metadata = e.errors[0].trailing_metadata()
+        self._metadata = list(metadata.keys())
 
     def _read_rows_attempt(self) -> CrossSync.Iterable[Row]:
         """
@@ -146,6 +154,7 @@ class _ReadRowsOperationAsync:
             self.request,
             timeout=next(self.attempt_timeout_gen),
             retry=None,
+            metadata=self._metadata,
         )
         chunked_stream = self.chunk_stream(gapic_stream)
         return self.merge_rows(chunked_stream)
