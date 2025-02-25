@@ -839,7 +839,6 @@ class TestSystem:
             expect_match
         ), f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"
 
-
     def test_authorized_view_unauthenticated(
         self, client, authorized_view_id, instance_id, table_id
     ):
@@ -853,7 +852,6 @@ class TestSystem:
             with pytest.raises(PermissionDenied) as e:
                 view.mutate_row(b"row-key", mutation)
             assert "outside the Authorized View" in e.value.message
-
 
     @pytest.mark.usefixtures("client")
     @CrossSync._Sync_Impl.Retry(

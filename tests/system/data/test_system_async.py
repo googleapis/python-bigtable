@@ -1029,7 +1029,6 @@ class TestSystemAsync:
             expect_match
         ), f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"
 
-
     async def test_authorized_view_unauthenticated(
         self, client, authorized_view_id, instance_id, table_id
     ):
@@ -1046,7 +1045,6 @@ class TestSystemAsync:
                 await view.mutate_row(b"row-key", mutation)
             assert "outside the Authorized View" in e.value.message
 
-            
     @pytest.mark.usefixtures("client")
     @CrossSync.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
