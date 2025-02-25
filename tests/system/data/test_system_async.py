@@ -208,6 +208,34 @@ class TestSystemAsync:
         assert results[0] is None
 
     @CrossSync.pytest
+    async def test_channel_refresh(self, table_id, instance_id, temp_rows):
+        """
+        change grpc channel to refresh after 1 second. Schedule a read_rows call after refresh,
+        to ensure new channel works
+        """
+        await temp_rows.add_row(b"row_key_1")
+        await temp_rows.add_row(b"row_key_2")
+        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
+        async with CrossSync.DataClient(project=project) as client:
+            # replace channel refresh
+            client._channel_refresh_task = CrossSync.create_task(
+                client._manage_channel,
+                refresh_interval_min=1,
+                refresh_interval_max=1,
+                sync_executor=client._executor,
+            )
+            async with client.get_table(instance_id, table_id) as table:
+                rows = await table.read_rows({})
+                first_channel = client.transport.grpc_channel
+                assert len(rows) == 2
+                await asyncio.sleep(2)
+                rows_after_refresh = await table.read_rows({})
+                assert len(rows_after_refresh) == 2
+                assert client.transport.grpc_channel is not first_channel
+                print(table)
+
+
+    @CrossSync.pytest
     @pytest.mark.usefixtures("table")
     @CrossSync.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
