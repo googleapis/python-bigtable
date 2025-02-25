@@ -787,7 +787,7 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors
         Returns:
-            AsyncIterable[Row]: an asynchronous iterator that yields rows returned by the query
+            AsyncIterable[google.cloud.bigtable.data.Row]: an asynchronous iterator that yields rows returned by the query
         Raises:
             google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
@@ -841,7 +841,7 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
-            list[Row]: a list of Rows returned by the query
+            list[google.cloud.bigtable.data.Row]: a list of Rows returned by the query
         Raises:
             google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
@@ -886,7 +886,7 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
-            Row | None: a Row object if the row exists, otherwise None
+            google.cloud.bigtable.data.Row | None: a Row object if the row exists, otherwise None
         Raises:
             google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
@@ -941,7 +941,7 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
-            list[Row]: a list of Rows returned by the query
+            list[google.cloud.bigtable.data.Row]: a list of Rows returned by the query
         Raises:
             ShardedReadRowsExceptionGroup: if any of the queries failed
             ValueError: if the query_list is empty
@@ -1403,7 +1403,7 @@ class TableAsync:
                 Failed requests will not be retried.
                 Defaults to the Table's default_operation_timeout.
         Returns:
-            Row: a Row containing cell data that was modified as part of the operation
+            google.cloud.bigtable.data.Row: a Row containing cell data that was modified as part of the operation
         Raises:
             google.api_core.exceptions.GoogleAPIError: exceptions from grpc call
             ValueError: if invalid arguments are provided
