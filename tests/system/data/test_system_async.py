@@ -225,6 +225,8 @@ class TestSystemAsync:
                 refresh_interval_max=1,
                 sync_executor=client._executor,
             )
+            # let task run
+            await CrossSync.yield_to_event_loop()
             async with client.get_table(instance_id, table_id) as table:
                 rows = await table.read_rows({})
                 first_channel = client.transport.grpc_channel
