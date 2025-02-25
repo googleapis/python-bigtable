@@ -216,8 +216,9 @@ class TestSystemAsync:
         await temp_rows.add_row(b"row_key_1")
         await temp_rows.add_row(b"row_key_2")
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        async with CrossSync.DataClient(project=project) as client:
-            # replace channel refresh
+        client = CrossSync.DataClient(project=project)
+        # start custom refresh task
+        try:
             client._channel_refresh_task = CrossSync.create_task(
                 client._manage_channel,
                 refresh_interval_min=1,
@@ -233,7 +234,8 @@ class TestSystemAsync:
                 assert len(rows_after_refresh) == 2
                 assert client.transport.grpc_channel is not first_channel
                 print(table)
-
+        finally:
+            await client.close()
 
     @CrossSync.pytest
     @pytest.mark.usefixtures("table")
