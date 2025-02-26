@@ -3159,7 +3159,7 @@ class TestReadModifyWriteRowAsync:
                     assert mock_gapic.call_count == 1
                     kwargs = mock_gapic.call_args_list[0][1]
                     request = kwargs["request"]
-                    assert request.app_profile_id is profile_id
+                    assert request.app_profile_id == profile_id
                     assert request.row_key == row_key
                     assert kwargs["timeout"] == expected_timeout
 
