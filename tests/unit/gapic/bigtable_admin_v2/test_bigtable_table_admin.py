@@ -12937,7 +12937,12 @@ def test_update_table_rest_required_fields(
         credentials=ga_credentials.AnonymousCredentials()
     ).update_table._get_unset_required_fields(jsonified_request)
     # Check that path parameters and body parameters are not mixing in.
-    assert not set(unset_fields) - set(("update_mask",))
+    assert not set(unset_fields) - set(
+        (
+            "ignore_warnings",
+            "update_mask",
+        )
+    )
     jsonified_request.update(unset_fields)
 
     # verify required fields with non-default values are left alone
@@ -12989,7 +12994,12 @@ def test_update_table_rest_unset_required_fields():
 
     unset_fields = transport.update_table._get_unset_required_fields({})
     assert set(unset_fields) == (
-        set(("updateMask",))
+        set(
+            (
+                "ignoreWarnings",
+                "updateMask",
+            )
+        )
         & set(
             (
                 "table",
@@ -20055,6 +20065,44 @@ def test_update_table_rest_call_success(request_type):
         "change_stream_config": {"retention_period": {"seconds": 751, "nanos": 543}},
         "deletion_protection": True,
         "automated_backup_policy": {"retention_period": {}, "frequency": {}},
+        "row_key_schema": {
+            "fields": [
+                {
+                    "field_name": "field_name_value",
+                    "type_": {
+                        "bytes_type": {"encoding": {"raw": {}}},
+                        "string_type": {"encoding": {"utf8_raw": {}, "utf8_bytes": {}}},
+                        "int64_type": {
+                            "encoding": {
+                                "big_endian_bytes": {"bytes_type": {}},
+                                "ordered_code_bytes": {},
+                            }
+                        },
+                        "float32_type": {},
+                        "float64_type": {},
+                        "bool_type": {},
+                        "timestamp_type": {"encoding": {"unix_micros_int64": {}}},
+                        "date_type": {},
+                        "aggregate_type": {
+                            "input_type": {},
+                            "state_type": {},
+                            "sum": {},
+                            "hllpp_unique_count": {},
+                            "max_": {},
+                            "min_": {},
+                        },
+                        "struct_type": {},
+                        "array_type": {"element_type": {}},
+                        "map_type": {"key_type": {}, "value_type": {}},
+                    },
+                }
+            ],
+            "encoding": {
+                "singleton": {},
+                "delimited_bytes": {"delimiter": b"delimiter_blob"},
+                "ordered_code_bytes": {},
+            },
+        },
     }
     # The version of a generated dependency at test runtime may differ from the version used during generation.
     # Delete any fields which are not present in the current runtime dependency
