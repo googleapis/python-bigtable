@@ -344,7 +344,10 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any([table_name, app_profile_id])
+        flattened_params = [table_name, app_profile_id]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
         if request is not None and has_flattened_params:
             raise ValueError(
                 "If the `request` argument is set, then none of "
@@ -465,7 +468,10 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any([table_name, app_profile_id])
+        flattened_params = [table_name, app_profile_id]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
         if request is not None and has_flattened_params:
             raise ValueError(
                 "If the `request` argument is set, then none of "
@@ -603,7 +609,10 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any([table_name, row_key, mutations, app_profile_id])
+        flattened_params = [table_name, row_key, mutations, app_profile_id]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
         if request is not None and has_flattened_params:
             raise ValueError(
                 "If the `request` argument is set, then none of "
@@ -741,7 +750,10 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any([table_name, entries, app_profile_id])
+        flattened_params = [table_name, entries, app_profile_id]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
         if request is not None and has_flattened_params:
             raise ValueError(
                 "If the `request` argument is set, then none of "
@@ -905,15 +917,16 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any(
-            [
-                table_name,
-                row_key,
-                predicate_filter,
-                true_mutations,
-                false_mutations,
-                app_profile_id,
-            ]
+        flattened_params = [
+            table_name,
+            row_key,
+            predicate_filter,
+            true_mutations,
+            false_mutations,
+            app_profile_id,
+        ]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
         )
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1040,7 +1053,10 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any([name, app_profile_id])
+        flattened_params = [name, app_profile_id]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
         if request is not None and has_flattened_params:
             raise ValueError(
                 "If the `request` argument is set, then none of "
@@ -1173,7 +1189,10 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any([table_name, row_key, rules, app_profile_id])
+        flattened_params = [table_name, row_key, rules, app_profile_id]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
         if request is not None and has_flattened_params:
             raise ValueError(
                 "If the `request` argument is set, then none of "
@@ -1305,7 +1324,10 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any([table_name, app_profile_id])
+        flattened_params = [table_name, app_profile_id]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
         if request is not None and has_flattened_params:
             raise ValueError(
                 "If the `request` argument is set, then none of "
@@ -1411,7 +1433,10 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any([table_name, app_profile_id])
+        flattened_params = [table_name, app_profile_id]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
         if request is not None and has_flattened_params:
             raise ValueError(
                 "If the `request` argument is set, then none of "
@@ -1514,7 +1539,10 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        has_flattened_params = any([instance_name, query, app_profile_id])
+        flattened_params = [instance_name, query, app_profile_id]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
         if request is not None and has_flattened_params:
             raise ValueError(
                 "If the `request` argument is set, then none of "
