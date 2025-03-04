@@ -24,22 +24,6 @@ import time
 from grpc import aio
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
-async def create_warmed_channel(transport, client_options, client):
-    channel = transport.create_channel(
-        transport._host,
-        credentials=transport._credentials,
-        credentials_file=None,
-        scopes=transport._scopes,
-        ssl_credentials=transport._ssl_channel_credentials,
-        quota_project=client_options.qupta_project_id,
-        options=[
-            ("grpc.max_send_message_length", -1),
-            ("grpc.max_receive_message_length", -1),
-        ]
-    )
-    await client._ping_and_warm_instances(channel=channel)
-    return channel
-
 class AutoRefreshingChannel(aio.Channel):
     """
     A wrapper around a gRPC channel. All methods are passed
@@ -48,11 +32,12 @@ class AutoRefreshingChannel(aio.Channel):
 
     def __init__(
         self,
-        channel: aio.Channel,
         new_channel_fn: Callable[[], aio.Channel],
+        warm_fn: Callable[[aio.Channel], None] = None,
     ):
-        self._cannel = channel
+        self._channel = new_channel_fn()
         self._channel_fn = new_channel_fn
+        self._warm_fn = warm_fn
         self._is_closed = CrossSync.Event()
         self._channel_init_time = time.monotonic()
         self._channel_refresh_task: CrossSync.Task[None] | None = None
@@ -85,6 +70,9 @@ class AutoRefreshingChannel(aio.Channel):
             refresh_interval_min, refresh_interval_max
         )
         next_sleep = max(first_refresh - time.monotonic(), 0)
+        if next_sleep > 0:
+            # warm the current channel immediately
+            await self._warm_fn(self.transport.grpc_channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while not self._is_closed.is_set():
             await CrossSync.event_wait(
@@ -99,6 +87,7 @@ class AutoRefreshingChannel(aio.Channel):
             # prepare new channel for use
             old_channel = self._channel
             new_channel = await self._channel_fn()
+            await self._warm_fn(new_channel)
             # cycle channel out of use, with long grace window before closure
             self._channel = new_channel
             # give old_channel a chance to complete existing rpcs

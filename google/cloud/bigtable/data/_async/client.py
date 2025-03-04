@@ -69,6 +69,7 @@ from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
+from google.cloud.bigtable.data._async.auto_refreshing_channel import AutoRefreshingChannel
 
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.data.row_filters import RowFilter
@@ -186,6 +187,20 @@ class BigtableDataClientAsync(ClientWithProject):
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
+        else:
+            # TODO: verify
+            channel_init_fn = partial(TransportType.create_channel,
+                host=client_options.api_endpoint,
+                credentials=credentials,
+                scopes=client_options.scopes,
+                quota_project=client_options.qupta_project_id,
+                options=[
+                    ("grpc.max_send_message_length", -1),
+                    ("grpc.max_receive_message_length", -1),
+                ]
+            )
+            warm_all = partial(self._ping_and_warm_instances, None)
+            custom_channel = AutoRefreshingChannel(channel_init_fn, warm_fn=warm_all)
         # initialize client
         ClientWithProject.__init__(
             self,
