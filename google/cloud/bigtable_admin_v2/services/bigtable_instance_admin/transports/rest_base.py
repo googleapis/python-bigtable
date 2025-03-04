@@ -528,6 +528,16 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                     "uri": "/v2/{resource=projects/*/instances/*}:getIamPolicy",
                     "body": "*",
                 },
+                {
+                    "method": "post",
+                    "uri": "/v2/{resource=projects/*/instances/*/materializedViews/*}:getIamPolicy",
+                    "body": "*",
+                },
+                {
+                    "method": "post",
+                    "uri": "/v2/{resource=projects/*/instances/*/logicalViews/*}:getIamPolicy",
+                    "body": "*",
+                },
             ]
             return http_options
 
@@ -940,6 +950,16 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                     "uri": "/v2/{resource=projects/*/instances/*}:setIamPolicy",
                     "body": "*",
                 },
+                {
+                    "method": "post",
+                    "uri": "/v2/{resource=projects/*/instances/*/materializedViews/*}:setIamPolicy",
+                    "body": "*",
+                },
+                {
+                    "method": "post",
+                    "uri": "/v2/{resource=projects/*/instances/*/logicalViews/*}:setIamPolicy",
+                    "body": "*",
+                },
             ]
             return http_options
 
@@ -995,6 +1015,16 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 {
                     "method": "post",
                     "uri": "/v2/{resource=projects/*/instances/*}:testIamPermissions",
+                    "body": "*",
+                },
+                {
+                    "method": "post",
+                    "uri": "/v2/{resource=projects/*/instances/*/materializedViews/*}:testIamPermissions",
+                    "body": "*",
+                },
+                {
+                    "method": "post",
+                    "uri": "/v2/{resource=projects/*/instances/*/logicalViews/*}:testIamPermissions",
                     "body": "*",
                 },
             ]

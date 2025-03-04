@@ -894,7 +894,6 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 ``mycluster`` rather than
                 ``projects/myproject/instances/myinstance/clusters/mycluster``.
                 Fields marked ``OutputOnly`` must be left blank.
-                Currently, at most four clusters can be specified.
 
                 This corresponds to the ``clusters`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -2391,6 +2390,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         ] = None,
         *,
         name: Optional[str] = None,
+        ignore_warnings: Optional[bool] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
@@ -2409,6 +2409,13 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+            ignore_warnings (bool):
+                Required. If true, ignore safety
+                checks when deleting the app profile.
+
+                This corresponds to the ``ignore_warnings`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -2420,7 +2427,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        flattened_params = [name]
+        flattened_params = [name, ignore_warnings]
         has_flattened_params = (
             len([param for param in flattened_params if param is not None]) > 0
         )
@@ -2438,6 +2445,8 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             # request, apply these.
             if name is not None:
                 request.name = name
+            if ignore_warnings is not None:
+                request.ignore_warnings = ignore_warnings
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.

@@ -1586,6 +1586,7 @@ def test_get_instance(request_type, transport: str = "grpc"):
             state=instance.Instance.State.READY,
             type_=instance.Instance.Type.PRODUCTION,
             satisfies_pzs=True,
+            satisfies_pzi=True,
         )
         response = client.get_instance(request)
 
@@ -1602,6 +1603,7 @@ def test_get_instance(request_type, transport: str = "grpc"):
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 def test_get_instance_non_empty_request_with_auto_populated_field():
@@ -1733,6 +1735,7 @@ async def test_get_instance_async(
                 state=instance.Instance.State.READY,
                 type_=instance.Instance.Type.PRODUCTION,
                 satisfies_pzs=True,
+                satisfies_pzi=True,
             )
         )
         response = await client.get_instance(request)
@@ -1750,6 +1753,7 @@ async def test_get_instance_async(
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 @pytest.mark.asyncio
@@ -2253,6 +2257,7 @@ def test_update_instance(request_type, transport: str = "grpc"):
             state=instance.Instance.State.READY,
             type_=instance.Instance.Type.PRODUCTION,
             satisfies_pzs=True,
+            satisfies_pzi=True,
         )
         response = client.update_instance(request)
 
@@ -2269,6 +2274,7 @@ def test_update_instance(request_type, transport: str = "grpc"):
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 def test_update_instance_non_empty_request_with_auto_populated_field():
@@ -2401,6 +2407,7 @@ async def test_update_instance_async(
                 state=instance.Instance.State.READY,
                 type_=instance.Instance.Type.PRODUCTION,
                 satisfies_pzs=True,
+                satisfies_pzi=True,
             )
         )
         response = await client.update_instance(request)
@@ -2418,6 +2425,7 @@ async def test_update_instance_async(
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 @pytest.mark.asyncio
@@ -6947,6 +6955,7 @@ def test_delete_app_profile_flattened():
         # using the keyword arguments to the method.
         client.delete_app_profile(
             name="name_value",
+            ignore_warnings=True,
         )
 
         # Establish that the underlying call was made with the expected
@@ -6955,6 +6964,9 @@ def test_delete_app_profile_flattened():
         _, args, _ = call.mock_calls[0]
         arg = args[0].name
         mock_val = "name_value"
+        assert arg == mock_val
+        arg = args[0].ignore_warnings
+        mock_val = True
         assert arg == mock_val
 
 
@@ -6969,6 +6981,7 @@ def test_delete_app_profile_flattened_error():
         client.delete_app_profile(
             bigtable_instance_admin.DeleteAppProfileRequest(),
             name="name_value",
+            ignore_warnings=True,
         )
 
 
@@ -6990,6 +7003,7 @@ async def test_delete_app_profile_flattened_async():
         # using the keyword arguments to the method.
         response = await client.delete_app_profile(
             name="name_value",
+            ignore_warnings=True,
         )
 
         # Establish that the underlying call was made with the expected
@@ -6998,6 +7012,9 @@ async def test_delete_app_profile_flattened_async():
         _, args, _ = call.mock_calls[0]
         arg = args[0].name
         mock_val = "name_value"
+        assert arg == mock_val
+        arg = args[0].ignore_warnings
+        mock_val = True
         assert arg == mock_val
 
 
@@ -7013,6 +7030,7 @@ async def test_delete_app_profile_flattened_error_async():
         await client.delete_app_profile(
             bigtable_instance_admin.DeleteAppProfileRequest(),
             name="name_value",
+            ignore_warnings=True,
         )
 
 
@@ -11613,6 +11631,7 @@ def test_delete_app_profile_rest_flattened():
         # get truthy value for each flattened field
         mock_args = dict(
             name="name_value",
+            ignore_warnings=True,
         )
         mock_args.update(sample_request)
 
@@ -11649,6 +11668,7 @@ def test_delete_app_profile_rest_flattened_error(transport: str = "rest"):
         client.delete_app_profile(
             bigtable_instance_admin.DeleteAppProfileRequest(),
             name="name_value",
+            ignore_warnings=True,
         )
 
 
@@ -13090,6 +13110,7 @@ async def test_get_instance_empty_call_grpc_asyncio():
                 state=instance.Instance.State.READY,
                 type_=instance.Instance.Type.PRODUCTION,
                 satisfies_pzs=True,
+                satisfies_pzi=True,
             )
         )
         await client.get_instance(request=None)
@@ -13149,6 +13170,7 @@ async def test_update_instance_empty_call_grpc_asyncio():
                 state=instance.Instance.State.READY,
                 type_=instance.Instance.Type.PRODUCTION,
                 satisfies_pzs=True,
+                satisfies_pzi=True,
             )
         )
         await client.update_instance(request=None)
@@ -13806,6 +13828,7 @@ def test_get_instance_rest_call_success(request_type):
             state=instance.Instance.State.READY,
             type_=instance.Instance.Type.PRODUCTION,
             satisfies_pzs=True,
+            satisfies_pzi=True,
         )
 
         # Wrap the value into a proper Response obj
@@ -13827,6 +13850,7 @@ def test_get_instance_rest_call_success(request_type):
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 @pytest.mark.parametrize("null_interceptor", [True, False])
@@ -14077,6 +14101,7 @@ def test_update_instance_rest_call_success(request_type):
             state=instance.Instance.State.READY,
             type_=instance.Instance.Type.PRODUCTION,
             satisfies_pzs=True,
+            satisfies_pzi=True,
         )
 
         # Wrap the value into a proper Response obj
@@ -14098,6 +14123,7 @@ def test_update_instance_rest_call_success(request_type):
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 @pytest.mark.parametrize("null_interceptor", [True, False])
@@ -14208,6 +14234,7 @@ def test_partial_update_instance_rest_call_success(request_type):
         "labels": {},
         "create_time": {"seconds": 751, "nanos": 543},
         "satisfies_pzs": True,
+        "satisfies_pzi": True,
     }
     # The version of a generated dependency at test runtime may differ from the version used during generation.
     # Delete any fields which are not present in the current runtime dependency
