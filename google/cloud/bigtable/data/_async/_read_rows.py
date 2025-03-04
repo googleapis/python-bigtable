@@ -77,7 +77,7 @@ class _ReadRowsOperationAsync:
 
     def __init__(
         self,
-        query: ReadRowsQuery,
+        query: ReadRowsQuery | ReadRowsRequestPB,
         table: TableType,
         operation_timeout: float,
         attempt_timeout: float,
@@ -87,7 +87,9 @@ class _ReadRowsOperationAsync:
             attempt_timeout, operation_timeout
         )
         self.operation_timeout = operation_timeout
-        if isinstance(query, dict):
+        if isinstance(query, ReadRowsRequestPB):
+            self.request = query
+        elif isinstance(query, dict):
             self.request = ReadRowsRequestPB(
                 **query,
                 table_name=table.table_name,

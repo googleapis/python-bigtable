@@ -139,6 +139,7 @@ class BigtableDataClientAsync(ClientWithProject):
         client_options: dict[str, Any]
         | "google.api_core.client_options.ClientOptions"
         | None = None,
+        background_task: bool=True,
         **kwargs,
     ):
         """
@@ -151,13 +152,16 @@ class BigtableDataClientAsync(ClientWithProject):
                 If not passed, falls back to the default inferred
                 from the environment.
             credentials:
-                Thehe OAuth2 Credentials to use for this
+                The OAuth2 Credentials to use for this
                 client. If not passed (and if no ``_http`` object is
                 passed), falls back to the default inferred from the
                 environment.
             client_options:
                 Client options used to set user options
                 on the client. API Endpoint should be set through client_options.
+            background_task:
+                If True, the client will pre=emptively refresh gcrpc channels
+                in a background thread to avoid start-up latency.
         Raises:
             {RAISE_NO_LOOP}
         """
@@ -201,6 +205,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 *args, **kwargs, channel=custom_channel
             ),
         )
+        self._bg_task = background_task
         self._is_closed = CrossSync.Event()
         self.transport = cast(TransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh
@@ -213,7 +218,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._executor = (
             concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
         )
-        if self._emulator_host is None:
+        if self._emulator_host is None and background_task:
             # attempt to start background channel refresh tasks
             try:
                 self._start_background_channel_refresh()
@@ -254,6 +259,7 @@ class BigtableDataClientAsync(ClientWithProject):
             not self._channel_refresh_task
             and not self._emulator_host
             and not self._is_closed.is_set()
+            and not self._bg_task
         ):
             # raise error if not in an event loop in async client
             CrossSync.verify_async_event_loop()
@@ -413,7 +419,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._instance_owners.setdefault(instance_key, set()).add(id(owner))
         if instance_key not in self._active_instances:
             self._active_instances.add(instance_key)
-            if self._channel_refresh_task:
+            if self._channel_refresh_task or not self._bg_task:
                 # refresh tasks already running
                 # call ping and warm on all existing channels
                 await self._ping_and_warm_instances(instance_key)
@@ -663,6 +669,7 @@ class TableAsync:
             DeadlineExceeded,
             ServiceUnavailable,
         ),
+        background_task: bool=True,
     ):
         """
         Initialize a Table instance
@@ -698,6 +705,8 @@ class TableAsync:
             default_retryable_errors: a list of errors that will be retried if
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+            background_task: If True, Table will use a background task to call ping_and_warm
+                on the instance automatically.
         Raises:
             {RAISE_NO_LOOP}
         """
@@ -745,17 +754,18 @@ class TableAsync:
             default_mutate_rows_retryable_errors or ()
         )
         self.default_retryable_errors = default_retryable_errors or ()
-        try:
-            self._register_instance_future = CrossSync.create_task(
-                self.client._register_instance,
-                self.instance_id,
-                self,
-                sync_executor=self.client._executor,
-            )
-        except RuntimeError as e:
-            raise RuntimeError(
-                f"{self.__class__.__name__} must be created within an async event loop context."
-            ) from e
+        if background_task:
+            try:
+                self._register_instance_future = CrossSync.create_task(
+                    self.client._register_instance,
+                    self.instance_id,
+                    self,
+                    sync_executor=self.client._executor,
+                )
+            except RuntimeError as e:
+                raise RuntimeError(
+                    f"{self.__class__.__name__} must be created within an async event loop context."
+                ) from e
 
     @CrossSync.convert(replace_symbols={"AsyncIterable": "Iterable"})
     async def read_rows_stream(
