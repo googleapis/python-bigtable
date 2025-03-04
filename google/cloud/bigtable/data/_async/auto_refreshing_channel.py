@@ -21,6 +21,7 @@ import warnings
 import grpc
 import random
 import time
+from functools import partial
 from grpc import aio
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -33,13 +34,15 @@ class AutoRefreshingChannel(aio.Channel):
     def __init__(
         self,
         new_channel_fn: Callable[[], aio.Channel],
+        *channel_init_args,
         warm_fn: Callable[[aio.Channel], None] = None,
+        **channel_init_kwargs,
     ):
-        self._channel = new_channel_fn()
-        self._channel_fn = new_channel_fn
+        self._channel_fn = partial(new_channel_fn, *channel_init_args, **channel_init_kwargs)
+        self._channel = self._channel_fn()
+        self._channel_init_time = time.monotonic()
         self._warm_fn = warm_fn
         self._is_closed = CrossSync.Event()
-        self._channel_init_time = time.monotonic()
         self._channel_refresh_task: CrossSync.Task[None] | None = None
 
     async def _manage_channel(

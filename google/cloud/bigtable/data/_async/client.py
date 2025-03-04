@@ -188,19 +188,8 @@ class BigtableDataClientAsync(ClientWithProject):
             if project is None:
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
         else:
-            # TODO: verify
-            channel_init_fn = partial(TransportType.create_channel,
-                host=client_options.api_endpoint,
-                credentials=credentials,
-                scopes=client_options.scopes,
-                quota_project=client_options.qupta_project_id,
-                options=[
-                    ("grpc.max_send_message_length", -1),
-                    ("grpc.max_receive_message_length", -1),
-                ]
-            )
             warm_all = partial(self._ping_and_warm_instances, None)
-            custom_channel = AutoRefreshingChannel(channel_init_fn, warm_fn=warm_all)
+            custom_channel = partial(AutoRefreshingChannel, TransportType.create_channel, warm_fn=warm_all)
         # initialize client
         ClientWithProject.__init__(
             self,
