@@ -750,7 +750,7 @@ class LogicalView(proto.Message):
     Attributes:
         name (str):
             Identifier. The unique name of the logical view. Format:
-            \`projects/{project}/instances/{instance}/logicalViews/{logical_view}
+            ``projects/{project}/instances/{instance}/logicalViews/{logical_view}``
         query (str):
             Required. The logical view's select query.
         etag (str):
@@ -783,7 +783,7 @@ class MaterializedView(proto.Message):
         name (str):
             Identifier. The unique name of the materialized view.
             Format:
-            \`projects/{project}/instances/{instance}/materializedViews/{materialized_view}
+            ``projects/{project}/instances/{instance}/materializedViews/{materialized_view}``
         query (str):
             Required. Immutable. The materialized view's
             select query.
