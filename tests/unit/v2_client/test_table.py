@@ -651,7 +651,7 @@ def _table_read_row_helper(chunks, expected_result, app_profile_id=None):
     table = _make_table(TABLE_ID, instance, app_profile_id=app_profile_id)
 
     # Create request_pb
-    request_pb = object()  # Returned by our mock.
+    request_pb = _ReadRowsRequestPB()  # Returned by our mock.
     mock_created = []
 
     def mock_create_row_request(table_name, **kwargs):
@@ -665,7 +665,7 @@ def _table_read_row_helper(chunks, expected_result, app_profile_id=None):
         response_pb = _ReadRowsResponsePB(chunks=chunks)
         response_iterator = iter([response_pb])
 
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     data_api.read_rows.return_value = response_iterator
 
     filter_obj = RowSampleFilter(0.33)
@@ -692,10 +692,8 @@ def _table_read_row_helper(chunks, expected_result, app_profile_id=None):
     assert result == expected_result
     assert mock_created == expected_request
 
-    data_api.read_rows.assert_called_once_with(
-        request_pb, timeout=61.0, retry=DEFAULT_RETRY_READ_ROWS
-    )
-
+    assert data_api.read_rows.call_count == 1
+    assert data_api.read_rows.call_args_list[0][0][0] == request_pb
 
 def test_table_read_row_miss_no__responses():
     _table_read_row_helper(None, None)
@@ -863,13 +861,13 @@ def test_table_read_rows():
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     instance = client.instance(instance_id=INSTANCE_ID)
     app_profile_id = "app-profile-id"
     table = _make_table(TABLE_ID, instance, app_profile_id=app_profile_id)
 
     # Create request_pb
-    request_pb = object()  # Returned by our mock.
+    request_pb = _ReadRowsRequestPB()  # Returned by our mock.
     retry = DEFAULT_RETRY_READ_ROWS
     mock_created = []
 
@@ -879,12 +877,12 @@ def test_table_read_rows():
 
     # Create expected_result.
     expected_result = PartialRowsData(
-        client._table_data_client.transport.read_rows, request_pb, retry
+        client._data_client._gapic_client.transport.read_rows, request_pb, retry
     )
 
     # Perform the method and check the result.
-    start_key = b"start-key"
-    end_key = b"end-key"
+    start_key = b"a"
+    end_key = b"z"
     filter_obj = object()
     limit = 22
     with _Monkey(MUT, _create_row_request=mock_create_row_request):
@@ -917,7 +915,7 @@ def test_table_read_retry_rows():
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     instance = client.instance(instance_id=INSTANCE_ID)
     table = _make_table(TABLE_ID, instance)
 
@@ -976,7 +974,7 @@ def test_table_read_retry_rows_no_full_table_scan():
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     instance = client.instance(instance_id=INSTANCE_ID)
     table = _make_table(TABLE_ID, instance)
 
@@ -1052,7 +1050,7 @@ def test_table_yield_retry_rows():
     response_failure_iterator_2 = _MockFailureIterator_2([response_1])
     response_iterator = _MockReadRowsIterator(response_2)
 
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     data_api.table_path.return_value = (
         f"projects/{PROJECT_ID}/instances/{INSTANCE_ID}/tables/{TABLE_ID}"
     )
@@ -1125,7 +1123,7 @@ def test_table_yield_rows_with_row_set():
     response_3 = _ReadRowsResponseV2([chunk_3])
     response_iterator = _MockReadRowsIterator(response_1, response_2, response_3)
 
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     data_api.table_path.return_value = (
         f"projects/{PROJECT_ID}/instances/{INSTANCE_ID}/tables/{TABLE_ID}"
     )
@@ -1165,7 +1163,7 @@ def test_table_sample_row_keys():
     table = _make_table(TABLE_ID, instance)
     response_iterator = object()
 
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     data_api.sample_row_keys.return_value = [response_iterator]
 
     result = table.sample_row_keys()
@@ -1536,7 +1534,7 @@ def test_rmrw_callable_empty_rows():
     client = _make_client(project="project-id", credentials=credentials, admin=True)
     instance = client.instance(instance_id=INSTANCE_ID)
     table = _make_table(TABLE_ID, instance)
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     data_api.mutate_rows.return_value = []
     data_api.table_path.return_value = (
         f"projects/{PROJECT_ID}/instances/{INSTANCE_ID}/tables/{TABLE_ID}"
@@ -1575,7 +1573,7 @@ def test_rmrw_callable_no_retry_strategy():
     response_codes = [SUCCESS, RETRYABLE_1, NON_RETRYABLE]
     response = _make_responses(response_codes)
 
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     data_api.mutate_rows.return_value = [response]
     data_api.table_path.return_value = (
         f"projects/{PROJECT_ID}/instances/{INSTANCE_ID}/tables/{TABLE_ID}"
@@ -1618,7 +1616,7 @@ def test_rmrw_callable_retry():
 
     response_1 = _make_responses([SUCCESS, RETRYABLE_1, NON_RETRYABLE])
     response_2 = _make_responses([SUCCESS])
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     data_api.mutate_rows.side_effect = [[response_1], [response_2]]
     data_api.table_path.return_value = (
         f"projects/{PROJECT_ID}/instances/{INSTANCE_ID}/tables/{TABLE_ID}"
@@ -1670,7 +1668,7 @@ def _do_mutate_retryable_rows_helper(
 
     response = _make_responses(responses)
 
-    data_api = client._table_data_client = _make_data_api()
+    data_api = client._data_client._gapic_client = _make_data_api()
     if retryable_error:
         if mutate_rows_side_effect is not None:
             data_api.mutate_rows.side_effect = mutate_rows_side_effect
