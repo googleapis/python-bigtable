@@ -21,6 +21,7 @@ import warnings
 import grpc
 import random
 import time
+import concurrent
 from functools import partial
 from grpc import aio
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -36,20 +37,35 @@ class AutoRefreshingChannel(aio.Channel):
         new_channel_fn: Callable[[], aio.Channel],
         *channel_init_args,
         warm_fn: Callable[[aio.Channel], None] = None,
+        refresh_interval_min: float = 60 * 35,
+        refresh_interval_max: float = 60 * 45,
+        grace_period: float = 60 * 10,
         **channel_init_kwargs,
     ):
         self._channel_fn = partial(new_channel_fn, *channel_init_args, **channel_init_kwargs)
         self._channel = self._channel_fn()
         self._channel_init_time = time.monotonic()
         self._warm_fn = warm_fn
+        self._refresh_interval = (refresh_interval_min, refresh_interval_max)
+        self._grace_period = grace_period
         self._is_closed = CrossSync.Event()
+        self._executor = (
+            concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
+        )
         self._channel_refresh_task: CrossSync.Task[None] | None = None
+
+    def start_refresh_task(self):
+        if self._channel_refresh_task is None and not self._is_closed.is_set():
+            # raise error if not in an event loop in async client
+            CrossSync.verify_async_event_loop()
+            self._channel_refresh_task = CrossSync.create_task(
+                self._manage_channel,
+                sync_executor=self._executor,
+                task_name=f"{self.__class__.__name__} channel refresh",
+            )
 
     async def _manage_channel(
         self,
-        refresh_interval_min: float = 60 * 35,
-        refresh_interval_max: float = 60 * 45,
-        grace_period: float = 60 * 10,
     ) -> None:
         """
         Background task that periodically refreshes and warms a grpc channel
@@ -70,7 +86,7 @@ class AutoRefreshingChannel(aio.Channel):
                 requests before closing, in seconds
         """
         first_refresh = self._channel_init_time + random.uniform(
-            refresh_interval_min, refresh_interval_max
+            *self._refresh_interval
         )
         next_sleep = max(first_refresh - time.monotonic(), 0)
         if next_sleep > 0:
@@ -95,13 +111,13 @@ class AutoRefreshingChannel(aio.Channel):
             self._channel = new_channel
             # give old_channel a chance to complete existing rpcs
             if CrossSync.is_async:
-                await old_channel.close(grace_period)
+                await old_channel.close(self.grace_period)
             else:
-                if grace_period:
+                if self.grace_period:
                     self._is_closed.wait(grace_period)  # type: ignore
                 old_channel.close()  # type: ignore
             # subtract thed time spent waiting for the channel to be replaced
-            next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
+            next_refresh = random.uniform(*self._refresh_interval)
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
 
     def unary_unary(self, *args, **kwargs):
@@ -118,6 +134,9 @@ class AutoRefreshingChannel(aio.Channel):
 
     async def close(self, grace=None):
         self._is_closed.set()
+        self._channel_refresh_task.cancel()
+        CrossSync.gather_partials
+        await CrossSync.wait([self._channel_refresh_task])
         return await self._channel.close(grace=grace)
 
     async def channel_ready(self):

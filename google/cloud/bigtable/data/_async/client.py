@@ -212,8 +212,6 @@ class BigtableDataClientAsync(ClientWithProject):
         # keep track of table objects associated with each instance
         # only remove instance from _active_instances when all associated tables remove it
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
-        self._channel_init_time = time.monotonic()
-        self._channel_refresh_task: CrossSync.Task[None] | None = None
         self._executor = (
             concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
         )
@@ -254,18 +252,8 @@ class BigtableDataClientAsync(ClientWithProject):
         Raises:
             {RAISE_NO_LOOP}
         """
-        if (
-            not self._channel_refresh_task
-            and not self._emulator_host
-            and not self._is_closed.is_set()
-        ):
-            # raise error if not in an event loop in async client
-            CrossSync.verify_async_event_loop()
-            self._channel_refresh_task = CrossSync.create_task(
-                self._manage_channel,
-                sync_executor=self._executor,
-                task_name=f"{self.__class__.__name__} channel refresh",
-            )
+        if isinstance(self.transport.grpc_channel, AutoRefreshingChannel):
+            self.transport.grpc_channel.start_refresh_task()
 
     @CrossSync.convert
     async def close(self, timeout: float | None = 2.0):
@@ -325,69 +313,6 @@ class BigtableDataClientAsync(ClientWithProject):
             partial_list, return_exceptions=True, sync_executor=self._executor
         )
         return [r or None for r in result_list]
-
-    @CrossSync.convert
-    async def _manage_channel(
-        self,
-        refresh_interval_min: float = 60 * 35,
-        refresh_interval_max: float = 60 * 45,
-        grace_period: float = 60 * 10,
-    ) -> None:
-        """
-        Background task that periodically refreshes and warms a grpc channel
-
-        The backend will automatically close channels after 60 minutes, so
-        `refresh_interval` + `grace_period` should be < 60 minutes
-
-        Runs continuously until the client is closed
-
-        Args:
-            refresh_interval_min: minimum interval before initiating refresh
-                process in seconds. Actual interval will be a random value
-                between `refresh_interval_min` and `refresh_interval_max`
-            refresh_interval_max: maximum interval before initiating refresh
-                process in seconds. Actual interval will be a random value
-                between `refresh_interval_min` and `refresh_interval_max`
-            grace_period: time to allow previous channel to serve existing
-                requests before closing, in seconds
-        """
-        first_refresh = self._channel_init_time + random.uniform(
-            refresh_interval_min, refresh_interval_max
-        )
-        next_sleep = max(first_refresh - time.monotonic(), 0)
-        if next_sleep > 0:
-            # warm the current channel immediately
-            await self._ping_and_warm_instances(channel=self.transport.grpc_channel)
-        # continuously refresh the channel every `refresh_interval` seconds
-        while not self._is_closed.is_set():
-            await CrossSync.event_wait(
-                self._is_closed,
-                next_sleep,
-                async_break_early=False,  # no need to interrupt sleep. Task will be cancelled on close
-            )
-            if self._is_closed.is_set():
-                # don't refresh if client is closed
-                break
-            start_timestamp = time.monotonic()
-            # prepare new channel for use
-            old_channel = self.transport.grpc_channel
-            new_channel = self.transport.create_channel()
-            await self._ping_and_warm_instances(channel=new_channel)
-            # cycle channel out of use, with long grace window before closure
-            self.transport._grpc_channel = new_channel
-            # invalidate caches
-            self.transport._stubs = {}
-            self.transport._prep_wrapped_messages(self.client_info)
-            # give old_channel a chance to complete existing rpcs
-            if CrossSync.is_async:
-                await old_channel.close(grace_period)
-            else:
-                if grace_period:
-                    self._is_closed.wait(grace_period)  # type: ignore
-                old_channel.close()  # type: ignore
-            # subtract thed time spent waiting for the channel to be replaced
-            next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
-            next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
 
     @CrossSync.convert(
         replace_symbols={
