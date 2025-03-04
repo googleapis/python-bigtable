@@ -649,8 +649,10 @@ class Table(object):
             app_profile_id=self._app_profile_id,
             row_set=row_set,
         )
-        data_client = self._instance._client.table_data_client
-        return PartialRowsData(data_client.read_rows, request_pb, retry)
+
+        from google.cloud.bigtable.row_data import PartialRowsData_DelegateDataClient
+
+        return PartialRowsData_DelegateDataClient(self._data_table, request_pb, retry)
 
     def yield_rows(self, **kwargs):
         """Read rows from this table.

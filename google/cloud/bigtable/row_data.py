@@ -378,3 +378,64 @@ class _ReadRowsRequestManager(object):
     def _end_key_set(row_range):
         """Helper for :meth:`_filter_row_ranges`"""
         return row_range.end_key_open or row_range.end_key_closed
+
+
+class PartialRowsData_DelegateDataClient(PartialRowsData):
+
+
+    def __init__(self, data_table, request, retry):
+        from google.cloud.bigtable.data._sync_autogen._read_rows import _ReadRowsOperation
+        super(PartialRowsData_DelegateDataClient, self).__init__(lambda *a, **k: None, request, retry)
+        self._operation = _ReadRowsOperation(request, data_table, retry.timeout, retry.timeout)
+        self._stream = self._operation.start_operation()
+
+    @property
+    def state(self):  # pragma: NO COVER
+        """
+        DEPRECATED: this property is deprecated and will be removed in the
+        future.
+        """
+        warnings.warn(
+            "`PartialRowsData#state()` is deprecated and will be removed in the future",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        raise NotImplementedError
+
+    def cancel(self):
+        """Cancels the iterator, closing the stream."""
+        raise NotImplementedError
+
+    def consume_all(self, max_loops=None):
+        """Consume the streamed responses until there are no more.
+
+        .. warning::
+           This method will be removed in future releases.  Please use this
+           class as a generator instead.
+
+        :type max_loops: int
+        :param max_loops: (Optional) Maximum number of times to try to consume
+                          an additional ``ReadRowsResponse``. You can use this
+                          to avoid long wait times.
+        """
+        for row in self:
+            self.rows[row.row_key] = row
+
+    def __iter__(self):
+        """Consume the ``ReadRowsResponse`` s from the stream.
+        Read the rows and yield each to the reader
+
+        Parse the response and its chunks into a new/existing row in
+        :attr:`_rows`. Rows are returned in order by row key.
+        """
+        for row in self._stream:
+            converted_row = PartialRowData(row.row_key)
+            family_dict = {}
+            for cell in row.cells:
+                qualifier_dict = family_dict.setdefault(cell.family, {})
+                cell_list = qualifier_dict.setdefault(cell.qualifier, [])
+
+                converted_cell = Cell(cell.value, cell.timestamp_micros, cell.labels)
+                cell_list.append(converted_cell)
+            converted_row._cells = family_dict
+            yield converted_row
