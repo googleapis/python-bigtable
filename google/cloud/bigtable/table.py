@@ -131,6 +131,12 @@ class Table(object):
         self._instance = instance
         self._app_profile_id = app_profile_id
         self.mutation_timeout = mutation_timeout
+        from google.cloud.bigtable.instance import Instance
+
+        if isinstance(instance, Instance) and instance._client:
+            self._data_table = instance._client._data_client.get_table(instance.instance_id, table_id, app_profile_id=app_profile_id, background_task=False)
+        else:
+            self._data_table = None
 
     @property
     def name(self):

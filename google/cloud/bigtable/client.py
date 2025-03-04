@@ -196,6 +196,9 @@ class Client(ClientWithProject):
             credentials=credentials,
             client_options=client_options,
         )
+        from google.cloud.bigtable.data import BigtableDataClient
+        self._data_client = BigtableDataClient(project=project, credentials=credentials, client_options=client_options, background_task=False)
+
 
     def _get_scopes(self):
         """Get the scopes corresponding to admin / read-only state.
@@ -290,18 +293,7 @@ class Client(ClientWithProject):
         :rtype: :class:`.bigtable_v2.BigtableClient`
         :returns: A BigtableClient object.
         """
-        if self._table_data_client is None:
-            transport = self._create_gapic_client_channel(
-                bigtable_v2.BigtableClient,
-                BigtableGrpcTransport,
-            )
-            klass = _create_gapic_client(
-                bigtable_v2.BigtableClient,
-                client_options=self._client_options,
-                transport=transport,
-            )
-            self._table_data_client = klass(self)
-        return self._table_data_client
+        return self._data_client._gapic_client
 
     @property
     def table_admin_client(self):
