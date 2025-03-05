@@ -386,8 +386,17 @@ class PartialRowsData_DelegateDataClient(PartialRowsData):
     def __init__(self, data_table, request, retry):
         from google.cloud.bigtable.data._sync_autogen._read_rows import _ReadRowsOperation
         super(PartialRowsData_DelegateDataClient, self).__init__(lambda *a, **k: None, request, retry)
-        self._operation = _ReadRowsOperation(request, data_table, retry.timeout, retry.timeout)
-        self._stream = self._operation.start_operation()
+
+        self._operation = _ReadRowsOperation(
+            request,
+            data_table,
+            operation_timeout=retry.timeout,
+            attempt_timeout=retry.timeout,
+            initial_backoff=retry._initial,
+            maximum_backoff=retry._maximum,
+            backoff_multiplier=retry._multiplier,
+        )
+        self._stream = self._operation.start_operation(on_error=retry._on_error, predicate_override=retry._predicate)
 
     @property
     def state(self):  # pragma: NO COVER

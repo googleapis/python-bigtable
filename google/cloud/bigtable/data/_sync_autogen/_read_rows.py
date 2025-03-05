@@ -65,6 +65,9 @@ class _ReadRowsOperation:
         "_predicate",
         "_last_yielded_row_key",
         "_remaining_count",
+        "_initial_backoff",
+        "_maximum_backoff",
+        "_multiplier",
     )
 
     def __init__(
@@ -74,6 +77,9 @@ class _ReadRowsOperation:
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
+        initial_backoff: float = 0.01,
+        maximum_backoff: float = 60,
+        backoff_multiplier: float = 2,
     ):
         self.attempt_timeout_gen = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
@@ -93,18 +99,26 @@ class _ReadRowsOperation:
         self._predicate = retries.if_exception_type(*retryable_exceptions)
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
+        self._initial_backoff = initial_backoff
+        self._maximum_backoff = maximum_backoff
+        self._multiplier = backoff_multiplier
 
-    def start_operation(self) -> CrossSync._Sync_Impl.Iterable[Row]:
+    def start_operation(
+        self, on_error=None, predicate_override=None
+    ) -> CrossSync._Sync_Impl.Iterable[Row]:
         """Start the read_rows operation, retrying on retryable errors.
 
         Yields:
             Row: The next row in the stream"""
         return CrossSync._Sync_Impl.retry_target_stream(
             self._read_rows_attempt,
-            self._predicate,
-            exponential_sleep_generator(0.01, 60, multiplier=2),
+            predicate_override or self._predicate,
+            exponential_sleep_generator(
+                self._initial_backoff, self._maximum_backoff, self._multiplier
+            ),
             self.operation_timeout,
             exception_factory=_retry_exception_factory,
+            on_error=on_error,
         )
 
     def _read_rows_attempt(self) -> CrossSync._Sync_Impl.Iterable[Row]:
