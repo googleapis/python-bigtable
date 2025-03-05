@@ -697,7 +697,17 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
             ),
             self.execute_query: self._wrap_method(
                 self.execute_query,
-                default_timeout=None,
+                default_retry=retries.AsyncRetry(
+                    initial=0.01,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.DeadlineExceeded,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=43200.0,
+                ),
+                default_timeout=43200.0,
                 client_info=client_info,
             ),
         }
