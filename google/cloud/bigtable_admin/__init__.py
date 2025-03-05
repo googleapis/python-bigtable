@@ -47,6 +47,18 @@ from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
     CreateInstanceRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    CreateLogicalViewMetadata,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    CreateLogicalViewRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    CreateMaterializedViewMetadata,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    CreateMaterializedViewRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
     DeleteAppProfileRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
@@ -108,6 +120,12 @@ from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
     UpdateInstanceMetadata,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    UpdateLogicalViewMetadata,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    UpdateLogicalViewRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     CheckConsistencyRequest,
@@ -230,6 +248,8 @@ from google.cloud.bigtable_admin_v2.types.instance import AutoscalingTargets
 from google.cloud.bigtable_admin_v2.types.instance import Cluster
 from google.cloud.bigtable_admin_v2.types.instance import HotTablet
 from google.cloud.bigtable_admin_v2.types.instance import Instance
+from google.cloud.bigtable_admin_v2.types.instance import LogicalView
+from google.cloud.bigtable_admin_v2.types.instance import MaterializedView
 from google.cloud.bigtable_admin_v2.types.table import AuthorizedView
 from google.cloud.bigtable_admin_v2.types.table import Backup
 from google.cloud.bigtable_admin_v2.types.table import BackupInfo
@@ -253,6 +273,10 @@ __all__ = (
     "CreateClusterRequest",
     "CreateInstanceMetadata",
     "CreateInstanceRequest",
+    "CreateLogicalViewMetadata",
+    "CreateLogicalViewRequest",
+    "CreateMaterializedViewMetadata",
+    "CreateMaterializedViewRequest",
     "DeleteAppProfileRequest",
     "DeleteClusterRequest",
     "DeleteInstanceRequest",
@@ -274,6 +298,8 @@ __all__ = (
     "UpdateAppProfileRequest",
     "UpdateClusterMetadata",
     "UpdateInstanceMetadata",
+    "UpdateLogicalViewMetadata",
+    "UpdateLogicalViewRequest",
     "CheckConsistencyRequest",
     "CheckConsistencyResponse",
     "CopyBackupMetadata",
@@ -327,6 +353,8 @@ __all__ = (
     "Cluster",
     "HotTablet",
     "Instance",
+    "LogicalView",
+    "MaterializedView",
     "AuthorizedView",
     "Backup",
     "BackupInfo",

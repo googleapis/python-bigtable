@@ -53,6 +53,12 @@ __protobuf__ = proto.module(
         "UpdateAppProfileMetadata",
         "ListHotTabletsRequest",
         "ListHotTabletsResponse",
+        "CreateLogicalViewRequest",
+        "CreateLogicalViewMetadata",
+        "UpdateLogicalViewRequest",
+        "UpdateLogicalViewMetadata",
+        "CreateMaterializedViewRequest",
+        "CreateMaterializedViewMetadata",
     },
 )
 
@@ -77,8 +83,7 @@ class CreateInstanceRequest(proto.Message):
             mapped by desired cluster ID, e.g., just ``mycluster``
             rather than
             ``projects/myproject/instances/myinstance/clusters/mycluster``.
-            Fields marked ``OutputOnly`` must be left blank. Currently,
-            at most four clusters can be specified.
+            Fields marked ``OutputOnly`` must be left blank.
     """
 
     parent: str = proto.Field(
@@ -885,6 +890,189 @@ class ListHotTabletsResponse(proto.Message):
     next_page_token: str = proto.Field(
         proto.STRING,
         number=2,
+    )
+
+
+class CreateLogicalViewRequest(proto.Message):
+    r"""Request message for BigtableInstanceAdmin.CreateLogicalView.
+
+    Attributes:
+        parent (str):
+            Required. The parent instance where this logical view will
+            be created. Format:
+            ``projects/{project}/instances/{instance}``.
+        logical_view_id (str):
+            Required. The ID to use for the logical view,
+            which will become the final component of the
+            logical view's resource name.
+        logical_view (google.cloud.bigtable_admin_v2.types.LogicalView):
+            Required. The logical view to create.
+    """
+
+    parent: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    logical_view_id: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    logical_view: gba_instance.LogicalView = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=gba_instance.LogicalView,
+    )
+
+
+class CreateLogicalViewMetadata(proto.Message):
+    r"""The metadata for the Operation returned by CreateLogicalView.
+
+    Attributes:
+        original_request (google.cloud.bigtable_admin_v2.types.CreateLogicalViewRequest):
+            The request that prompted the initiation of
+            this CreateLogicalView operation.
+        start_time (google.protobuf.timestamp_pb2.Timestamp):
+            The time at which this operation started.
+        end_time (google.protobuf.timestamp_pb2.Timestamp):
+            If set, the time at which this operation
+            finished or was canceled.
+    """
+
+    original_request: "CreateLogicalViewRequest" = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message="CreateLogicalViewRequest",
+    )
+    start_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=timestamp_pb2.Timestamp,
+    )
+    end_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
+    )
+
+
+class UpdateLogicalViewRequest(proto.Message):
+    r"""Request message for BigtableInstanceAdmin.UpdateLogicalView.
+
+    Attributes:
+        logical_view (google.cloud.bigtable_admin_v2.types.LogicalView):
+            Required. The logical view to update.
+
+            The logical view's ``name`` field is used to identify the
+            view to update. Format:
+            ``projects/{project}/instances/{instance}/logicalViews/{logical_view}``.
+        update_mask (google.protobuf.field_mask_pb2.FieldMask):
+            Optional. The list of fields to update.
+    """
+
+    logical_view: gba_instance.LogicalView = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message=gba_instance.LogicalView,
+    )
+    update_mask: field_mask_pb2.FieldMask = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=field_mask_pb2.FieldMask,
+    )
+
+
+class UpdateLogicalViewMetadata(proto.Message):
+    r"""The metadata for the Operation returned by UpdateLogicalView.
+
+    Attributes:
+        original_request (google.cloud.bigtable_admin_v2.types.UpdateLogicalViewRequest):
+            The request that prompted the initiation of
+            this UpdateLogicalView operation.
+        start_time (google.protobuf.timestamp_pb2.Timestamp):
+            The time at which this operation was started.
+        end_time (google.protobuf.timestamp_pb2.Timestamp):
+            If set, the time at which this operation
+            finished or was canceled.
+    """
+
+    original_request: "UpdateLogicalViewRequest" = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message="UpdateLogicalViewRequest",
+    )
+    start_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=timestamp_pb2.Timestamp,
+    )
+    end_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
+    )
+
+
+class CreateMaterializedViewRequest(proto.Message):
+    r"""Request message for
+    BigtableInstanceAdmin.CreateMaterializedView.
+
+    Attributes:
+        parent (str):
+            Required. The parent instance where this materialized view
+            will be created. Format:
+            ``projects/{project}/instances/{instance}``.
+        materialized_view_id (str):
+            Required. The ID to use for the materialized
+            view, which will become the final component of
+            the materialized view's resource name.
+        materialized_view (google.cloud.bigtable_admin_v2.types.MaterializedView):
+            Required. The materialized view to create.
+    """
+
+    parent: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    materialized_view_id: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    materialized_view: gba_instance.MaterializedView = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=gba_instance.MaterializedView,
+    )
+
+
+class CreateMaterializedViewMetadata(proto.Message):
+    r"""The metadata for the Operation returned by
+    CreateMaterializedView.
+
+    Attributes:
+        original_request (google.cloud.bigtable_admin_v2.types.CreateMaterializedViewRequest):
+            The request that prompted the initiation of
+            this CreateMaterializedView operation.
+        start_time (google.protobuf.timestamp_pb2.Timestamp):
+            The time at which this operation started.
+        end_time (google.protobuf.timestamp_pb2.Timestamp):
+            If set, the time at which this operation
+            finished or was canceled.
+    """
+
+    original_request: "CreateMaterializedViewRequest" = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message="CreateMaterializedViewRequest",
+    )
+    start_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=timestamp_pb2.Timestamp,
+    )
+    end_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
     )
 
 
