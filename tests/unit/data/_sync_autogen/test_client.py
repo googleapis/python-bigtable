@@ -32,6 +32,13 @@ from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from google.cloud.bigtable.data._cross_sync import CrossSync
+from tests.unit.data.execute_query.sql_helpers import (
+    column,
+    int64_type,
+    metadata,
+    prepare_response,
+    str_type,
+)
 from google.api_core import grpc_helpers
 
 CrossSync._Sync_Impl.add_mapping("grpc_helpers", grpc_helpers)
@@ -2562,8 +2569,27 @@ class TestExecuteQuery:
     TABLE_NAME = "TABLE_NAME"
     INSTANCE_NAME = "INSTANCE_NAME"
 
-    def _make_client(self, *args, **kwargs):
+    @pytest.fixture(scope="function")
+    def client(self, *args, **kwargs):
         return CrossSync._Sync_Impl.TestBigtableDataClient._make_client(*args, **kwargs)
+
+    @pytest.fixture(scope="function")
+    def execute_query_mock(self, client):
+        with mock.patch.object(
+            client._gapic_client, "execute_query", CrossSync._Sync_Impl.Mock()
+        ) as execute_query_mock:
+            yield execute_query_mock
+
+    @pytest.fixture(scope="function")
+    def prepare_mock(self, client):
+        with mock.patch.object(
+            client._gapic_client, "prepare_query", CrossSync._Sync_Impl.Mock()
+        ) as prepare_mock:
+            prepare_mock.return_value = prepare_response(
+                prepared_query=b"foo",
+                metadata=metadata(column("a", str_type()), column("b", int64_type())),
+            )
+            yield prepare_mock
 
     def _make_gapic_stream(self, sample_list: list["ExecuteQueryResponse" | Exception]):
         class MockStream:
@@ -2588,23 +2614,6 @@ class TestExecuteQuery:
                 return self.__next__()
 
         return MockStream(sample_list)
-
-    def resonse_with_metadata(self):
-        from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
-
-        schema = {"a": "string_type", "b": "int64_type"}
-        return ExecuteQueryResponse(
-            {
-                "metadata": {
-                    "proto_schema": {
-                        "columns": [
-                            {"name": name, "type_": {_type: {}}}
-                            for (name, _type) in schema.items()
-                        ]
-                    }
-                }
-            }
-        )
 
     def resonse_with_result(self, *args, resume_token=None):
         from google.cloud.bigtable_v2.types.data import ProtoRows, Value as PBValue
@@ -2637,9 +2646,8 @@ class TestExecuteQuery:
             }
         )
 
-    def test_execute_query(self):
+    def test_execute_query(self, client, execute_query_mock, prepare_mock):
         values = [
-            self.resonse_with_metadata(),
             self.resonse_with_result("test"),
             self.resonse_with_result(8, resume_token=b"r1"),
             self.resonse_with_result("test2"),
@@ -2647,51 +2655,45 @@ class TestExecuteQuery:
             self.resonse_with_result("test3"),
             self.resonse_with_result(None, resume_token=b"r3"),
         ]
-        client = self._make_client()
-        with mock.patch.object(
-            client._gapic_client, "execute_query", CrossSync._Sync_Impl.Mock()
-        ) as execute_query_mock:
-            execute_query_mock.return_value = self._make_gapic_stream(values)
-            result = client.execute_query(
-                f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
-            )
-            results = [r for r in result]
-            assert results[0]["a"] == "test"
-            assert results[0]["b"] == 8
-            assert results[1]["a"] == "test2"
-            assert results[1]["b"] == 9
-            assert results[2]["a"] == "test3"
-            assert results[2]["b"] is None
-            assert execute_query_mock.call_count == 1
+        execute_query_mock.return_value = self._make_gapic_stream(values)
+        result = client.execute_query(
+            f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
+        )
+        results = [r for r in result]
+        assert results[0]["a"] == "test"
+        assert results[0]["b"] == 8
+        assert results[1]["a"] == "test2"
+        assert results[1]["b"] == 9
+        assert results[2]["a"] == "test3"
+        assert results[2]["b"] is None
+        assert execute_query_mock.call_count == 1
+        assert prepare_mock.call_count == 1
 
-    def test_execute_query_with_params(self):
+    def test_execute_query_with_params(self, client, execute_query_mock, prepare_mock):
         values = [
-            self.resonse_with_metadata(),
             self.resonse_with_result("test2"),
             self.resonse_with_result(9, resume_token=b"r2"),
         ]
-        client = self._make_client()
-        with mock.patch.object(
-            client._gapic_client, "execute_query", CrossSync._Sync_Impl.Mock()
-        ) as execute_query_mock:
-            execute_query_mock.return_value = self._make_gapic_stream(values)
-            result = client.execute_query(
-                f"SELECT a, b FROM {self.TABLE_NAME} WHERE b=@b",
-                self.INSTANCE_NAME,
-                parameters={"b": 9},
-            )
-            results = [r for r in result]
-            assert len(results) == 1
-            assert results[0]["a"] == "test2"
-            assert results[0]["b"] == 9
-            assert execute_query_mock.call_count == 1
+        execute_query_mock.return_value = self._make_gapic_stream(values)
+        result = client.execute_query(
+            f"SELECT a, b FROM {self.TABLE_NAME} WHERE b=@b",
+            self.INSTANCE_NAME,
+            parameters={"b": 9},
+        )
+        results = [r for r in result]
+        assert len(results) == 1
+        assert results[0]["a"] == "test2"
+        assert results[0]["b"] == 9
+        assert execute_query_mock.call_count == 1
+        assert prepare_mock.call_count == 1
 
-    def test_execute_query_error_before_metadata(self):
+    def test_execute_query_error_before_metadata(
+        self, client, execute_query_mock, prepare_mock
+    ):
         from google.api_core.exceptions import DeadlineExceeded
 
         values = [
             DeadlineExceeded(""),
-            self.resonse_with_metadata(),
             self.resonse_with_result("test"),
             self.resonse_with_result(8, resume_token=b"r1"),
             self.resonse_with_result("test2"),
@@ -2699,25 +2701,22 @@ class TestExecuteQuery:
             self.resonse_with_result("test3"),
             self.resonse_with_result(None, resume_token=b"r3"),
         ]
-        client = self._make_client()
-        with mock.patch.object(
-            client._gapic_client, "execute_query", CrossSync._Sync_Impl.Mock()
-        ) as execute_query_mock:
-            execute_query_mock.return_value = self._make_gapic_stream(values)
-            result = client.execute_query(
-                f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
-            )
-            results = [r for r in result]
-            assert len(results) == 3
-            assert execute_query_mock.call_count == 2
+        execute_query_mock.return_value = self._make_gapic_stream(values)
+        result = client.execute_query(
+            f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
+        )
+        results = [r for r in result]
+        assert len(results) == 3
+        assert execute_query_mock.call_count == 2
+        assert prepare_mock.call_count == 1
 
-    def test_execute_query_error_after_metadata(self):
+    def test_execute_query_error_after_metadata(
+        self, client, execute_query_mock, prepare_mock
+    ):
         from google.api_core.exceptions import DeadlineExceeded
 
         values = [
-            self.resonse_with_metadata(),
             DeadlineExceeded(""),
-            self.resonse_with_metadata(),
             self.resonse_with_result("test"),
             self.resonse_with_result(8, resume_token=b"r1"),
             self.resonse_with_result("test2"),
@@ -2725,26 +2724,21 @@ class TestExecuteQuery:
             self.resonse_with_result("test3"),
             self.resonse_with_result(None, resume_token=b"r3"),
         ]
-        client = self._make_client()
-        with mock.patch.object(
-            client._gapic_client, "execute_query", CrossSync._Sync_Impl.Mock()
-        ) as execute_query_mock:
-            execute_query_mock.return_value = self._make_gapic_stream(values)
-            result = client.execute_query(
-                f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
-            )
-            results = [r for r in result]
-            assert len(results) == 3
-            assert execute_query_mock.call_count == 2
-            requests = [args[0][0] for args in execute_query_mock.call_args_list]
-            resume_tokens = [r.resume_token for r in requests if r.resume_token]
-            assert resume_tokens == []
+        execute_query_mock.return_value = self._make_gapic_stream(values)
+        result = client.execute_query(
+            f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
+        )
+        results = [r for r in result]
+        assert len(results) == 3
+        assert execute_query_mock.call_count == 2
+        requests = [args[0][0] for args in execute_query_mock.call_args_list]
+        resume_tokens = [r.resume_token for r in requests if r.resume_token]
+        assert resume_tokens == []
 
-    def test_execute_query_with_retries(self):
+    def test_execute_query_with_retries(self, client, execute_query_mock, prepare_mock):
         from google.api_core.exceptions import DeadlineExceeded
 
         values = [
-            self.resonse_with_metadata(),
             self.resonse_with_result("test"),
             self.resonse_with_result(8, resume_token=b"r1"),
             DeadlineExceeded(""),
@@ -2755,25 +2749,22 @@ class TestExecuteQuery:
             self.resonse_with_result("test3"),
             self.resonse_with_result(None, resume_token=b"r3"),
         ]
-        client = self._make_client()
-        with mock.patch.object(
-            client._gapic_client, "execute_query", CrossSync._Sync_Impl.Mock()
-        ) as execute_query_mock:
-            execute_query_mock.return_value = self._make_gapic_stream(values)
-            result = client.execute_query(
-                f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
-            )
-            results = [r for r in result]
-            assert results[0]["a"] == "test"
-            assert results[0]["b"] == 8
-            assert results[1]["a"] == "test2"
-            assert results[1]["b"] == 9
-            assert results[2]["a"] == "test3"
-            assert results[2]["b"] is None
-            assert len(results) == 3
-            requests = [args[0][0] for args in execute_query_mock.call_args_list]
-            resume_tokens = [r.resume_token for r in requests if r.resume_token]
-            assert resume_tokens == [b"r1", b"r2"]
+        execute_query_mock.return_value = self._make_gapic_stream(values)
+        result = client.execute_query(
+            f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
+        )
+        results = [r for r in result]
+        assert results[0]["a"] == "test"
+        assert results[0]["b"] == 8
+        assert results[1]["a"] == "test2"
+        assert results[1]["b"] == 9
+        assert results[2]["a"] == "test3"
+        assert results[2]["b"] is None
+        assert len(results) == 3
+        requests = [args[0][0] for args in execute_query_mock.call_args_list]
+        resume_tokens = [r.resume_token for r in requests if r.resume_token]
+        assert resume_tokens == [b"r1", b"r2"]
+        assert prepare_mock.call_count == 1
 
     @pytest.mark.parametrize(
         "exception",
@@ -2783,50 +2774,46 @@ class TestExecuteQuery:
             core_exceptions.ServiceUnavailable(""),
         ],
     )
-    def test_execute_query_retryable_error(self, exception):
+    def test_execute_query_retryable_error(
+        self, client, execute_query_mock, prepare_mock, exception
+    ):
         values = [
-            self.resonse_with_metadata(),
             self.resonse_with_result("test", resume_token=b"t1"),
             exception,
             self.resonse_with_result(8, resume_token=b"t2"),
         ]
-        client = self._make_client()
-        with mock.patch.object(
-            client._gapic_client, "execute_query", CrossSync._Sync_Impl.Mock()
-        ) as execute_query_mock:
-            execute_query_mock.return_value = self._make_gapic_stream(values)
-            result = client.execute_query(
-                f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
-            )
-            results = [r for r in result]
-            assert len(results) == 1
-            assert execute_query_mock.call_count == 2
-            requests = [args[0][0] for args in execute_query_mock.call_args_list]
-            resume_tokens = [r.resume_token for r in requests if r.resume_token]
-            assert resume_tokens == [b"t1"]
+        execute_query_mock.return_value = self._make_gapic_stream(values)
+        result = client.execute_query(
+            f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
+        )
+        results = [r for r in result]
+        assert len(results) == 1
+        assert execute_query_mock.call_count == 2
+        assert prepare_mock.call_count == 1
+        requests = [args[0][0] for args in execute_query_mock.call_args_list]
+        resume_tokens = [r.resume_token for r in requests if r.resume_token]
+        assert resume_tokens == [b"t1"]
 
-    def test_execute_query_retry_partial_row(self):
+    def test_execute_query_retry_partial_row(
+        self, client, execute_query_mock, prepare_mock
+    ):
         values = [
-            self.resonse_with_metadata(),
             self.resonse_with_result("test", resume_token=b"t1"),
             core_exceptions.DeadlineExceeded(""),
             self.resonse_with_result(8, resume_token=b"t2"),
         ]
-        client = self._make_client()
-        with mock.patch.object(
-            client._gapic_client, "execute_query", CrossSync._Sync_Impl.Mock()
-        ) as execute_query_mock:
-            execute_query_mock.return_value = self._make_gapic_stream(values)
-            result = client.execute_query(
-                f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
-            )
-            results = [r for r in result]
-            assert results[0]["a"] == "test"
-            assert results[0]["b"] == 8
-            assert execute_query_mock.call_count == 2
-            requests = [args[0][0] for args in execute_query_mock.call_args_list]
-            resume_tokens = [r.resume_token for r in requests if r.resume_token]
-            assert resume_tokens == [b"t1"]
+        execute_query_mock.return_value = self._make_gapic_stream(values)
+        result = client.execute_query(
+            f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
+        )
+        results = [r for r in result]
+        assert results[0]["a"] == "test"
+        assert results[0]["b"] == 8
+        assert execute_query_mock.call_count == 2
+        assert prepare_mock.call_count == 1
+        requests = [args[0][0] for args in execute_query_mock.call_args_list]
+        resume_tokens = [r.resume_token for r in requests if r.resume_token]
+        assert resume_tokens == [b"t1"]
 
     @pytest.mark.parametrize(
         "ExceptionType",
@@ -2846,9 +2833,10 @@ class TestExecuteQuery:
             core_exceptions.InternalServerError,
         ],
     )
-    def test_execute_query_non_retryable(self, ExceptionType):
+    def test_execute_query_non_retryable(
+        self, client, execute_query_mock, prepare_mock, ExceptionType
+    ):
         values = [
-            self.resonse_with_metadata(),
             self.resonse_with_result("test"),
             self.resonse_with_result(8, resume_token=b"r1"),
             ExceptionType(""),
@@ -2857,37 +2845,85 @@ class TestExecuteQuery:
             self.resonse_with_result("test3"),
             self.resonse_with_result(None, resume_token=b"r3"),
         ]
-        client = self._make_client()
-        with mock.patch.object(
-            client._gapic_client, "execute_query", CrossSync._Sync_Impl.Mock()
-        ) as execute_query_mock:
-            execute_query_mock.return_value = self._make_gapic_stream(values)
-            result = client.execute_query(
+        execute_query_mock.return_value = self._make_gapic_stream(values)
+        result = client.execute_query(
+            f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
+        )
+        r = CrossSync._Sync_Impl.next(result)
+        assert r["a"] == "test"
+        assert r["b"] == 8
+        with pytest.raises(ExceptionType):
+            r = CrossSync._Sync_Impl.next(result)
+        assert execute_query_mock.call_count == 1
+        assert prepare_mock.call_count == 1
+        requests = [args[0][0] for args in execute_query_mock.call_args_list]
+        resume_tokens = [r.resume_token for r in requests if r.resume_token]
+        assert resume_tokens == []
+
+    @pytest.mark.parametrize(
+        "retryable_exception",
+        [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+    )
+    def test_prepare_query_retryable(
+        self, client, execute_query_mock, prepare_mock, retryable_exception
+    ):
+        prepare_mock.reset_mock()
+        prepare_mock.side_effect = [
+            retryable_exception("test"),
+            prepare_response(
+                b"foo",
+                metadata=metadata(column("a", str_type()), column("b", int64_type())),
+            ),
+        ]
+        values = [
+            self.resonse_with_result("test"),
+            self.resonse_with_result(8, resume_token=b"r1"),
+        ]
+        execute_query_mock.return_value = self._make_gapic_stream(values)
+        result = client.execute_query(
+            f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
+        )
+        results = [r for r in result]
+        assert results[0]["a"] == "test"
+        assert results[0]["b"] == 8
+        assert execute_query_mock.call_count == 1
+        assert prepare_mock.call_count == 2
+
+    @pytest.mark.parametrize(
+        "non_retryable_exception",
+        [
+            core_exceptions.InvalidArgument,
+            core_exceptions.FailedPrecondition,
+            core_exceptions.PermissionDenied,
+            core_exceptions.MethodNotImplemented,
+            core_exceptions.Cancelled,
+            core_exceptions.AlreadyExists,
+            core_exceptions.OutOfRange,
+            core_exceptions.DataLoss,
+            core_exceptions.Unauthenticated,
+            core_exceptions.NotFound,
+            core_exceptions.ResourceExhausted,
+            core_exceptions.Unknown,
+            core_exceptions.InternalServerError,
+        ],
+    )
+    def test_prepare_query_non_retryable(
+        self, client, execute_query_mock, prepare_mock, non_retryable_exception
+    ):
+        prepare_mock.reset_mock()
+        prepare_mock.side_effect = [
+            non_retryable_exception("test"),
+            prepare_response(
+                b"foo",
+                metadata=metadata(column("a", str_type()), column("b", int64_type())),
+            ),
+        ]
+        values = [
+            self.resonse_with_result("test"),
+            self.resonse_with_result(8, resume_token=b"r1"),
+        ]
+        execute_query_mock.return_value = self._make_gapic_stream(values)
+        with pytest.raises(non_retryable_exception):
+            client.execute_query(
                 f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
             )
-            r = CrossSync._Sync_Impl.next(result)
-            assert r["a"] == "test"
-            assert r["b"] == 8
-            with pytest.raises(ExceptionType):
-                r = CrossSync._Sync_Impl.next(result)
-            assert execute_query_mock.call_count == 1
-            requests = [args[0][0] for args in execute_query_mock.call_args_list]
-            resume_tokens = [r.resume_token for r in requests if r.resume_token]
-            assert resume_tokens == []
-
-    def test_execute_query_metadata_received_multiple_times_detected(self):
-        values = [self.resonse_with_metadata(), self.resonse_with_metadata()]
-        client = self._make_client()
-        with mock.patch.object(
-            client._gapic_client, "execute_query", CrossSync._Sync_Impl.Mock()
-        ) as execute_query_mock:
-            execute_query_mock.return_value = self._make_gapic_stream(values)
-            with pytest.raises(
-                Exception, match="Invalid ExecuteQuery response received"
-            ):
-                [
-                    r
-                    for r in client.execute_query(
-                        f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
-                    )
-                ]
