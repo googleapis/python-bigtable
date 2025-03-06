@@ -66,6 +66,9 @@ class ExecuteQueryIterator:
     ) -> None:
         """Collects responses from ExecuteQuery requests and parses them into QueryResultRows.
 
+        **Please Note** this is not meant to be constructed directly by applications. It should always
+        be created via the client. The constructor is subject to change.
+
         It is **not thread-safe**. It should not be used by multiple threads.
 
         Args:
@@ -80,7 +83,9 @@ class ExecuteQueryIterator:
             req_metadata: metadata used while sending the gRPC request
             retryable_excs: a list of errors that will be retried if encountered.
         Raises:
-            None"""
+            None
+            :class:`ValueError <exceptions.ValueError>` as a safeguard if data is processed in an unexpected state
+        """
         self._table_name = None
         self._app_profile_id = app_profile_id
         self._client = client
@@ -173,6 +178,10 @@ class ExecuteQueryIterator:
         self.close()
 
     def __next__(self) -> QueryResultRow:
+        """Yields QueryResultRows representing the results of the query.
+
+        :raises: :class:`ValueError <exceptions.ValueError>` as a safeguard if data is processed in an unexpected state
+        """
         if self._is_closed:
             raise CrossSync._Sync_Impl.StopIteration
         return self._result_generator.__next__()
