@@ -36,11 +36,15 @@ from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from tests.unit.data.execute_query.sql_helpers import (
+    chunked_responses,
     column,
     int64_type,
+    int_val,
     metadata,
+    null_val,
     prepare_response,
     str_type,
+    str_val,
 )
 
 if CrossSync.is_async:
@@ -3076,50 +3080,13 @@ class TestExecuteQueryAsync:
 
         return MockStream(sample_list)
 
-    def resonse_with_result(self, *args, resume_token=None):
-        from google.cloud.bigtable_v2.types.data import ProtoRows, Value as PBValue
-        from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
-
-        if resume_token is None:
-            resume_token_dict = {}
-        else:
-            resume_token_dict = {"resume_token": resume_token}
-
-        values = []
-        for column_value in args:
-            if column_value is None:
-                pb_value = PBValue({})
-            else:
-                pb_value = PBValue(
-                    {
-                        "int_value"
-                        if isinstance(column_value, int)
-                        else "string_value": column_value
-                    }
-                )
-            values.append(pb_value)
-        rows = ProtoRows(values=values)
-
-        return ExecuteQueryResponse(
-            {
-                "results": {
-                    "proto_rows_batch": {
-                        "batch_data": ProtoRows.serialize(rows),
-                    },
-                    **resume_token_dict,
-                }
-            }
-        )
-
     @CrossSync.pytest
     async def test_execute_query(self, client, execute_query_mock, prepare_mock):
         values = [
-            self.resonse_with_result("test"),
-            self.resonse_with_result(8, resume_token=b"r1"),
-            self.resonse_with_result("test2"),
-            self.resonse_with_result(9, resume_token=b"r2"),
-            self.resonse_with_result("test3"),
-            self.resonse_with_result(None, resume_token=b"r3"),
+            # Each splits values into chunks across two responses
+            *chunked_responses(2, str_val("test"), int_val(8), reset=True, token=b"r1"),
+            *chunked_responses(2, str_val("test2"), int_val(9), token=b"r2"),
+            *chunked_responses(2, str_val("test3"), null_val(), token=b"r3"),
         ]
         execute_query_mock.return_value = self._make_gapic_stream(values)
 
@@ -3141,8 +3108,7 @@ class TestExecuteQueryAsync:
         self, client, execute_query_mock, prepare_mock
     ):
         values = [
-            self.resonse_with_result("test2"),
-            self.resonse_with_result(9, resume_token=b"r2"),
+            *chunked_responses(2, str_val("test2"), int_val(9), token=b"r2"),
         ]
         execute_query_mock.return_value = self._make_gapic_stream(values)
         result = await client.execute_query(
@@ -3165,12 +3131,10 @@ class TestExecuteQueryAsync:
 
         values = [
             DeadlineExceeded(""),
-            self.resonse_with_result("test"),
-            self.resonse_with_result(8, resume_token=b"r1"),
-            self.resonse_with_result("test2"),
-            self.resonse_with_result(9, resume_token=b"r2"),
-            self.resonse_with_result("test3"),
-            self.resonse_with_result(None, resume_token=b"r3"),
+            # Each splits values into chunks across two responses
+            *chunked_responses(2, str_val("test"), int_val(8), reset=True, token=b"r1"),
+            *chunked_responses(2, str_val("test2"), int_val(9), token=b"r2"),
+            *chunked_responses(2, str_val("test3"), null_val(), token=b"r3"),
         ]
         execute_query_mock.return_value = self._make_gapic_stream(values)
         result = await client.execute_query(
@@ -3189,12 +3153,10 @@ class TestExecuteQueryAsync:
 
         values = [
             DeadlineExceeded(""),
-            self.resonse_with_result("test"),
-            self.resonse_with_result(8, resume_token=b"r1"),
-            self.resonse_with_result("test2"),
-            self.resonse_with_result(9, resume_token=b"r2"),
-            self.resonse_with_result("test3"),
-            self.resonse_with_result(None, resume_token=b"r3"),
+            # Each splits values into chunks across two responses
+            *chunked_responses(2, str_val("test"), int_val(8), reset=True, token=b"r1"),
+            *chunked_responses(2, str_val("test2"), int_val(9), token=b"r2"),
+            *chunked_responses(2, str_val("test3"), null_val(), token=b"r3"),
         ]
         execute_query_mock.return_value = self._make_gapic_stream(values)
         result = await client.execute_query(
@@ -3214,15 +3176,12 @@ class TestExecuteQueryAsync:
         from google.api_core.exceptions import DeadlineExceeded
 
         values = [
-            self.resonse_with_result("test"),
-            self.resonse_with_result(8, resume_token=b"r1"),
+            # Each splits values into chunks across two responses
+            *chunked_responses(2, str_val("test"), int_val(8), reset=True, token=b"r1"),
             DeadlineExceeded(""),
-            self.resonse_with_result("test2"),
-            self.resonse_with_result(9, resume_token=b"r2"),
-            self.resonse_with_result("test3"),
+            *chunked_responses(2, str_val("test2"), int_val(9), token=b"r2"),
             DeadlineExceeded(""),
-            self.resonse_with_result("test3"),
-            self.resonse_with_result(None, resume_token=b"r3"),
+            *chunked_responses(2, str_val("test3"), null_val(), token=b"r3"),
         ]
         execute_query_mock.return_value = self._make_gapic_stream(values)
         result = await client.execute_query(
@@ -3253,10 +3212,13 @@ class TestExecuteQueryAsync:
     async def test_execute_query_retryable_error(
         self, client, execute_query_mock, prepare_mock, exception
     ):
+        [res1, res2] = chunked_responses(
+            2, str_val("test"), int_val(8), reset=True, token=b"t1"
+        )
         values = [
-            self.resonse_with_result("test", resume_token=b"t1"),
+            *chunked_responses(1, str_val("test"), int_val(8), reset=True, token=b"t1"),
             exception,
-            self.resonse_with_result(8, resume_token=b"t2"),
+            *chunked_responses(1, str_val("tes2"), int_val(9), reset=True, token=b"t1"),
         ]
         execute_query_mock.return_value = self._make_gapic_stream(values)
 
@@ -3264,30 +3226,7 @@ class TestExecuteQueryAsync:
             f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
         )
         results = [r async for r in result]
-        assert len(results) == 1
-        assert execute_query_mock.call_count == 2
-        assert prepare_mock.call_count == 1
-        requests = [args[0][0] for args in execute_query_mock.call_args_list]
-        resume_tokens = [r.resume_token for r in requests if r.resume_token]
-        assert resume_tokens == [b"t1"]
-
-    @CrossSync.pytest
-    async def test_execute_query_retry_partial_row(
-        self, client, execute_query_mock, prepare_mock
-    ):
-        values = [
-            self.resonse_with_result("test", resume_token=b"t1"),
-            core_exceptions.DeadlineExceeded(""),
-            self.resonse_with_result(8, resume_token=b"t2"),
-        ]
-        execute_query_mock.return_value = self._make_gapic_stream(values)
-
-        result = await client.execute_query(
-            f"SELECT a, b FROM {self.TABLE_NAME}", self.INSTANCE_NAME
-        )
-        results = [r async for r in result]
-        assert results[0]["a"] == "test"
-        assert results[0]["b"] == 8
+        assert len(results) == 2
         assert execute_query_mock.call_count == 2
         assert prepare_mock.call_count == 1
         requests = [args[0][0] for args in execute_query_mock.call_args_list]
@@ -3317,13 +3256,11 @@ class TestExecuteQueryAsync:
         self, client, execute_query_mock, prepare_mock, ExceptionType
     ):
         values = [
-            self.resonse_with_result("test"),
-            self.resonse_with_result(8, resume_token=b"r1"),
+            # Each splits values into chunks across two responses
+            *chunked_responses(2, str_val("test"), int_val(8), reset=True, token=b"r1"),
             ExceptionType(""),
-            self.resonse_with_result("test2"),
-            self.resonse_with_result(9, resume_token=b"r2"),
-            self.resonse_with_result("test3"),
-            self.resonse_with_result(None, resume_token=b"r3"),
+            *chunked_responses(2, str_val("test2"), int_val(9), token=b"r2"),
+            *chunked_responses(2, str_val("test3"), null_val(), token=b"r3"),
         ]
         execute_query_mock.return_value = self._make_gapic_stream(values)
 
@@ -3363,8 +3300,7 @@ class TestExecuteQueryAsync:
             ),
         ]
         values = [
-            self.resonse_with_result("test"),
-            self.resonse_with_result(8, resume_token=b"r1"),
+            *chunked_responses(1, str_val("test"), int_val(8), reset=True, token=b"t1"),
         ]
         execute_query_mock.return_value = self._make_gapic_stream(values)
         result = await client.execute_query(
@@ -3407,8 +3343,7 @@ class TestExecuteQueryAsync:
             ),
         ]
         values = [
-            self.resonse_with_result("test"),
-            self.resonse_with_result(8, resume_token=b"r1"),
+            *chunked_responses(1, str_val("test"), int_val(8), reset=True, token=b"t1"),
         ]
         execute_query_mock.return_value = self._make_gapic_stream(values)
         with pytest.raises(non_retryable_exception):

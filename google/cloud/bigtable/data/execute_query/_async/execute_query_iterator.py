@@ -106,6 +106,7 @@ class ExecuteQueryIteratorAsync:
             retryable_excs: a list of errors that will be retried if encountered.
         Raises:
             {NO_LOOP}
+            :class:`ValueError <exceptions.ValueError>` as a safeguard if data is processed in an unexpected state
         """
         self._table_name = None
         self._app_profile_id = app_profile_id
@@ -217,6 +218,11 @@ class ExecuteQueryIteratorAsync:
 
     @CrossSync.convert(sync_name="__next__", replace_symbols={"__anext__": "__next__"})
     async def __anext__(self) -> QueryResultRow:
+        """
+        Yields ``QueryResultRow``s representing the results of the query.
+
+        :raises: :class:`ValueError <exceptions.ValueError>` as a safeguard if data is processed in an unexpected state
+        """
         if self._is_closed:
             raise CrossSync.StopIteration
         return await self._result_generator.__anext__()
