@@ -17,14 +17,11 @@ from typing import (
     Generic,
     Iterable,
     Optional,
-    List,
     Sequence,
-    cast,
 )
 from abc import ABC, abstractmethod
 
 from google.cloud.bigtable_v2 import ProtoRows, Value as PBValue
-from google.cloud.bigtable.data.execute_query._byte_cursor import _ByteCursor
 
 from google.cloud.bigtable.data.execute_query._query_result_parsing_utils import (
     _parse_pb_value_to_python_value,
@@ -84,28 +81,18 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
     :class:`google.cloud.bigtable.byte_cursor._ByteCursor` passed in the constructor.
     """
 
-    def __init__(self, byte_cursor: _ByteCursor[ProtoMetadata]):
+    def __init__(self):
         """
         Constructs new instance of ``_QueryResultRowReader``.
-
-        Args:
-            byte_cursor (google.cloud.bigtable.byte_cursor._ByteCursor):
-                byte_cursor that will be used to gather bytes for this instance of ``_Reader``,
-                needed to obtain :class:`google.cloud.bigtable.execute_query.Metadata` about
-                processed stream.
         """
-        self._values: List[PBValue] = []
-        self._byte_cursor = byte_cursor
+        self._values = []
 
-    @property
-    def _metadata(self) -> Optional[ProtoMetadata]:
-        return self._byte_cursor.metadata
-
-    def _construct_query_result_row(self, values: Sequence[PBValue]) -> QueryResultRow:
+    def _construct_query_result_row(
+        self, values: Sequence[PBValue], metadata: ProtoMetadata
+    ) -> QueryResultRow:
         result = QueryResultRow()
         # The logic, not defined by mypy types, ensures that the value of
         # "metadata" is never null at the time it is retrieved here
-        metadata = cast(ProtoMetadata, self._metadata)
         columns = metadata.columns
 
         assert len(values) == len(
@@ -121,7 +108,9 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         proto_rows = ProtoRows.pb().FromString(bytes_to_parse)
         return proto_rows.values
 
-    def consume(self, bytes_to_consume: bytes) -> Optional[Iterable[QueryResultRow]]:
+    def consume(
+        self, bytes_to_consume: bytes, metadata: ProtoMetadata
+    ) -> Optional[Iterable[QueryResultRow]]:
         if bytes_to_consume is None:
             raise ValueError("bytes_to_consume shouldn't be None")
 
@@ -129,7 +118,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
 
         # The logic, not defined by mypy types, ensures that the value of
         # "metadata" is never null at the time it is retrieved here
-        num_columns = len(cast(ProtoMetadata, self._metadata).columns)
+        num_columns = len(metadata.columns)
 
         if len(self._values) < num_columns:
             return None
@@ -137,7 +126,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         rows = []
         for batch in batched(self._values, n=num_columns):
             if len(batch) == num_columns:
-                rows.append(self._construct_query_result_row(batch))
+                rows.append(self._construct_query_result_row(batch, metadata))
             else:
                 raise ValueError(
                     "Server error, recieved bad number of values. "

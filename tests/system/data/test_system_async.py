@@ -1105,8 +1105,14 @@ class TestSystemAsync:
             ],
         }
         param_types = {
+            "stringParam": SqlType.String(),
+            "bytesParam": SqlType.Bytes(),
+            "int64Param": SqlType.Int64(),
             "float32Param": SqlType.Float32(),
             "float64Param": SqlType.Float64(),
+            "boolParam": SqlType.Bool(),
+            "tsParam": SqlType.Timestamp(),
+            "dateParam": SqlType.Date(),
             "byteArrayParam": SqlType.Array(SqlType.Bytes()),
             "stringArrayParam": SqlType.Array(SqlType.String()),
             "intArrayParam": SqlType.Array(SqlType.Int64()),
@@ -1116,6 +1122,7 @@ class TestSystemAsync:
             "tsArrayParam": SqlType.Array(SqlType.Timestamp()),
             "dateArrayParam": SqlType.Array(SqlType.Date()),
         }
+
         result = await client.execute_query(
             query, instance_id, parameters=parameters, parameter_types=param_types
         )

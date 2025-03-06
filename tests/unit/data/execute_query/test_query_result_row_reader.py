@@ -18,18 +18,26 @@ from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from google.cloud.bigtable_v2.types.data import Value as PBValue
 from google.cloud.bigtable.data.execute_query._reader import _QueryResultRowReader
 
-from google.cloud.bigtable.data.execute_query.metadata import ProtoMetadata, SqlType
+from google.cloud.bigtable.data.execute_query.metadata import (
+    ProtoMetadata,
+    SqlType,
+    _pb_metadata_to_metadata_types,
+)
 
 import google.cloud.bigtable.data.execute_query._reader
-from ._testing import TYPE_INT, proto_rows_bytes
+from tests.unit.data.execute_query.sql_helpers import (
+    column,
+    int64_type,
+    metadata,
+    proto_rows_bytes,
+    split_bytes_into_chunks,
+)
 
 
 class TestQueryResultRowReader:
     def test__single_values_received(self):
-        byte_cursor = mock.Mock(
-            metadata=ProtoMetadata(
-                [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
-            )
+        metadata = ProtoMetadata(
+            [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
         )
         values = [
             proto_rows_bytes({"int_value": 1}),
@@ -37,13 +45,13 @@ class TestQueryResultRowReader:
             proto_rows_bytes({"int_value": 3}),
         ]
 
-        reader = _QueryResultRowReader(byte_cursor)
+        reader = _QueryResultRowReader()
 
-        assert reader.consume(values[0]) is None
-        result = reader.consume(values[1])
+        assert reader.consume(values[0], metadata) is None
+        result = reader.consume(values[1], metadata)
         assert len(result) == 1
         assert len(result[0]) == 2
-        assert reader.consume(values[2]) is None
+        assert reader.consume(values[2], metadata) is None
 
     def test__multiple_rows_received(self):
         values = [
@@ -57,15 +65,12 @@ class TestQueryResultRowReader:
             proto_rows_bytes({"int_value": 7}, {"int_value": 8}),
         ]
 
-        byte_cursor = mock.Mock(
-            metadata=ProtoMetadata(
-                [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
-            )
+        metadata = ProtoMetadata(
+            [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
         )
+        reader = _QueryResultRowReader()
 
-        reader = _QueryResultRowReader(byte_cursor)
-
-        result = reader.consume(values[0])
+        result = reader.consume(values[0], metadata)
         assert len(result) == 2
         assert len(result[0]) == 2
         assert result[0][0] == result[0]["test1"] == 1
@@ -75,23 +80,21 @@ class TestQueryResultRowReader:
         assert result[1][0] == result[1]["test1"] == 3
         assert result[1][1] == result[1]["test2"] == 4
 
-        result = reader.consume(values[1])
+        result = reader.consume(values[1], metadata)
         assert len(result) == 1
         assert len(result[0]) == 2
         assert result[0][0] == result[0]["test1"] == 5
         assert result[0][1] == result[0]["test2"] == 6
 
-        result = reader.consume(values[2])
+        result = reader.consume(values[2], metadata)
         assert len(result) == 1
         assert len(result[0]) == 2
         assert result[0][0] == result[0]["test1"] == 7
         assert result[0][1] == result[0]["test2"] == 8
 
     def test__received_values_are_passed_to_parser_in_batches(self):
-        byte_cursor = mock.Mock(
-            metadata=ProtoMetadata(
-                [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
-            )
+        metadata = ProtoMetadata(
+            [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
         )
 
         assert SqlType.Struct([("a", SqlType.Int64())]) == SqlType.Struct(
@@ -119,14 +122,14 @@ class TestQueryResultRowReader:
             {"int_value": 2},
         ]
 
-        reader = _QueryResultRowReader(byte_cursor)
+        reader = _QueryResultRowReader()
         with mock.patch.object(
             google.cloud.bigtable.data.execute_query._reader,
             "_parse_pb_value_to_python_value",
         ) as parse_mock:
-            reader.consume(proto_rows_bytes(values[0]))
+            reader.consume(proto_rows_bytes(values[0]), metadata)
             parse_mock.assert_not_called()
-            reader.consume(proto_rows_bytes(values[1]))
+            reader.consume(proto_rows_bytes(values[1]), metadata)
             parse_mock.assert_has_calls(
                 [
                     mock.call(PBValue(values[0]), SqlType.Int64()),
@@ -135,20 +138,20 @@ class TestQueryResultRowReader:
             )
 
     def test__parser_errors_are_forwarded(self):
-        byte_cursor = mock.Mock(metadata=ProtoMetadata([("test1", SqlType.Int64())]))
+        metadata = ProtoMetadata([("test1", SqlType.Int64())])
 
         values = [
             {"string_value": "test"},
         ]
 
-        reader = _QueryResultRowReader(byte_cursor)
+        reader = _QueryResultRowReader()
         with mock.patch.object(
             google.cloud.bigtable.data.execute_query._reader,
             "_parse_pb_value_to_python_value",
             side_effect=ValueError("test"),
         ) as parse_mock:
             with pytest.raises(ValueError, match="test"):
-                reader.consume(proto_rows_bytes(values[0]))
+                reader.consume(proto_rows_bytes(values[0]), metadata)
 
             parse_mock.assert_has_calls(
                 [
@@ -158,15 +161,6 @@ class TestQueryResultRowReader:
 
     def test__multiple_proto_rows_received_with_one_resume_token(self):
         from google.cloud.bigtable.data.execute_query._byte_cursor import _ByteCursor
-
-        def split_bytes_into_chunks(bytes_to_split, num_chunks):
-            from google.cloud.bigtable.helpers import batched
-
-            assert num_chunks <= len(bytes_to_split)
-            bytes_per_part = (len(bytes_to_split) - 1) // num_chunks + 1
-            result = list(map(bytes, batched(bytes_to_split, bytes_per_part)))
-            assert len(result) == num_chunks
-            return result
 
         def pass_values_to_byte_cursor(byte_cursor, iterable):
             for value in iterable:
@@ -187,16 +181,6 @@ class TestQueryResultRowReader:
         ]
 
         stream = [
-            ExecuteQueryResponse(
-                metadata={
-                    "proto_schema": {
-                        "columns": [
-                            {"name": "test1", "type_": TYPE_INT},
-                            {"name": "test2", "type_": TYPE_INT},
-                        ]
-                    }
-                }
-            ),
             ExecuteQueryResponse(
                 results={"proto_rows_batch": {"batch_data": messages[0]}}
             ),
@@ -224,10 +208,11 @@ class TestQueryResultRowReader:
         ]
 
         byte_cursor = _ByteCursor()
-
-        reader = _QueryResultRowReader(byte_cursor)
-
+        reader = _QueryResultRowReader()
         byte_cursor_iter = pass_values_to_byte_cursor(byte_cursor, stream)
+        md = _pb_metadata_to_metadata_types(
+            metadata(column("test1", int64_type()), column("test2", int64_type()))
+        )
 
         returned_values = []
 
@@ -246,7 +231,7 @@ class TestQueryResultRowReader:
             "_parse_proto_rows",
             wraps=intercept_return_values(reader._parse_proto_rows),
         ):
-            result = reader.consume(next(byte_cursor_iter))
+            result = reader.consume(next(byte_cursor_iter), md)
 
         # Despite the fact that two ProtoRows were received, a single resume_token after the second ProtoRows object forces us to parse them together.
         # We will interpret them as one larger ProtoRows object.
@@ -276,7 +261,7 @@ class TestQueryResultRowReader:
             "_parse_proto_rows",
             wraps=intercept_return_values(reader._parse_proto_rows),
         ):
-            result = reader.consume(next(byte_cursor_iter))
+            result = reader.consume(next(byte_cursor_iter), md)
 
         assert len(result) == 1
         assert len(result[0]) == 2

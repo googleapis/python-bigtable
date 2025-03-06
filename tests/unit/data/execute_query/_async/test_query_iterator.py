@@ -12,10 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from google.cloud.bigtable.data.execute_query.metadata import (
+    _pb_metadata_to_metadata_types,
+)
 import pytest
 import concurrent.futures
 from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
-from .._testing import TYPE_INT, split_bytes_into_chunks, proto_rows_bytes
+from ..sql_helpers import (
+    column,
+    metadata,
+    int64_type,
+    split_bytes_into_chunks,
+    proto_rows_bytes,
+)
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -78,16 +87,6 @@ class TestQueryIteratorAsync:
 
         stream = [
             ExecuteQueryResponse(
-                metadata={
-                    "proto_schema": {
-                        "columns": [
-                            {"name": "test1", "type_": TYPE_INT},
-                            {"name": "test2", "type_": TYPE_INT},
-                        ]
-                    }
-                }
-            ),
-            ExecuteQueryResponse(
                 results={"proto_rows_batch": {"batch_data": messages[0]}}
             ),
             ExecuteQueryResponse(
@@ -137,6 +136,11 @@ class TestQueryIteratorAsync:
                 instance_id="test-instance",
                 app_profile_id="test_profile",
                 request_body={},
+                prepare_metadata=_pb_metadata_to_metadata_types(
+                    metadata(
+                        column("test1", int64_type()), column("test2", int64_type())
+                    )
+                ),
                 attempt_timeout=10,
                 operation_timeout=10,
                 req_metadata=(),
@@ -154,7 +158,7 @@ class TestQueryIteratorAsync:
         assert mock_async_iterator.idx == len(proto_byte_stream)
 
     @CrossSync.pytest
-    async def test_iterator_awaits_metadata(self, proto_byte_stream):
+    async def test_iterator_returns_metadata_after_data(self, proto_byte_stream):
         client_mock = mock.Mock()
 
         client_mock._register_instance = CrossSync.Mock()
@@ -171,12 +175,19 @@ class TestQueryIteratorAsync:
                 instance_id="test-instance",
                 app_profile_id="test_profile",
                 request_body={},
+                prepare_metadata=_pb_metadata_to_metadata_types(
+                    metadata(
+                        column("test1", int64_type()), column("test2", int64_type())
+                    )
+                ),
                 attempt_timeout=10,
                 operation_timeout=10,
                 req_metadata=(),
                 retryable_excs=[],
             )
 
-        await iterator.metadata()
+        assert iterator.metadata is None
+        await CrossSync.next(iterator)
+        assert len(iterator.metadata) == 2
 
-        assert mock_async_iterator.idx == 1
+        assert mock_async_iterator.idx == 2
