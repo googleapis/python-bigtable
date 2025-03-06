@@ -1540,7 +1540,7 @@ def test_rmrw_callable_empty_rows():
         f"projects/{PROJECT_ID}/instances/{INSTANCE_ID}/tables/{TABLE_ID}"
     )
 
-    worker = _make_worker(client, table.name, [])
+    worker = _make_worker(table._data_table, table.name, [])
     statuses = worker()
 
     assert len(statuses) == 0
@@ -1578,7 +1578,7 @@ def test_rmrw_callable_no_retry_strategy():
     data_api.table_path.return_value = (
         f"projects/{PROJECT_ID}/instances/{INSTANCE_ID}/tables/{TABLE_ID}"
     )
-    worker = _make_worker(client, table.name, [row_1, row_2, row_3])
+    worker = _make_worker(table._data_table, table.name, [row_1, row_2, row_3])
 
     statuses = worker(retry=None)
 
@@ -1621,7 +1621,7 @@ def test_rmrw_callable_retry():
     data_api.table_path.return_value = (
         f"projects/{PROJECT_ID}/instances/{INSTANCE_ID}/tables/{TABLE_ID}"
     )
-    worker = _make_worker(client, table.name, [row_1, row_2, row_3])
+    worker = _make_worker(table._data_table, table.name, [row_1, row_2, row_3])
     retry = DEFAULT_RETRY.with_delay(initial=0.1)
 
     statuses = worker(retry=retry)
@@ -1679,7 +1679,7 @@ def _do_mutate_retryable_rows_helper(
             data_api.mutate_rows.side_effect = mutate_rows_side_effect
         data_api.mutate_rows.return_value = [response]
 
-    worker = _make_worker(client, table.name, rows=rows)
+    worker = _make_worker(table._data_table, table.name, rows=rows)
 
     if prior_statuses is not None:
         assert len(prior_statuses) == len(rows)

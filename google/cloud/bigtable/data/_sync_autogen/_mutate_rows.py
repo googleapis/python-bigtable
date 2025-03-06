@@ -62,6 +62,8 @@ class _MutateRowsOperation:
         operation_timeout: float,
         attempt_timeout: float | None,
         retryable_exceptions: Sequence[type[Exception]] = (),
+        on_error=None,
+        predicate=None,
     ):
         total_mutations = sum((len(entry.mutations) for entry in mutation_entries))
         if total_mutations > _MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
@@ -74,7 +76,7 @@ class _MutateRowsOperation:
             app_profile_id=table.app_profile_id,
             retry=None,
         )
-        self.is_retryable = retries.if_exception_type(
+        self.is_retryable = predicate or retries.if_exception_type(
             *retryable_exceptions, bt_exceptions._MutateRowsIncomplete
         )
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
@@ -84,6 +86,7 @@ class _MutateRowsOperation:
             sleep_generator,
             operation_timeout,
             exception_factory=_retry_exception_factory,
+            on_error=on_error,
         )
         self.timeout_generator = _attempt_timeout_generator(
             attempt_timeout, operation_timeout

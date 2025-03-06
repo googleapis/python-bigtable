@@ -738,7 +738,7 @@ class Table(object):
             timeout = self.mutation_timeout
 
         retryable_mutate_rows = _RetryableMutateRowsWorker(
-            self._instance._client,
+            self._data_table,
             self.name,
             rows,
             app_profile_id=self._app_profile_id,
@@ -1081,12 +1081,12 @@ class _RetryableMutateRowsWorker(object):
     """
 
     def __init__(self, client, table_name, rows, app_profile_id=None, timeout=None):
-        self.client = client
+        self.table = client
+        self.client = self.table.client._gapic_client
         self.table_name = table_name
         self.rows = rows
-        self.app_profile_id = app_profile_id
-        self.responses_statuses = [None] * len(self.rows)
         self.timeout = timeout
+        self.responses_statuses = [None] * len(self.rows)
 
     def __call__(self, retry=DEFAULT_RETRY):
         """Attempt to mutate all rows and retry rows with transient errors.
@@ -1099,26 +1099,14 @@ class _RetryableMutateRowsWorker(object):
                   corresponding to success or failure of each row mutation
                   sent. These will be in the same order as the ``rows``.
         """
-        mutate_rows = self._do_mutate_retryable_rows
-        if retry:
-            mutate_rows = retry(self._do_mutate_retryable_rows)
-
-        try:
-            mutate_rows()
-        except (_BigtableRetryableError, RetryError):
-            # - _BigtableRetryableError raised when no retry strategy is used
-            #   and a retryable error on a mutation occurred.
-            # - RetryError raised when retry deadline is reached.
-            # In both cases, just return current `responses_statuses`.
-            pass
-
-        return self.responses_statuses
+        return self._do_mutate_retryable_rows(retry)
+ 
 
     @staticmethod
     def _is_retryable(status):
         return status is None or status.code in RETRYABLE_CODES
 
-    def _do_mutate_retryable_rows(self):
+    def _do_mutate_retryable_rows(self, retry=DEFAULT_RETRY):
         """Mutate all the rows that are eligible for retry.
 
         A row is eligible for retry if it has not been tried or if it resulted
@@ -1134,68 +1122,37 @@ class _RetryableMutateRowsWorker(object):
                  * :exc:`RuntimeError` if the number of responses doesn't
                    match the number of rows that were retried
         """
-        retryable_rows = []
-        index_into_all_rows = []
-        for index, status in enumerate(self.responses_statuses):
-            if self._is_retryable(status):
-                retryable_rows.append(self.rows[index])
-                index_into_all_rows.append(index)
+        from google.cloud.bigtable.data._sync_autogen._mutate_rows import _MutateRowsOperation
+        from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+        from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
+        from google.rpc import status_pb2
+        import proto
 
-        if not retryable_rows:
-            # All mutations are either successful or non-retryable now.
-            return self.responses_statuses
-
-        entries = _compile_mutation_entries(self.table_name, retryable_rows)
-        data_client = self.client.table_data_client
-
-        kwargs = {}
-        if self.timeout is not None:
-            kwargs["timeout"] = timeout.ExponentialTimeout(deadline=self.timeout)
+        entry_list = []
+        for r in self.rows:
+            key = r.row_key
+            dict_mutations = [proto.Message.to_dict(m) for m in r._get_mutations()]
+            mutations = [Mutation._from_dict(d) for d in dict_mutations]
+            entry_list.append(RowMutationEntry(key, mutations))
 
         try:
-            responses = data_client.mutate_rows(
-                table_name=self.table_name,
-                entries=entries,
-                app_profile_id=self.app_profile_id,
-                retry=None,
-                **kwargs
+            operation = _MutateRowsOperation(
+                self.table.client._gapic_client,
+                self.table,
+                entry_list,
+                operation_timeout=retry.timeout if retry is not None else DEFAULT_RETRY.timeout,
+                attempt_timeout=None,
+                predicate=retry._predicate if retry is not None else None,
+                on_error=retry._on_error if retry else None,
             )
-        except RETRYABLE_MUTATION_ERRORS as exc:
-            # If an exception, considered retryable by `RETRYABLE_MUTATION_ERRORS`, is
-            # returned from the initial call, consider
-            # it to be retryable. Wrap as a Bigtable Retryable Error.
-            # For InternalServerError, it is only retriable if the message is related to RST Stream messages
-            if _retriable_internal_server_error(exc) or not isinstance(
-                exc, InternalServerError
-            ):
-                raise _BigtableRetryableError
-            else:
-                # re-raise the original exception
-                raise
+            operation.start()
+        except MutationsExceptionGroup as final_exc:
+            for failed_entry_exc in final_exc.exceptions:
+                cause_exc = failed_entry_exc.__cause__
+                status_code = cause_exc.grpc_status_code.value[0]
+                self.responses_statuses[failed_entry_exc.index] = status_pb2.Status(code=status_code)
 
-        num_responses = 0
-        num_retryable_responses = 0
-        for response in responses:
-            for entry in response.entries:
-                num_responses += 1
-                index = index_into_all_rows[entry.index]
-                self.responses_statuses[index] = entry.status
-                if self._is_retryable(entry.status):
-                    num_retryable_responses += 1
-                if entry.status.code == 0:
-                    self.rows[index].clear()
-
-        if len(retryable_rows) != num_responses:
-            raise RuntimeError(
-                "Unexpected number of responses",
-                num_responses,
-                "Expected",
-                len(retryable_rows),
-            )
-
-        if num_retryable_responses:
-            raise _BigtableRetryableError
-
+        self.responses_statuses = [status_pb2.Status() if s is None else s for s in self.responses_statuses]
         return self.responses_statuses
 
 
