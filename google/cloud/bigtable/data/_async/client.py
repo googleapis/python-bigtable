@@ -371,7 +371,9 @@ class BigtableDataClientAsync(ClientWithProject):
             old_channel = self.transport.grpc_channel
             new_channel = self.transport.create_channel()
             if CrossSync.is_async:
-                new_channel._unary_unary_interceptors.append(self.transport._interceptor)
+                new_channel._unary_unary_interceptors.append(
+                    self.transport._interceptor
+                )
             else:
                 new_channel = intercept_channel(
                     new_channel, self.transport._interceptor
