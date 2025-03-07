@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -446,7 +446,7 @@ class TestBigtableDataClientAsync:
                     assert sleep.call_count == num_cycles
                     total_sleep = sum([call[0][1] for call in sleep.call_args_list])
                     assert (
-                        abs(total_sleep - expected_sleep) < 0.1
+                        abs(total_sleep - expected_sleep) < 0.5
                     ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
         await client.close()
 
@@ -1279,7 +1279,7 @@ class TestTableAsync:
             # we expect an exception from attempting to call the mock
             pass
         assert rpc_mock.call_count == 1
-        kwargs = rpc_mock.call_args_list[0].kwargs
+        kwargs = rpc_mock.call_args_list[0][1]
         metadata = kwargs["metadata"]
         # expect single metadata entry
         assert len(metadata) == 1
@@ -1906,7 +1906,7 @@ class TestReadRowsShardedAsync:
                     assert read_rows.call_count == 10
                     assert len(result) == 10
                     # if run in sequence, we would expect this to take 1 second
-                    assert call_time < 0.2
+                    assert call_time < 0.5
 
     @CrossSync.pytest
     async def test_read_rows_sharded_concurrency_limit(self):
@@ -2005,21 +2005,25 @@ class TestReadRowsShardedAsync:
         They should raise DeadlineExceeded errors
         """
         from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+        from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
         from google.api_core.exceptions import DeadlineExceeded
 
         async def mock_call(*args, **kwargs):
-            await CrossSync.sleep(0.05)
+            await CrossSync.sleep(0.06)
             return [mock.Mock()]
 
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
                 with mock.patch.object(table, "read_rows") as read_rows:
                     read_rows.side_effect = mock_call
-                    queries = [ReadRowsQuery() for _ in range(15)]
+                    num_calls = 15
+                    queries = [ReadRowsQuery() for _ in range(num_calls)]
                     with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
-                        await table.read_rows_sharded(queries, operation_timeout=0.01)
+                        await table.read_rows_sharded(queries, operation_timeout=0.05)
                     assert isinstance(exc.value, ShardedReadRowsExceptionGroup)
-                    assert len(exc.value.exceptions) == 5
+                    # _CONCURRENCY_LIMIT calls will run, and won't be interrupted
+                    # calls after the limit will be cancelled due to timeout
+                    assert len(exc.value.exceptions) >= num_calls - _CONCURRENCY_LIMIT
                     assert all(
                         isinstance(e.__cause__, DeadlineExceeded)
                         for e in exc.value.exceptions

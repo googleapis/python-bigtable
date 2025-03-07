@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -85,8 +85,10 @@ if CrossSync.is_async:
     )
     from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 else:
+    from typing import Iterable  # noqa: F401
     from grpc import insecure_channel
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
+    from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
 
 
 if TYPE_CHECKING:
@@ -99,6 +101,13 @@ if TYPE_CHECKING:
         )
         from google.cloud.bigtable.data.execute_query._async.execute_query_iterator import (
             ExecuteQueryIteratorAsync,
+        )
+    else:
+        from google.cloud.bigtable.data._sync_autogen.mutations_batcher import (  # noqa: F401
+            MutationsBatcher,
+        )
+        from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (  # noqa: F401
+            ExecuteQueryIterator,
         )
 
 
@@ -155,8 +164,8 @@ class BigtableDataClientAsync(ClientWithProject):
         if "pool_size" in kwargs:
             warnings.warn("pool_size no longer supported")
         # set up client info headers for veneer library
-        client_info = DEFAULT_CLIENT_INFO
-        client_info.client_library_version = self._client_version()
+        self.client_info = DEFAULT_CLIENT_INFO
+        self.client_info.client_library_version = self._client_version()
         # parse client options
         if type(client_options) is dict:
             client_options = client_options_lib.from_dict(client_options)
@@ -187,7 +196,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._gapic_client = CrossSync.GapicClient(
             credentials=credentials,
             client_options=client_options,
-            client_info=client_info,
+            client_info=self.client_info,
             transport=lambda *args, **kwargs: TransportType(
                 *args, **kwargs, channel=custom_channel
             ),
@@ -362,6 +371,9 @@ class BigtableDataClientAsync(ClientWithProject):
             await self._ping_and_warm_instances(channel=new_channel)
             # cycle channel out of use, with long grace window before closure
             self.transport._grpc_channel = new_channel
+            # invalidate caches
+            self.transport._stubs = {}
+            self.transport._prep_wrapped_messages(self.client_info)
             # give old_channel a chance to complete existing rpcs
             if CrossSync.is_async:
                 await old_channel.close(grace_period)
@@ -560,6 +572,8 @@ class BigtableDataClientAsync(ClientWithProject):
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
             google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
+            google.cloud.bigtable.data.exceptions.ParameterTypeInferenceFailed: Raised if
+                a parameter is passed without an explicit type, and the type cannot be infered
         """
         warnings.warn(
             "ExecuteQuery is in preview and may change in the future.",

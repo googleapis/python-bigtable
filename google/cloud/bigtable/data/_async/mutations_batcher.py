@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Sequence, TYPE_CHECKING
+from typing import Sequence, TYPE_CHECKING, cast
 import atexit
 import warnings
 from collections import deque
@@ -250,7 +250,7 @@ class MutationsBatcherAsync:
         )
         # used by sync class to manage flush_internal tasks
         self._sync_flush_executor = (
-            concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            concurrent.futures.ThreadPoolExecutor(max_workers=4)
             if not CrossSync.is_async
             else None
         )
@@ -305,7 +305,7 @@ class MutationsBatcherAsync:
         # TODO: return a future to track completion of this entry
         if self._closed.is_set():
             raise RuntimeError("Cannot append to closed MutationsBatcher")
-        if isinstance(mutation_entry, Mutation):  # type: ignore
+        if isinstance(cast(Mutation, mutation_entry), Mutation):
             raise ValueError(
                 f"invalid mutation type: {type(mutation_entry).__name__}. Only RowMutationEntry objects are supported by batcher"
             )

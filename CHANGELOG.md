@@ -4,6 +4,32 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.29.0](https://github.com/googleapis/python-bigtable/compare/v2.28.1...v2.29.0) (2025-02-26)
+
+
+### Features
+
+* Add support for array and float32 SQL query params ([#1078](https://github.com/googleapis/python-bigtable/issues/1078)) ([89b8da8](https://github.com/googleapis/python-bigtable/commit/89b8da8a445aeb08854d9fa77cbc0e4fc042c87f))
+
+
+### Bug Fixes
+
+* Grpc channel refresh ([#1087](https://github.com/googleapis/python-bigtable/issues/1087)) ([f44b36b](https://github.com/googleapis/python-bigtable/commit/f44b36bf51e3e4e3b8a774f96e682d3f1f8d4b16))
+
+## [2.28.1](https://github.com/googleapis/python-bigtable/compare/v2.28.0...v2.28.1) (2025-01-17)
+
+
+### Bug Fixes
+
+* Allow empty headers for btql routing ([#1072](https://github.com/googleapis/python-bigtable/issues/1072)) ([e7ecfeb](https://github.com/googleapis/python-bigtable/commit/e7ecfeb8984a45c880d9483305964fff347eb4b8))
+
+## [2.28.0](https://github.com/googleapis/python-bigtable/compare/v2.27.0...v2.28.0) (2025-01-08)
+
+
+### Features
+
+* Add generated sync client ([#1017](https://github.com/googleapis/python-bigtable/issues/1017)) ([f974823](https://github.com/googleapis/python-bigtable/commit/f974823bf8a74c2f8b1bc69997b13bc1acaf8bef))
+
 ## [2.27.0](https://github.com/googleapis/python-bigtable/compare/v2.26.0...v2.27.0) (2024-11-12)
 
 
