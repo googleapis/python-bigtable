@@ -80,6 +80,14 @@ from google.type import expr_pb2  # type: ignore
 import google.auth
 
 
+CRED_INFO_JSON = {
+    "credential_source": "/path/to/file",
+    "credential_type": "service account credentials",
+    "principal": "service-account@example.com",
+}
+CRED_INFO_STRING = json.dumps(CRED_INFO_JSON)
+
+
 async def mock_async_gen(data, chunk_size=1):
     for i in range(0, len(data)):  # pragma: NO COVER
         chunk = data[i : i + chunk_size]
@@ -352,6 +360,49 @@ def test__get_universe_domain():
     with pytest.raises(ValueError) as excinfo:
         BigtableInstanceAdminClient._get_universe_domain("", None)
     assert str(excinfo.value) == "Universe Domain cannot be an empty string."
+
+
+@pytest.mark.parametrize(
+    "error_code,cred_info_json,show_cred_info",
+    [
+        (401, CRED_INFO_JSON, True),
+        (403, CRED_INFO_JSON, True),
+        (404, CRED_INFO_JSON, True),
+        (500, CRED_INFO_JSON, False),
+        (401, None, False),
+        (403, None, False),
+        (404, None, False),
+        (500, None, False),
+    ],
+)
+def test__add_cred_info_for_auth_errors(error_code, cred_info_json, show_cred_info):
+    cred = mock.Mock(["get_cred_info"])
+    cred.get_cred_info = mock.Mock(return_value=cred_info_json)
+    client = BigtableInstanceAdminClient(credentials=cred)
+    client._transport._credentials = cred
+
+    error = core_exceptions.GoogleAPICallError("message", details=["foo"])
+    error.code = error_code
+
+    client._add_cred_info_for_auth_errors(error)
+    if show_cred_info:
+        assert error.details == ["foo", CRED_INFO_STRING]
+    else:
+        assert error.details == ["foo"]
+
+
+@pytest.mark.parametrize("error_code", [401, 403, 404, 500])
+def test__add_cred_info_for_auth_errors_no_get_cred_info(error_code):
+    cred = mock.Mock([])
+    assert not hasattr(cred, "get_cred_info")
+    client = BigtableInstanceAdminClient(credentials=cred)
+    client._transport._credentials = cred
+
+    error = core_exceptions.GoogleAPICallError("message", details=[])
+    error.code = error_code
+
+    client._add_cred_info_for_auth_errors(error)
+    assert error.details == []
 
 
 @pytest.mark.parametrize(
@@ -1535,6 +1586,7 @@ def test_get_instance(request_type, transport: str = "grpc"):
             state=instance.Instance.State.READY,
             type_=instance.Instance.Type.PRODUCTION,
             satisfies_pzs=True,
+            satisfies_pzi=True,
         )
         response = client.get_instance(request)
 
@@ -1551,6 +1603,7 @@ def test_get_instance(request_type, transport: str = "grpc"):
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 def test_get_instance_non_empty_request_with_auto_populated_field():
@@ -1682,6 +1735,7 @@ async def test_get_instance_async(
                 state=instance.Instance.State.READY,
                 type_=instance.Instance.Type.PRODUCTION,
                 satisfies_pzs=True,
+                satisfies_pzi=True,
             )
         )
         response = await client.get_instance(request)
@@ -1699,6 +1753,7 @@ async def test_get_instance_async(
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 @pytest.mark.asyncio
@@ -2202,6 +2257,7 @@ def test_update_instance(request_type, transport: str = "grpc"):
             state=instance.Instance.State.READY,
             type_=instance.Instance.Type.PRODUCTION,
             satisfies_pzs=True,
+            satisfies_pzi=True,
         )
         response = client.update_instance(request)
 
@@ -2218,6 +2274,7 @@ def test_update_instance(request_type, transport: str = "grpc"):
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 def test_update_instance_non_empty_request_with_auto_populated_field():
@@ -2350,6 +2407,7 @@ async def test_update_instance_async(
                 state=instance.Instance.State.READY,
                 type_=instance.Instance.Type.PRODUCTION,
                 satisfies_pzs=True,
+                satisfies_pzi=True,
             )
         )
         response = await client.update_instance(request)
@@ -2367,6 +2425,7 @@ async def test_update_instance_async(
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 @pytest.mark.asyncio
@@ -6896,6 +6955,7 @@ def test_delete_app_profile_flattened():
         # using the keyword arguments to the method.
         client.delete_app_profile(
             name="name_value",
+            ignore_warnings=True,
         )
 
         # Establish that the underlying call was made with the expected
@@ -6904,6 +6964,9 @@ def test_delete_app_profile_flattened():
         _, args, _ = call.mock_calls[0]
         arg = args[0].name
         mock_val = "name_value"
+        assert arg == mock_val
+        arg = args[0].ignore_warnings
+        mock_val = True
         assert arg == mock_val
 
 
@@ -6918,6 +6981,7 @@ def test_delete_app_profile_flattened_error():
         client.delete_app_profile(
             bigtable_instance_admin.DeleteAppProfileRequest(),
             name="name_value",
+            ignore_warnings=True,
         )
 
 
@@ -6939,6 +7003,7 @@ async def test_delete_app_profile_flattened_async():
         # using the keyword arguments to the method.
         response = await client.delete_app_profile(
             name="name_value",
+            ignore_warnings=True,
         )
 
         # Establish that the underlying call was made with the expected
@@ -6947,6 +7012,9 @@ async def test_delete_app_profile_flattened_async():
         _, args, _ = call.mock_calls[0]
         arg = args[0].name
         mock_val = "name_value"
+        assert arg == mock_val
+        arg = args[0].ignore_warnings
+        mock_val = True
         assert arg == mock_val
 
 
@@ -6962,6 +7030,7 @@ async def test_delete_app_profile_flattened_error_async():
         await client.delete_app_profile(
             bigtable_instance_admin.DeleteAppProfileRequest(),
             name="name_value",
+            ignore_warnings=True,
         )
 
 
@@ -8647,6 +8716,7 @@ def test_create_instance_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.create_instance(request)
 
@@ -8703,6 +8773,7 @@ def test_create_instance_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.create_instance(**mock_args)
 
@@ -8835,6 +8906,7 @@ def test_get_instance_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.get_instance(request)
 
@@ -8880,6 +8952,7 @@ def test_get_instance_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.get_instance(**mock_args)
 
@@ -9013,6 +9086,7 @@ def test_list_instances_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.list_instances(request)
 
@@ -9058,6 +9132,7 @@ def test_list_instances_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.list_instances(**mock_args)
 
@@ -9186,6 +9261,7 @@ def test_update_instance_rest_required_fields(request_type=instance.Instance):
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.update_instance(request)
 
@@ -9309,6 +9385,7 @@ def test_partial_update_instance_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.partial_update_instance(request)
 
@@ -9361,6 +9438,7 @@ def test_partial_update_instance_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.partial_update_instance(**mock_args)
 
@@ -9489,6 +9567,7 @@ def test_delete_instance_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.delete_instance(request)
 
@@ -9532,6 +9611,7 @@ def test_delete_instance_rest_flattened():
         json_return_value = ""
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.delete_instance(**mock_args)
 
@@ -9672,6 +9752,7 @@ def test_create_cluster_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.create_cluster(request)
 
@@ -9732,6 +9813,7 @@ def test_create_cluster_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.create_cluster(**mock_args)
 
@@ -9864,6 +9946,7 @@ def test_get_cluster_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.get_cluster(request)
 
@@ -9909,6 +9992,7 @@ def test_get_cluster_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.get_cluster(**mock_args)
 
@@ -10041,6 +10125,7 @@ def test_list_clusters_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.list_clusters(request)
 
@@ -10086,6 +10171,7 @@ def test_list_clusters_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.list_clusters(**mock_args)
 
@@ -10260,6 +10346,7 @@ def test_partial_update_cluster_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.partial_update_cluster(request)
 
@@ -10314,6 +10401,7 @@ def test_partial_update_cluster_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.partial_update_cluster(**mock_args)
 
@@ -10443,6 +10531,7 @@ def test_delete_cluster_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.delete_cluster(request)
 
@@ -10486,6 +10575,7 @@ def test_delete_cluster_rest_flattened():
         json_return_value = ""
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.delete_cluster(**mock_args)
 
@@ -10635,6 +10725,7 @@ def test_create_app_profile_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.create_app_profile(request)
 
@@ -10702,6 +10793,7 @@ def test_create_app_profile_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.create_app_profile(**mock_args)
 
@@ -10835,6 +10927,7 @@ def test_get_app_profile_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.get_app_profile(request)
 
@@ -10882,6 +10975,7 @@ def test_get_app_profile_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.get_app_profile(**mock_args)
 
@@ -11024,6 +11118,7 @@ def test_list_app_profiles_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.list_app_profiles(request)
 
@@ -11077,6 +11172,7 @@ def test_list_app_profiles_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.list_app_profiles(**mock_args)
 
@@ -11279,6 +11375,7 @@ def test_update_app_profile_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.update_app_profile(request)
 
@@ -11340,6 +11437,7 @@ def test_update_app_profile_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.update_app_profile(**mock_args)
 
@@ -11482,6 +11580,7 @@ def test_delete_app_profile_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.delete_app_profile(request)
 
@@ -11532,6 +11631,7 @@ def test_delete_app_profile_rest_flattened():
         # get truthy value for each flattened field
         mock_args = dict(
             name="name_value",
+            ignore_warnings=True,
         )
         mock_args.update(sample_request)
 
@@ -11541,6 +11641,7 @@ def test_delete_app_profile_rest_flattened():
         json_return_value = ""
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.delete_app_profile(**mock_args)
 
@@ -11567,6 +11668,7 @@ def test_delete_app_profile_rest_flattened_error(transport: str = "rest"):
         client.delete_app_profile(
             bigtable_instance_admin.DeleteAppProfileRequest(),
             name="name_value",
+            ignore_warnings=True,
         )
 
 
@@ -11671,6 +11773,7 @@ def test_get_iam_policy_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.get_iam_policy(request)
 
@@ -11714,6 +11817,7 @@ def test_get_iam_policy_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.get_iam_policy(**mock_args)
 
@@ -11844,6 +11948,7 @@ def test_set_iam_policy_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.set_iam_policy(request)
 
@@ -11895,6 +12000,7 @@ def test_set_iam_policy_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.set_iam_policy(**mock_args)
 
@@ -12033,6 +12139,7 @@ def test_test_iam_permissions_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.test_iam_permissions(request)
 
@@ -12085,6 +12192,7 @@ def test_test_iam_permissions_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.test_iam_permissions(**mock_args)
 
@@ -12230,6 +12338,7 @@ def test_list_hot_tablets_rest_required_fields(
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
+            req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
             response = client.list_hot_tablets(request)
 
@@ -12287,6 +12396,7 @@ def test_list_hot_tablets_rest_flattened():
         json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         client.list_hot_tablets(**mock_args)
 
@@ -13000,6 +13110,7 @@ async def test_get_instance_empty_call_grpc_asyncio():
                 state=instance.Instance.State.READY,
                 type_=instance.Instance.Type.PRODUCTION,
                 satisfies_pzs=True,
+                satisfies_pzi=True,
             )
         )
         await client.get_instance(request=None)
@@ -13059,6 +13170,7 @@ async def test_update_instance_empty_call_grpc_asyncio():
                 state=instance.Instance.State.READY,
                 type_=instance.Instance.Type.PRODUCTION,
                 satisfies_pzs=True,
+                satisfies_pzi=True,
             )
         )
         await client.update_instance(request=None)
@@ -13563,6 +13675,7 @@ def test_create_instance_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.create_instance(request)
 
 
@@ -13593,6 +13706,7 @@ def test_create_instance_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.create_instance(request)
 
     # Establish that the response is the type that we expect.
@@ -13618,10 +13732,14 @@ def test_create_instance_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_create_instance"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_create_instance_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_create_instance"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.CreateInstanceRequest.pb(
             bigtable_instance_admin.CreateInstanceRequest()
         )
@@ -13634,6 +13752,7 @@ def test_create_instance_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = json_format.MessageToJson(operations_pb2.Operation())
         req.return_value.content = return_value
 
@@ -13644,6 +13763,7 @@ def test_create_instance_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.create_instance(
             request,
@@ -13655,6 +13775,7 @@ def test_create_instance_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_get_instance_rest_bad_request(
@@ -13678,6 +13799,7 @@ def test_get_instance_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.get_instance(request)
 
 
@@ -13706,6 +13828,7 @@ def test_get_instance_rest_call_success(request_type):
             state=instance.Instance.State.READY,
             type_=instance.Instance.Type.PRODUCTION,
             satisfies_pzs=True,
+            satisfies_pzi=True,
         )
 
         # Wrap the value into a proper Response obj
@@ -13717,6 +13840,7 @@ def test_get_instance_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.get_instance(request)
 
     # Establish that the response is the type that we expect.
@@ -13726,6 +13850,7 @@ def test_get_instance_rest_call_success(request_type):
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 @pytest.mark.parametrize("null_interceptor", [True, False])
@@ -13745,10 +13870,14 @@ def test_get_instance_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_get_instance"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_get_instance_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_get_instance"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.GetInstanceRequest.pb(
             bigtable_instance_admin.GetInstanceRequest()
         )
@@ -13761,6 +13890,7 @@ def test_get_instance_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = instance.Instance.to_json(instance.Instance())
         req.return_value.content = return_value
 
@@ -13771,6 +13901,7 @@ def test_get_instance_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = instance.Instance()
+        post_with_metadata.return_value = instance.Instance(), metadata
 
         client.get_instance(
             request,
@@ -13782,6 +13913,7 @@ def test_get_instance_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_list_instances_rest_bad_request(
@@ -13805,6 +13937,7 @@ def test_list_instances_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.list_instances(request)
 
 
@@ -13841,6 +13974,7 @@ def test_list_instances_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.list_instances(request)
 
     assert response.raw_page is response
@@ -13868,10 +14002,14 @@ def test_list_instances_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_list_instances"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_list_instances_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_list_instances"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.ListInstancesRequest.pb(
             bigtable_instance_admin.ListInstancesRequest()
         )
@@ -13884,6 +14022,7 @@ def test_list_instances_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable_instance_admin.ListInstancesResponse.to_json(
             bigtable_instance_admin.ListInstancesResponse()
         )
@@ -13896,6 +14035,10 @@ def test_list_instances_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable_instance_admin.ListInstancesResponse()
+        post_with_metadata.return_value = (
+            bigtable_instance_admin.ListInstancesResponse(),
+            metadata,
+        )
 
         client.list_instances(
             request,
@@ -13907,6 +14050,7 @@ def test_list_instances_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_update_instance_rest_bad_request(request_type=instance.Instance):
@@ -13928,6 +14072,7 @@ def test_update_instance_rest_bad_request(request_type=instance.Instance):
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.update_instance(request)
 
 
@@ -13956,6 +14101,7 @@ def test_update_instance_rest_call_success(request_type):
             state=instance.Instance.State.READY,
             type_=instance.Instance.Type.PRODUCTION,
             satisfies_pzs=True,
+            satisfies_pzi=True,
         )
 
         # Wrap the value into a proper Response obj
@@ -13967,6 +14113,7 @@ def test_update_instance_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.update_instance(request)
 
     # Establish that the response is the type that we expect.
@@ -13976,6 +14123,7 @@ def test_update_instance_rest_call_success(request_type):
     assert response.state == instance.Instance.State.READY
     assert response.type_ == instance.Instance.Type.PRODUCTION
     assert response.satisfies_pzs is True
+    assert response.satisfies_pzi is True
 
 
 @pytest.mark.parametrize("null_interceptor", [True, False])
@@ -13995,10 +14143,14 @@ def test_update_instance_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_update_instance"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_update_instance_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_update_instance"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = instance.Instance.pb(instance.Instance())
         transcode.return_value = {
             "method": "post",
@@ -14009,6 +14161,7 @@ def test_update_instance_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = instance.Instance.to_json(instance.Instance())
         req.return_value.content = return_value
 
@@ -14019,6 +14172,7 @@ def test_update_instance_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = instance.Instance()
+        post_with_metadata.return_value = instance.Instance(), metadata
 
         client.update_instance(
             request,
@@ -14030,6 +14184,7 @@ def test_update_instance_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_partial_update_instance_rest_bad_request(
@@ -14053,6 +14208,7 @@ def test_partial_update_instance_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.partial_update_instance(request)
 
 
@@ -14078,6 +14234,7 @@ def test_partial_update_instance_rest_call_success(request_type):
         "labels": {},
         "create_time": {"seconds": 751, "nanos": 543},
         "satisfies_pzs": True,
+        "satisfies_pzi": True,
     }
     # The version of a generated dependency at test runtime may differ from the version used during generation.
     # Delete any fields which are not present in the current runtime dependency
@@ -14161,6 +14318,7 @@ def test_partial_update_instance_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.partial_update_instance(request)
 
     # Establish that the response is the type that we expect.
@@ -14186,10 +14344,14 @@ def test_partial_update_instance_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_partial_update_instance"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_partial_update_instance_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_partial_update_instance"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.PartialUpdateInstanceRequest.pb(
             bigtable_instance_admin.PartialUpdateInstanceRequest()
         )
@@ -14202,6 +14364,7 @@ def test_partial_update_instance_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = json_format.MessageToJson(operations_pb2.Operation())
         req.return_value.content = return_value
 
@@ -14212,6 +14375,7 @@ def test_partial_update_instance_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.partial_update_instance(
             request,
@@ -14223,6 +14387,7 @@ def test_partial_update_instance_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_delete_instance_rest_bad_request(
@@ -14246,6 +14411,7 @@ def test_delete_instance_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.delete_instance(request)
 
 
@@ -14276,6 +14442,7 @@ def test_delete_instance_rest_call_success(request_type):
         json_return_value = ""
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.delete_instance(request)
 
     # Establish that the response is the type that we expect.
@@ -14312,6 +14479,7 @@ def test_delete_instance_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         request = bigtable_instance_admin.DeleteInstanceRequest()
         metadata = [
@@ -14352,6 +14520,7 @@ def test_create_cluster_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.create_cluster(request)
 
 
@@ -14470,6 +14639,7 @@ def test_create_cluster_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.create_cluster(request)
 
     # Establish that the response is the type that we expect.
@@ -14495,10 +14665,14 @@ def test_create_cluster_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_create_cluster"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_create_cluster_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_create_cluster"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.CreateClusterRequest.pb(
             bigtable_instance_admin.CreateClusterRequest()
         )
@@ -14511,6 +14685,7 @@ def test_create_cluster_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = json_format.MessageToJson(operations_pb2.Operation())
         req.return_value.content = return_value
 
@@ -14521,6 +14696,7 @@ def test_create_cluster_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.create_cluster(
             request,
@@ -14532,6 +14708,7 @@ def test_create_cluster_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_get_cluster_rest_bad_request(
@@ -14555,6 +14732,7 @@ def test_get_cluster_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.get_cluster(request)
 
 
@@ -14595,6 +14773,7 @@ def test_get_cluster_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.get_cluster(request)
 
     # Establish that the response is the type that we expect.
@@ -14627,10 +14806,14 @@ def test_get_cluster_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_get_cluster"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_get_cluster_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_get_cluster"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.GetClusterRequest.pb(
             bigtable_instance_admin.GetClusterRequest()
         )
@@ -14643,6 +14826,7 @@ def test_get_cluster_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = instance.Cluster.to_json(instance.Cluster())
         req.return_value.content = return_value
 
@@ -14653,6 +14837,7 @@ def test_get_cluster_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = instance.Cluster()
+        post_with_metadata.return_value = instance.Cluster(), metadata
 
         client.get_cluster(
             request,
@@ -14664,6 +14849,7 @@ def test_get_cluster_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_list_clusters_rest_bad_request(
@@ -14687,6 +14873,7 @@ def test_list_clusters_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.list_clusters(request)
 
 
@@ -14723,6 +14910,7 @@ def test_list_clusters_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.list_clusters(request)
 
     assert response.raw_page is response
@@ -14750,10 +14938,14 @@ def test_list_clusters_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_list_clusters"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_list_clusters_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_list_clusters"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.ListClustersRequest.pb(
             bigtable_instance_admin.ListClustersRequest()
         )
@@ -14766,6 +14958,7 @@ def test_list_clusters_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable_instance_admin.ListClustersResponse.to_json(
             bigtable_instance_admin.ListClustersResponse()
         )
@@ -14778,6 +14971,10 @@ def test_list_clusters_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable_instance_admin.ListClustersResponse()
+        post_with_metadata.return_value = (
+            bigtable_instance_admin.ListClustersResponse(),
+            metadata,
+        )
 
         client.list_clusters(
             request,
@@ -14789,6 +14986,7 @@ def test_list_clusters_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_update_cluster_rest_bad_request(request_type=instance.Cluster):
@@ -14810,6 +15008,7 @@ def test_update_cluster_rest_bad_request(request_type=instance.Cluster):
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.update_cluster(request)
 
 
@@ -14840,6 +15039,7 @@ def test_update_cluster_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.update_cluster(request)
 
     # Establish that the response is the type that we expect.
@@ -14865,10 +15065,14 @@ def test_update_cluster_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_update_cluster"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_update_cluster_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_update_cluster"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = instance.Cluster.pb(instance.Cluster())
         transcode.return_value = {
             "method": "post",
@@ -14879,6 +15083,7 @@ def test_update_cluster_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = json_format.MessageToJson(operations_pb2.Operation())
         req.return_value.content = return_value
 
@@ -14889,6 +15094,7 @@ def test_update_cluster_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.update_cluster(
             request,
@@ -14900,6 +15106,7 @@ def test_update_cluster_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_partial_update_cluster_rest_bad_request(
@@ -14925,6 +15132,7 @@ def test_partial_update_cluster_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.partial_update_cluster(request)
 
 
@@ -15047,6 +15255,7 @@ def test_partial_update_cluster_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.partial_update_cluster(request)
 
     # Establish that the response is the type that we expect.
@@ -15072,10 +15281,14 @@ def test_partial_update_cluster_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_partial_update_cluster"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_partial_update_cluster_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_partial_update_cluster"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.PartialUpdateClusterRequest.pb(
             bigtable_instance_admin.PartialUpdateClusterRequest()
         )
@@ -15088,6 +15301,7 @@ def test_partial_update_cluster_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = json_format.MessageToJson(operations_pb2.Operation())
         req.return_value.content = return_value
 
@@ -15098,6 +15312,7 @@ def test_partial_update_cluster_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.partial_update_cluster(
             request,
@@ -15109,6 +15324,7 @@ def test_partial_update_cluster_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_delete_cluster_rest_bad_request(
@@ -15132,6 +15348,7 @@ def test_delete_cluster_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.delete_cluster(request)
 
 
@@ -15162,6 +15379,7 @@ def test_delete_cluster_rest_call_success(request_type):
         json_return_value = ""
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.delete_cluster(request)
 
     # Establish that the response is the type that we expect.
@@ -15198,6 +15416,7 @@ def test_delete_cluster_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         request = bigtable_instance_admin.DeleteClusterRequest()
         metadata = [
@@ -15238,6 +15457,7 @@ def test_create_app_profile_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.create_app_profile(request)
 
 
@@ -15361,6 +15581,7 @@ def test_create_app_profile_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.create_app_profile(request)
 
     # Establish that the response is the type that we expect.
@@ -15387,10 +15608,14 @@ def test_create_app_profile_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_create_app_profile"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_create_app_profile_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_create_app_profile"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.CreateAppProfileRequest.pb(
             bigtable_instance_admin.CreateAppProfileRequest()
         )
@@ -15403,6 +15628,7 @@ def test_create_app_profile_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = instance.AppProfile.to_json(instance.AppProfile())
         req.return_value.content = return_value
 
@@ -15413,6 +15639,7 @@ def test_create_app_profile_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = instance.AppProfile()
+        post_with_metadata.return_value = instance.AppProfile(), metadata
 
         client.create_app_profile(
             request,
@@ -15424,6 +15651,7 @@ def test_create_app_profile_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_get_app_profile_rest_bad_request(
@@ -15447,6 +15675,7 @@ def test_get_app_profile_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.get_app_profile(request)
 
 
@@ -15485,6 +15714,7 @@ def test_get_app_profile_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.get_app_profile(request)
 
     # Establish that the response is the type that we expect.
@@ -15511,10 +15741,14 @@ def test_get_app_profile_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_get_app_profile"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_get_app_profile_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_get_app_profile"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.GetAppProfileRequest.pb(
             bigtable_instance_admin.GetAppProfileRequest()
         )
@@ -15527,6 +15761,7 @@ def test_get_app_profile_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = instance.AppProfile.to_json(instance.AppProfile())
         req.return_value.content = return_value
 
@@ -15537,6 +15772,7 @@ def test_get_app_profile_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = instance.AppProfile()
+        post_with_metadata.return_value = instance.AppProfile(), metadata
 
         client.get_app_profile(
             request,
@@ -15548,6 +15784,7 @@ def test_get_app_profile_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_list_app_profiles_rest_bad_request(
@@ -15571,6 +15808,7 @@ def test_list_app_profiles_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.list_app_profiles(request)
 
 
@@ -15607,6 +15845,7 @@ def test_list_app_profiles_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.list_app_profiles(request)
 
     # Establish that the response is the type that we expect.
@@ -15632,10 +15871,14 @@ def test_list_app_profiles_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_list_app_profiles"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_list_app_profiles_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_list_app_profiles"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.ListAppProfilesRequest.pb(
             bigtable_instance_admin.ListAppProfilesRequest()
         )
@@ -15648,6 +15891,7 @@ def test_list_app_profiles_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable_instance_admin.ListAppProfilesResponse.to_json(
             bigtable_instance_admin.ListAppProfilesResponse()
         )
@@ -15660,6 +15904,10 @@ def test_list_app_profiles_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable_instance_admin.ListAppProfilesResponse()
+        post_with_metadata.return_value = (
+            bigtable_instance_admin.ListAppProfilesResponse(),
+            metadata,
+        )
 
         client.list_app_profiles(
             request,
@@ -15671,6 +15919,7 @@ def test_list_app_profiles_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_update_app_profile_rest_bad_request(
@@ -15698,6 +15947,7 @@ def test_update_app_profile_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.update_app_profile(request)
 
 
@@ -15817,6 +16067,7 @@ def test_update_app_profile_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.update_app_profile(request)
 
     # Establish that the response is the type that we expect.
@@ -15842,10 +16093,14 @@ def test_update_app_profile_rest_interceptors(null_interceptor):
     ), mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_update_app_profile"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_update_app_profile_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_update_app_profile"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.UpdateAppProfileRequest.pb(
             bigtable_instance_admin.UpdateAppProfileRequest()
         )
@@ -15858,6 +16113,7 @@ def test_update_app_profile_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = json_format.MessageToJson(operations_pb2.Operation())
         req.return_value.content = return_value
 
@@ -15868,6 +16124,7 @@ def test_update_app_profile_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = operations_pb2.Operation()
+        post_with_metadata.return_value = operations_pb2.Operation(), metadata
 
         client.update_app_profile(
             request,
@@ -15879,6 +16136,7 @@ def test_update_app_profile_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_delete_app_profile_rest_bad_request(
@@ -15902,6 +16160,7 @@ def test_delete_app_profile_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.delete_app_profile(request)
 
 
@@ -15932,6 +16191,7 @@ def test_delete_app_profile_rest_call_success(request_type):
         json_return_value = ""
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.delete_app_profile(request)
 
     # Establish that the response is the type that we expect.
@@ -15968,6 +16228,7 @@ def test_delete_app_profile_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
         request = bigtable_instance_admin.DeleteAppProfileRequest()
         metadata = [
@@ -16008,6 +16269,7 @@ def test_get_iam_policy_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.get_iam_policy(request)
 
 
@@ -16041,6 +16303,7 @@ def test_get_iam_policy_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.get_iam_policy(request)
 
     # Establish that the response is the type that we expect.
@@ -16066,10 +16329,14 @@ def test_get_iam_policy_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_get_iam_policy"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_get_iam_policy_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_get_iam_policy"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = iam_policy_pb2.GetIamPolicyRequest()
         transcode.return_value = {
             "method": "post",
@@ -16080,6 +16347,7 @@ def test_get_iam_policy_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = json_format.MessageToJson(policy_pb2.Policy())
         req.return_value.content = return_value
 
@@ -16090,6 +16358,7 @@ def test_get_iam_policy_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = policy_pb2.Policy()
+        post_with_metadata.return_value = policy_pb2.Policy(), metadata
 
         client.get_iam_policy(
             request,
@@ -16101,6 +16370,7 @@ def test_get_iam_policy_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_set_iam_policy_rest_bad_request(
@@ -16124,6 +16394,7 @@ def test_set_iam_policy_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.set_iam_policy(request)
 
 
@@ -16157,6 +16428,7 @@ def test_set_iam_policy_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.set_iam_policy(request)
 
     # Establish that the response is the type that we expect.
@@ -16182,10 +16454,14 @@ def test_set_iam_policy_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_set_iam_policy"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_set_iam_policy_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_set_iam_policy"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = iam_policy_pb2.SetIamPolicyRequest()
         transcode.return_value = {
             "method": "post",
@@ -16196,6 +16472,7 @@ def test_set_iam_policy_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = json_format.MessageToJson(policy_pb2.Policy())
         req.return_value.content = return_value
 
@@ -16206,6 +16483,7 @@ def test_set_iam_policy_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = policy_pb2.Policy()
+        post_with_metadata.return_value = policy_pb2.Policy(), metadata
 
         client.set_iam_policy(
             request,
@@ -16217,6 +16495,7 @@ def test_set_iam_policy_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_test_iam_permissions_rest_bad_request(
@@ -16240,6 +16519,7 @@ def test_test_iam_permissions_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.test_iam_permissions(request)
 
 
@@ -16272,6 +16552,7 @@ def test_test_iam_permissions_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.test_iam_permissions(request)
 
     # Establish that the response is the type that we expect.
@@ -16296,10 +16577,14 @@ def test_test_iam_permissions_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_test_iam_permissions"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_test_iam_permissions_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_test_iam_permissions"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = iam_policy_pb2.TestIamPermissionsRequest()
         transcode.return_value = {
             "method": "post",
@@ -16310,6 +16595,7 @@ def test_test_iam_permissions_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = json_format.MessageToJson(
             iam_policy_pb2.TestIamPermissionsResponse()
         )
@@ -16322,6 +16608,10 @@ def test_test_iam_permissions_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = iam_policy_pb2.TestIamPermissionsResponse()
+        post_with_metadata.return_value = (
+            iam_policy_pb2.TestIamPermissionsResponse(),
+            metadata,
+        )
 
         client.test_iam_permissions(
             request,
@@ -16333,6 +16623,7 @@ def test_test_iam_permissions_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_list_hot_tablets_rest_bad_request(
@@ -16356,6 +16647,7 @@ def test_list_hot_tablets_rest_bad_request(
         response_value.status_code = 400
         response_value.request = mock.Mock()
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         client.list_hot_tablets(request)
 
 
@@ -16391,6 +16683,7 @@ def test_list_hot_tablets_rest_call_success(request_type):
         json_return_value = json_format.MessageToJson(return_value)
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         response = client.list_hot_tablets(request)
 
     # Establish that the response is the type that we expect.
@@ -16415,10 +16708,14 @@ def test_list_hot_tablets_rest_interceptors(null_interceptor):
     ) as transcode, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "post_list_hot_tablets"
     ) as post, mock.patch.object(
+        transports.BigtableInstanceAdminRestInterceptor,
+        "post_list_hot_tablets_with_metadata",
+    ) as post_with_metadata, mock.patch.object(
         transports.BigtableInstanceAdminRestInterceptor, "pre_list_hot_tablets"
     ) as pre:
         pre.assert_not_called()
         post.assert_not_called()
+        post_with_metadata.assert_not_called()
         pb_message = bigtable_instance_admin.ListHotTabletsRequest.pb(
             bigtable_instance_admin.ListHotTabletsRequest()
         )
@@ -16431,6 +16728,7 @@ def test_list_hot_tablets_rest_interceptors(null_interceptor):
 
         req.return_value = mock.Mock()
         req.return_value.status_code = 200
+        req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
         return_value = bigtable_instance_admin.ListHotTabletsResponse.to_json(
             bigtable_instance_admin.ListHotTabletsResponse()
         )
@@ -16443,6 +16741,10 @@ def test_list_hot_tablets_rest_interceptors(null_interceptor):
         ]
         pre.return_value = request, metadata
         post.return_value = bigtable_instance_admin.ListHotTabletsResponse()
+        post_with_metadata.return_value = (
+            bigtable_instance_admin.ListHotTabletsResponse(),
+            metadata,
+        )
 
         client.list_hot_tablets(
             request,
@@ -16454,6 +16756,7 @@ def test_list_hot_tablets_rest_interceptors(null_interceptor):
 
         pre.assert_called_once()
         post.assert_called_once()
+        post_with_metadata.assert_called_once()
 
 
 def test_initialize_client_w_rest():
