@@ -282,8 +282,10 @@ class BigtableDataClient(ClientWithProject):
             start_timestamp = time.monotonic()
             old_channel = self.transport.grpc_channel
             new_channel = self.transport.create_channel()
+            new_channel._unary_unary_interceptors.append(self.transport._interceptor)
             self._ping_and_warm_instances(channel=new_channel)
             self.transport._grpc_channel = new_channel
+            self.transport._logged_channel = new_channel
             self.transport._stubs = {}
             self.transport._prep_wrapped_messages(self.client_info)
             if grace_period:
