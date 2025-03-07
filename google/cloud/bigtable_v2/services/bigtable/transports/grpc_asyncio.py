@@ -609,6 +609,35 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         return self._stubs["read_change_stream"]
 
     @property
+    def prepare_query(
+        self,
+    ) -> Callable[
+        [bigtable.PrepareQueryRequest], Awaitable[bigtable.PrepareQueryResponse]
+    ]:
+        r"""Return a callable for the prepare query method over gRPC.
+
+        Prepares a GoogleSQL query for execution on a
+        particular Bigtable instance.
+
+        Returns:
+            Callable[[~.PrepareQueryRequest],
+                    Awaitable[~.PrepareQueryResponse]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "prepare_query" not in self._stubs:
+            self._stubs["prepare_query"] = self._logged_channel.unary_unary(
+                "/google.bigtable.v2.Bigtable/PrepareQuery",
+                request_serializer=bigtable.PrepareQueryRequest.serialize,
+                response_deserializer=bigtable.PrepareQueryResponse.deserialize,
+            )
+        return self._stubs["prepare_query"]
+
+    @property
     def execute_query(
         self,
     ) -> Callable[
@@ -616,8 +645,8 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
     ]:
         r"""Return a callable for the execute query method over gRPC.
 
-        Executes a BTQL query against a particular Cloud
-        Bigtable instance.
+        Executes a SQL query against a particular Bigtable
+        instance.
 
         Returns:
             Callable[[~.ExecuteQueryRequest],
@@ -693,6 +722,11 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
             self.read_change_stream: self._wrap_method(
                 self.read_change_stream,
                 default_timeout=43200.0,
+                client_info=client_info,
+            ),
+            self.prepare_query: self._wrap_method(
+                self.prepare_query,
+                default_timeout=None,
                 client_info=client_info,
             ),
             self.execute_query: self._wrap_method(

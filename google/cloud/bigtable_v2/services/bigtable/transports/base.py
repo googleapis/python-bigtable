@@ -191,6 +191,11 @@ class BigtableTransport(abc.ABC):
                 default_timeout=43200.0,
                 client_info=client_info,
             ),
+            self.prepare_query: gapic_v1.method.wrap_method(
+                self.prepare_query,
+                default_timeout=None,
+                client_info=client_info,
+            ),
             self.execute_query: gapic_v1.method.wrap_method(
                 self.execute_query,
                 default_retry=retries.Retry(
@@ -309,6 +314,15 @@ class BigtableTransport(abc.ABC):
             bigtable.ReadChangeStreamResponse,
             Awaitable[bigtable.ReadChangeStreamResponse],
         ],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def prepare_query(
+        self,
+    ) -> Callable[
+        [bigtable.PrepareQueryRequest],
+        Union[bigtable.PrepareQueryResponse, Awaitable[bigtable.PrepareQueryResponse]],
     ]:
         raise NotImplementedError()
 
