@@ -369,8 +369,11 @@ class BigtableDataClientAsync(ClientWithProject):
             old_channel = self.transport.grpc_channel
             new_channel = self.transport.create_channel()
             await self._ping_and_warm_instances(channel=new_channel)
+            new_channel.unary_unary_interceptors.append(self.transport._interceptor)
             # cycle channel out of use, with long grace window before closure
+            # TODO: refactor to avoid using internal references: https://github.com/googleapis/python-bigtable/issues/1094
             self.transport._grpc_channel = new_channel
+            self.transport._logged_channel = new_channel
             # invalidate caches
             self.transport._stubs = {}
             self.transport._prep_wrapped_messages(self.client_info)
