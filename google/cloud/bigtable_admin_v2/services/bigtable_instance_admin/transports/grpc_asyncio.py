@@ -984,6 +984,295 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
             )
         return self._stubs["list_hot_tablets"]
 
+    @property
+    def create_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.CreateLogicalViewRequest],
+        Awaitable[operations_pb2.Operation],
+    ]:
+        r"""Return a callable for the create logical view method over gRPC.
+
+        Creates a logical view within an instance.
+
+        Returns:
+            Callable[[~.CreateLogicalViewRequest],
+                    Awaitable[~.Operation]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "create_logical_view" not in self._stubs:
+            self._stubs["create_logical_view"] = self._logged_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableInstanceAdmin/CreateLogicalView",
+                request_serializer=bigtable_instance_admin.CreateLogicalViewRequest.serialize,
+                response_deserializer=operations_pb2.Operation.FromString,
+            )
+        return self._stubs["create_logical_view"]
+
+    @property
+    def get_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.GetLogicalViewRequest], Awaitable[instance.LogicalView]
+    ]:
+        r"""Return a callable for the get logical view method over gRPC.
+
+        Gets information about a logical view.
+
+        Returns:
+            Callable[[~.GetLogicalViewRequest],
+                    Awaitable[~.LogicalView]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "get_logical_view" not in self._stubs:
+            self._stubs["get_logical_view"] = self._logged_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableInstanceAdmin/GetLogicalView",
+                request_serializer=bigtable_instance_admin.GetLogicalViewRequest.serialize,
+                response_deserializer=instance.LogicalView.deserialize,
+            )
+        return self._stubs["get_logical_view"]
+
+    @property
+    def list_logical_views(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.ListLogicalViewsRequest],
+        Awaitable[bigtable_instance_admin.ListLogicalViewsResponse],
+    ]:
+        r"""Return a callable for the list logical views method over gRPC.
+
+        Lists information about logical views in an instance.
+
+        Returns:
+            Callable[[~.ListLogicalViewsRequest],
+                    Awaitable[~.ListLogicalViewsResponse]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "list_logical_views" not in self._stubs:
+            self._stubs["list_logical_views"] = self._logged_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableInstanceAdmin/ListLogicalViews",
+                request_serializer=bigtable_instance_admin.ListLogicalViewsRequest.serialize,
+                response_deserializer=bigtable_instance_admin.ListLogicalViewsResponse.deserialize,
+            )
+        return self._stubs["list_logical_views"]
+
+    @property
+    def update_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.UpdateLogicalViewRequest],
+        Awaitable[operations_pb2.Operation],
+    ]:
+        r"""Return a callable for the update logical view method over gRPC.
+
+        Updates a logical view within an instance.
+
+        Returns:
+            Callable[[~.UpdateLogicalViewRequest],
+                    Awaitable[~.Operation]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "update_logical_view" not in self._stubs:
+            self._stubs["update_logical_view"] = self._logged_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableInstanceAdmin/UpdateLogicalView",
+                request_serializer=bigtable_instance_admin.UpdateLogicalViewRequest.serialize,
+                response_deserializer=operations_pb2.Operation.FromString,
+            )
+        return self._stubs["update_logical_view"]
+
+    @property
+    def delete_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.DeleteLogicalViewRequest], Awaitable[empty_pb2.Empty]
+    ]:
+        r"""Return a callable for the delete logical view method over gRPC.
+
+        Deletes a logical view from an instance.
+
+        Returns:
+            Callable[[~.DeleteLogicalViewRequest],
+                    Awaitable[~.Empty]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "delete_logical_view" not in self._stubs:
+            self._stubs["delete_logical_view"] = self._logged_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableInstanceAdmin/DeleteLogicalView",
+                request_serializer=bigtable_instance_admin.DeleteLogicalViewRequest.serialize,
+                response_deserializer=empty_pb2.Empty.FromString,
+            )
+        return self._stubs["delete_logical_view"]
+
+    @property
+    def create_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.CreateMaterializedViewRequest],
+        Awaitable[operations_pb2.Operation],
+    ]:
+        r"""Return a callable for the create materialized view method over gRPC.
+
+        Creates a materialized view within an instance.
+
+        Returns:
+            Callable[[~.CreateMaterializedViewRequest],
+                    Awaitable[~.Operation]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "create_materialized_view" not in self._stubs:
+            self._stubs["create_materialized_view"] = self._logged_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableInstanceAdmin/CreateMaterializedView",
+                request_serializer=bigtable_instance_admin.CreateMaterializedViewRequest.serialize,
+                response_deserializer=operations_pb2.Operation.FromString,
+            )
+        return self._stubs["create_materialized_view"]
+
+    @property
+    def get_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.GetMaterializedViewRequest],
+        Awaitable[instance.MaterializedView],
+    ]:
+        r"""Return a callable for the get materialized view method over gRPC.
+
+        Gets information about a materialized view.
+
+        Returns:
+            Callable[[~.GetMaterializedViewRequest],
+                    Awaitable[~.MaterializedView]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "get_materialized_view" not in self._stubs:
+            self._stubs["get_materialized_view"] = self._logged_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableInstanceAdmin/GetMaterializedView",
+                request_serializer=bigtable_instance_admin.GetMaterializedViewRequest.serialize,
+                response_deserializer=instance.MaterializedView.deserialize,
+            )
+        return self._stubs["get_materialized_view"]
+
+    @property
+    def list_materialized_views(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.ListMaterializedViewsRequest],
+        Awaitable[bigtable_instance_admin.ListMaterializedViewsResponse],
+    ]:
+        r"""Return a callable for the list materialized views method over gRPC.
+
+        Lists information about materialized views in an
+        instance.
+
+        Returns:
+            Callable[[~.ListMaterializedViewsRequest],
+                    Awaitable[~.ListMaterializedViewsResponse]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "list_materialized_views" not in self._stubs:
+            self._stubs["list_materialized_views"] = self._logged_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableInstanceAdmin/ListMaterializedViews",
+                request_serializer=bigtable_instance_admin.ListMaterializedViewsRequest.serialize,
+                response_deserializer=bigtable_instance_admin.ListMaterializedViewsResponse.deserialize,
+            )
+        return self._stubs["list_materialized_views"]
+
+    @property
+    def update_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.UpdateMaterializedViewRequest],
+        Awaitable[operations_pb2.Operation],
+    ]:
+        r"""Return a callable for the update materialized view method over gRPC.
+
+        Updates a materialized view within an instance.
+
+        Returns:
+            Callable[[~.UpdateMaterializedViewRequest],
+                    Awaitable[~.Operation]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "update_materialized_view" not in self._stubs:
+            self._stubs["update_materialized_view"] = self._logged_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableInstanceAdmin/UpdateMaterializedView",
+                request_serializer=bigtable_instance_admin.UpdateMaterializedViewRequest.serialize,
+                response_deserializer=operations_pb2.Operation.FromString,
+            )
+        return self._stubs["update_materialized_view"]
+
+    @property
+    def delete_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.DeleteMaterializedViewRequest],
+        Awaitable[empty_pb2.Empty],
+    ]:
+        r"""Return a callable for the delete materialized view method over gRPC.
+
+        Deletes a materialized view from an instance.
+
+        Returns:
+            Callable[[~.DeleteMaterializedViewRequest],
+                    Awaitable[~.Empty]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "delete_materialized_view" not in self._stubs:
+            self._stubs["delete_materialized_view"] = self._logged_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableInstanceAdmin/DeleteMaterializedView",
+                request_serializer=bigtable_instance_admin.DeleteMaterializedViewRequest.serialize,
+                response_deserializer=empty_pb2.Empty.FromString,
+            )
+        return self._stubs["delete_materialized_view"]
+
     def _prep_wrapped_messages(self, client_info):
         """Precompute the wrapped methods, overriding the base class method to use async wrappers."""
         self._wrapped_methods = {
@@ -1220,6 +1509,56 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
                     deadline=60.0,
                 ),
                 default_timeout=60.0,
+                client_info=client_info,
+            ),
+            self.create_logical_view: self._wrap_method(
+                self.create_logical_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.get_logical_view: self._wrap_method(
+                self.get_logical_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.list_logical_views: self._wrap_method(
+                self.list_logical_views,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.update_logical_view: self._wrap_method(
+                self.update_logical_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.delete_logical_view: self._wrap_method(
+                self.delete_logical_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.create_materialized_view: self._wrap_method(
+                self.create_materialized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.get_materialized_view: self._wrap_method(
+                self.get_materialized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.list_materialized_views: self._wrap_method(
+                self.list_materialized_views,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.update_materialized_view: self._wrap_method(
+                self.update_materialized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.delete_materialized_view: self._wrap_method(
+                self.delete_materialized_view,
+                default_timeout=None,
                 client_info=client_info,
             ),
         }

@@ -104,6 +104,22 @@ class BigtableInstanceAdminRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
+            def pre_create_logical_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_create_logical_view(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_create_materialized_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_create_materialized_view(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
             def pre_delete_app_profile(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
@@ -113,6 +129,14 @@ class BigtableInstanceAdminRestInterceptor:
                 return request, metadata
 
             def pre_delete_instance(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def pre_delete_logical_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def pre_delete_materialized_view(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
 
@@ -148,6 +172,22 @@ class BigtableInstanceAdminRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
+            def pre_get_logical_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_get_logical_view(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_get_materialized_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_get_materialized_view(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
             def pre_list_app_profiles(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
@@ -177,6 +217,22 @@ class BigtableInstanceAdminRestInterceptor:
                 return request, metadata
 
             def post_list_instances(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_list_logical_views(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_list_logical_views(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_list_materialized_views(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_list_materialized_views(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -233,6 +289,22 @@ class BigtableInstanceAdminRestInterceptor:
                 return request, metadata
 
             def post_update_instance(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_update_logical_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_update_logical_view(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_update_materialized_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_update_materialized_view(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -389,6 +461,104 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return response, metadata
 
+    def pre_create_logical_view(
+        self,
+        request: bigtable_instance_admin.CreateLogicalViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.CreateLogicalViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for create_logical_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableInstanceAdmin server.
+        """
+        return request, metadata
+
+    def post_create_logical_view(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
+        """Post-rpc interceptor for create_logical_view
+
+        DEPRECATED. Please use the `post_create_logical_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableInstanceAdmin server but before
+        it is returned to user code. This `post_create_logical_view` interceptor runs
+        before the `post_create_logical_view_with_metadata` interceptor.
+        """
+        return response
+
+    def post_create_logical_view_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_logical_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableInstanceAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_logical_view_with_metadata`
+        interceptor in new development instead of the `post_create_logical_view` interceptor.
+        When both interceptors are used, this `post_create_logical_view_with_metadata` interceptor runs after the
+        `post_create_logical_view` interceptor. The (possibly modified) response returned by
+        `post_create_logical_view` will be passed to
+        `post_create_logical_view_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_create_materialized_view(
+        self,
+        request: bigtable_instance_admin.CreateMaterializedViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.CreateMaterializedViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for create_materialized_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableInstanceAdmin server.
+        """
+        return request, metadata
+
+    def post_create_materialized_view(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
+        """Post-rpc interceptor for create_materialized_view
+
+        DEPRECATED. Please use the `post_create_materialized_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableInstanceAdmin server but before
+        it is returned to user code. This `post_create_materialized_view` interceptor runs
+        before the `post_create_materialized_view_with_metadata` interceptor.
+        """
+        return response
+
+    def post_create_materialized_view_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_materialized_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableInstanceAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_materialized_view_with_metadata`
+        interceptor in new development instead of the `post_create_materialized_view` interceptor.
+        When both interceptors are used, this `post_create_materialized_view_with_metadata` interceptor runs after the
+        `post_create_materialized_view` interceptor. The (possibly modified) response returned by
+        `post_create_materialized_view` will be passed to
+        `post_create_materialized_view_with_metadata`.
+        """
+        return response, metadata
+
     def pre_delete_app_profile(
         self,
         request: bigtable_instance_admin.DeleteAppProfileRequest,
@@ -428,6 +598,36 @@ class BigtableInstanceAdminRestInterceptor:
         Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for delete_instance
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableInstanceAdmin server.
+        """
+        return request, metadata
+
+    def pre_delete_logical_view(
+        self,
+        request: bigtable_instance_admin.DeleteLogicalViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.DeleteLogicalViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for delete_logical_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableInstanceAdmin server.
+        """
+        return request, metadata
+
+    def pre_delete_materialized_view(
+        self,
+        request: bigtable_instance_admin.DeleteMaterializedViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.DeleteMaterializedViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for delete_materialized_view
 
         Override in a subclass to manipulate the request or metadata
         before they are sent to the BigtableInstanceAdmin server.
@@ -620,6 +820,104 @@ class BigtableInstanceAdminRestInterceptor:
         `post_get_instance` interceptor. The (possibly modified) response returned by
         `post_get_instance` will be passed to
         `post_get_instance_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_get_logical_view(
+        self,
+        request: bigtable_instance_admin.GetLogicalViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.GetLogicalViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for get_logical_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableInstanceAdmin server.
+        """
+        return request, metadata
+
+    def post_get_logical_view(
+        self, response: instance.LogicalView
+    ) -> instance.LogicalView:
+        """Post-rpc interceptor for get_logical_view
+
+        DEPRECATED. Please use the `post_get_logical_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableInstanceAdmin server but before
+        it is returned to user code. This `post_get_logical_view` interceptor runs
+        before the `post_get_logical_view_with_metadata` interceptor.
+        """
+        return response
+
+    def post_get_logical_view_with_metadata(
+        self,
+        response: instance.LogicalView,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[instance.LogicalView, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_logical_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableInstanceAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_logical_view_with_metadata`
+        interceptor in new development instead of the `post_get_logical_view` interceptor.
+        When both interceptors are used, this `post_get_logical_view_with_metadata` interceptor runs after the
+        `post_get_logical_view` interceptor. The (possibly modified) response returned by
+        `post_get_logical_view` will be passed to
+        `post_get_logical_view_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_get_materialized_view(
+        self,
+        request: bigtable_instance_admin.GetMaterializedViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.GetMaterializedViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for get_materialized_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableInstanceAdmin server.
+        """
+        return request, metadata
+
+    def post_get_materialized_view(
+        self, response: instance.MaterializedView
+    ) -> instance.MaterializedView:
+        """Post-rpc interceptor for get_materialized_view
+
+        DEPRECATED. Please use the `post_get_materialized_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableInstanceAdmin server but before
+        it is returned to user code. This `post_get_materialized_view` interceptor runs
+        before the `post_get_materialized_view_with_metadata` interceptor.
+        """
+        return response
+
+    def post_get_materialized_view_with_metadata(
+        self,
+        response: instance.MaterializedView,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[instance.MaterializedView, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_materialized_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableInstanceAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_materialized_view_with_metadata`
+        interceptor in new development instead of the `post_get_materialized_view` interceptor.
+        When both interceptors are used, this `post_get_materialized_view_with_metadata` interceptor runs after the
+        `post_get_materialized_view` interceptor. The (possibly modified) response returned by
+        `post_get_materialized_view` will be passed to
+        `post_get_materialized_view_with_metadata`.
         """
         return response, metadata
 
@@ -828,6 +1126,110 @@ class BigtableInstanceAdminRestInterceptor:
         `post_list_instances` interceptor. The (possibly modified) response returned by
         `post_list_instances` will be passed to
         `post_list_instances_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_list_logical_views(
+        self,
+        request: bigtable_instance_admin.ListLogicalViewsRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.ListLogicalViewsRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for list_logical_views
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableInstanceAdmin server.
+        """
+        return request, metadata
+
+    def post_list_logical_views(
+        self, response: bigtable_instance_admin.ListLogicalViewsResponse
+    ) -> bigtable_instance_admin.ListLogicalViewsResponse:
+        """Post-rpc interceptor for list_logical_views
+
+        DEPRECATED. Please use the `post_list_logical_views_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableInstanceAdmin server but before
+        it is returned to user code. This `post_list_logical_views` interceptor runs
+        before the `post_list_logical_views_with_metadata` interceptor.
+        """
+        return response
+
+    def post_list_logical_views_with_metadata(
+        self,
+        response: bigtable_instance_admin.ListLogicalViewsResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.ListLogicalViewsResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for list_logical_views
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableInstanceAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_logical_views_with_metadata`
+        interceptor in new development instead of the `post_list_logical_views` interceptor.
+        When both interceptors are used, this `post_list_logical_views_with_metadata` interceptor runs after the
+        `post_list_logical_views` interceptor. The (possibly modified) response returned by
+        `post_list_logical_views` will be passed to
+        `post_list_logical_views_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_list_materialized_views(
+        self,
+        request: bigtable_instance_admin.ListMaterializedViewsRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.ListMaterializedViewsRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for list_materialized_views
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableInstanceAdmin server.
+        """
+        return request, metadata
+
+    def post_list_materialized_views(
+        self, response: bigtable_instance_admin.ListMaterializedViewsResponse
+    ) -> bigtable_instance_admin.ListMaterializedViewsResponse:
+        """Post-rpc interceptor for list_materialized_views
+
+        DEPRECATED. Please use the `post_list_materialized_views_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableInstanceAdmin server but before
+        it is returned to user code. This `post_list_materialized_views` interceptor runs
+        before the `post_list_materialized_views_with_metadata` interceptor.
+        """
+        return response
+
+    def post_list_materialized_views_with_metadata(
+        self,
+        response: bigtable_instance_admin.ListMaterializedViewsResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.ListMaterializedViewsResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for list_materialized_views
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableInstanceAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_materialized_views_with_metadata`
+        interceptor in new development instead of the `post_list_materialized_views` interceptor.
+        When both interceptors are used, this `post_list_materialized_views_with_metadata` interceptor runs after the
+        `post_list_materialized_views` interceptor. The (possibly modified) response returned by
+        `post_list_materialized_views` will be passed to
+        `post_list_materialized_views_with_metadata`.
         """
         return response, metadata
 
@@ -1163,6 +1565,104 @@ class BigtableInstanceAdminRestInterceptor:
         `post_update_instance` interceptor. The (possibly modified) response returned by
         `post_update_instance` will be passed to
         `post_update_instance_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_update_logical_view(
+        self,
+        request: bigtable_instance_admin.UpdateLogicalViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.UpdateLogicalViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for update_logical_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableInstanceAdmin server.
+        """
+        return request, metadata
+
+    def post_update_logical_view(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
+        """Post-rpc interceptor for update_logical_view
+
+        DEPRECATED. Please use the `post_update_logical_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableInstanceAdmin server but before
+        it is returned to user code. This `post_update_logical_view` interceptor runs
+        before the `post_update_logical_view_with_metadata` interceptor.
+        """
+        return response
+
+    def post_update_logical_view_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for update_logical_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableInstanceAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_update_logical_view_with_metadata`
+        interceptor in new development instead of the `post_update_logical_view` interceptor.
+        When both interceptors are used, this `post_update_logical_view_with_metadata` interceptor runs after the
+        `post_update_logical_view` interceptor. The (possibly modified) response returned by
+        `post_update_logical_view` will be passed to
+        `post_update_logical_view_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_update_materialized_view(
+        self,
+        request: bigtable_instance_admin.UpdateMaterializedViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_instance_admin.UpdateMaterializedViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for update_materialized_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableInstanceAdmin server.
+        """
+        return request, metadata
+
+    def post_update_materialized_view(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
+        """Post-rpc interceptor for update_materialized_view
+
+        DEPRECATED. Please use the `post_update_materialized_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableInstanceAdmin server but before
+        it is returned to user code. This `post_update_materialized_view` interceptor runs
+        before the `post_update_materialized_view_with_metadata` interceptor.
+        """
+        return response
+
+    def post_update_materialized_view_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for update_materialized_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableInstanceAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_update_materialized_view_with_metadata`
+        interceptor in new development instead of the `post_update_materialized_view` interceptor.
+        When both interceptors are used, this `post_update_materialized_view_with_metadata` interceptor runs after the
+        `post_update_materialized_view` interceptor. The (possibly modified) response returned by
+        `post_update_materialized_view` will be passed to
+        `post_update_materialized_view_with_metadata`.
         """
         return response, metadata
 
@@ -1774,6 +2274,318 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 )
             return resp
 
+    class _CreateLogicalView(
+        _BaseBigtableInstanceAdminRestTransport._BaseCreateLogicalView,
+        BigtableInstanceAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableInstanceAdminRestTransport.CreateLogicalView")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_instance_admin.CreateLogicalViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> operations_pb2.Operation:
+            r"""Call the create logical view method over HTTP.
+
+            Args:
+                request (~.bigtable_instance_admin.CreateLogicalViewRequest):
+                    The request object. Request message for
+                BigtableInstanceAdmin.CreateLogicalView.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.operations_pb2.Operation:
+                    This resource represents a
+                long-running operation that is the
+                result of a network API call.
+
+            """
+
+            http_options = (
+                _BaseBigtableInstanceAdminRestTransport._BaseCreateLogicalView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_create_logical_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseCreateLogicalView._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableInstanceAdminRestTransport._BaseCreateLogicalView._get_request_body_json(
+                transcoded_request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableInstanceAdminRestTransport._BaseCreateLogicalView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.CreateLogicalView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "CreateLogicalView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableInstanceAdminRestTransport._CreateLogicalView._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                    body,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = operations_pb2.Operation()
+            json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_create_logical_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_logical_view_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.create_logical_view",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "CreateLogicalView",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _CreateMaterializedView(
+        _BaseBigtableInstanceAdminRestTransport._BaseCreateMaterializedView,
+        BigtableInstanceAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableInstanceAdminRestTransport.CreateMaterializedView")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_instance_admin.CreateMaterializedViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> operations_pb2.Operation:
+            r"""Call the create materialized view method over HTTP.
+
+            Args:
+                request (~.bigtable_instance_admin.CreateMaterializedViewRequest):
+                    The request object. Request message for
+                BigtableInstanceAdmin.CreateMaterializedView.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.operations_pb2.Operation:
+                    This resource represents a
+                long-running operation that is the
+                result of a network API call.
+
+            """
+
+            http_options = (
+                _BaseBigtableInstanceAdminRestTransport._BaseCreateMaterializedView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_create_materialized_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseCreateMaterializedView._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableInstanceAdminRestTransport._BaseCreateMaterializedView._get_request_body_json(
+                transcoded_request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableInstanceAdminRestTransport._BaseCreateMaterializedView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.CreateMaterializedView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "CreateMaterializedView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = BigtableInstanceAdminRestTransport._CreateMaterializedView._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = operations_pb2.Operation()
+            json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_create_materialized_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_materialized_view_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.create_materialized_view",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "CreateMaterializedView",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
     class _DeleteAppProfile(
         _BaseBigtableInstanceAdminRestTransport._BaseDeleteAppProfile,
         BigtableInstanceAdminRestStub,
@@ -2089,6 +2901,228 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
 
             # Send the request
             response = BigtableInstanceAdminRestTransport._DeleteInstance._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+    class _DeleteLogicalView(
+        _BaseBigtableInstanceAdminRestTransport._BaseDeleteLogicalView,
+        BigtableInstanceAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableInstanceAdminRestTransport.DeleteLogicalView")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_instance_admin.DeleteLogicalViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ):
+            r"""Call the delete logical view method over HTTP.
+
+            Args:
+                request (~.bigtable_instance_admin.DeleteLogicalViewRequest):
+                    The request object. Request message for
+                BigtableInstanceAdmin.DeleteLogicalView.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+            """
+
+            http_options = (
+                _BaseBigtableInstanceAdminRestTransport._BaseDeleteLogicalView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_delete_logical_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseDeleteLogicalView._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableInstanceAdminRestTransport._BaseDeleteLogicalView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.DeleteLogicalView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "DeleteLogicalView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableInstanceAdminRestTransport._DeleteLogicalView._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+    class _DeleteMaterializedView(
+        _BaseBigtableInstanceAdminRestTransport._BaseDeleteMaterializedView,
+        BigtableInstanceAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableInstanceAdminRestTransport.DeleteMaterializedView")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_instance_admin.DeleteMaterializedViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ):
+            r"""Call the delete materialized view method over HTTP.
+
+            Args:
+                request (~.bigtable_instance_admin.DeleteMaterializedViewRequest):
+                    The request object. Request message for
+                BigtableInstanceAdmin.DeleteMaterializedView.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+            """
+
+            http_options = (
+                _BaseBigtableInstanceAdminRestTransport._BaseDeleteMaterializedView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_delete_materialized_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseDeleteMaterializedView._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableInstanceAdminRestTransport._BaseDeleteMaterializedView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.DeleteMaterializedView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "DeleteMaterializedView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = BigtableInstanceAdminRestTransport._DeleteMaterializedView._get_response(
                 self._host,
                 metadata,
                 query_params,
@@ -2779,6 +3813,308 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 )
             return resp
 
+    class _GetLogicalView(
+        _BaseBigtableInstanceAdminRestTransport._BaseGetLogicalView,
+        BigtableInstanceAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableInstanceAdminRestTransport.GetLogicalView")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_instance_admin.GetLogicalViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> instance.LogicalView:
+            r"""Call the get logical view method over HTTP.
+
+            Args:
+                request (~.bigtable_instance_admin.GetLogicalViewRequest):
+                    The request object. Request message for
+                BigtableInstanceAdmin.GetLogicalView.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.instance.LogicalView:
+                    A SQL logical view object that can be
+                referenced in SQL queries.
+
+            """
+
+            http_options = (
+                _BaseBigtableInstanceAdminRestTransport._BaseGetLogicalView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_get_logical_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseGetLogicalView._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableInstanceAdminRestTransport._BaseGetLogicalView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.GetLogicalView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetLogicalView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = BigtableInstanceAdminRestTransport._GetLogicalView._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = instance.LogicalView()
+            pb_resp = instance.LogicalView.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_get_logical_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_logical_view_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = instance.LogicalView.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.get_logical_view",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetLogicalView",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _GetMaterializedView(
+        _BaseBigtableInstanceAdminRestTransport._BaseGetMaterializedView,
+        BigtableInstanceAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableInstanceAdminRestTransport.GetMaterializedView")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_instance_admin.GetMaterializedViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> instance.MaterializedView:
+            r"""Call the get materialized view method over HTTP.
+
+            Args:
+                request (~.bigtable_instance_admin.GetMaterializedViewRequest):
+                    The request object. Request message for
+                BigtableInstanceAdmin.GetMaterializedView.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.instance.MaterializedView:
+                    A materialized view object that can
+                be referenced in SQL queries.
+
+            """
+
+            http_options = (
+                _BaseBigtableInstanceAdminRestTransport._BaseGetMaterializedView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_get_materialized_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseGetMaterializedView._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableInstanceAdminRestTransport._BaseGetMaterializedView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.GetMaterializedView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetMaterializedView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableInstanceAdminRestTransport._GetMaterializedView._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = instance.MaterializedView()
+            pb_resp = instance.MaterializedView.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_get_materialized_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_materialized_view_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = instance.MaterializedView.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.get_materialized_view",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "GetMaterializedView",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
     class _ListAppProfiles(
         _BaseBigtableInstanceAdminRestTransport._BaseListAppProfiles,
         BigtableInstanceAdminRestStub,
@@ -3381,6 +4717,318 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
                         "rpcName": "ListInstances",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _ListLogicalViews(
+        _BaseBigtableInstanceAdminRestTransport._BaseListLogicalViews,
+        BigtableInstanceAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableInstanceAdminRestTransport.ListLogicalViews")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_instance_admin.ListLogicalViewsRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> bigtable_instance_admin.ListLogicalViewsResponse:
+            r"""Call the list logical views method over HTTP.
+
+            Args:
+                request (~.bigtable_instance_admin.ListLogicalViewsRequest):
+                    The request object. Request message for
+                BigtableInstanceAdmin.ListLogicalViews.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.bigtable_instance_admin.ListLogicalViewsResponse:
+                    Response message for
+                BigtableInstanceAdmin.ListLogicalViews.
+
+            """
+
+            http_options = (
+                _BaseBigtableInstanceAdminRestTransport._BaseListLogicalViews._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_list_logical_views(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseListLogicalViews._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableInstanceAdminRestTransport._BaseListLogicalViews._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.ListLogicalViews",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListLogicalViews",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableInstanceAdminRestTransport._ListLogicalViews._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = bigtable_instance_admin.ListLogicalViewsResponse()
+            pb_resp = bigtable_instance_admin.ListLogicalViewsResponse.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_list_logical_views(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_logical_views_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_instance_admin.ListLogicalViewsResponse.to_json(
+                            response
+                        )
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.list_logical_views",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListLogicalViews",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _ListMaterializedViews(
+        _BaseBigtableInstanceAdminRestTransport._BaseListMaterializedViews,
+        BigtableInstanceAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableInstanceAdminRestTransport.ListMaterializedViews")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_instance_admin.ListMaterializedViewsRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> bigtable_instance_admin.ListMaterializedViewsResponse:
+            r"""Call the list materialized views method over HTTP.
+
+            Args:
+                request (~.bigtable_instance_admin.ListMaterializedViewsRequest):
+                    The request object. Request message for
+                BigtableInstanceAdmin.ListMaterializedViews.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.bigtable_instance_admin.ListMaterializedViewsResponse:
+                    Response message for
+                BigtableInstanceAdmin.ListMaterializedViews.
+
+            """
+
+            http_options = (
+                _BaseBigtableInstanceAdminRestTransport._BaseListMaterializedViews._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_list_materialized_views(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseListMaterializedViews._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableInstanceAdminRestTransport._BaseListMaterializedViews._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.ListMaterializedViews",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListMaterializedViews",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableInstanceAdminRestTransport._ListMaterializedViews._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = bigtable_instance_admin.ListMaterializedViewsResponse()
+            pb_resp = bigtable_instance_admin.ListMaterializedViewsResponse.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_list_materialized_views(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_materialized_views_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_instance_admin.ListMaterializedViewsResponse.to_json(
+                            response
+                        )
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.list_materialized_views",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "ListMaterializedViews",
                         "metadata": http_response["headers"],
                         "httpResponse": http_response,
                     },
@@ -4556,6 +6204,318 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
                 )
             return resp
 
+    class _UpdateLogicalView(
+        _BaseBigtableInstanceAdminRestTransport._BaseUpdateLogicalView,
+        BigtableInstanceAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableInstanceAdminRestTransport.UpdateLogicalView")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_instance_admin.UpdateLogicalViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> operations_pb2.Operation:
+            r"""Call the update logical view method over HTTP.
+
+            Args:
+                request (~.bigtable_instance_admin.UpdateLogicalViewRequest):
+                    The request object. Request message for
+                BigtableInstanceAdmin.UpdateLogicalView.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.operations_pb2.Operation:
+                    This resource represents a
+                long-running operation that is the
+                result of a network API call.
+
+            """
+
+            http_options = (
+                _BaseBigtableInstanceAdminRestTransport._BaseUpdateLogicalView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_update_logical_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseUpdateLogicalView._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableInstanceAdminRestTransport._BaseUpdateLogicalView._get_request_body_json(
+                transcoded_request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableInstanceAdminRestTransport._BaseUpdateLogicalView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.UpdateLogicalView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "UpdateLogicalView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableInstanceAdminRestTransport._UpdateLogicalView._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                    body,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = operations_pb2.Operation()
+            json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_update_logical_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_update_logical_view_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.update_logical_view",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "UpdateLogicalView",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _UpdateMaterializedView(
+        _BaseBigtableInstanceAdminRestTransport._BaseUpdateMaterializedView,
+        BigtableInstanceAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableInstanceAdminRestTransport.UpdateMaterializedView")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_instance_admin.UpdateMaterializedViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> operations_pb2.Operation:
+            r"""Call the update materialized view method over HTTP.
+
+            Args:
+                request (~.bigtable_instance_admin.UpdateMaterializedViewRequest):
+                    The request object. Request message for
+                BigtableInstanceAdmin.UpdateMaterializedView.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.operations_pb2.Operation:
+                    This resource represents a
+                long-running operation that is the
+                result of a network API call.
+
+            """
+
+            http_options = (
+                _BaseBigtableInstanceAdminRestTransport._BaseUpdateMaterializedView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_update_materialized_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableInstanceAdminRestTransport._BaseUpdateMaterializedView._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableInstanceAdminRestTransport._BaseUpdateMaterializedView._get_request_body_json(
+                transcoded_request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableInstanceAdminRestTransport._BaseUpdateMaterializedView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableInstanceAdminClient.UpdateMaterializedView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "UpdateMaterializedView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = BigtableInstanceAdminRestTransport._UpdateMaterializedView._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = operations_pb2.Operation()
+            json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_update_materialized_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_update_materialized_view_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableInstanceAdminClient.update_materialized_view",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                        "rpcName": "UpdateMaterializedView",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
     @property
     def create_app_profile(
         self,
@@ -4587,6 +6547,27 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
         return self._CreateInstance(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
+    def create_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.CreateLogicalViewRequest], operations_pb2.Operation
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._CreateLogicalView(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def create_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.CreateMaterializedViewRequest],
+        operations_pb2.Operation,
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._CreateMaterializedView(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
     def delete_app_profile(
         self,
     ) -> Callable[[bigtable_instance_admin.DeleteAppProfileRequest], empty_pb2.Empty]:
@@ -4609,6 +6590,24 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._DeleteInstance(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def delete_logical_view(
+        self,
+    ) -> Callable[[bigtable_instance_admin.DeleteLogicalViewRequest], empty_pb2.Empty]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._DeleteLogicalView(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def delete_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.DeleteMaterializedViewRequest], empty_pb2.Empty
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._DeleteMaterializedView(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def get_app_profile(
@@ -4641,6 +6640,26 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._GetInstance(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def get_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.GetLogicalViewRequest], instance.LogicalView
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._GetLogicalView(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def get_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.GetMaterializedViewRequest], instance.MaterializedView
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._GetMaterializedView(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def list_app_profiles(
@@ -4685,6 +6704,28 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._ListInstances(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def list_logical_views(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.ListLogicalViewsRequest],
+        bigtable_instance_admin.ListLogicalViewsResponse,
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._ListLogicalViews(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def list_materialized_views(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.ListMaterializedViewsRequest],
+        bigtable_instance_admin.ListMaterializedViewsResponse,
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._ListMaterializedViews(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def partial_update_cluster(
@@ -4746,6 +6787,27 @@ class BigtableInstanceAdminRestTransport(_BaseBigtableInstanceAdminRestTransport
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._UpdateInstance(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def update_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.UpdateLogicalViewRequest], operations_pb2.Operation
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._UpdateLogicalView(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def update_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.UpdateMaterializedViewRequest],
+        operations_pb2.Operation,
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._UpdateMaterializedView(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def kind(self) -> str:

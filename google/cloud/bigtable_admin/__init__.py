@@ -68,6 +68,12 @@ from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
     DeleteInstanceRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    DeleteLogicalViewRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    DeleteMaterializedViewRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
     GetAppProfileRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
@@ -75,6 +81,12 @@ from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
     GetInstanceRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    GetLogicalViewRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    GetMaterializedViewRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
     ListAppProfilesRequest,
@@ -99,6 +111,18 @@ from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
     ListInstancesResponse,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    ListLogicalViewsRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    ListLogicalViewsResponse,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    ListMaterializedViewsRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    ListMaterializedViewsResponse,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
     PartialUpdateClusterMetadata,
@@ -126,6 +150,12 @@ from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
     UpdateLogicalViewRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    UpdateMaterializedViewMetadata,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
+    UpdateMaterializedViewRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     CheckConsistencyRequest,
@@ -280,9 +310,13 @@ __all__ = (
     "DeleteAppProfileRequest",
     "DeleteClusterRequest",
     "DeleteInstanceRequest",
+    "DeleteLogicalViewRequest",
+    "DeleteMaterializedViewRequest",
     "GetAppProfileRequest",
     "GetClusterRequest",
     "GetInstanceRequest",
+    "GetLogicalViewRequest",
+    "GetMaterializedViewRequest",
     "ListAppProfilesRequest",
     "ListAppProfilesResponse",
     "ListClustersRequest",
@@ -291,6 +325,10 @@ __all__ = (
     "ListHotTabletsResponse",
     "ListInstancesRequest",
     "ListInstancesResponse",
+    "ListLogicalViewsRequest",
+    "ListLogicalViewsResponse",
+    "ListMaterializedViewsRequest",
+    "ListMaterializedViewsResponse",
     "PartialUpdateClusterMetadata",
     "PartialUpdateClusterRequest",
     "PartialUpdateInstanceRequest",
@@ -300,6 +338,8 @@ __all__ = (
     "UpdateInstanceMetadata",
     "UpdateLogicalViewMetadata",
     "UpdateLogicalViewRequest",
+    "UpdateMaterializedViewMetadata",
+    "UpdateMaterializedViewRequest",
     "CheckConsistencyRequest",
     "CheckConsistencyResponse",
     "CopyBackupMetadata",

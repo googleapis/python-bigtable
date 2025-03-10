@@ -35,9 +35,13 @@ from .types.bigtable_instance_admin import CreateMaterializedViewRequest
 from .types.bigtable_instance_admin import DeleteAppProfileRequest
 from .types.bigtable_instance_admin import DeleteClusterRequest
 from .types.bigtable_instance_admin import DeleteInstanceRequest
+from .types.bigtable_instance_admin import DeleteLogicalViewRequest
+from .types.bigtable_instance_admin import DeleteMaterializedViewRequest
 from .types.bigtable_instance_admin import GetAppProfileRequest
 from .types.bigtable_instance_admin import GetClusterRequest
 from .types.bigtable_instance_admin import GetInstanceRequest
+from .types.bigtable_instance_admin import GetLogicalViewRequest
+from .types.bigtable_instance_admin import GetMaterializedViewRequest
 from .types.bigtable_instance_admin import ListAppProfilesRequest
 from .types.bigtable_instance_admin import ListAppProfilesResponse
 from .types.bigtable_instance_admin import ListClustersRequest
@@ -46,6 +50,10 @@ from .types.bigtable_instance_admin import ListHotTabletsRequest
 from .types.bigtable_instance_admin import ListHotTabletsResponse
 from .types.bigtable_instance_admin import ListInstancesRequest
 from .types.bigtable_instance_admin import ListInstancesResponse
+from .types.bigtable_instance_admin import ListLogicalViewsRequest
+from .types.bigtable_instance_admin import ListLogicalViewsResponse
+from .types.bigtable_instance_admin import ListMaterializedViewsRequest
+from .types.bigtable_instance_admin import ListMaterializedViewsResponse
 from .types.bigtable_instance_admin import PartialUpdateClusterMetadata
 from .types.bigtable_instance_admin import PartialUpdateClusterRequest
 from .types.bigtable_instance_admin import PartialUpdateInstanceRequest
@@ -55,6 +63,8 @@ from .types.bigtable_instance_admin import UpdateClusterMetadata
 from .types.bigtable_instance_admin import UpdateInstanceMetadata
 from .types.bigtable_instance_admin import UpdateLogicalViewMetadata
 from .types.bigtable_instance_admin import UpdateLogicalViewRequest
+from .types.bigtable_instance_admin import UpdateMaterializedViewMetadata
+from .types.bigtable_instance_admin import UpdateMaterializedViewRequest
 from .types.bigtable_table_admin import CheckConsistencyRequest
 from .types.bigtable_table_admin import CheckConsistencyResponse
 from .types.bigtable_table_admin import CopyBackupMetadata
@@ -163,6 +173,8 @@ __all__ = (
     "DeleteBackupRequest",
     "DeleteClusterRequest",
     "DeleteInstanceRequest",
+    "DeleteLogicalViewRequest",
+    "DeleteMaterializedViewRequest",
     "DeleteSnapshotRequest",
     "DeleteTableRequest",
     "DropRowRangeRequest",
@@ -175,6 +187,8 @@ __all__ = (
     "GetBackupRequest",
     "GetClusterRequest",
     "GetInstanceRequest",
+    "GetLogicalViewRequest",
+    "GetMaterializedViewRequest",
     "GetSnapshotRequest",
     "GetTableRequest",
     "HotTablet",
@@ -191,6 +205,10 @@ __all__ = (
     "ListHotTabletsResponse",
     "ListInstancesRequest",
     "ListInstancesResponse",
+    "ListLogicalViewsRequest",
+    "ListLogicalViewsResponse",
+    "ListMaterializedViewsRequest",
+    "ListMaterializedViewsResponse",
     "ListSnapshotsRequest",
     "ListSnapshotsResponse",
     "ListTablesRequest",
@@ -225,6 +243,8 @@ __all__ = (
     "UpdateInstanceMetadata",
     "UpdateLogicalViewMetadata",
     "UpdateLogicalViewRequest",
+    "UpdateMaterializedViewMetadata",
+    "UpdateMaterializedViewRequest",
     "UpdateTableMetadata",
     "UpdateTableRequest",
 )

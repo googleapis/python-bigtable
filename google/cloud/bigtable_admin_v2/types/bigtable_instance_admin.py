@@ -55,10 +55,20 @@ __protobuf__ = proto.module(
         "ListHotTabletsResponse",
         "CreateLogicalViewRequest",
         "CreateLogicalViewMetadata",
+        "GetLogicalViewRequest",
+        "ListLogicalViewsRequest",
+        "ListLogicalViewsResponse",
         "UpdateLogicalViewRequest",
         "UpdateLogicalViewMetadata",
+        "DeleteLogicalViewRequest",
         "CreateMaterializedViewRequest",
         "CreateMaterializedViewMetadata",
+        "GetMaterializedViewRequest",
+        "ListMaterializedViewsRequest",
+        "ListMaterializedViewsResponse",
+        "UpdateMaterializedViewRequest",
+        "UpdateMaterializedViewMetadata",
+        "DeleteMaterializedViewRequest",
     },
 )
 
@@ -955,6 +965,85 @@ class CreateLogicalViewMetadata(proto.Message):
     )
 
 
+class GetLogicalViewRequest(proto.Message):
+    r"""Request message for BigtableInstanceAdmin.GetLogicalView.
+
+    Attributes:
+        name (str):
+            Required. The unique name of the requested logical view.
+            Values are of the form
+            ``projects/{project}/instances/{instance}/logicalViews/{logical_view}``.
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+
+
+class ListLogicalViewsRequest(proto.Message):
+    r"""Request message for BigtableInstanceAdmin.ListLogicalViews.
+
+    Attributes:
+        parent (str):
+            Required. The unique name of the instance for which the list
+            of logical views is requested. Values are of the form
+            ``projects/{project}/instances/{instance}``.
+        page_size (int):
+            Optional. The maximum number of logical views
+            to return. The service may return fewer than
+            this value
+        page_token (str):
+            Optional. A page token, received from a previous
+            ``ListLogicalViews`` call. Provide this to retrieve the
+            subsequent page.
+
+            When paginating, all other parameters provided to
+            ``ListLogicalViews`` must match the call that provided the
+            page token.
+    """
+
+    parent: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    page_size: int = proto.Field(
+        proto.INT32,
+        number=2,
+    )
+    page_token: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+
+
+class ListLogicalViewsResponse(proto.Message):
+    r"""Response message for BigtableInstanceAdmin.ListLogicalViews.
+
+    Attributes:
+        logical_views (MutableSequence[google.cloud.bigtable_admin_v2.types.LogicalView]):
+            The list of requested logical views.
+        next_page_token (str):
+            A token, which can be sent as ``page_token`` to retrieve the
+            next page. If this field is omitted, there are no subsequent
+            pages.
+    """
+
+    @property
+    def raw_page(self):
+        return self
+
+    logical_views: MutableSequence[gba_instance.LogicalView] = proto.RepeatedField(
+        proto.MESSAGE,
+        number=1,
+        message=gba_instance.LogicalView,
+    )
+    next_page_token: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+
+
 class UpdateLogicalViewRequest(proto.Message):
     r"""Request message for BigtableInstanceAdmin.UpdateLogicalView.
 
@@ -1009,6 +1098,32 @@ class UpdateLogicalViewMetadata(proto.Message):
         proto.MESSAGE,
         number=3,
         message=timestamp_pb2.Timestamp,
+    )
+
+
+class DeleteLogicalViewRequest(proto.Message):
+    r"""Request message for BigtableInstanceAdmin.DeleteLogicalView.
+
+    Attributes:
+        name (str):
+            Required. The unique name of the logical view to be deleted.
+            Format:
+            ``projects/{project}/instances/{instance}/logicalViews/{logical_view}``.
+        etag (str):
+            Optional. The current etag of the logical
+            view. If an etag is provided and does not match
+            the current etag of the logical view, deletion
+            will be blocked and an ABORTED error will be
+            returned.
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    etag: str = proto.Field(
+        proto.STRING,
+        number=2,
     )
 
 
@@ -1073,6 +1188,176 @@ class CreateMaterializedViewMetadata(proto.Message):
         proto.MESSAGE,
         number=3,
         message=timestamp_pb2.Timestamp,
+    )
+
+
+class GetMaterializedViewRequest(proto.Message):
+    r"""Request message for
+    BigtableInstanceAdmin.GetMaterializedView.
+
+    Attributes:
+        name (str):
+            Required. The unique name of the requested materialized
+            view. Values are of the form
+            ``projects/{project}/instances/{instance}/materializedViews/{materialized_view}``.
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+
+
+class ListMaterializedViewsRequest(proto.Message):
+    r"""Request message for
+    BigtableInstanceAdmin.ListMaterializedViews.
+
+    Attributes:
+        parent (str):
+            Required. The unique name of the instance for which the list
+            of materialized views is requested. Values are of the form
+            ``projects/{project}/instances/{instance}``.
+        page_size (int):
+            Optional. The maximum number of materialized
+            views to return. The service may return fewer
+            than this value
+        page_token (str):
+            Optional. A page token, received from a previous
+            ``ListMaterializedViews`` call. Provide this to retrieve the
+            subsequent page.
+
+            When paginating, all other parameters provided to
+            ``ListMaterializedViews`` must match the call that provided
+            the page token.
+    """
+
+    parent: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    page_size: int = proto.Field(
+        proto.INT32,
+        number=2,
+    )
+    page_token: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+
+
+class ListMaterializedViewsResponse(proto.Message):
+    r"""Response message for
+    BigtableInstanceAdmin.ListMaterializedViews.
+
+    Attributes:
+        materialized_views (MutableSequence[google.cloud.bigtable_admin_v2.types.MaterializedView]):
+            The list of requested materialized views.
+        next_page_token (str):
+            A token, which can be sent as ``page_token`` to retrieve the
+            next page. If this field is omitted, there are no subsequent
+            pages.
+    """
+
+    @property
+    def raw_page(self):
+        return self
+
+    materialized_views: MutableSequence[
+        gba_instance.MaterializedView
+    ] = proto.RepeatedField(
+        proto.MESSAGE,
+        number=1,
+        message=gba_instance.MaterializedView,
+    )
+    next_page_token: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+
+
+class UpdateMaterializedViewRequest(proto.Message):
+    r"""Request message for
+    BigtableInstanceAdmin.UpdateMaterializedView.
+
+    Attributes:
+        materialized_view (google.cloud.bigtable_admin_v2.types.MaterializedView):
+            Required. The materialized view to update.
+
+            The materialized view's ``name`` field is used to identify
+            the view to update. Format:
+            ``projects/{project}/instances/{instance}/materializedViews/{materialized_view}``.
+        update_mask (google.protobuf.field_mask_pb2.FieldMask):
+            Optional. The list of fields to update.
+    """
+
+    materialized_view: gba_instance.MaterializedView = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message=gba_instance.MaterializedView,
+    )
+    update_mask: field_mask_pb2.FieldMask = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=field_mask_pb2.FieldMask,
+    )
+
+
+class UpdateMaterializedViewMetadata(proto.Message):
+    r"""The metadata for the Operation returned by
+    UpdateMaterializedView.
+
+    Attributes:
+        original_request (google.cloud.bigtable_admin_v2.types.UpdateMaterializedViewRequest):
+            The request that prompted the initiation of
+            this UpdateMaterializedView operation.
+        start_time (google.protobuf.timestamp_pb2.Timestamp):
+            The time at which this operation was started.
+        end_time (google.protobuf.timestamp_pb2.Timestamp):
+            If set, the time at which this operation
+            finished or was canceled.
+    """
+
+    original_request: "UpdateMaterializedViewRequest" = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message="UpdateMaterializedViewRequest",
+    )
+    start_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=timestamp_pb2.Timestamp,
+    )
+    end_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
+    )
+
+
+class DeleteMaterializedViewRequest(proto.Message):
+    r"""Request message for
+    BigtableInstanceAdmin.DeleteMaterializedView.
+
+    Attributes:
+        name (str):
+            Required. The unique name of the materialized view to be
+            deleted. Format:
+            ``projects/{project}/instances/{instance}/materializedViews/{materialized_view}``.
+        etag (str):
+            Optional. The current etag of the
+            materialized view. If an etag is provided and
+            does not match the current etag of the
+            materialized view, deletion will be blocked and
+            an ABORTED error will be returned.
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    etag: str = proto.Field(
+        proto.STRING,
+        number=2,
     )
 
 
