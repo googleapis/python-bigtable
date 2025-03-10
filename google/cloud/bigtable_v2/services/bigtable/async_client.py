@@ -82,6 +82,10 @@ class BigtableAsyncClient:
     parse_authorized_view_path = staticmethod(BigtableClient.parse_authorized_view_path)
     instance_path = staticmethod(BigtableClient.instance_path)
     parse_instance_path = staticmethod(BigtableClient.parse_instance_path)
+    materialized_view_path = staticmethod(BigtableClient.materialized_view_path)
+    parse_materialized_view_path = staticmethod(
+        BigtableClient.parse_materialized_view_path
+    )
     table_path = staticmethod(BigtableClient.table_path)
     parse_table_path = staticmethod(BigtableClient.parse_table_path)
     common_billing_account_path = staticmethod(
@@ -1700,8 +1704,7 @@ class BigtableAsyncClient:
         if regex_match and regex_match.group("name"):
             header_params["name"] = regex_match.group("name")
 
-        if request.app_profile_id is not None:
-            # execute_query currently requires empty header support. TODO: remove after support is added
+        if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:

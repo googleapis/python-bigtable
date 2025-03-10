@@ -1116,6 +1116,7 @@ def test_read_rows_non_empty_request_with_auto_populated_field():
     request = bigtable.ReadRowsRequest(
         table_name="table_name_value",
         authorized_view_name="authorized_view_name_value",
+        materialized_view_name="materialized_view_name_value",
         app_profile_id="app_profile_id_value",
     )
 
@@ -1130,6 +1131,7 @@ def test_read_rows_non_empty_request_with_auto_populated_field():
         assert args[0] == bigtable.ReadRowsRequest(
             table_name="table_name_value",
             authorized_view_name="authorized_view_name_value",
+            materialized_view_name="materialized_view_name_value",
             app_profile_id="app_profile_id_value",
         )
 
@@ -1385,6 +1387,7 @@ def test_sample_row_keys_non_empty_request_with_auto_populated_field():
     request = bigtable.SampleRowKeysRequest(
         table_name="table_name_value",
         authorized_view_name="authorized_view_name_value",
+        materialized_view_name="materialized_view_name_value",
         app_profile_id="app_profile_id_value",
     )
 
@@ -1399,6 +1402,7 @@ def test_sample_row_keys_non_empty_request_with_auto_populated_field():
         assert args[0] == bigtable.SampleRowKeysRequest(
             table_name="table_name_value",
             authorized_view_name="authorized_view_name_value",
+            materialized_view_name="materialized_view_name_value",
             app_profile_id="app_profile_id_value",
         )
 
@@ -7490,11 +7494,7 @@ def test_execute_query_routing_parameters_request_1_grpc():
 
         assert args[0] == request_msg
 
-        # expect app_profile_id while temporary patch is in place: https://github.com/googleapis/python-bigtable/pull/1072
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-            "app_profile_id": "",
-        }
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
@@ -8611,11 +8611,7 @@ async def test_execute_query_routing_parameters_request_1_grpc_asyncio():
 
         assert args[0] == request_msg
 
-        # expect app_profile_id while temporary patch is in place: https://github.com/googleapis/python-bigtable/pull/1072
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-            "app_profile_id": "",
-        }
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
@@ -10916,11 +10912,7 @@ def test_execute_query_routing_parameters_request_1_rest():
 
         assert args[0] == request_msg
 
-        # expect app_profile_id while temporary patch is in place: https://github.com/googleapis/python-bigtable/pull/1072
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-            "app_profile_id": "",
-        }
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
@@ -11483,10 +11475,36 @@ def test_parse_instance_path():
     assert expected == actual
 
 
-def test_table_path():
+def test_materialized_view_path():
     project = "squid"
     instance = "clam"
-    table = "whelk"
+    materialized_view = "whelk"
+    expected = "projects/{project}/instances/{instance}/materializedViews/{materialized_view}".format(
+        project=project,
+        instance=instance,
+        materialized_view=materialized_view,
+    )
+    actual = BigtableClient.materialized_view_path(project, instance, materialized_view)
+    assert expected == actual
+
+
+def test_parse_materialized_view_path():
+    expected = {
+        "project": "octopus",
+        "instance": "oyster",
+        "materialized_view": "nudibranch",
+    }
+    path = BigtableClient.materialized_view_path(**expected)
+
+    # Check that the path construction is reversible.
+    actual = BigtableClient.parse_materialized_view_path(path)
+    assert expected == actual
+
+
+def test_table_path():
+    project = "cuttlefish"
+    instance = "mussel"
+    table = "winkle"
     expected = "projects/{project}/instances/{instance}/tables/{table}".format(
         project=project,
         instance=instance,
@@ -11498,9 +11516,9 @@ def test_table_path():
 
 def test_parse_table_path():
     expected = {
-        "project": "octopus",
-        "instance": "oyster",
-        "table": "nudibranch",
+        "project": "nautilus",
+        "instance": "scallop",
+        "table": "abalone",
     }
     path = BigtableClient.table_path(**expected)
 
@@ -11510,7 +11528,7 @@ def test_parse_table_path():
 
 
 def test_common_billing_account_path():
-    billing_account = "cuttlefish"
+    billing_account = "squid"
     expected = "billingAccounts/{billing_account}".format(
         billing_account=billing_account,
     )
@@ -11520,7 +11538,7 @@ def test_common_billing_account_path():
 
 def test_parse_common_billing_account_path():
     expected = {
-        "billing_account": "mussel",
+        "billing_account": "clam",
     }
     path = BigtableClient.common_billing_account_path(**expected)
 
@@ -11530,7 +11548,7 @@ def test_parse_common_billing_account_path():
 
 
 def test_common_folder_path():
-    folder = "winkle"
+    folder = "whelk"
     expected = "folders/{folder}".format(
         folder=folder,
     )
@@ -11540,7 +11558,7 @@ def test_common_folder_path():
 
 def test_parse_common_folder_path():
     expected = {
-        "folder": "nautilus",
+        "folder": "octopus",
     }
     path = BigtableClient.common_folder_path(**expected)
 
@@ -11550,7 +11568,7 @@ def test_parse_common_folder_path():
 
 
 def test_common_organization_path():
-    organization = "scallop"
+    organization = "oyster"
     expected = "organizations/{organization}".format(
         organization=organization,
     )
@@ -11560,7 +11578,7 @@ def test_common_organization_path():
 
 def test_parse_common_organization_path():
     expected = {
-        "organization": "abalone",
+        "organization": "nudibranch",
     }
     path = BigtableClient.common_organization_path(**expected)
 
@@ -11570,7 +11588,7 @@ def test_parse_common_organization_path():
 
 
 def test_common_project_path():
-    project = "squid"
+    project = "cuttlefish"
     expected = "projects/{project}".format(
         project=project,
     )
@@ -11580,7 +11598,7 @@ def test_common_project_path():
 
 def test_parse_common_project_path():
     expected = {
-        "project": "clam",
+        "project": "mussel",
     }
     path = BigtableClient.common_project_path(**expected)
 
@@ -11590,8 +11608,8 @@ def test_parse_common_project_path():
 
 
 def test_common_location_path():
-    project = "whelk"
-    location = "octopus"
+    project = "winkle"
+    location = "nautilus"
     expected = "projects/{project}/locations/{location}".format(
         project=project,
         location=location,
@@ -11602,8 +11620,8 @@ def test_common_location_path():
 
 def test_parse_common_location_path():
     expected = {
-        "project": "oyster",
-        "location": "nudibranch",
+        "project": "scallop",
+        "location": "abalone",
     }
     path = BigtableClient.common_location_path(**expected)
 

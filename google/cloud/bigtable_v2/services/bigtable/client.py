@@ -239,6 +239,28 @@ class BigtableClient(metaclass=BigtableClientMeta):
         return m.groupdict() if m else {}
 
     @staticmethod
+    def materialized_view_path(
+        project: str,
+        instance: str,
+        materialized_view: str,
+    ) -> str:
+        """Returns a fully-qualified materialized_view string."""
+        return "projects/{project}/instances/{instance}/materializedViews/{materialized_view}".format(
+            project=project,
+            instance=instance,
+            materialized_view=materialized_view,
+        )
+
+    @staticmethod
+    def parse_materialized_view_path(path: str) -> Dict[str, str]:
+        """Parses a materialized_view path into its component segments."""
+        m = re.match(
+            r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)/materializedViews/(?P<materialized_view>.+?)$",
+            path,
+        )
+        return m.groupdict() if m else {}
+
+    @staticmethod
     def table_path(
         project: str,
         instance: str,
@@ -2128,8 +2150,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("name"):
             header_params["name"] = regex_match.group("name")
 
-        if request.app_profile_id is not None:
-            # execute_query currently requires empty header support. TODO: remove after support is adde
+        if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:

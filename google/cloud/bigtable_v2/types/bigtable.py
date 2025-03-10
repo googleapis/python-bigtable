@@ -73,6 +73,12 @@ class ReadRowsRequest(proto.Message):
 
             Values are of the form
             ``projects/<project>/instances/<instance>/tables/<table>/authorizedViews/<authorized_view>``.
+        materialized_view_name (str):
+            Optional. The unique name of the MaterializedView from which
+            to read.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/materializedViews/<materialized_view>``.
         app_profile_id (str):
             This value specifies routing for replication.
             If not specified, the "default" application
@@ -138,6 +144,10 @@ class ReadRowsRequest(proto.Message):
     authorized_view_name: str = proto.Field(
         proto.STRING,
         number=9,
+    )
+    materialized_view_name: str = proto.Field(
+        proto.STRING,
+        number=11,
     )
     app_profile_id: str = proto.Field(
         proto.STRING,
@@ -354,6 +364,12 @@ class SampleRowKeysRequest(proto.Message):
 
             Values are of the form
             ``projects/<project>/instances/<instance>/tables/<table>/authorizedViews/<authorized_view>``.
+        materialized_view_name (str):
+            Optional. The unique name of the MaterializedView from which
+            to read.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/materializedViews/<materialized_view>``.
         app_profile_id (str):
             This value specifies routing for replication.
             If not specified, the "default" application
@@ -367,6 +383,10 @@ class SampleRowKeysRequest(proto.Message):
     authorized_view_name: str = proto.Field(
         proto.STRING,
         number=4,
+    )
+    materialized_view_name: str = proto.Field(
+        proto.STRING,
+        number=5,
     )
     app_profile_id: str = proto.Field(
         proto.STRING,
