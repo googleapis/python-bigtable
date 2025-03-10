@@ -12,24 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Generic, Optional, TypeVar
+from typing import Optional
 
 from google.cloud.bigtable_v2 import ExecuteQueryResponse
-from google.cloud.bigtable.data.execute_query.metadata import (
-    Metadata,
-    _pb_metadata_to_metadata_types,
-)
-
-MT = TypeVar("MT", bound=Metadata)  # metadata type
 
 
-class _ByteCursor(Generic[MT]):
+class _ByteCursor:
     """
     Buffers bytes from `ExecuteQuery` responses until resume_token is received or end-of-stream
     is reached. :class:`google.cloud.bigtable_v2.types.bigtable.ExecuteQueryResponse` obtained from
-    the server should be passed to ``consume`` or ``consume_metadata`` methods and its non-None
-    results should be passed to appropriate
-    :class:`google.cloud.bigtable.execute_query_reader._Reader` for parsing gathered bytes.
+    the server should be passed to the ``consume`` method and its non-None results should be passed
+    to appropriate :class:`google.cloud.bigtable.execute_query_reader._Reader` for parsing gathered
+    bytes.
 
     This class consumes data obtained externally to be usable in both sync and async clients.
 
@@ -37,19 +31,8 @@ class _ByteCursor(Generic[MT]):
     """
 
     def __init__(self):
-        self._metadata: Optional[MT] = None
         self._buffer = bytearray()
         self._resume_token = None
-        self._last_response_results_field = None
-
-    @property
-    def metadata(self) -> Optional[MT]:
-        """
-        Returns:
-            Metadata or None: Metadata read from the first response of the stream
-                or None if no response was consumed yet.
-        """
-        return self._metadata
 
     def prepare_for_new_request(self):
         """
@@ -68,37 +51,10 @@ class _ByteCursor(Generic[MT]):
             bytes: Last received resume_token.
         """
         self._buffer = bytearray()
-        # metadata is sent in the first response in a stream,
-        # if we've already received one, but it was not already commited
-        # by a subsequent resume_token, then we should clear it as well.
-        if not self._resume_token:
-            self._metadata = None
-
         return self._resume_token
 
-    def consume_metadata(self, response: ExecuteQueryResponse) -> None:
-        """
-        Reads metadata from first response of ``ExecuteQuery`` responses stream.
-        Should be called only once.
-
-        Args:
-            response (google.cloud.bigtable_v2.types.bigtable.ExecuteQueryResponse): First response
-                from the stream.
-
-        Raises:
-            ValueError: If this method was already called or if metadata received from the server
-                cannot be parsed.
-        """
-        if self._metadata is not None:
-            raise ValueError("Invalid state - metadata already consumed")
-
-        if "metadata" in response:
-            metadata: Any = _pb_metadata_to_metadata_types(response.metadata)
-            self._metadata = metadata
-        else:
-            raise ValueError("Invalid parameter - response without metadata")
-
-        return None
+    def empty(self) -> bool:
+        return len(self._buffer) == 0
 
     def consume(self, response: ExecuteQueryResponse) -> Optional[bytes]:
         """
@@ -137,8 +93,6 @@ class _ByteCursor(Generic[MT]):
                     return_value = memoryview(self._buffer)
                     self._buffer = bytearray()
                     return return_value
-        elif response_pb.HasField("metadata"):
-            self.consume_metadata(response)
         else:
-            raise ValueError(f"Invalid ExecuteQueryResponse: {response}")
+            raise ValueError(f"Unexpected ExecuteQueryResponse: {response}")
         return None
