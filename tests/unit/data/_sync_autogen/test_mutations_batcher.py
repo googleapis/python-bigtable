@@ -22,6 +22,8 @@ import time
 import google.api_core.exceptions as core_exceptions
 import google.api_core.retry
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
+from google.cloud.bigtable.data.mutations import RowMutationEntry
+from google.cloud.bigtable.data.mutations import DeleteAllFromRow
 from google.cloud.bigtable.data import TABLE_DEFAULT
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -36,9 +38,9 @@ class Test_FlowControl:
 
     @staticmethod
     def _make_mutation(count=1, size=1):
-        mutation = mock.Mock()
-        mutation.size.return_value = size
-        mutation.mutations = [mock.Mock()] * count
+        mutation = RowMutationEntry("k", DeleteAllFromRow())
+        mutation.mutations = [DeleteAllFromRow() for _ in range(count)]
+        mutation.size = lambda: size
         return mutation
 
     def test_ctor(self):
@@ -258,6 +260,8 @@ class TestMutationsBatcher:
 
         if table is None:
             table = mock.Mock()
+            table._request_path = {"table_name": "table"}
+            table.app_profile_id = None
             table.default_mutate_rows_operation_timeout = 10
             table.default_mutate_rows_attempt_timeout = 10
             table.default_mutate_rows_retryable_errors = (
@@ -268,9 +272,9 @@ class TestMutationsBatcher:
 
     @staticmethod
     def _make_mutation(count=1, size=1):
-        mutation = mock.Mock()
-        mutation.size.return_value = size
-        mutation.mutations = [mock.Mock()] * count
+        mutation = RowMutationEntry("k", DeleteAllFromRow())
+        mutation.size = lambda: size
+        mutation.mutations = [DeleteAllFromRow() for _ in range(count)]
         return mutation
 
     def test_ctor_defaults(self):

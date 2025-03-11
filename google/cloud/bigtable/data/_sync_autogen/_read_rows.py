@@ -34,7 +34,9 @@ from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._sync_autogen.client import Table as TableType
+    from google.cloud.bigtable.data._sync_autogen.client import (
+        _ApiSurface as ApiSurfaceType,
+    )
 
 
 class _ReadRowsOperation:
@@ -70,7 +72,7 @@ class _ReadRowsOperation:
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: TableType,
+        table: ApiSurfaceType,
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
@@ -81,9 +83,7 @@ class _ReadRowsOperation:
         self.operation_timeout = operation_timeout
         if isinstance(query, dict):
             self.request = ReadRowsRequestPB(
-                **query,
-                table_name=table.table_name,
-                app_profile_id=table.app_profile_id,
+                **query, **table._request_path, app_profile_id=table.app_profile_id
             )
         else:
             self.request = query._to_pb(table)
