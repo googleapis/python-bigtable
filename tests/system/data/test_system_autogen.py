@@ -902,8 +902,14 @@ class TestSystem:
             ],
         }
         param_types = {
+            "stringParam": SqlType.String(),
+            "bytesParam": SqlType.Bytes(),
+            "int64Param": SqlType.Int64(),
             "float32Param": SqlType.Float32(),
             "float64Param": SqlType.Float64(),
+            "boolParam": SqlType.Bool(),
+            "tsParam": SqlType.Timestamp(),
+            "dateParam": SqlType.Date(),
             "byteArrayParam": SqlType.Array(SqlType.Bytes()),
             "stringArrayParam": SqlType.Array(SqlType.String()),
             "intArrayParam": SqlType.Array(SqlType.Int64()),
