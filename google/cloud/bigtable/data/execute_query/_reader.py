@@ -19,7 +19,6 @@ from typing import (
     Iterable,
     Optional,
     Sequence,
-    cast,
 )
 from abc import ABC, abstractmethod
 
@@ -32,7 +31,7 @@ from google.cloud.bigtable.data.execute_query._query_result_parsing_utils import
 from google.cloud.bigtable.helpers import batched
 
 from google.cloud.bigtable.data.execute_query.values import QueryResultRow
-from google.cloud.bigtable.data.execute_query.metadata import Metadata, ProtoMetadata
+from google.cloud.bigtable.data.execute_query.metadata import Metadata
 
 
 T = TypeVar("T")
@@ -90,7 +89,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         return proto_rows.values
 
     def _construct_query_result_row(
-        self, values: Sequence[PBValue], metadata: ProtoMetadata
+        self, values: Sequence[PBValue], metadata: Metadata
     ) -> QueryResultRow:
         result = QueryResultRow()
         columns = metadata.columns
@@ -107,16 +106,13 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
     def consume(
         self, batches_to_consume: List[bytes], metadata: Metadata
     ) -> Optional[Iterable[QueryResultRow]]:
-        proto_metadata = cast(ProtoMetadata, metadata)
-        num_columns = len(proto_metadata.columns)
+        num_columns = len(metadata.columns)
         rows = []
         for batch_bytes in batches_to_consume:
             values = self._parse_proto_rows(batch_bytes)
             for row_data in batched(values, n=num_columns):
                 if len(row_data) == num_columns:
-                    rows.append(
-                        self._construct_query_result_row(row_data, proto_metadata)
-                    )
+                    rows.append(self._construct_query_result_row(row_data, metadata))
                 else:
                     raise ValueError(
                         "Unexpected error, recieved bad number of values. "

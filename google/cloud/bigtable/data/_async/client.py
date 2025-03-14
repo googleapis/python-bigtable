@@ -610,10 +610,6 @@ class BigtableDataClientAsync(ClientWithProject):
             google.cloud.bigtable.data.exceptions.ParameterTypeInferenceFailed: Raised if
                 a parameter is passed without an explicit type, and the type cannot be infered
         """
-        warnings.warn(
-            "ExecuteQuery is in preview and may change in the future.",
-            category=RuntimeWarning,
-        )
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         converted_param_types = _to_param_types(parameters, parameter_types)
         prepare_request = {

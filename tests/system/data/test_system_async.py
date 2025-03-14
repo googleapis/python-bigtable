@@ -1064,6 +1064,36 @@ class TestSystemAsync:
         assert row["b"] == "foo"
 
     @CrossSync.pytest
+    @pytest.mark.usefixtures("table")
+    @CrossSync.Retry(
+        predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
+    )
+    async def test_execute_against_table(
+        self, client, instance_id, table_id, temp_rows
+    ):
+        await temp_rows.add_row(b"row_key_1")
+        result = await client.execute_query(
+            "SELECT * FROM `" + table_id + "`", instance_id
+        )
+        rows = [r async for r in result]
+
+        assert len(rows) == 1
+        assert rows[0]["_key"] == b"row_key_1"
+        family_map = rows[0][TEST_FAMILY]
+        assert len(family_map) == 1
+        assert family_map[b"q"] == b"test-value"
+        assert len(rows[0][TEST_FAMILY_2]) == 0
+        md = result.metadata
+        assert len(md) == 3
+        assert md["_key"].column_type == SqlType.Bytes()
+        assert md[TEST_FAMILY].column_type == SqlType.Map(
+            SqlType.Bytes(), SqlType.Bytes()
+        )
+        assert md[TEST_FAMILY_2].column_type == SqlType.Map(
+            SqlType.Bytes(), SqlType.Bytes()
+        )
+
+    @CrossSync.pytest
     @pytest.mark.usefixtures("client")
     @CrossSync.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
@@ -1149,3 +1179,28 @@ class TestSystemAsync:
             date_pb2.Date(year=2025, month=1, day=17),
             None,
         ]
+
+    @CrossSync.pytest
+    @pytest.mark.usefixtures("table")
+    @CrossSync.Retry(
+        predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
+    )
+    async def test_execute_metadata_on_empty_response(
+        self, client, instance_id, table_id, temp_rows
+    ):
+        await temp_rows.add_row(b"row_key_1")
+        result = await client.execute_query(
+            "SELECT * FROM `" + table_id + "` WHERE _key='non-existent'", instance_id
+        )
+        rows = [r async for r in result]
+
+        assert len(rows) == 0
+        md = result.metadata
+        assert len(md) == 3
+        assert md["_key"].column_type == SqlType.Bytes()
+        assert md[TEST_FAMILY].column_type == SqlType.Map(
+            SqlType.Bytes(), SqlType.Bytes()
+        )
+        assert md[TEST_FAMILY_2].column_type == SqlType.Map(
+            SqlType.Bytes(), SqlType.Bytes()
+        )
