@@ -18,13 +18,12 @@ from google.cloud.bigtable.data.execute_query.metadata import (
 )
 import pytest
 import concurrent.futures
-from google.cloud.bigtable_v2.types.bigtable import ExecuteQueryResponse
 from ..sql_helpers import (
+    chunked_responses,
+    int_val,
     column,
     metadata,
     int64_type,
-    split_bytes_into_chunks,
-    proto_rows_bytes,
 )
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -74,46 +73,10 @@ class TestQueryIteratorAsync:
 
     @pytest.fixture
     def proto_byte_stream(self):
-        proto_rows = [
-            proto_rows_bytes({"int_value": 1}, {"int_value": 2}),
-            proto_rows_bytes({"int_value": 3}, {"int_value": 4}),
-            proto_rows_bytes({"int_value": 5}, {"int_value": 6}),
-        ]
-
-        messages = [
-            *split_bytes_into_chunks(proto_rows[0], num_chunks=2),
-            *split_bytes_into_chunks(proto_rows[1], num_chunks=3),
-            proto_rows[2],
-        ]
-
         stream = [
-            ExecuteQueryResponse(
-                results={"proto_rows_batch": {"batch_data": messages[0]}}
-            ),
-            ExecuteQueryResponse(
-                results={
-                    "proto_rows_batch": {"batch_data": messages[1]},
-                    "resume_token": b"token1",
-                }
-            ),
-            ExecuteQueryResponse(
-                results={"proto_rows_batch": {"batch_data": messages[2]}}
-            ),
-            ExecuteQueryResponse(
-                results={"proto_rows_batch": {"batch_data": messages[3]}}
-            ),
-            ExecuteQueryResponse(
-                results={
-                    "proto_rows_batch": {"batch_data": messages[4]},
-                    "resume_token": b"token2",
-                }
-            ),
-            ExecuteQueryResponse(
-                results={
-                    "proto_rows_batch": {"batch_data": messages[5]},
-                    "resume_token": b"token3",
-                }
-            ),
+            *chunked_responses(2, int_val(1), int_val(2), token=b"token1"),
+            *chunked_responses(3, int_val(3), int_val(4), token=b"token2"),
+            *chunked_responses(1, int_val(5), int_val(6), token=b"token3"),
         ]
         return stream
 
@@ -191,6 +154,102 @@ class TestQueryIteratorAsync:
         assert len(iterator.metadata) == 2
 
         assert mock_async_iterator.idx == 2
+
+    @CrossSync.pytest
+    async def test_iterator_throws_error_on_close_w_bufferred_data(self):
+        client_mock = mock.Mock()
+
+        client_mock._register_instance = CrossSync.Mock()
+        client_mock._remove_instance_registration = CrossSync.Mock()
+        stream = [
+            *chunked_responses(2, int_val(1), int_val(2), token=b"token1"),
+            *chunked_responses(3, int_val(3), int_val(4), token=b"token2"),
+            # Remove the last response, which has the token. We expect this
+            # to cause the call to close within _next_impl_ to fail
+            chunked_responses(2, int_val(5), int_val(6), token=b"token3")[0],
+        ]
+        mock_async_iterator = MockIterator(stream)
+        iterator = None
+        with mock.patch.object(
+            CrossSync,
+            "retry_target_stream",
+            return_value=mock_async_iterator,
+        ):
+            iterator = self._make_one(
+                client=client_mock,
+                instance_id="test-instance",
+                app_profile_id="test_profile",
+                request_body={},
+                prepare_metadata=_pb_metadata_to_metadata_types(
+                    metadata(
+                        column("test1", int64_type()), column("test2", int64_type())
+                    )
+                ),
+                attempt_timeout=10,
+                operation_timeout=10,
+                req_metadata=(),
+                retryable_excs=[],
+            )
+        i = 0
+        async for row in iterator:
+            i += 1
+            if i == 2:
+                break
+        with pytest.raises(
+            ValueError,
+            match="Unexpected buffered data at end of executeQuery reqest",
+        ):
+            await CrossSync.next(iterator)
+
+    @CrossSync.pytest
+    async def test_iterator_handles_reset(self):
+        client_mock = mock.Mock()
+
+        client_mock._register_instance = CrossSync.Mock()
+        client_mock._remove_instance_registration = CrossSync.Mock()
+        stream = [
+            # Expect this to be dropped by reset
+            *chunked_responses(2, int_val(1), int_val(2)),
+            *chunked_responses(3, int_val(3), int_val(4), reset=True),
+            *chunked_responses(2, int_val(5), int_val(6), reset=False, token=b"token1"),
+            # Only send first of two responses so that there is no checksum
+            # expect to be reset
+            chunked_responses(2, int_val(10), int_val(12))[0],
+            *chunked_responses(2, int_val(7), int_val(8), token=b"token2"),
+        ]
+        mock_async_iterator = MockIterator(stream)
+        iterator = None
+        with mock.patch.object(
+            CrossSync,
+            "retry_target_stream",
+            return_value=mock_async_iterator,
+        ):
+            iterator = self._make_one(
+                client=client_mock,
+                instance_id="test-instance",
+                app_profile_id="test_profile",
+                request_body={},
+                prepare_metadata=_pb_metadata_to_metadata_types(
+                    metadata(
+                        column("test1", int64_type()), column("test2", int64_type())
+                    )
+                ),
+                attempt_timeout=10,
+                operation_timeout=10,
+                req_metadata=(),
+                retryable_excs=[],
+            )
+        results = []
+        async for value in iterator:
+            results.append(value)
+        assert len(results) == 3
+        [row1, row2, row3] = results
+        assert row1["test1"] == 3
+        assert row1["test2"] == 4
+        assert row2["test1"] == 5
+        assert row2["test2"] == 6
+        assert row3["test1"] == 7
+        assert row3["test2"] == 8
 
     @CrossSync.pytest
     async def test_iterator_returns_error_if_metadata_requested_too_early(

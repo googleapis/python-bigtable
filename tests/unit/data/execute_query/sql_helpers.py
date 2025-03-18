@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List
 
 from google.protobuf import timestamp_pb2
 
@@ -29,6 +29,11 @@ from google.cloud.bigtable_v2.types.data import (
     ColumnMetadata,
 )
 from google.cloud.bigtable_v2.types.types import Type
+import google_crc32c  # type: ignore
+
+
+def checksum(data: bytearray) -> int:
+    return google_crc32c.value(bytes(memoryview(data)))
 
 
 def split_bytes_into_chunks(bytes_to_split, num_chunks) -> List[bytes]:
@@ -68,30 +73,44 @@ def prepare_response(
     return res
 
 
-def batch_response(b: bytes, reset=False, token=None) -> ExecuteQueryResponse:
+def batch_response(
+    b: bytes, reset=False, token=None, checksum=None
+) -> ExecuteQueryResponse:
     res = ExecuteQueryResponse()
     res.results.proto_rows_batch.batch_data = b
     res.results.reset = reset
     res.results.resume_token = token
+    if checksum:
+        res.results.batch_checksum = checksum
     return res
 
 
-def execute_query_response(token: Optional[bytes], *args: Value):
-    return batch_response(proto_rows_batch(args), True, token)
+def execute_query_response(
+    *args: Value, reset=False, token=None, checksum=None
+) -> ExecuteQueryResponse:
+    data = proto_rows_batch(args)
+    return batch_response(data, reset, token, checksum=checksum)
 
 
 def chunked_responses(
-    chunks: int, *args: Value, reset=True, token=None
+    num_chunks: int,
+    *args: Value,
+    reset=True,
+    token=None,
 ) -> List[ExecuteQueryResponse]:
-    data_bytes = proto_rows_bytes(args)
-    chunks = split_bytes_into_chunks(data_bytes)
+    """
+    Creates one ExecuteQuery response per chunk, with the data in args split between chunks.
+    """
+    data_bytes = proto_rows_bytes(*args)
+    chunks = split_bytes_into_chunks(data_bytes, num_chunks)
     responses = []
-    for chunk, i in enumerate(chunks):
+    for i, chunk in enumerate(chunks):
         response = ExecuteQueryResponse()
         if i == 0:
             response.results.reset = reset
         if i == len(chunks) - 1:
             response.results.resume_token = token
+            response.results.batch_checksum = checksum(data_bytes)
         response.results.proto_rows_batch.batch_data = chunk
         responses.append(response)
     return responses
@@ -131,6 +150,10 @@ def int_val(i: int) -> Value:
     v = Value()
     v.int_value = i
     return v
+
+
+def null_val() -> Value:
+    return Value()
 
 
 def str_type() -> Type:
