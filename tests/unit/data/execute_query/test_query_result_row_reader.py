@@ -18,7 +18,7 @@ from google.cloud.bigtable_v2.types.data import Value as PBValue
 from google.cloud.bigtable.data.execute_query._reader import _QueryResultRowReader
 
 from google.cloud.bigtable.data.execute_query.metadata import (
-    ProtoMetadata,
+    Metadata,
     SqlType,
     _pb_metadata_to_metadata_types,
 )
@@ -37,9 +37,7 @@ from tests.unit.data.execute_query.sql_helpers import (
 
 class TestQueryResultRowReader:
     def test__single_values_received(self):
-        metadata = ProtoMetadata(
-            [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
-        )
+        metadata = Metadata([("test1", SqlType.Int64()), ("test2", SqlType.Int64())])
         values = [
             proto_rows_bytes(int_val(1), int_val(2)),
             proto_rows_bytes(int_val(3), int_val(4)),
@@ -61,9 +59,7 @@ class TestQueryResultRowReader:
             proto_rows_bytes(int_val(7), int_val(8)),
         ]
 
-        metadata = ProtoMetadata(
-            [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
-        )
+        metadata = Metadata([("test1", SqlType.Int64()), ("test2", SqlType.Int64())])
         reader = _QueryResultRowReader()
 
         result = reader.consume(values[0:1], metadata)
@@ -89,9 +85,7 @@ class TestQueryResultRowReader:
         assert result[0][1] == result[0]["test2"] == 8
 
     def test__received_values_are_passed_to_parser_in_batches(self):
-        metadata = ProtoMetadata(
-            [("test1", SqlType.Int64()), ("test2", SqlType.Int64())]
-        )
+        metadata = Metadata([("test1", SqlType.Int64()), ("test2", SqlType.Int64())])
 
         # TODO move to a SqlType test
         assert SqlType.Struct([("a", SqlType.Int64())]) == SqlType.Struct(
@@ -128,7 +122,7 @@ class TestQueryResultRowReader:
             )
 
     def test__parser_errors_are_forwarded(self):
-        metadata = ProtoMetadata([("test1", SqlType.Int64())])
+        metadata = Metadata([("test1", SqlType.Int64())])
 
         values = [str_val("test")]
 
@@ -236,7 +230,7 @@ class TestQueryResultRowReader:
         ]
         results = reader.consume(
             batches,
-            ProtoMetadata([("test1", SqlType.Int64()), ("test2", SqlType.Int64())]),
+            Metadata([("test1", SqlType.Int64()), ("test2", SqlType.Int64())]),
         )
         assert len(results) == 4
         [row1, row2, row3, row4] = results
@@ -250,9 +244,9 @@ class TestQueryResultRowReader:
         assert row4["test2"] == 8
 
 
-class TestProtoMetadata:
+class TestMetadata:
     def test__duplicate_column_names(self):
-        metadata = ProtoMetadata(
+        metadata = Metadata(
             [
                 ("test1", SqlType.Int64()),
                 ("test2", SqlType.Bytes()),
