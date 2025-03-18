@@ -1050,6 +1050,10 @@ class TestSystemAsync:
             expect_match
         ), f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)),
+        reason="emulator doesn't support SQL",
+    )
     @CrossSync.pytest
     @pytest.mark.usefixtures("client")
     @CrossSync.Retry(
@@ -1063,6 +1067,10 @@ class TestSystemAsync:
         assert row["a"] == 1
         assert row["b"] == "foo"
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)),
+        reason="emulator doesn't support SQL",
+    )
     @CrossSync.pytest
     @pytest.mark.usefixtures("table")
     @CrossSync.Retry(
@@ -1093,6 +1101,10 @@ class TestSystemAsync:
             SqlType.Bytes(), SqlType.Bytes()
         )
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)),
+        reason="emulator doesn't support SQL",
+    )
     @CrossSync.pytest
     @pytest.mark.usefixtures("client")
     @CrossSync.Retry(
@@ -1180,6 +1192,10 @@ class TestSystemAsync:
             None,
         ]
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)),
+        reason="emulator doesn't support SQL",
+    )
     @CrossSync.pytest
     @pytest.mark.usefixtures("table")
     @CrossSync.Retry(

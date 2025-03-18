@@ -857,6 +857,9 @@ class TestSystem:
             expect_match
         ), f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
+    )
     @pytest.mark.usefixtures("client")
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
@@ -869,6 +872,9 @@ class TestSystem:
         assert row["a"] == 1
         assert row["b"] == "foo"
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
+    )
     @pytest.mark.usefixtures("table")
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
@@ -893,6 +899,9 @@ class TestSystem:
             SqlType.Bytes(), SqlType.Bytes()
         )
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
+    )
     @pytest.mark.usefixtures("client")
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
@@ -970,6 +979,9 @@ class TestSystem:
             None,
         ]
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
+    )
     @pytest.mark.usefixtures("table")
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
