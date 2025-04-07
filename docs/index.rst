@@ -8,7 +8,6 @@ Client Types
    :maxdepth: 3
 
    data_client/data_client_usage
-   classic_client/usage
 
 
 Changelog
