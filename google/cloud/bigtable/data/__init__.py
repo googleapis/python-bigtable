@@ -24,6 +24,8 @@ from google.cloud.bigtable.data._sync_autogen.mutations_batcher import Mutations
 
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.read_rows_query import RowRange
+from google.cloud.bigtable.data.read_rows_query import RowKeySamples
+from google.cloud.bigtable.data.read_rows_query import ShardedQuery
 from google.cloud.bigtable.data.row import Row
 from google.cloud.bigtable.data.row import Cell
 
@@ -44,8 +46,6 @@ from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 from google.cloud.bigtable.data.exceptions import ParameterTypeInferenceFailed
 
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
-from google.cloud.bigtable.data._helpers import RowKeySamples
-from google.cloud.bigtable.data._helpers import ShardedQuery
 
 # setup custom CrossSync mappings for library
 from google.cloud.bigtable_v2.services.bigtable.async_client import (

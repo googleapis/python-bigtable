@@ -35,12 +35,6 @@ if TYPE_CHECKING:
 Helper functions used in various places in the library.
 """
 
-# Type alias for the output of sample_keys
-RowKeySamples = List[Tuple[bytes, int]]
-
-# type alias for the output of query.shard()
-ShardedQuery = List[ReadRowsQuery]
-
 # used by read_rows_sharded to limit how many requests are attempted in parallel
 _CONCURRENCY_LIMIT = 10
 

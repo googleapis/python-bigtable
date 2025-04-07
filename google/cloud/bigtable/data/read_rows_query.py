@@ -23,9 +23,12 @@ from google.cloud.bigtable_v2.types import RowRange as RowRangePB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 
-if TYPE_CHECKING:
-    from google.cloud.bigtable.data import RowKeySamples
-    from google.cloud.bigtable.data import ShardedQuery
+
+RowKeySamples = list[tuple[bytes, int]]
+"""List of table dividion points returned by `table.sample_row_keys()`. Used as an input for `query.shard()`."""
+
+ShardedQuery = list["ReadRowsQuery"]
+"""List of sharded queries returned by `query.shard()`. Used as an input for `table.read_rows_sharded()`"""
 
 
 class RowRange:

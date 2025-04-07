@@ -72,8 +72,8 @@ from google.cloud.bigtable_v2.services.bigtable.transports import (
 from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._helpers import RowKeySamples
-    from google.cloud.bigtable.data._helpers import ShardedQuery
+    from google.cloud.bigtable.data import RowKeySamples
+    from google.cloud.bigtable.data import ShardedQuery
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import (
         MutationsBatcher,
     )

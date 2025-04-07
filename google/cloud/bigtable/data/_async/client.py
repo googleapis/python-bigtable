@@ -92,8 +92,8 @@ else:
 
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._helpers import RowKeySamples
-    from google.cloud.bigtable.data._helpers import ShardedQuery
+    from google.cloud.bigtable.data import RowKeySamples
+    from google.cloud.bigtable.data import ShardedQuery
 
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.mutations_batcher import (
