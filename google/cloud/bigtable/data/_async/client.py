@@ -772,16 +772,16 @@ class TableAsync:
         retryable_errors list until operation_timeout is reached.
 
         Args:
-            query: contains details about which rows to return
-            operation_timeout: the time budget for the entire operation, in seconds.
+            query (google.cloud.bigtable.data.read_rows_query.ReadRowsQuery): contains details about which rows to return
+            operation_timeout (Union[float, TABLE_DEFAULT]): the time budget for the entire operation, in seconds.
                  Failed requests will be retried within the budget.
                  Defaults to the Table's default_read_rows_operation_timeout
-            attempt_timeout: the time budget for an individual network request, in seconds.
+            attempt_timeout (Union[float, TABLE_DEFAULT, None]): the time budget for an individual network request, in seconds.
                 If it takes longer than this time to complete, the request will be cancelled with
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_read_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
-            retryable_errors: a list of errors that will be retried if encountered.
+            retryable_errors (Union[Sequence[type[Exception]], TABLE_DEFAULT]): a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors
         Returns:
             AsyncIterable[Row]: an asynchronous iterator that yields rows returned by the query
@@ -940,7 +940,8 @@ class TableAsync:
         Returns:
             list[Row]: a list of Rows returned by the query
         Raises:
-            ShardedReadRowsExceptionGroup: if any of the queries failed
+            google.cloud.bigtable.data.exceptions.ShardedReadRowsExceptionGroup: if any
+                of the queries failed
             ValueError: if the query_list is empty
         """
         if not sharded_query:
@@ -1290,8 +1291,8 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_mutate_rows_retryable_errors
         Raises:
-            MutationsExceptionGroup: if one or more mutations fails
-                Contains details about any failed entries in .exceptions
+            google.cloud.bigtable.data.exceptions.MutationsExceptionGroup: if one 
+                or more mutations fails. Contains details about any failed entries in .exceptions
             ValueError: if invalid arguments are provided
         """
         operation_timeout, attempt_timeout = _get_timeouts(
