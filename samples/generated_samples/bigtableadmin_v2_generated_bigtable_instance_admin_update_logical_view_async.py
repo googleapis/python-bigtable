@@ -15,7 +15,7 @@
 #
 # Generated code. DO NOT EDIT!
 #
-# Snippet for GetMaterializedView
+# Snippet for UpdateLogicalView
 # NOTE: This snippet has been automatically generated for illustrative purposes only.
 # It may require modifications to work in your environment.
 
@@ -23,7 +23,7 @@
 #   python3 -m pip install google-cloud-bigtable-admin
 
 
-# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_GetMaterializedView_sync_internal]
+# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_UpdateLogicalView_async]
 # This snippet has been automatically generated and should be regarded as a
 # code template only.
 # It will require modifications to work:
@@ -34,19 +34,26 @@
 from google.cloud.bigtable import admin_v2
 
 
-def sample_get_materialized_view():
+async def sample_update_logical_view():
     # Create a client
-    client = admin_v2.BaseBigtableInstanceAdminClient()
+    client = admin_v2.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
-    request = admin_v2.GetMaterializedViewRequest(
-        name="name_value",
+    logical_view = admin_v2.LogicalView()
+    logical_view.query = "query_value"
+
+    request = admin_v2.UpdateLogicalViewRequest(
+        logical_view=logical_view,
     )
 
     # Make the request
-    response = client._get_materialized_view(request=request)
+    operation = client.update_logical_view(request=request)
+
+    print("Waiting for operation to complete...")
+
+    response = (await operation).result()
 
     # Handle the response
     print(response)
 
-# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_GetMaterializedView_sync_internal]
+# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_UpdateLogicalView_async]

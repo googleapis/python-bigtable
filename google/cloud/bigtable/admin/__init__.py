@@ -19,10 +19,10 @@ __version__ = package_version.__version__
 
 
 from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin.client import (
-    BaseBigtableInstanceAdminClient,
+    BigtableInstanceAdminClient,
 )
 from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin.async_client import (
-    BaseBigtableInstanceAdminAsyncClient,
+    BigtableInstanceAdminAsyncClient,
 )
 from google.cloud.bigtable.admin_v2.services.bigtable_table_admin.client import (
     BaseBigtableTableAdminClient,
@@ -294,8 +294,8 @@ from google.cloud.bigtable.admin_v2.types.table import RestoreSourceType
 from google.cloud.bigtable.admin_v2.types.types import Type
 
 __all__ = (
-    "BaseBigtableInstanceAdminClient",
-    "BaseBigtableInstanceAdminAsyncClient",
+    "BigtableInstanceAdminClient",
+    "BigtableInstanceAdminAsyncClient",
     "BaseBigtableTableAdminClient",
     "BaseBigtableTableAdminAsyncClient",
     "CreateAppProfileRequest",

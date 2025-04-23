@@ -18,8 +18,8 @@ from google.cloud.bigtable.admin_v2 import gapic_version as package_version
 __version__ = package_version.__version__
 
 
-from .services.bigtable_instance_admin import BaseBigtableInstanceAdminClient
-from .services.bigtable_instance_admin import BaseBigtableInstanceAdminAsyncClient
+from .services.bigtable_instance_admin import BigtableInstanceAdminClient
+from .services.bigtable_instance_admin import BigtableInstanceAdminAsyncClient
 from .services.bigtable_table_admin import BaseBigtableTableAdminClient
 from .services.bigtable_table_admin import BaseBigtableTableAdminAsyncClient
 
@@ -134,16 +134,16 @@ from .types.table import RestoreSourceType
 from .types.types import Type
 
 __all__ = (
-    "BaseBigtableInstanceAdminAsyncClient",
     "BaseBigtableTableAdminAsyncClient",
+    "BigtableInstanceAdminAsyncClient",
     "AppProfile",
     "AuthorizedView",
     "AutoscalingLimits",
     "AutoscalingTargets",
     "Backup",
     "BackupInfo",
-    "BaseBigtableInstanceAdminClient",
     "BaseBigtableTableAdminClient",
+    "BigtableInstanceAdminClient",
     "ChangeStreamConfig",
     "CheckConsistencyRequest",
     "CheckConsistencyResponse",

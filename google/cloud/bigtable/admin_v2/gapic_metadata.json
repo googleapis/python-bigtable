@@ -8,7 +8,7 @@
     "BigtableInstanceAdmin": {
       "clients": {
         "grpc": {
-          "libraryClient": "BaseBigtableInstanceAdminClient",
+          "libraryClient": "BigtableInstanceAdminClient",
           "rpcs": {
             "CreateAppProfile": {
               "methods": [
@@ -27,12 +27,12 @@
             },
             "CreateLogicalView": {
               "methods": [
-                "_create_logical_view"
+                "create_logical_view"
               ]
             },
             "CreateMaterializedView": {
               "methods": [
-                "_create_materialized_view"
+                "create_materialized_view"
               ]
             },
             "DeleteAppProfile": {
@@ -52,12 +52,12 @@
             },
             "DeleteLogicalView": {
               "methods": [
-                "_delete_logical_view"
+                "delete_logical_view"
               ]
             },
             "DeleteMaterializedView": {
               "methods": [
-                "_delete_materialized_view"
+                "delete_materialized_view"
               ]
             },
             "GetAppProfile": {
@@ -82,12 +82,12 @@
             },
             "GetLogicalView": {
               "methods": [
-                "_get_logical_view"
+                "get_logical_view"
               ]
             },
             "GetMaterializedView": {
               "methods": [
-                "_get_materialized_view"
+                "get_materialized_view"
               ]
             },
             "ListAppProfiles": {
@@ -112,12 +112,12 @@
             },
             "ListLogicalViews": {
               "methods": [
-                "_list_logical_views"
+                "list_logical_views"
               ]
             },
             "ListMaterializedViews": {
               "methods": [
-                "_list_materialized_views"
+                "list_materialized_views"
               ]
             },
             "PartialUpdateCluster": {
@@ -157,18 +157,18 @@
             },
             "UpdateLogicalView": {
               "methods": [
-                "_update_logical_view"
+                "update_logical_view"
               ]
             },
             "UpdateMaterializedView": {
               "methods": [
-                "_update_materialized_view"
+                "update_materialized_view"
               ]
             }
           }
         },
         "grpc-async": {
-          "libraryClient": "BaseBigtableInstanceAdminAsyncClient",
+          "libraryClient": "BigtableInstanceAdminAsyncClient",
           "rpcs": {
             "CreateAppProfile": {
               "methods": [
@@ -187,12 +187,12 @@
             },
             "CreateLogicalView": {
               "methods": [
-                "_create_logical_view"
+                "create_logical_view"
               ]
             },
             "CreateMaterializedView": {
               "methods": [
-                "_create_materialized_view"
+                "create_materialized_view"
               ]
             },
             "DeleteAppProfile": {
@@ -212,12 +212,12 @@
             },
             "DeleteLogicalView": {
               "methods": [
-                "_delete_logical_view"
+                "delete_logical_view"
               ]
             },
             "DeleteMaterializedView": {
               "methods": [
-                "_delete_materialized_view"
+                "delete_materialized_view"
               ]
             },
             "GetAppProfile": {
@@ -242,12 +242,12 @@
             },
             "GetLogicalView": {
               "methods": [
-                "_get_logical_view"
+                "get_logical_view"
               ]
             },
             "GetMaterializedView": {
               "methods": [
-                "_get_materialized_view"
+                "get_materialized_view"
               ]
             },
             "ListAppProfiles": {
@@ -272,12 +272,12 @@
             },
             "ListLogicalViews": {
               "methods": [
-                "_list_logical_views"
+                "list_logical_views"
               ]
             },
             "ListMaterializedViews": {
               "methods": [
-                "_list_materialized_views"
+                "list_materialized_views"
               ]
             },
             "PartialUpdateCluster": {
@@ -317,18 +317,18 @@
             },
             "UpdateLogicalView": {
               "methods": [
-                "_update_logical_view"
+                "update_logical_view"
               ]
             },
             "UpdateMaterializedView": {
               "methods": [
-                "_update_materialized_view"
+                "update_materialized_view"
               ]
             }
           }
         },
         "rest": {
-          "libraryClient": "BaseBigtableInstanceAdminClient",
+          "libraryClient": "BigtableInstanceAdminClient",
           "rpcs": {
             "CreateAppProfile": {
               "methods": [
@@ -347,12 +347,12 @@
             },
             "CreateLogicalView": {
               "methods": [
-                "_create_logical_view"
+                "create_logical_view"
               ]
             },
             "CreateMaterializedView": {
               "methods": [
-                "_create_materialized_view"
+                "create_materialized_view"
               ]
             },
             "DeleteAppProfile": {
@@ -372,12 +372,12 @@
             },
             "DeleteLogicalView": {
               "methods": [
-                "_delete_logical_view"
+                "delete_logical_view"
               ]
             },
             "DeleteMaterializedView": {
               "methods": [
-                "_delete_materialized_view"
+                "delete_materialized_view"
               ]
             },
             "GetAppProfile": {
@@ -402,12 +402,12 @@
             },
             "GetLogicalView": {
               "methods": [
-                "_get_logical_view"
+                "get_logical_view"
               ]
             },
             "GetMaterializedView": {
               "methods": [
-                "_get_materialized_view"
+                "get_materialized_view"
               ]
             },
             "ListAppProfiles": {
@@ -432,12 +432,12 @@
             },
             "ListLogicalViews": {
               "methods": [
-                "_list_logical_views"
+                "list_logical_views"
               ]
             },
             "ListMaterializedViews": {
               "methods": [
-                "_list_materialized_views"
+                "list_materialized_views"
               ]
             },
             "PartialUpdateCluster": {
@@ -477,12 +477,12 @@
             },
             "UpdateLogicalView": {
               "methods": [
-                "_update_logical_view"
+                "update_logical_view"
               ]
             },
             "UpdateMaterializedView": {
               "methods": [
-                "_update_materialized_view"
+                "update_materialized_view"
               ]
             }
           }

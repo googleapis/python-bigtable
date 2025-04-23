@@ -15,7 +15,7 @@
 #
 # Generated code. DO NOT EDIT!
 #
-# Snippet for CreateMaterializedView
+# Snippet for CreateLogicalView
 # NOTE: This snippet has been automatically generated for illustrative purposes only.
 # It may require modifications to work in your environment.
 
@@ -23,7 +23,7 @@
 #   python3 -m pip install google-cloud-bigtable-admin
 
 
-# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_async_internal]
+# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateLogicalView_async]
 # This snippet has been automatically generated and should be regarded as a
 # code template only.
 # It will require modifications to work:
@@ -34,22 +34,22 @@
 from google.cloud.bigtable import admin_v2
 
 
-async def sample_create_materialized_view():
+async def sample_create_logical_view():
     # Create a client
-    client = admin_v2.BaseBigtableInstanceAdminAsyncClient()
+    client = admin_v2.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
-    materialized_view = admin_v2.MaterializedView()
-    materialized_view.query = "query_value"
+    logical_view = admin_v2.LogicalView()
+    logical_view.query = "query_value"
 
-    request = admin_v2.CreateMaterializedViewRequest(
+    request = admin_v2.CreateLogicalViewRequest(
         parent="parent_value",
-        materialized_view_id="materialized_view_id_value",
-        materialized_view=materialized_view,
+        logical_view_id="logical_view_id_value",
+        logical_view=logical_view,
     )
 
     # Make the request
-    operation = client._create_materialized_view(request=request)
+    operation = client.create_logical_view(request=request)
 
     print("Waiting for operation to complete...")
 
@@ -58,4 +58,4 @@ async def sample_create_materialized_view():
     # Handle the response
     print(response)
 
-# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_async_internal]
+# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateLogicalView_async]

@@ -36,7 +36,7 @@ from google.cloud.bigtable import admin_v2
 
 async def sample_create_cluster():
     # Create a client
-    client = admin_v2.BaseBigtableInstanceAdminAsyncClient()
+    client = admin_v2.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
     request = admin_v2.CreateClusterRequest(

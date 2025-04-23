@@ -16,10 +16,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.create_app_profile",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.create_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateAppProfile",
           "service": {
@@ -104,10 +104,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.create_app_profile",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.create_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateAppProfile",
           "service": {
@@ -193,10 +193,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.create_cluster",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.create_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateCluster",
           "service": {
@@ -281,10 +281,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.create_cluster",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.create_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateCluster",
           "service": {
@@ -370,10 +370,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.create_instance",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.create_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateInstance",
           "service": {
@@ -462,10 +462,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.create_instance",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.create_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateInstance",
           "service": {
@@ -555,10 +555,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient._create_logical_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.create_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateLogicalView",
           "service": {
@@ -598,13 +598,13 @@
           }
         ],
         "resultType": "google.api_core.operation_async.AsyncOperation",
-        "shortName": "_create_logical_view"
+        "shortName": "create_logical_view"
       },
       "description": "Sample for CreateLogicalView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_create_logical_view_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_create_logical_view_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateLogicalView_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateLogicalView_async",
       "segments": [
         {
           "end": 60,
@@ -637,16 +637,16 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_create_logical_view_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_create_logical_view_async.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient._create_logical_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.create_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateLogicalView",
           "service": {
@@ -686,13 +686,13 @@
           }
         ],
         "resultType": "google.api_core.operation.Operation",
-        "shortName": "_create_logical_view"
+        "shortName": "create_logical_view"
       },
       "description": "Sample for CreateLogicalView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_create_logical_view_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_create_logical_view_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateLogicalView_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateLogicalView_sync",
       "segments": [
         {
           "end": 60,
@@ -725,17 +725,17 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_create_logical_view_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_create_logical_view_sync.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient._create_materialized_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.create_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateMaterializedView",
           "service": {
@@ -775,13 +775,13 @@
           }
         ],
         "resultType": "google.api_core.operation_async.AsyncOperation",
-        "shortName": "_create_materialized_view"
+        "shortName": "create_materialized_view"
       },
       "description": "Sample for CreateMaterializedView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_create_materialized_view_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_create_materialized_view_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_async",
       "segments": [
         {
           "end": 60,
@@ -814,16 +814,16 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_create_materialized_view_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_create_materialized_view_async.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient._create_materialized_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.create_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateMaterializedView",
           "service": {
@@ -863,13 +863,13 @@
           }
         ],
         "resultType": "google.api_core.operation.Operation",
-        "shortName": "_create_materialized_view"
+        "shortName": "create_materialized_view"
       },
       "description": "Sample for CreateMaterializedView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_create_materialized_view_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_create_materialized_view_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_sync",
       "segments": [
         {
           "end": 60,
@@ -902,17 +902,17 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_create_materialized_view_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_create_materialized_view_sync.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.delete_app_profile",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.delete_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteAppProfile",
           "service": {
@@ -990,10 +990,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.delete_app_profile",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.delete_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteAppProfile",
           "service": {
@@ -1072,10 +1072,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.delete_cluster",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.delete_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteCluster",
           "service": {
@@ -1149,10 +1149,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.delete_cluster",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.delete_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteCluster",
           "service": {
@@ -1227,10 +1227,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.delete_instance",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.delete_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteInstance",
           "service": {
@@ -1304,10 +1304,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.delete_instance",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.delete_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteInstance",
           "service": {
@@ -1382,10 +1382,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient._delete_logical_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.delete_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteLogicalView",
           "service": {
@@ -1416,13 +1416,13 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "shortName": "_delete_logical_view"
+        "shortName": "delete_logical_view"
       },
       "description": "Sample for DeleteLogicalView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_logical_view_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_logical_view_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteLogicalView_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteLogicalView_async",
       "segments": [
         {
           "end": 49,
@@ -1453,16 +1453,16 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_logical_view_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_logical_view_async.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient._delete_logical_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.delete_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteLogicalView",
           "service": {
@@ -1493,13 +1493,13 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "shortName": "_delete_logical_view"
+        "shortName": "delete_logical_view"
       },
       "description": "Sample for DeleteLogicalView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_logical_view_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_logical_view_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteLogicalView_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteLogicalView_sync",
       "segments": [
         {
           "end": 49,
@@ -1530,17 +1530,17 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_logical_view_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_logical_view_sync.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient._delete_materialized_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.delete_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteMaterializedView",
           "service": {
@@ -1571,13 +1571,13 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "shortName": "_delete_materialized_view"
+        "shortName": "delete_materialized_view"
       },
       "description": "Sample for DeleteMaterializedView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_materialized_view_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_materialized_view_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteMaterializedView_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteMaterializedView_async",
       "segments": [
         {
           "end": 49,
@@ -1608,16 +1608,16 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_materialized_view_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_materialized_view_async.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient._delete_materialized_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.delete_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteMaterializedView",
           "service": {
@@ -1648,13 +1648,13 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "shortName": "_delete_materialized_view"
+        "shortName": "delete_materialized_view"
       },
       "description": "Sample for DeleteMaterializedView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_materialized_view_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_materialized_view_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteMaterializedView_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteMaterializedView_sync",
       "segments": [
         {
           "end": 49,
@@ -1685,17 +1685,17 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_materialized_view_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_delete_materialized_view_sync.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.get_app_profile",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.get_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetAppProfile",
           "service": {
@@ -1772,10 +1772,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.get_app_profile",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.get_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetAppProfile",
           "service": {
@@ -1853,10 +1853,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.get_cluster",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.get_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetCluster",
           "service": {
@@ -1933,10 +1933,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.get_cluster",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.get_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetCluster",
           "service": {
@@ -2014,10 +2014,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.get_iam_policy",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.get_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetIamPolicy",
           "service": {
@@ -2094,10 +2094,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.get_iam_policy",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.get_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetIamPolicy",
           "service": {
@@ -2175,10 +2175,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.get_instance",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.get_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetInstance",
           "service": {
@@ -2255,10 +2255,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.get_instance",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.get_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetInstance",
           "service": {
@@ -2336,10 +2336,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient._get_logical_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.get_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetLogicalView",
           "service": {
@@ -2371,13 +2371,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.types.LogicalView",
-        "shortName": "_get_logical_view"
+        "shortName": "get_logical_view"
       },
       "description": "Sample for GetLogicalView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_get_logical_view_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_get_logical_view_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_GetLogicalView_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_GetLogicalView_async",
       "segments": [
         {
           "end": 51,
@@ -2410,16 +2410,16 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_get_logical_view_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_get_logical_view_async.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient._get_logical_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.get_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetLogicalView",
           "service": {
@@ -2451,13 +2451,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.types.LogicalView",
-        "shortName": "_get_logical_view"
+        "shortName": "get_logical_view"
       },
       "description": "Sample for GetLogicalView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_get_logical_view_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_get_logical_view_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_GetLogicalView_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_GetLogicalView_sync",
       "segments": [
         {
           "end": 51,
@@ -2490,17 +2490,17 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_get_logical_view_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_get_logical_view_sync.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient._get_materialized_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.get_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetMaterializedView",
           "service": {
@@ -2532,13 +2532,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.types.MaterializedView",
-        "shortName": "_get_materialized_view"
+        "shortName": "get_materialized_view"
       },
       "description": "Sample for GetMaterializedView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_get_materialized_view_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_get_materialized_view_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_GetMaterializedView_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_GetMaterializedView_async",
       "segments": [
         {
           "end": 51,
@@ -2571,16 +2571,16 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_get_materialized_view_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_get_materialized_view_async.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient._get_materialized_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.get_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetMaterializedView",
           "service": {
@@ -2612,13 +2612,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.types.MaterializedView",
-        "shortName": "_get_materialized_view"
+        "shortName": "get_materialized_view"
       },
       "description": "Sample for GetMaterializedView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_get_materialized_view_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_get_materialized_view_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_GetMaterializedView_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_GetMaterializedView_sync",
       "segments": [
         {
           "end": 51,
@@ -2651,17 +2651,17 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_get_materialized_view_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_get_materialized_view_sync.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.list_app_profiles",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.list_app_profiles",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListAppProfiles",
           "service": {
@@ -2738,10 +2738,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.list_app_profiles",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.list_app_profiles",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListAppProfiles",
           "service": {
@@ -2819,10 +2819,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.list_clusters",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.list_clusters",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListClusters",
           "service": {
@@ -2899,10 +2899,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.list_clusters",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.list_clusters",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListClusters",
           "service": {
@@ -2980,10 +2980,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.list_hot_tablets",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.list_hot_tablets",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListHotTablets",
           "service": {
@@ -3060,10 +3060,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.list_hot_tablets",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.list_hot_tablets",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListHotTablets",
           "service": {
@@ -3141,10 +3141,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.list_instances",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.list_instances",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListInstances",
           "service": {
@@ -3221,10 +3221,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.list_instances",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.list_instances",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListInstances",
           "service": {
@@ -3302,10 +3302,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient._list_logical_views",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.list_logical_views",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListLogicalViews",
           "service": {
@@ -3337,13 +3337,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.services.bigtable_instance_admin.pagers.ListLogicalViewsAsyncPager",
-        "shortName": "_list_logical_views"
+        "shortName": "list_logical_views"
       },
       "description": "Sample for ListLogicalViews",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_list_logical_views_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_list_logical_views_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_ListLogicalViews_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_ListLogicalViews_async",
       "segments": [
         {
           "end": 52,
@@ -3376,16 +3376,16 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_list_logical_views_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_list_logical_views_async.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient._list_logical_views",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.list_logical_views",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListLogicalViews",
           "service": {
@@ -3417,13 +3417,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.services.bigtable_instance_admin.pagers.ListLogicalViewsPager",
-        "shortName": "_list_logical_views"
+        "shortName": "list_logical_views"
       },
       "description": "Sample for ListLogicalViews",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_list_logical_views_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_list_logical_views_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_ListLogicalViews_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_ListLogicalViews_sync",
       "segments": [
         {
           "end": 52,
@@ -3456,17 +3456,17 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_list_logical_views_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_list_logical_views_sync.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient._list_materialized_views",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.list_materialized_views",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListMaterializedViews",
           "service": {
@@ -3498,13 +3498,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.services.bigtable_instance_admin.pagers.ListMaterializedViewsAsyncPager",
-        "shortName": "_list_materialized_views"
+        "shortName": "list_materialized_views"
       },
       "description": "Sample for ListMaterializedViews",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_list_materialized_views_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_list_materialized_views_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_ListMaterializedViews_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_ListMaterializedViews_async",
       "segments": [
         {
           "end": 52,
@@ -3537,16 +3537,16 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_list_materialized_views_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_list_materialized_views_async.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient._list_materialized_views",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.list_materialized_views",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListMaterializedViews",
           "service": {
@@ -3578,13 +3578,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.services.bigtable_instance_admin.pagers.ListMaterializedViewsPager",
-        "shortName": "_list_materialized_views"
+        "shortName": "list_materialized_views"
       },
       "description": "Sample for ListMaterializedViews",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_list_materialized_views_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_list_materialized_views_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_ListMaterializedViews_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_ListMaterializedViews_sync",
       "segments": [
         {
           "end": 52,
@@ -3617,17 +3617,17 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_list_materialized_views_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_list_materialized_views_sync.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.partial_update_cluster",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.partial_update_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.PartialUpdateCluster",
           "service": {
@@ -3708,10 +3708,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.partial_update_cluster",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.partial_update_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.PartialUpdateCluster",
           "service": {
@@ -3793,10 +3793,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.partial_update_instance",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.partial_update_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.PartialUpdateInstance",
           "service": {
@@ -3877,10 +3877,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.partial_update_instance",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.partial_update_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.PartialUpdateInstance",
           "service": {
@@ -3962,10 +3962,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.set_iam_policy",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.set_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.SetIamPolicy",
           "service": {
@@ -4042,10 +4042,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.set_iam_policy",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.set_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.SetIamPolicy",
           "service": {
@@ -4123,10 +4123,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.test_iam_permissions",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.test_iam_permissions",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.TestIamPermissions",
           "service": {
@@ -4207,10 +4207,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.test_iam_permissions",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.test_iam_permissions",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.TestIamPermissions",
           "service": {
@@ -4292,10 +4292,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.update_app_profile",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.update_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateAppProfile",
           "service": {
@@ -4376,10 +4376,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.update_app_profile",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.update_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateAppProfile",
           "service": {
@@ -4461,10 +4461,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.update_cluster",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.update_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateCluster",
           "service": {
@@ -4537,10 +4537,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.update_cluster",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.update_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateCluster",
           "service": {
@@ -4614,10 +4614,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient.update_instance",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.update_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateInstance",
           "service": {
@@ -4690,10 +4690,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient.update_instance",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.update_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateInstance",
           "service": {
@@ -4767,10 +4767,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient._update_logical_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.update_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateLogicalView",
           "service": {
@@ -4806,13 +4806,13 @@
           }
         ],
         "resultType": "google.api_core.operation_async.AsyncOperation",
-        "shortName": "_update_logical_view"
+        "shortName": "update_logical_view"
       },
       "description": "Sample for UpdateLogicalView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_update_logical_view_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_update_logical_view_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_UpdateLogicalView_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_UpdateLogicalView_async",
       "segments": [
         {
           "end": 58,
@@ -4845,16 +4845,16 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_update_logical_view_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_update_logical_view_async.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient._update_logical_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.update_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateLogicalView",
           "service": {
@@ -4890,13 +4890,13 @@
           }
         ],
         "resultType": "google.api_core.operation.Operation",
-        "shortName": "_update_logical_view"
+        "shortName": "update_logical_view"
       },
       "description": "Sample for UpdateLogicalView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_update_logical_view_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_update_logical_view_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_UpdateLogicalView_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_UpdateLogicalView_sync",
       "segments": [
         {
           "end": 58,
@@ -4929,17 +4929,17 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_update_logical_view_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_update_logical_view_sync.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient",
-          "shortName": "BaseBigtableInstanceAdminAsyncClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient",
+          "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminAsyncClient._update_materialized_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminAsyncClient.update_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateMaterializedView",
           "service": {
@@ -4975,13 +4975,13 @@
           }
         ],
         "resultType": "google.api_core.operation_async.AsyncOperation",
-        "shortName": "_update_materialized_view"
+        "shortName": "update_materialized_view"
       },
       "description": "Sample for UpdateMaterializedView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_update_materialized_view_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_update_materialized_view_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_UpdateMaterializedView_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_UpdateMaterializedView_async",
       "segments": [
         {
           "end": 58,
@@ -5014,16 +5014,16 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_update_materialized_view_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_update_materialized_view_async.py"
     },
     {
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient",
-          "shortName": "BaseBigtableInstanceAdminClient"
+          "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient",
+          "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableInstanceAdminClient._update_materialized_view",
+        "fullName": "google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient.update_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateMaterializedView",
           "service": {
@@ -5059,13 +5059,13 @@
           }
         ],
         "resultType": "google.api_core.operation.Operation",
-        "shortName": "_update_materialized_view"
+        "shortName": "update_materialized_view"
       },
       "description": "Sample for UpdateMaterializedView",
-      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_update_materialized_view_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_instance_admin_update_materialized_view_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_UpdateMaterializedView_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableInstanceAdmin_UpdateMaterializedView_sync",
       "segments": [
         {
           "end": 58,
@@ -5098,7 +5098,7 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_update_materialized_view_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_instance_admin_update_materialized_view_sync.py"
     },
     {
       "canonical": true,

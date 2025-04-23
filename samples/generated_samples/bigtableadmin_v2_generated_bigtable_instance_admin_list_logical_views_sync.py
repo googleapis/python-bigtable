@@ -15,7 +15,7 @@
 #
 # Generated code. DO NOT EDIT!
 #
-# Snippet for GetLogicalView
+# Snippet for ListLogicalViews
 # NOTE: This snippet has been automatically generated for illustrative purposes only.
 # It may require modifications to work in your environment.
 
@@ -23,7 +23,7 @@
 #   python3 -m pip install google-cloud-bigtable-admin
 
 
-# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_GetLogicalView_async_internal]
+# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_ListLogicalViews_sync]
 # This snippet has been automatically generated and should be regarded as a
 # code template only.
 # It will require modifications to work:
@@ -34,19 +34,20 @@
 from google.cloud.bigtable import admin_v2
 
 
-async def sample_get_logical_view():
+def sample_list_logical_views():
     # Create a client
-    client = admin_v2.BaseBigtableInstanceAdminAsyncClient()
+    client = admin_v2.BigtableInstanceAdminClient()
 
     # Initialize request argument(s)
-    request = admin_v2.GetLogicalViewRequest(
-        name="name_value",
+    request = admin_v2.ListLogicalViewsRequest(
+        parent="parent_value",
     )
 
     # Make the request
-    response = await client._get_logical_view(request=request)
+    page_result = client.list_logical_views(request=request)
 
     # Handle the response
-    print(response)
+    for response in page_result:
+        print(response)
 
-# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_GetLogicalView_async_internal]
+# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_ListLogicalViews_sync]

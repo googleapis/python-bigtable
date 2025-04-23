@@ -23,7 +23,7 @@
 #   python3 -m pip install google-cloud-bigtable-admin
 
 
-# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_sync_internal]
+# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_async]
 # This snippet has been automatically generated and should be regarded as a
 # code template only.
 # It will require modifications to work:
@@ -34,9 +34,9 @@
 from google.cloud.bigtable import admin_v2
 
 
-def sample_create_materialized_view():
+async def sample_create_materialized_view():
     # Create a client
-    client = admin_v2.BaseBigtableInstanceAdminClient()
+    client = admin_v2.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
     materialized_view = admin_v2.MaterializedView()
@@ -49,13 +49,13 @@ def sample_create_materialized_view():
     )
 
     # Make the request
-    operation = client._create_materialized_view(request=request)
+    operation = client.create_materialized_view(request=request)
 
     print("Waiting for operation to complete...")
 
-    response = operation.result()
+    response = (await operation).result()
 
     # Handle the response
     print(response)
 
-# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_sync_internal]
+# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_async]

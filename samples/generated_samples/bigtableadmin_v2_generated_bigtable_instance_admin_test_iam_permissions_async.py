@@ -37,7 +37,7 @@ from google.iam.v1 import iam_policy_pb2  # type: ignore
 
 async def sample_test_iam_permissions():
     # Create a client
-    client = admin_v2.BaseBigtableInstanceAdminAsyncClient()
+    client = admin_v2.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
     request = iam_policy_pb2.TestIamPermissionsRequest(

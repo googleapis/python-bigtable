@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from .client import BaseBigtableInstanceAdminClient
-from .async_client import BaseBigtableInstanceAdminAsyncClient
+from .client import BigtableInstanceAdminClient
+from .async_client import BigtableInstanceAdminAsyncClient
 
 __all__ = (
-    "BaseBigtableInstanceAdminClient",
-    "BaseBigtableInstanceAdminAsyncClient",
+    "BigtableInstanceAdminClient",
+    "BigtableInstanceAdminAsyncClient",
 )
