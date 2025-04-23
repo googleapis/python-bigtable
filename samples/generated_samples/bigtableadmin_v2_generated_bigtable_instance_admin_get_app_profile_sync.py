@@ -36,7 +36,7 @@ from google.cloud.bigtable import admin_v2
 
 def sample_get_app_profile():
     # Create a client
-    client = admin_v2.BaseBigtableInstanceAdminClient()
+    client = admin_v2.BigtableInstanceAdminClient()
 
     # Initialize request argument(s)
     request = admin_v2.GetAppProfileRequest(

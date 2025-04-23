@@ -15,7 +15,7 @@
 #
 # Generated code. DO NOT EDIT!
 #
-# Snippet for DeleteLogicalView
+# Snippet for CreateMaterializedView
 # NOTE: This snippet has been automatically generated for illustrative purposes only.
 # It may require modifications to work in your environment.
 
@@ -23,7 +23,7 @@
 #   python3 -m pip install google-cloud-bigtable-admin
 
 
-# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteLogicalView_async_internal]
+# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_sync]
 # This snippet has been automatically generated and should be regarded as a
 # code template only.
 # It will require modifications to work:
@@ -34,17 +34,28 @@
 from google.cloud.bigtable import admin_v2
 
 
-async def sample_delete_logical_view():
+def sample_create_materialized_view():
     # Create a client
-    client = admin_v2.BaseBigtableInstanceAdminAsyncClient()
+    client = admin_v2.BigtableInstanceAdminClient()
 
     # Initialize request argument(s)
-    request = admin_v2.DeleteLogicalViewRequest(
-        name="name_value",
+    materialized_view = admin_v2.MaterializedView()
+    materialized_view.query = "query_value"
+
+    request = admin_v2.CreateMaterializedViewRequest(
+        parent="parent_value",
+        materialized_view_id="materialized_view_id_value",
+        materialized_view=materialized_view,
     )
 
     # Make the request
-    await client._delete_logical_view(request=request)
+    operation = client.create_materialized_view(request=request)
 
+    print("Waiting for operation to complete...")
 
-# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteLogicalView_async_internal]
+    response = operation.result()
+
+    # Handle the response
+    print(response)
+
+# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_CreateMaterializedView_sync]

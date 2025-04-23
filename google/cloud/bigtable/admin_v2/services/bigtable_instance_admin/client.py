@@ -77,7 +77,7 @@ from .transports.grpc_asyncio import BigtableInstanceAdminGrpcAsyncIOTransport
 from .transports.rest import BigtableInstanceAdminRestTransport
 
 
-class BaseBigtableInstanceAdminClientMeta(type):
+class BigtableInstanceAdminClientMeta(type):
     """Metaclass for the BigtableInstanceAdmin client.
 
     This provides class-level methods for building and retrieving
@@ -114,7 +114,7 @@ class BaseBigtableInstanceAdminClientMeta(type):
         return next(iter(cls._transport_registry.values()))
 
 
-class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientMeta):
+class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
     """Service for creating, configuring, and deleting Cloud
     Bigtable Instances and Clusters. Provides access to the Instance
     and Cluster schemas only, not the tables' metadata or data
@@ -171,7 +171,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
             kwargs: Additional arguments to pass to the constructor.
 
         Returns:
-            BaseBigtableInstanceAdminClient: The constructed client.
+            BigtableInstanceAdminClient: The constructed client.
         """
         credentials = service_account.Credentials.from_service_account_info(info)
         kwargs["credentials"] = credentials
@@ -189,7 +189,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
             kwargs: Additional arguments to pass to the constructor.
 
         Returns:
-            BaseBigtableInstanceAdminClient: The constructed client.
+            BigtableInstanceAdminClient: The constructed client.
         """
         credentials = service_account.Credentials.from_service_account_file(filename)
         kwargs["credentials"] = credentials
@@ -603,15 +603,15 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         elif use_mtls_endpoint == "always" or (
             use_mtls_endpoint == "auto" and client_cert_source
         ):
-            _default_universe = BaseBigtableInstanceAdminClient._DEFAULT_UNIVERSE
+            _default_universe = BigtableInstanceAdminClient._DEFAULT_UNIVERSE
             if universe_domain != _default_universe:
                 raise MutualTLSChannelError(
                     f"mTLS is not supported in any universe other than {_default_universe}."
                 )
-            api_endpoint = BaseBigtableInstanceAdminClient.DEFAULT_MTLS_ENDPOINT
+            api_endpoint = BigtableInstanceAdminClient.DEFAULT_MTLS_ENDPOINT
         else:
             api_endpoint = (
-                BaseBigtableInstanceAdminClient._DEFAULT_ENDPOINT_TEMPLATE.format(
+                BigtableInstanceAdminClient._DEFAULT_ENDPOINT_TEMPLATE.format(
                     UNIVERSE_DOMAIN=universe_domain
                 )
             )
@@ -633,7 +633,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         Raises:
             ValueError: If the universe domain is an empty string.
         """
-        universe_domain = BaseBigtableInstanceAdminClient._DEFAULT_UNIVERSE
+        universe_domain = BigtableInstanceAdminClient._DEFAULT_UNIVERSE
         if client_universe_domain is not None:
             universe_domain = client_universe_domain
         elif universe_domain_env is not None:
@@ -714,7 +714,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
-        """Instantiates the base bigtable instance admin client.
+        """Instantiates the bigtable instance admin client.
 
         Args:
             credentials (Optional[google.auth.credentials.Credentials]): The
@@ -778,13 +778,11 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
             self._use_client_cert,
             self._use_mtls_endpoint,
             self._universe_domain_env,
-        ) = BaseBigtableInstanceAdminClient._read_environment_variables()
-        self._client_cert_source = (
-            BaseBigtableInstanceAdminClient._get_client_cert_source(
-                self._client_options.client_cert_source, self._use_client_cert
-            )
+        ) = BigtableInstanceAdminClient._read_environment_variables()
+        self._client_cert_source = BigtableInstanceAdminClient._get_client_cert_source(
+            self._client_options.client_cert_source, self._use_client_cert
         )
-        self._universe_domain = BaseBigtableInstanceAdminClient._get_universe_domain(
+        self._universe_domain = BigtableInstanceAdminClient._get_universe_domain(
             universe_domain_opt, self._universe_domain_env
         )
         self._api_endpoint = None  # updated below, depending on `transport`
@@ -823,7 +821,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
         self._api_endpoint = (
             self._api_endpoint
-            or BaseBigtableInstanceAdminClient._get_api_endpoint(
+            or BigtableInstanceAdminClient._get_api_endpoint(
                 self._client_options.api_endpoint,
                 self._client_cert_source,
                 self._universe_domain,
@@ -845,7 +843,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 Type[BigtableInstanceAdminTransport],
                 Callable[..., BigtableInstanceAdminTransport],
             ] = (
-                BaseBigtableInstanceAdminClient.get_transport_class(transport)
+                BigtableInstanceAdminClient.get_transport_class(transport)
                 if isinstance(transport, str) or transport is None
                 else cast(Callable[..., BigtableInstanceAdminTransport], transport)
             )
@@ -867,7 +865,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 std_logging.DEBUG
             ):  # pragma: NO COVER
                 _LOGGER.debug(
-                    "Created client `google.bigtable.admin_v2.BaseBigtableInstanceAdminClient`.",
+                    "Created client `google.bigtable.admin_v2.BigtableInstanceAdminClient`.",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
                         "universeDomain": getattr(
@@ -920,7 +918,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_create_instance():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 instance = admin_v2.Instance()
@@ -1084,7 +1082,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_get_instance():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetInstanceRequest(
@@ -1198,7 +1196,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_list_instances():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListInstancesRequest(
@@ -1309,7 +1307,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_update_instance():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.Instance(
@@ -1406,7 +1404,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_partial_update_instance():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 instance = admin_v2.Instance()
@@ -1550,7 +1548,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_delete_instance():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteInstanceRequest(
@@ -1657,7 +1655,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_create_cluster():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CreateClusterRequest(
@@ -1805,7 +1803,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_get_cluster():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetClusterRequest(
@@ -1918,7 +1916,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_list_clusters():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListClustersRequest(
@@ -2032,7 +2030,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_update_cluster():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.Cluster(
@@ -2150,7 +2148,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_partial_update_cluster():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.PartialUpdateClusterRequest(
@@ -2286,7 +2284,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_delete_cluster():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteClusterRequest(
@@ -2387,7 +2385,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_create_app_profile():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 app_profile = admin_v2.AppProfile()
@@ -2524,7 +2522,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_get_app_profile():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetAppProfileRequest(
@@ -2636,7 +2634,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_list_app_profiles():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListAppProfilesRequest(
@@ -2766,7 +2764,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_update_app_profile():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 app_profile = admin_v2.AppProfile()
@@ -2906,7 +2904,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_delete_app_profile():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteAppProfileRequest(
@@ -3016,7 +3014,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_get_iam_policy():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = iam_policy_pb2.GetIamPolicyRequest(
@@ -3156,7 +3154,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_set_iam_policy():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = iam_policy_pb2.SetIamPolicyRequest(
@@ -3297,7 +3295,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_test_iam_permissions():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = iam_policy_pb2.TestIamPermissionsRequest(
@@ -3420,7 +3418,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_list_hot_tablets():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListHotTabletsRequest(
@@ -3520,7 +3518,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         # Done; return the response.
         return response
 
-    def _create_logical_view(
+    def create_logical_view(
         self,
         request: Optional[
             Union[bigtable_instance_admin.CreateLogicalViewRequest, dict]
@@ -3548,7 +3546,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_create_logical_view():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 logical_view = admin_v2.LogicalView()
@@ -3561,7 +3559,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 )
 
                 # Make the request
-                operation = client._create_logical_view(request=request)
+                operation = client.create_logical_view(request=request)
 
                 print("Waiting for operation to complete...")
 
@@ -3672,7 +3670,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         # Done; return the response.
         return response
 
-    def _get_logical_view(
+    def get_logical_view(
         self,
         request: Optional[
             Union[bigtable_instance_admin.GetLogicalViewRequest, dict]
@@ -3698,7 +3696,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_get_logical_view():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetLogicalViewRequest(
@@ -3706,7 +3704,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 )
 
                 # Make the request
-                response = client._get_logical_view(request=request)
+                response = client.get_logical_view(request=request)
 
                 # Handle the response
                 print(response)
@@ -3783,7 +3781,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         # Done; return the response.
         return response
 
-    def _list_logical_views(
+    def list_logical_views(
         self,
         request: Optional[
             Union[bigtable_instance_admin.ListLogicalViewsRequest, dict]
@@ -3809,7 +3807,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_list_logical_views():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListLogicalViewsRequest(
@@ -3817,7 +3815,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 )
 
                 # Make the request
-                page_result = client._list_logical_views(request=request)
+                page_result = client.list_logical_views(request=request)
 
                 # Handle the response
                 for response in page_result:
@@ -3909,7 +3907,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         # Done; return the response.
         return response
 
-    def _update_logical_view(
+    def update_logical_view(
         self,
         request: Optional[
             Union[bigtable_instance_admin.UpdateLogicalViewRequest, dict]
@@ -3936,7 +3934,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_update_logical_view():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 logical_view = admin_v2.LogicalView()
@@ -3947,7 +3945,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 )
 
                 # Make the request
-                operation = client._update_logical_view(request=request)
+                operation = client.update_logical_view(request=request)
 
                 print("Waiting for operation to complete...")
 
@@ -4053,7 +4051,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         # Done; return the response.
         return response
 
-    def _delete_logical_view(
+    def delete_logical_view(
         self,
         request: Optional[
             Union[bigtable_instance_admin.DeleteLogicalViewRequest, dict]
@@ -4079,7 +4077,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_delete_logical_view():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteLogicalViewRequest(
@@ -4087,7 +4085,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 )
 
                 # Make the request
-                client._delete_logical_view(request=request)
+                client.delete_logical_view(request=request)
 
         Args:
             request (Union[google.cloud.bigtable.admin_v2.types.DeleteLogicalViewRequest, dict]):
@@ -4152,7 +4150,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
             metadata=metadata,
         )
 
-    def _create_materialized_view(
+    def create_materialized_view(
         self,
         request: Optional[
             Union[bigtable_instance_admin.CreateMaterializedViewRequest, dict]
@@ -4180,7 +4178,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_create_materialized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 materialized_view = admin_v2.MaterializedView()
@@ -4193,7 +4191,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 )
 
                 # Make the request
-                operation = client._create_materialized_view(request=request)
+                operation = client.create_materialized_view(request=request)
 
                 print("Waiting for operation to complete...")
 
@@ -4308,7 +4306,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         # Done; return the response.
         return response
 
-    def _get_materialized_view(
+    def get_materialized_view(
         self,
         request: Optional[
             Union[bigtable_instance_admin.GetMaterializedViewRequest, dict]
@@ -4334,7 +4332,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_get_materialized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetMaterializedViewRequest(
@@ -4342,7 +4340,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 )
 
                 # Make the request
-                response = client._get_materialized_view(request=request)
+                response = client.get_materialized_view(request=request)
 
                 # Handle the response
                 print(response)
@@ -4419,7 +4417,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         # Done; return the response.
         return response
 
-    def _list_materialized_views(
+    def list_materialized_views(
         self,
         request: Optional[
             Union[bigtable_instance_admin.ListMaterializedViewsRequest, dict]
@@ -4446,7 +4444,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_list_materialized_views():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListMaterializedViewsRequest(
@@ -4454,7 +4452,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 )
 
                 # Make the request
-                page_result = client._list_materialized_views(request=request)
+                page_result = client.list_materialized_views(request=request)
 
                 # Handle the response
                 for response in page_result:
@@ -4548,7 +4546,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         # Done; return the response.
         return response
 
-    def _update_materialized_view(
+    def update_materialized_view(
         self,
         request: Optional[
             Union[bigtable_instance_admin.UpdateMaterializedViewRequest, dict]
@@ -4575,7 +4573,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_update_materialized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 materialized_view = admin_v2.MaterializedView()
@@ -4586,7 +4584,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 )
 
                 # Make the request
-                operation = client._update_materialized_view(request=request)
+                operation = client.update_materialized_view(request=request)
 
                 print("Waiting for operation to complete...")
 
@@ -4694,7 +4692,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
         # Done; return the response.
         return response
 
-    def _delete_materialized_view(
+    def delete_materialized_view(
         self,
         request: Optional[
             Union[bigtable_instance_admin.DeleteMaterializedViewRequest, dict]
@@ -4720,7 +4718,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
 
             def sample_delete_materialized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableInstanceAdminClient()
+                client = admin_v2.BigtableInstanceAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteMaterializedViewRequest(
@@ -4728,7 +4726,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
                 )
 
                 # Make the request
-                client._delete_materialized_view(request=request)
+                client.delete_materialized_view(request=request)
 
         Args:
             request (Union[google.cloud.bigtable.admin_v2.types.DeleteMaterializedViewRequest, dict]):
@@ -4795,7 +4793,7 @@ class BaseBigtableInstanceAdminClient(metaclass=BaseBigtableInstanceAdminClientM
             metadata=metadata,
         )
 
-    def __enter__(self) -> "BaseBigtableInstanceAdminClient":
+    def __enter__(self) -> "BigtableInstanceAdminClient":
         return self
 
     def __exit__(self, type, value, traceback):
@@ -4814,4 +4812,4 @@ DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
 )
 
 
-__all__ = ("BaseBigtableInstanceAdminClient",)
+__all__ = ("BigtableInstanceAdminClient",)

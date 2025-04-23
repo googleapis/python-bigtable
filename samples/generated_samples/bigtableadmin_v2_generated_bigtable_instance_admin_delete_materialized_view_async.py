@@ -15,7 +15,7 @@
 #
 # Generated code. DO NOT EDIT!
 #
-# Snippet for GetLogicalView
+# Snippet for DeleteMaterializedView
 # NOTE: This snippet has been automatically generated for illustrative purposes only.
 # It may require modifications to work in your environment.
 
@@ -23,7 +23,7 @@
 #   python3 -m pip install google-cloud-bigtable-admin
 
 
-# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_GetLogicalView_sync_internal]
+# [START bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteMaterializedView_async]
 # This snippet has been automatically generated and should be regarded as a
 # code template only.
 # It will require modifications to work:
@@ -34,19 +34,17 @@
 from google.cloud.bigtable import admin_v2
 
 
-def sample_get_logical_view():
+async def sample_delete_materialized_view():
     # Create a client
-    client = admin_v2.BaseBigtableInstanceAdminClient()
+    client = admin_v2.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
-    request = admin_v2.GetLogicalViewRequest(
+    request = admin_v2.DeleteMaterializedViewRequest(
         name="name_value",
     )
 
     # Make the request
-    response = client._get_logical_view(request=request)
+    await client.delete_materialized_view(request=request)
 
-    # Handle the response
-    print(response)
 
-# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_GetLogicalView_sync_internal]
+# [END bigtableadmin_v2_generated_BigtableInstanceAdmin_DeleteMaterializedView_async]

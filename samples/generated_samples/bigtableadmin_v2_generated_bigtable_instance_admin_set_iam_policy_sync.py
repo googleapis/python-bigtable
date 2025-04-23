@@ -37,7 +37,7 @@ from google.iam.v1 import iam_policy_pb2  # type: ignore
 
 def sample_set_iam_policy():
     # Create a client
-    client = admin_v2.BaseBigtableInstanceAdminClient()
+    client = admin_v2.BigtableInstanceAdminClient()
 
     # Initialize request argument(s)
     request = iam_policy_pb2.SetIamPolicyRequest(
