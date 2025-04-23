@@ -36,7 +36,7 @@ def partition(
     return results[1], results[0]
 
 
-class bigtable_adminCallTransformer(cst.CSTTransformer):
+class adminCallTransformer(cst.CSTTransformer):
     CTRL_PARAMS: Tuple[str] = ('retry', 'timeout', 'metadata')
     METHOD_TO_PARAMS: Dict[str, Tuple[str]] = {
         'check_consistency': ('name', 'consistency_token', 'standard_read_remote_writes', 'data_boost_read_local_writes', ),
@@ -145,7 +145,7 @@ def fix_files(
     in_dir: pathlib.Path,
     out_dir: pathlib.Path,
     *,
-    transformer=bigtable_adminCallTransformer(),
+    transformer=adminCallTransformer(),
 ):
     """Duplicate the input dir to the output dir, fixing file method calls.
 
@@ -178,7 +178,7 @@ def fix_files(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="""Fix up source that uses the bigtable_admin client library.
+        description="""Fix up source that uses the admin client library.
 
 The existing sources are NOT overwritten but are copied to output_dir with changes made.
 

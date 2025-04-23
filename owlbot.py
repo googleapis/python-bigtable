@@ -75,9 +75,10 @@ for library in get_staging_dirs(bigtable_default_version, "bigtable"):
     s.move(library / "scripts")
 
 for library in get_staging_dirs(bigtable_admin_default_version, "bigtable_admin"):
-    s.move(library / "google/cloud/bigtable_admin", excludes=["**/gapic_version.py"])
-    s.move(library / "google/cloud/bigtable_admin_v2", excludes=["**/gapic_version.py"])
+    s.move(library / "google/cloud/bigtable/admin", excludes=["**/gapic_version.py"])
+    s.move(library / "google/cloud/bigtable/admin_v2", excludes=["**/gapic_version.py"])
     s.move(library / "tests")
+    s.move(library / "samples")
     s.move(library / "scripts")
 
 s.remove_staging_dirs()
