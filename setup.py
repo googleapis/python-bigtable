@@ -94,7 +94,7 @@ setuptools.setup(
     extras_require=extras,
     scripts=[
         "scripts/fixup_bigtable_v2_keywords.py",
-        "scripts/fixup_bigtable_admin_v2_keywords.py",
+        "scripts/fixup_admin_v2_keywords.py",
     ],
     python_requires=">=3.7",
     include_package_data=True,
