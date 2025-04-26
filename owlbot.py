@@ -114,6 +114,34 @@ s.replace(
     'expected_headers = {"name": "projects/sample1/instances/sample2"}',
     'expected_headers = {"name": "projects/sample1/instances/sample2", "app_profile_id": ""}'
 )
+s.replace(
+    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+    """
+        expected_headers = {
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+        }
+    """,
+    """
+        expected_headers = {
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "app_profile_id": ""
+        }
+    """
+)
+s.replace(
+    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+    """
+        expected_headers = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+    """,
+    """
+        expected_headers = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+            "app_profile_id": ""
+        }
+    """
+)
 
 # ----------------------------------------------------------------------------
 # Samples templates
