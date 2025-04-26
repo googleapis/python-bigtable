@@ -137,7 +137,7 @@ s.replace(
     """,
     """
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
             "app_profile_id": ""
         }
     """
