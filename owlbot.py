@@ -108,7 +108,12 @@ for file in ["async_client.py", "client.py"]:
         "if request.app_profile_id:",
         "if True:  # always attach app_profile_id, even if empty string"
     )
- 
+# fix tests
+s.replace(
+    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+    'expected_headers = {"name": "projects/sample1/instances/sample2"}',
+    'expected_headers = {"name": "projects/sample1/instances/sample2", "app_profile_id": ""}'
+)
 
 # ----------------------------------------------------------------------------
 # Samples templates
