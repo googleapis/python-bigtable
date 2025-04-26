@@ -100,12 +100,13 @@ s.move(templated_files, excludes=[".coveragerc", "README.rst", ".github/release-
 
 # ----------------------------------------------------------------------------
 # Always supply app_profile_id in routing headers: https://github.com/googleapis/python-bigtable/pull/1109
+# TODO: remove after backend no longer requires empty strings
 # ----------------------------------------------------------------------------
 for file in ["async_client.py", "client.py"]:
     s.replace(
         f"google/cloud/bigtable_v2/services/bigtable/{file}",
         "if request.app_profile_id:",
-        "if True:  # always attach app_profile_id, even if empty string. TODO: remove after support is added"
+        "if True:  # always attach app_profile_id, even if empty string"
     )
  
 
