@@ -123,8 +123,8 @@ s.replace(
     """,
     """
         expected_headers = {
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
-            "app_profile_id": ""
+            "app_profile_id": "",
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
         }
     """
 )
