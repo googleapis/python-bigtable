@@ -5108,7 +5108,7 @@
           "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminAsyncClient._check_consistency",
+        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminAsyncClient.check_consistency",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency",
           "service": {
@@ -5144,13 +5144,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.types.CheckConsistencyResponse",
-        "shortName": "_check_consistency"
+        "shortName": "check_consistency"
       },
       "description": "Sample for CheckConsistency",
-      "file": "bigtableadmin_v2_generated_bigtable_table_admin_check_consistency_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_table_admin_check_consistency_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableTableAdmin_CheckConsistency_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableTableAdmin_CheckConsistency_async",
       "segments": [
         {
           "end": 52,
@@ -5183,7 +5183,7 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_table_admin_check_consistency_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_table_admin_check_consistency_async.py"
     },
     {
       "canonical": true,
@@ -5192,7 +5192,7 @@
           "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminClient._check_consistency",
+        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminClient.check_consistency",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency",
           "service": {
@@ -5228,13 +5228,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.types.CheckConsistencyResponse",
-        "shortName": "_check_consistency"
+        "shortName": "check_consistency"
       },
       "description": "Sample for CheckConsistency",
-      "file": "bigtableadmin_v2_generated_bigtable_table_admin_check_consistency_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_table_admin_check_consistency_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableTableAdmin_CheckConsistency_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableTableAdmin_CheckConsistency_sync",
       "segments": [
         {
           "end": 52,
@@ -5267,7 +5267,7 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_table_admin_check_consistency_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_table_admin_check_consistency_sync.py"
     },
     {
       "canonical": true,
@@ -6937,7 +6937,7 @@
           "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminAsyncClient._generate_consistency_token",
+        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminAsyncClient.generate_consistency_token",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken",
           "service": {
@@ -6969,13 +6969,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.types.GenerateConsistencyTokenResponse",
-        "shortName": "_generate_consistency_token"
+        "shortName": "generate_consistency_token"
       },
       "description": "Sample for GenerateConsistencyToken",
-      "file": "bigtableadmin_v2_generated_bigtable_table_admin_generate_consistency_token_async_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_table_admin_generate_consistency_token_async.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableTableAdmin_GenerateConsistencyToken_async_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableTableAdmin_GenerateConsistencyToken_async",
       "segments": [
         {
           "end": 51,
@@ -7008,7 +7008,7 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_table_admin_generate_consistency_token_async_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_table_admin_generate_consistency_token_async.py"
     },
     {
       "canonical": true,
@@ -7017,7 +7017,7 @@
           "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminClient._generate_consistency_token",
+        "fullName": "google.cloud.bigtable.admin_v2.BaseBigtableTableAdminClient.generate_consistency_token",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken",
           "service": {
@@ -7049,13 +7049,13 @@
           }
         ],
         "resultType": "google.cloud.bigtable.admin_v2.types.GenerateConsistencyTokenResponse",
-        "shortName": "_generate_consistency_token"
+        "shortName": "generate_consistency_token"
       },
       "description": "Sample for GenerateConsistencyToken",
-      "file": "bigtableadmin_v2_generated_bigtable_table_admin_generate_consistency_token_sync_internal.py",
+      "file": "bigtableadmin_v2_generated_bigtable_table_admin_generate_consistency_token_sync.py",
       "language": "PYTHON",
       "origin": "API_DEFINITION",
-      "regionTag": "bigtableadmin_v2_generated_BigtableTableAdmin_GenerateConsistencyToken_sync_internal",
+      "regionTag": "bigtableadmin_v2_generated_BigtableTableAdmin_GenerateConsistencyToken_sync",
       "segments": [
         {
           "end": 51,
@@ -7088,7 +7088,7 @@
           "type": "RESPONSE_HANDLING"
         }
       ],
-      "title": "bigtableadmin_v2_generated_bigtable_table_admin_generate_consistency_token_sync_internal.py"
+      "title": "bigtableadmin_v2_generated_bigtable_table_admin_generate_consistency_token_sync.py"
     },
     {
       "canonical": true,

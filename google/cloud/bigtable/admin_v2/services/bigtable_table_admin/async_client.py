@@ -2123,7 +2123,7 @@ class BaseBigtableTableAdminAsyncClient:
             metadata=metadata,
         )
 
-    async def _generate_consistency_token(
+    async def generate_consistency_token(
         self,
         request: Optional[
             Union[bigtable_table_admin.GenerateConsistencyTokenRequest, dict]
@@ -2161,7 +2161,7 @@ class BaseBigtableTableAdminAsyncClient:
                 )
 
                 # Make the request
-                response = await client._generate_consistency_token(request=request)
+                response = await client.generate_consistency_token(request=request)
 
                 # Handle the response
                 print(response)
@@ -2243,7 +2243,7 @@ class BaseBigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def _check_consistency(
+    async def check_consistency(
         self,
         request: Optional[
             Union[bigtable_table_admin.CheckConsistencyRequest, dict]
@@ -2282,7 +2282,7 @@ class BaseBigtableTableAdminAsyncClient:
                 )
 
                 # Make the request
-                response = await client._check_consistency(request=request)
+                response = await client.check_consistency(request=request)
 
                 # Handle the response
                 print(response)

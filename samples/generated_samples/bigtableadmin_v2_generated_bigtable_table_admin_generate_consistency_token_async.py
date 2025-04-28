@@ -15,7 +15,7 @@
 #
 # Generated code. DO NOT EDIT!
 #
-# Snippet for CheckConsistency
+# Snippet for GenerateConsistencyToken
 # NOTE: This snippet has been automatically generated for illustrative purposes only.
 # It may require modifications to work in your environment.
 
@@ -23,7 +23,7 @@
 #   python3 -m pip install google-cloud-bigtable-admin
 
 
-# [START bigtableadmin_v2_generated_BigtableTableAdmin_CheckConsistency_sync_internal]
+# [START bigtableadmin_v2_generated_BigtableTableAdmin_GenerateConsistencyToken_async]
 # This snippet has been automatically generated and should be regarded as a
 # code template only.
 # It will require modifications to work:
@@ -34,20 +34,19 @@
 from google.cloud.bigtable import admin_v2
 
 
-def sample_check_consistency():
+async def sample_generate_consistency_token():
     # Create a client
-    client = admin_v2.BaseBigtableTableAdminClient()
+    client = admin_v2.BaseBigtableTableAdminAsyncClient()
 
     # Initialize request argument(s)
-    request = admin_v2.CheckConsistencyRequest(
+    request = admin_v2.GenerateConsistencyTokenRequest(
         name="name_value",
-        consistency_token="consistency_token_value",
     )
 
     # Make the request
-    response = client._check_consistency(request=request)
+    response = await client.generate_consistency_token(request=request)
 
     # Handle the response
     print(response)
 
-# [END bigtableadmin_v2_generated_BigtableTableAdmin_CheckConsistency_sync_internal]
+# [END bigtableadmin_v2_generated_BigtableTableAdmin_GenerateConsistencyToken_async]
