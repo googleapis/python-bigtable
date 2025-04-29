@@ -23,7 +23,7 @@
 #   python3 -m pip install google-cloud-bigtable-admin
 
 
-# [START bigtableadmin_v2_generated_BigtableTableAdmin_GenerateConsistencyToken_sync_internal]
+# [START bigtableadmin_v2_generated_BigtableTableAdmin_GenerateConsistencyToken_sync]
 # This snippet has been automatically generated and should be regarded as a
 # code template only.
 # It will require modifications to work:
@@ -44,9 +44,9 @@ def sample_generate_consistency_token():
     )
 
     # Make the request
-    response = client._generate_consistency_token(request=request)
+    response = client.generate_consistency_token(request=request)
 
     # Handle the response
     print(response)
 
-# [END bigtableadmin_v2_generated_BigtableTableAdmin_GenerateConsistencyToken_sync_internal]
+# [END bigtableadmin_v2_generated_BigtableTableAdmin_GenerateConsistencyToken_sync]

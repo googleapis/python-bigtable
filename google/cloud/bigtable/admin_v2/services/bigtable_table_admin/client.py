@@ -2624,7 +2624,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
             metadata=metadata,
         )
 
-    def _generate_consistency_token(
+    def generate_consistency_token(
         self,
         request: Optional[
             Union[bigtable_table_admin.GenerateConsistencyTokenRequest, dict]
@@ -2662,7 +2662,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
                 )
 
                 # Make the request
-                response = client._generate_consistency_token(request=request)
+                response = client.generate_consistency_token(request=request)
 
                 # Handle the response
                 print(response)
@@ -2743,7 +2743,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
         # Done; return the response.
         return response
 
-    def _check_consistency(
+    def check_consistency(
         self,
         request: Optional[
             Union[bigtable_table_admin.CheckConsistencyRequest, dict]
@@ -2782,7 +2782,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
                 )
 
                 # Make the request
-                response = client._check_consistency(request=request)
+                response = client.check_consistency(request=request)
 
                 # Handle the response
                 print(response)

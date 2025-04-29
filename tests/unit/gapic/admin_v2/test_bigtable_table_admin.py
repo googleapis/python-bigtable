@@ -6311,7 +6311,7 @@ async def test_drop_row_range_field_headers_async():
         dict,
     ],
 )
-def test__generate_consistency_token(request_type, transport: str = "grpc"):
+def test_generate_consistency_token(request_type, transport: str = "grpc"):
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
@@ -6329,7 +6329,7 @@ def test__generate_consistency_token(request_type, transport: str = "grpc"):
         call.return_value = bigtable_table_admin.GenerateConsistencyTokenResponse(
             consistency_token="consistency_token_value",
         )
-        response = client._generate_consistency_token(request)
+        response = client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
@@ -6342,7 +6342,7 @@ def test__generate_consistency_token(request_type, transport: str = "grpc"):
     assert response.consistency_token == "consistency_token_value"
 
 
-def test__generate_consistency_token_non_empty_request_with_auto_populated_field():
+def test_generate_consistency_token_non_empty_request_with_auto_populated_field():
     # This test is a coverage failsafe to make sure that UUID4 fields are
     # automatically populated, according to AIP-4235, with non-empty requests.
     client = BaseBigtableTableAdminClient(
@@ -6364,7 +6364,7 @@ def test__generate_consistency_token_non_empty_request_with_auto_populated_field
         call.return_value.name = (
             "foo"  # operation_request.operation in compute client(s) expect a string.
         )
-        client._generate_consistency_token(request=request)
+        client.generate_consistency_token(request=request)
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.GenerateConsistencyTokenRequest(
@@ -6372,7 +6372,7 @@ def test__generate_consistency_token_non_empty_request_with_auto_populated_field
         )
 
 
-def test__generate_consistency_token_use_cached_wrapped_rpc():
+def test_generate_consistency_token_use_cached_wrapped_rpc():
     # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
     # instead of constructing them on each call
     with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
@@ -6400,12 +6400,12 @@ def test__generate_consistency_token_use_cached_wrapped_rpc():
             client._transport.generate_consistency_token
         ] = mock_rpc
         request = {}
-        client._generate_consistency_token(request)
+        client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert mock_rpc.call_count == 1
 
-        client._generate_consistency_token(request)
+        client.generate_consistency_token(request)
 
         # Establish that a new wrapper was not created for this call
         assert wrapper_fn.call_count == 0
@@ -6413,7 +6413,7 @@ def test__generate_consistency_token_use_cached_wrapped_rpc():
 
 
 @pytest.mark.asyncio
-async def test__generate_consistency_token_async_use_cached_wrapped_rpc(
+async def test_generate_consistency_token_async_use_cached_wrapped_rpc(
     transport: str = "grpc_asyncio",
 ):
     # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
@@ -6442,12 +6442,12 @@ async def test__generate_consistency_token_async_use_cached_wrapped_rpc(
         ] = mock_rpc
 
         request = {}
-        await client._generate_consistency_token(request)
+        await client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert mock_rpc.call_count == 1
 
-        await client._generate_consistency_token(request)
+        await client.generate_consistency_token(request)
 
         # Establish that a new wrapper was not created for this call
         assert wrapper_fn.call_count == 0
@@ -6455,7 +6455,7 @@ async def test__generate_consistency_token_async_use_cached_wrapped_rpc(
 
 
 @pytest.mark.asyncio
-async def test__generate_consistency_token_async(
+async def test_generate_consistency_token_async(
     transport: str = "grpc_asyncio",
     request_type=bigtable_table_admin.GenerateConsistencyTokenRequest,
 ):
@@ -6478,7 +6478,7 @@ async def test__generate_consistency_token_async(
                 consistency_token="consistency_token_value",
             )
         )
-        response = await client._generate_consistency_token(request)
+        response = await client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
@@ -6492,11 +6492,11 @@ async def test__generate_consistency_token_async(
 
 
 @pytest.mark.asyncio
-async def test__generate_consistency_token_async_from_dict():
-    await test__generate_consistency_token_async(request_type=dict)
+async def test_generate_consistency_token_async_from_dict():
+    await test_generate_consistency_token_async(request_type=dict)
 
 
-def test__generate_consistency_token_field_headers():
+def test_generate_consistency_token_field_headers():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
     )
@@ -6512,7 +6512,7 @@ def test__generate_consistency_token_field_headers():
         type(client.transport.generate_consistency_token), "__call__"
     ) as call:
         call.return_value = bigtable_table_admin.GenerateConsistencyTokenResponse()
-        client._generate_consistency_token(request)
+        client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
@@ -6528,7 +6528,7 @@ def test__generate_consistency_token_field_headers():
 
 
 @pytest.mark.asyncio
-async def test__generate_consistency_token_field_headers_async():
+async def test_generate_consistency_token_field_headers_async():
     client = BaseBigtableTableAdminAsyncClient(
         credentials=async_anonymous_credentials(),
     )
@@ -6546,7 +6546,7 @@ async def test__generate_consistency_token_field_headers_async():
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
             bigtable_table_admin.GenerateConsistencyTokenResponse()
         )
-        await client._generate_consistency_token(request)
+        await client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
@@ -6561,7 +6561,7 @@ async def test__generate_consistency_token_field_headers_async():
     ) in kw["metadata"]
 
 
-def test__generate_consistency_token_flattened():
+def test_generate_consistency_token_flattened():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
     )
@@ -6574,7 +6574,7 @@ def test__generate_consistency_token_flattened():
         call.return_value = bigtable_table_admin.GenerateConsistencyTokenResponse()
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
-        client._generate_consistency_token(
+        client.generate_consistency_token(
             name="name_value",
         )
 
@@ -6587,7 +6587,7 @@ def test__generate_consistency_token_flattened():
         assert arg == mock_val
 
 
-def test__generate_consistency_token_flattened_error():
+def test_generate_consistency_token_flattened_error():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
     )
@@ -6595,14 +6595,14 @@ def test__generate_consistency_token_flattened_error():
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
-        client._generate_consistency_token(
+        client.generate_consistency_token(
             bigtable_table_admin.GenerateConsistencyTokenRequest(),
             name="name_value",
         )
 
 
 @pytest.mark.asyncio
-async def test__generate_consistency_token_flattened_async():
+async def test_generate_consistency_token_flattened_async():
     client = BaseBigtableTableAdminAsyncClient(
         credentials=async_anonymous_credentials(),
     )
@@ -6619,7 +6619,7 @@ async def test__generate_consistency_token_flattened_async():
         )
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
-        response = await client._generate_consistency_token(
+        response = await client.generate_consistency_token(
             name="name_value",
         )
 
@@ -6633,7 +6633,7 @@ async def test__generate_consistency_token_flattened_async():
 
 
 @pytest.mark.asyncio
-async def test__generate_consistency_token_flattened_error_async():
+async def test_generate_consistency_token_flattened_error_async():
     client = BaseBigtableTableAdminAsyncClient(
         credentials=async_anonymous_credentials(),
     )
@@ -6641,7 +6641,7 @@ async def test__generate_consistency_token_flattened_error_async():
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
-        await client._generate_consistency_token(
+        await client.generate_consistency_token(
             bigtable_table_admin.GenerateConsistencyTokenRequest(),
             name="name_value",
         )
@@ -6654,7 +6654,7 @@ async def test__generate_consistency_token_flattened_error_async():
         dict,
     ],
 )
-def test__check_consistency(request_type, transport: str = "grpc"):
+def test_check_consistency(request_type, transport: str = "grpc"):
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
@@ -6672,7 +6672,7 @@ def test__check_consistency(request_type, transport: str = "grpc"):
         call.return_value = bigtable_table_admin.CheckConsistencyResponse(
             consistent=True,
         )
-        response = client._check_consistency(request)
+        response = client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
@@ -6685,7 +6685,7 @@ def test__check_consistency(request_type, transport: str = "grpc"):
     assert response.consistent is True
 
 
-def test__check_consistency_non_empty_request_with_auto_populated_field():
+def test_check_consistency_non_empty_request_with_auto_populated_field():
     # This test is a coverage failsafe to make sure that UUID4 fields are
     # automatically populated, according to AIP-4235, with non-empty requests.
     client = BaseBigtableTableAdminClient(
@@ -6708,7 +6708,7 @@ def test__check_consistency_non_empty_request_with_auto_populated_field():
         call.return_value.name = (
             "foo"  # operation_request.operation in compute client(s) expect a string.
         )
-        client._check_consistency(request=request)
+        client.check_consistency(request=request)
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.CheckConsistencyRequest(
@@ -6717,7 +6717,7 @@ def test__check_consistency_non_empty_request_with_auto_populated_field():
         )
 
 
-def test__check_consistency_use_cached_wrapped_rpc():
+def test_check_consistency_use_cached_wrapped_rpc():
     # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
     # instead of constructing them on each call
     with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
@@ -6742,12 +6742,12 @@ def test__check_consistency_use_cached_wrapped_rpc():
             client._transport.check_consistency
         ] = mock_rpc
         request = {}
-        client._check_consistency(request)
+        client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert mock_rpc.call_count == 1
 
-        client._check_consistency(request)
+        client.check_consistency(request)
 
         # Establish that a new wrapper was not created for this call
         assert wrapper_fn.call_count == 0
@@ -6755,7 +6755,7 @@ def test__check_consistency_use_cached_wrapped_rpc():
 
 
 @pytest.mark.asyncio
-async def test__check_consistency_async_use_cached_wrapped_rpc(
+async def test_check_consistency_async_use_cached_wrapped_rpc(
     transport: str = "grpc_asyncio",
 ):
     # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
@@ -6784,12 +6784,12 @@ async def test__check_consistency_async_use_cached_wrapped_rpc(
         ] = mock_rpc
 
         request = {}
-        await client._check_consistency(request)
+        await client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert mock_rpc.call_count == 1
 
-        await client._check_consistency(request)
+        await client.check_consistency(request)
 
         # Establish that a new wrapper was not created for this call
         assert wrapper_fn.call_count == 0
@@ -6797,7 +6797,7 @@ async def test__check_consistency_async_use_cached_wrapped_rpc(
 
 
 @pytest.mark.asyncio
-async def test__check_consistency_async(
+async def test_check_consistency_async(
     transport: str = "grpc_asyncio",
     request_type=bigtable_table_admin.CheckConsistencyRequest,
 ):
@@ -6820,7 +6820,7 @@ async def test__check_consistency_async(
                 consistent=True,
             )
         )
-        response = await client._check_consistency(request)
+        response = await client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
@@ -6834,11 +6834,11 @@ async def test__check_consistency_async(
 
 
 @pytest.mark.asyncio
-async def test__check_consistency_async_from_dict():
-    await test__check_consistency_async(request_type=dict)
+async def test_check_consistency_async_from_dict():
+    await test_check_consistency_async(request_type=dict)
 
 
-def test__check_consistency_field_headers():
+def test_check_consistency_field_headers():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
     )
@@ -6854,7 +6854,7 @@ def test__check_consistency_field_headers():
         type(client.transport.check_consistency), "__call__"
     ) as call:
         call.return_value = bigtable_table_admin.CheckConsistencyResponse()
-        client._check_consistency(request)
+        client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
@@ -6870,7 +6870,7 @@ def test__check_consistency_field_headers():
 
 
 @pytest.mark.asyncio
-async def test__check_consistency_field_headers_async():
+async def test_check_consistency_field_headers_async():
     client = BaseBigtableTableAdminAsyncClient(
         credentials=async_anonymous_credentials(),
     )
@@ -6888,7 +6888,7 @@ async def test__check_consistency_field_headers_async():
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
             bigtable_table_admin.CheckConsistencyResponse()
         )
-        await client._check_consistency(request)
+        await client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
@@ -6903,7 +6903,7 @@ async def test__check_consistency_field_headers_async():
     ) in kw["metadata"]
 
 
-def test__check_consistency_flattened():
+def test_check_consistency_flattened():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
     )
@@ -6916,7 +6916,7 @@ def test__check_consistency_flattened():
         call.return_value = bigtable_table_admin.CheckConsistencyResponse()
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
-        client._check_consistency(
+        client.check_consistency(
             name="name_value",
             consistency_token="consistency_token_value",
         )
@@ -6933,7 +6933,7 @@ def test__check_consistency_flattened():
         assert arg == mock_val
 
 
-def test__check_consistency_flattened_error():
+def test_check_consistency_flattened_error():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
     )
@@ -6941,7 +6941,7 @@ def test__check_consistency_flattened_error():
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
-        client._check_consistency(
+        client.check_consistency(
             bigtable_table_admin.CheckConsistencyRequest(),
             name="name_value",
             consistency_token="consistency_token_value",
@@ -6949,7 +6949,7 @@ def test__check_consistency_flattened_error():
 
 
 @pytest.mark.asyncio
-async def test__check_consistency_flattened_async():
+async def test_check_consistency_flattened_async():
     client = BaseBigtableTableAdminAsyncClient(
         credentials=async_anonymous_credentials(),
     )
@@ -6966,7 +6966,7 @@ async def test__check_consistency_flattened_async():
         )
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
-        response = await client._check_consistency(
+        response = await client.check_consistency(
             name="name_value",
             consistency_token="consistency_token_value",
         )
@@ -6984,7 +6984,7 @@ async def test__check_consistency_flattened_async():
 
 
 @pytest.mark.asyncio
-async def test__check_consistency_flattened_error_async():
+async def test_check_consistency_flattened_error_async():
     client = BaseBigtableTableAdminAsyncClient(
         credentials=async_anonymous_credentials(),
     )
@@ -6992,7 +6992,7 @@ async def test__check_consistency_flattened_error_async():
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
-        await client._check_consistency(
+        await client.check_consistency(
             bigtable_table_admin.CheckConsistencyRequest(),
             name="name_value",
             consistency_token="consistency_token_value",
@@ -14805,7 +14805,7 @@ def test_drop_row_range_rest_unset_required_fields():
     assert set(unset_fields) == (set(()) & set(("name",)))
 
 
-def test__generate_consistency_token_rest_use_cached_wrapped_rpc():
+def test_generate_consistency_token_rest_use_cached_wrapped_rpc():
     # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
     # instead of constructing them on each call
     with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
@@ -14834,19 +14834,19 @@ def test__generate_consistency_token_rest_use_cached_wrapped_rpc():
         ] = mock_rpc
 
         request = {}
-        client._generate_consistency_token(request)
+        client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert mock_rpc.call_count == 1
 
-        client._generate_consistency_token(request)
+        client.generate_consistency_token(request)
 
         # Establish that a new wrapper was not created for this call
         assert wrapper_fn.call_count == 0
         assert mock_rpc.call_count == 2
 
 
-def test__generate_consistency_token_rest_required_fields(
+def test_generate_consistency_token_rest_required_fields(
     request_type=bigtable_table_admin.GenerateConsistencyTokenRequest,
 ):
     transport_class = transports.BigtableTableAdminRestTransport
@@ -14917,14 +14917,14 @@ def test__generate_consistency_token_rest_required_fields(
             req.return_value = response_value
             req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
-            response = client._generate_consistency_token(request)
+            response = client.generate_consistency_token(request)
 
             expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
 
-def test__generate_consistency_token_rest_unset_required_fields():
+def test_generate_consistency_token_rest_unset_required_fields():
     transport = transports.BigtableTableAdminRestTransport(
         credentials=ga_credentials.AnonymousCredentials
     )
@@ -14933,7 +14933,7 @@ def test__generate_consistency_token_rest_unset_required_fields():
     assert set(unset_fields) == (set(()) & set(("name",)))
 
 
-def test__generate_consistency_token_rest_flattened():
+def test_generate_consistency_token_rest_flattened():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport="rest",
@@ -14965,7 +14965,7 @@ def test__generate_consistency_token_rest_flattened():
         req.return_value = response_value
         req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
-        client._generate_consistency_token(**mock_args)
+        client.generate_consistency_token(**mock_args)
 
         # Establish that the underlying call was made with the expected
         # request object values.
@@ -14978,7 +14978,7 @@ def test__generate_consistency_token_rest_flattened():
         )
 
 
-def test__generate_consistency_token_rest_flattened_error(transport: str = "rest"):
+def test_generate_consistency_token_rest_flattened_error(transport: str = "rest"):
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
@@ -14987,13 +14987,13 @@ def test__generate_consistency_token_rest_flattened_error(transport: str = "rest
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
-        client._generate_consistency_token(
+        client.generate_consistency_token(
             bigtable_table_admin.GenerateConsistencyTokenRequest(),
             name="name_value",
         )
 
 
-def test__check_consistency_rest_use_cached_wrapped_rpc():
+def test_check_consistency_rest_use_cached_wrapped_rpc():
     # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
     # instead of constructing them on each call
     with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
@@ -15019,19 +15019,19 @@ def test__check_consistency_rest_use_cached_wrapped_rpc():
         ] = mock_rpc
 
         request = {}
-        client._check_consistency(request)
+        client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert mock_rpc.call_count == 1
 
-        client._check_consistency(request)
+        client.check_consistency(request)
 
         # Establish that a new wrapper was not created for this call
         assert wrapper_fn.call_count == 0
         assert mock_rpc.call_count == 2
 
 
-def test__check_consistency_rest_required_fields(
+def test_check_consistency_rest_required_fields(
     request_type=bigtable_table_admin.CheckConsistencyRequest,
 ):
     transport_class = transports.BigtableTableAdminRestTransport
@@ -15106,14 +15106,14 @@ def test__check_consistency_rest_required_fields(
             req.return_value = response_value
             req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
-            response = client._check_consistency(request)
+            response = client.check_consistency(request)
 
             expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
 
-def test__check_consistency_rest_unset_required_fields():
+def test_check_consistency_rest_unset_required_fields():
     transport = transports.BigtableTableAdminRestTransport(
         credentials=ga_credentials.AnonymousCredentials
     )
@@ -15130,7 +15130,7 @@ def test__check_consistency_rest_unset_required_fields():
     )
 
 
-def test__check_consistency_rest_flattened():
+def test_check_consistency_rest_flattened():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport="rest",
@@ -15161,7 +15161,7 @@ def test__check_consistency_rest_flattened():
         req.return_value = response_value
         req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
 
-        client._check_consistency(**mock_args)
+        client.check_consistency(**mock_args)
 
         # Establish that the underlying call was made with the expected
         # request object values.
@@ -15174,7 +15174,7 @@ def test__check_consistency_rest_flattened():
         )
 
 
-def test__check_consistency_rest_flattened_error(transport: str = "rest"):
+def test_check_consistency_rest_flattened_error(transport: str = "rest"):
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
@@ -15183,7 +15183,7 @@ def test__check_consistency_rest_flattened_error(transport: str = "rest"):
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
-        client._check_consistency(
+        client.check_consistency(
             bigtable_table_admin.CheckConsistencyRequest(),
             name="name_value",
             consistency_token="consistency_token_value",
@@ -18334,7 +18334,7 @@ def test_drop_row_range_empty_call_grpc():
 
 # This test is a coverage failsafe to make sure that totally empty calls,
 # i.e. request == None and no flattened fields passed, work.
-def test__generate_consistency_token_empty_call_grpc():
+def test_generate_consistency_token_empty_call_grpc():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport="grpc",
@@ -18345,7 +18345,7 @@ def test__generate_consistency_token_empty_call_grpc():
         type(client.transport.generate_consistency_token), "__call__"
     ) as call:
         call.return_value = bigtable_table_admin.GenerateConsistencyTokenResponse()
-        client._generate_consistency_token(request=None)
+        client.generate_consistency_token(request=None)
 
         # Establish that the underlying stub method was called.
         call.assert_called()
@@ -18357,7 +18357,7 @@ def test__generate_consistency_token_empty_call_grpc():
 
 # This test is a coverage failsafe to make sure that totally empty calls,
 # i.e. request == None and no flattened fields passed, work.
-def test__check_consistency_empty_call_grpc():
+def test_check_consistency_empty_call_grpc():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport="grpc",
@@ -18368,7 +18368,7 @@ def test__check_consistency_empty_call_grpc():
         type(client.transport.check_consistency), "__call__"
     ) as call:
         call.return_value = bigtable_table_admin.CheckConsistencyResponse()
-        client._check_consistency(request=None)
+        client.check_consistency(request=None)
 
         # Establish that the underlying stub method was called.
         call.assert_called()
@@ -19069,7 +19069,7 @@ async def test_drop_row_range_empty_call_grpc_asyncio():
 # This test is a coverage failsafe to make sure that totally empty calls,
 # i.e. request == None and no flattened fields passed, work.
 @pytest.mark.asyncio
-async def test__generate_consistency_token_empty_call_grpc_asyncio():
+async def test_generate_consistency_token_empty_call_grpc_asyncio():
     client = BaseBigtableTableAdminAsyncClient(
         credentials=async_anonymous_credentials(),
         transport="grpc_asyncio",
@@ -19085,7 +19085,7 @@ async def test__generate_consistency_token_empty_call_grpc_asyncio():
                 consistency_token="consistency_token_value",
             )
         )
-        await client._generate_consistency_token(request=None)
+        await client.generate_consistency_token(request=None)
 
         # Establish that the underlying stub method was called.
         call.assert_called()
@@ -19098,7 +19098,7 @@ async def test__generate_consistency_token_empty_call_grpc_asyncio():
 # This test is a coverage failsafe to make sure that totally empty calls,
 # i.e. request == None and no flattened fields passed, work.
 @pytest.mark.asyncio
-async def test__check_consistency_empty_call_grpc_asyncio():
+async def test_check_consistency_empty_call_grpc_asyncio():
     client = BaseBigtableTableAdminAsyncClient(
         credentials=async_anonymous_credentials(),
         transport="grpc_asyncio",
@@ -19114,7 +19114,7 @@ async def test__check_consistency_empty_call_grpc_asyncio():
                 consistent=True,
             )
         )
-        await client._check_consistency(request=None)
+        await client.check_consistency(request=None)
 
         # Establish that the underlying stub method was called.
         call.assert_called()
@@ -21545,7 +21545,7 @@ def test_drop_row_range_rest_interceptors(null_interceptor):
         pre.assert_called_once()
 
 
-def test__generate_consistency_token_rest_bad_request(
+def test_generate_consistency_token_rest_bad_request(
     request_type=bigtable_table_admin.GenerateConsistencyTokenRequest,
 ):
     client = BaseBigtableTableAdminClient(
@@ -21567,7 +21567,7 @@ def test__generate_consistency_token_rest_bad_request(
         response_value.request = mock.Mock()
         req.return_value = response_value
         req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
-        client._generate_consistency_token(request)
+        client.generate_consistency_token(request)
 
 
 @pytest.mark.parametrize(
@@ -21577,7 +21577,7 @@ def test__generate_consistency_token_rest_bad_request(
         dict,
     ],
 )
-def test__generate_consistency_token_rest_call_success(request_type):
+def test_generate_consistency_token_rest_call_success(request_type):
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(), transport="rest"
     )
@@ -21605,7 +21605,7 @@ def test__generate_consistency_token_rest_call_success(request_type):
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
         req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
-        response = client._generate_consistency_token(request)
+        response = client.generate_consistency_token(request)
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable_table_admin.GenerateConsistencyTokenResponse)
@@ -21613,7 +21613,7 @@ def test__generate_consistency_token_rest_call_success(request_type):
 
 
 @pytest.mark.parametrize("null_interceptor", [True, False])
-def test__generate_consistency_token_rest_interceptors(null_interceptor):
+def test_generate_consistency_token_rest_interceptors(null_interceptor):
     transport = transports.BigtableTableAdminRestTransport(
         credentials=ga_credentials.AnonymousCredentials(),
         interceptor=None
@@ -21667,7 +21667,7 @@ def test__generate_consistency_token_rest_interceptors(null_interceptor):
             metadata,
         )
 
-        client._generate_consistency_token(
+        client.generate_consistency_token(
             request,
             metadata=[
                 ("key", "val"),
@@ -21680,7 +21680,7 @@ def test__generate_consistency_token_rest_interceptors(null_interceptor):
         post_with_metadata.assert_called_once()
 
 
-def test__check_consistency_rest_bad_request(
+def test_check_consistency_rest_bad_request(
     request_type=bigtable_table_admin.CheckConsistencyRequest,
 ):
     client = BaseBigtableTableAdminClient(
@@ -21702,7 +21702,7 @@ def test__check_consistency_rest_bad_request(
         response_value.request = mock.Mock()
         req.return_value = response_value
         req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
-        client._check_consistency(request)
+        client.check_consistency(request)
 
 
 @pytest.mark.parametrize(
@@ -21712,7 +21712,7 @@ def test__check_consistency_rest_bad_request(
         dict,
     ],
 )
-def test__check_consistency_rest_call_success(request_type):
+def test_check_consistency_rest_call_success(request_type):
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(), transport="rest"
     )
@@ -21738,7 +21738,7 @@ def test__check_consistency_rest_call_success(request_type):
         response_value.content = json_return_value.encode("UTF-8")
         req.return_value = response_value
         req.return_value.headers = {"header-1": "value-1", "header-2": "value-2"}
-        response = client._check_consistency(request)
+        response = client.check_consistency(request)
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable_table_admin.CheckConsistencyResponse)
@@ -21746,7 +21746,7 @@ def test__check_consistency_rest_call_success(request_type):
 
 
 @pytest.mark.parametrize("null_interceptor", [True, False])
-def test__check_consistency_rest_interceptors(null_interceptor):
+def test_check_consistency_rest_interceptors(null_interceptor):
     transport = transports.BigtableTableAdminRestTransport(
         credentials=ga_credentials.AnonymousCredentials(),
         interceptor=None
@@ -21800,7 +21800,7 @@ def test__check_consistency_rest_interceptors(null_interceptor):
             metadata,
         )
 
-        client._check_consistency(
+        client.check_consistency(
             request,
             metadata=[
                 ("key", "val"),
@@ -24087,7 +24087,7 @@ def test_drop_row_range_empty_call_rest():
 
 # This test is a coverage failsafe to make sure that totally empty calls,
 # i.e. request == None and no flattened fields passed, work.
-def test__generate_consistency_token_empty_call_rest():
+def test_generate_consistency_token_empty_call_rest():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport="rest",
@@ -24097,7 +24097,7 @@ def test__generate_consistency_token_empty_call_rest():
     with mock.patch.object(
         type(client.transport.generate_consistency_token), "__call__"
     ) as call:
-        client._generate_consistency_token(request=None)
+        client.generate_consistency_token(request=None)
 
         # Establish that the underlying stub method was called.
         call.assert_called()
@@ -24109,7 +24109,7 @@ def test__generate_consistency_token_empty_call_rest():
 
 # This test is a coverage failsafe to make sure that totally empty calls,
 # i.e. request == None and no flattened fields passed, work.
-def test__check_consistency_empty_call_rest():
+def test_check_consistency_empty_call_rest():
     client = BaseBigtableTableAdminClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport="rest",
@@ -24119,7 +24119,7 @@ def test__check_consistency_empty_call_rest():
     with mock.patch.object(
         type(client.transport.check_consistency), "__call__"
     ) as call:
-        client._check_consistency(request=None)
+        client.check_consistency(request=None)
 
         # Establish that the underlying stub method was called.
         call.assert_called()

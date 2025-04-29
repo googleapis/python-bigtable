@@ -496,7 +496,7 @@
           "rpcs": {
             "CheckConsistency": {
               "methods": [
-                "_check_consistency"
+                "check_consistency"
               ]
             },
             "CopyBackup": {
@@ -551,7 +551,7 @@
             },
             "GenerateConsistencyToken": {
               "methods": [
-                "_generate_consistency_token"
+                "generate_consistency_token"
               ]
             },
             "GetAuthorizedView": {
@@ -651,7 +651,7 @@
           "rpcs": {
             "CheckConsistency": {
               "methods": [
-                "_check_consistency"
+                "check_consistency"
               ]
             },
             "CopyBackup": {
@@ -706,7 +706,7 @@
             },
             "GenerateConsistencyToken": {
               "methods": [
-                "_generate_consistency_token"
+                "generate_consistency_token"
               ]
             },
             "GetAuthorizedView": {
@@ -806,7 +806,7 @@
           "rpcs": {
             "CheckConsistency": {
               "methods": [
-                "_check_consistency"
+                "check_consistency"
               ]
             },
             "CopyBackup": {
@@ -861,7 +861,7 @@
             },
             "GenerateConsistencyToken": {
               "methods": [
-                "_generate_consistency_token"
+                "generate_consistency_token"
               ]
             },
             "GetAuthorizedView": {

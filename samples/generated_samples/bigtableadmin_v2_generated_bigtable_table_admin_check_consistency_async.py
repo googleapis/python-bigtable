@@ -23,7 +23,7 @@
 #   python3 -m pip install google-cloud-bigtable-admin
 
 
-# [START bigtableadmin_v2_generated_BigtableTableAdmin_CheckConsistency_async_internal]
+# [START bigtableadmin_v2_generated_BigtableTableAdmin_CheckConsistency_async]
 # This snippet has been automatically generated and should be regarded as a
 # code template only.
 # It will require modifications to work:
@@ -45,9 +45,9 @@ async def sample_check_consistency():
     )
 
     # Make the request
-    response = await client._check_consistency(request=request)
+    response = await client.check_consistency(request=request)
 
     # Handle the response
     print(response)
 
-# [END bigtableadmin_v2_generated_BigtableTableAdmin_CheckConsistency_async_internal]
+# [END bigtableadmin_v2_generated_BigtableTableAdmin_CheckConsistency_async]
