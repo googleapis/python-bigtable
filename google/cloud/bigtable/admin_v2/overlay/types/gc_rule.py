@@ -36,7 +36,7 @@ class BaseGarbageCollectionRule(object, metaclass=abc.ABCMeta):
         that value would be superceded by a ``gc_rule``. As a result, we
         don't support that feature and instead support via native classes.
     """
-    
+
     @abc.abstractmethod
     def to_pb(self) -> table_pb2.GcRule:
         raise NotImplementedError()

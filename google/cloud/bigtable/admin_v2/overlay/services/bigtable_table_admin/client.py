@@ -41,11 +41,13 @@ except AttributeError:  # pragma: NO COVER
 from google.api_core import operation  # type: ignore
 from google.cloud.bigtable.admin_v2.types import bigtable_table_admin
 
-from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import BaseBigtableTableAdminClient
+from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import (
+    BaseBigtableTableAdminClient,
+)
 from google.cloud.bigtable.admin_v2.overlay.types import consistency, restore_table
 
-class BigtableTableAdminClient(BaseBigtableTableAdminClient):
 
+class BigtableTableAdminClient(BaseBigtableTableAdminClient):
     def restore_table(
         self,
         request: Optional[Union[bigtable_table_admin.RestoreTableRequest, dict]] = None,
@@ -130,7 +132,9 @@ class BigtableTableAdminClient(BaseBigtableTableAdminClient):
             metadata=metadata,
         )
 
-        restore_table_operation = restore_table.RestoreTableOperation(self._transport.operations_client, operation)
+        restore_table_operation = restore_table.RestoreTableOperation(
+            self._transport.operations_client, operation
+        )
         return restore_table_operation
 
     def await_consistency(
@@ -145,7 +149,6 @@ class BigtableTableAdminClient(BaseBigtableTableAdminClient):
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
     ) -> consistency.CheckConsistencyPollingFuture:
-
         api_call = functools.partial(
             self.check_consistency,
             request,
@@ -167,7 +170,6 @@ class BigtableTableAdminClient(BaseBigtableTableAdminClient):
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
     ) -> consistency.CheckConsistencyPollingFuture:
-        
         generate_consistency_response = self.generate_consistency_token(
             request,
             name=name,
@@ -178,7 +180,7 @@ class BigtableTableAdminClient(BaseBigtableTableAdminClient):
 
         # Create the CheckConsistencyRequest object.
         check_consistency_request = bigtable_table_admin.CheckConsistencyRequest()
-        
+
         # If the generate_consistency_token request is valid, there's a name in the request object
         # or the name parameter.
         if isinstance(request, dict):
@@ -188,6 +190,10 @@ class BigtableTableAdminClient(BaseBigtableTableAdminClient):
         else:
             check_consistency_request.name = name
 
-        check_consistency_request.consistency_token = generate_consistency_response.consistency_token
-        
-        return self.await_consistency(check_consistency_request, retry=retry, timeout=timeout, metadata=metadata)
+        check_consistency_request.consistency_token = (
+            generate_consistency_response.consistency_token
+        )
+
+        return self.await_consistency(
+            check_consistency_request, retry=retry, timeout=timeout, metadata=metadata
+        )

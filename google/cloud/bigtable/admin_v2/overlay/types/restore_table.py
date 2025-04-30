@@ -17,6 +17,7 @@ from google.protobuf import empty_pb2
 
 from google.cloud.bigtable.admin_v2.types import OptimizeRestoredTableMetadata
 
+
 class RestoreTableOperation(operation.Operation):
     def __init__(self, operations_client, restore_table_operation):
         self._operations_client = operations_client
@@ -30,11 +31,9 @@ class RestoreTableOperation(operation.Operation):
             polling=restore_table_operation._polling,
         )
 
-    def optimize_restore_table_operation(self,
-                                         timeout=operation.Operation._DEFAULT_VALUE,
-                                         retry=None,
-                                         polling=None):
-        
+    def optimize_restore_table_operation(
+        self, timeout=operation.Operation._DEFAULT_VALUE, retry=None, polling=None
+    ):
         self._blocking_poll(timeout=timeout, retry=retry, polling=polling)
 
         if self._exception is not None:
@@ -44,9 +43,10 @@ class RestoreTableOperation(operation.Operation):
 
         return self._optimize_restore_table_operation
 
-
     def set_result(self, response):
-        optimize_restore_table_operation_name = self.metadata.optimize_table_operation_name
+        optimize_restore_table_operation_name = (
+            self.metadata.optimize_table_operation_name
+        )
 
         # When the RestoreTable operation finishes, it might not necessarily trigger
         # an optimize operation.

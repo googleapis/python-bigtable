@@ -34,5 +34,5 @@ __all__ = (
     "IntersectionGarbageCollectionRule",
     "RestoreTableOperation",
     "CheckConsistencyPollingFuture",
-    "BigtableTableAdminClient"
+    "BigtableTableAdminClient",
 )

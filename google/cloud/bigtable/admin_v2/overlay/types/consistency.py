@@ -25,11 +25,13 @@ except AttributeError:  # pragma: NO COVER
 
 
 class CheckConsistencyPollingFuture(polling.PollingFuture):
-    def __init__(self,
+    def __init__(
+        self,
         check_consistency_call: Callable,
         default_retry: OptionalRetry = gapic_v1.method.DEFAULT,
         polling: retries.Retry = polling.DEFAULT_POLLING,
-        **kwargs):
+        **kwargs
+    ):
         super(CheckConsistencyPollingFuture, self).__init__(polling=polling, **kwargs)
 
         # Done is called with two different scenarios, retry is specified or not specified.
@@ -37,8 +39,8 @@ class CheckConsistencyPollingFuture(polling.PollingFuture):
         # that.
         self._check_consistency_call = check_consistency_call
         self._default_retry = default_retry
-    
-    def done(self, retry: OptionalRetry=None):
+
+    def done(self, retry: OptionalRetry = None):
         if self._result_set:
             return True
 
@@ -55,6 +57,6 @@ class CheckConsistencyPollingFuture(polling.PollingFuture):
 
     def cancel(self):
         raise NotImplementedError("Cannot cancel consistency token operation")
-    
+
     def cancelled(self):
         raise NotImplementedError("Cannot cancel consistency token operation")

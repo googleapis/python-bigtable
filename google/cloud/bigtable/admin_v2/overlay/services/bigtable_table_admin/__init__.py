@@ -16,6 +16,4 @@
 
 from .client import BigtableTableAdminClient
 
-__all__ = (
-    "BigtableTableAdminClient",
-)
+__all__ = ("BigtableTableAdminClient",)
