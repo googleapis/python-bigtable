@@ -1,0 +1,60 @@
+# Copyright 2025 Google LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from typing import Union, Callable
+
+from google.api_core.future import polling
+from google.api_core import gapic_v1
+from google.api_core import retry as retries
+
+try:
+    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
+except AttributeError:  # pragma: NO COVER
+    OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
+
+
+class CheckConsistencyPollingFuture(polling.PollingFuture):
+    def __init__(self,
+        check_consistency_call: Callable,
+        default_retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        polling: retries.Retry = polling.DEFAULT_POLLING,
+        **kwargs):
+        super(CheckConsistencyPollingFuture, self).__init__(polling=polling, **kwargs)
+
+        # Done is called with two different scenarios, retry is specified or not specified.
+        # API_call will be a functools partial with everything except retry specified because of
+        # that.
+        self._check_consistency_call = check_consistency_call
+        self._default_retry = default_retry
+    
+    def done(self, retry: OptionalRetry=None):
+        if self._result_set:
+            return True
+
+        retry = retry or self._default_retry
+
+        try:
+            check_consistency_response = self._check_consistency_call(retry=retry)
+            if check_consistency_response.consistent:
+                self.set_result(True)
+
+            return check_consistency_response.consistent
+        except Exception as e:
+            self.set_exception(e)
+
+    def cancel(self):
+        raise NotImplementedError("Cannot cancel consistency token operation")
+    
+    def cancelled(self):
+        raise NotImplementedError("Cannot cancel consistency token operation")
