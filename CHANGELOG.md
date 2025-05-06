@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.31.0](https://github.com/googleapis/python-bigtable/compare/v2.30.1...v2.31.0) (2025-05-06)
+
+
+### Features
+
+* Add deletion_protection support for LVs ([#1108](https://github.com/googleapis/python-bigtable/issues/1108)) ([c6d384d](https://github.com/googleapis/python-bigtable/commit/c6d384d4a104c182326e22dc3f10b7b905780dee))
+
 ## [2.30.1](https://github.com/googleapis/python-bigtable/compare/v2.30.0...v2.30.1) (2025-04-17)
 
 
