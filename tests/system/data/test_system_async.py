@@ -18,7 +18,7 @@ import datetime
 import uuid
 import os
 from google.api_core import retry
-from google.api_core.exceptions import ClientError
+from google.api_core.exceptions import ClientError, PermissionDenied
 
 from google.cloud.bigtable.data.execute_query.metadata import SqlType
 from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VALUE
@@ -93,10 +93,21 @@ class TestSystemAsync:
             yield client
 
     @CrossSync.convert
-    @CrossSync.pytest_fixture(scope="session")
-    async def table(self, client, table_id, instance_id):
-        async with client.get_table(instance_id, table_id) as table:
-            yield table
+    @CrossSync.pytest_fixture(scope="session", params=["table", "authorized_view"])
+    async def table(self, client, table_id, authorized_view_id, instance_id, request):
+        """
+        This fixture runs twice: once for a standard table, and once with an authorized view
+        """
+        if request.param == "table":
+            async with client.get_table(instance_id, table_id) as table:
+                yield table
+        elif request.param == "authorized_view":
+            async with client.get_authorized_view(
+                instance_id, table_id, authorized_view_id
+            ) as view:
+                yield view
+        else:
+            raise ValueError(f"unknown table type: {request.param}")
 
     @CrossSync.drop
     @pytest.fixture(scope="session")
@@ -1055,10 +1066,27 @@ class TestSystemAsync:
         reason="emulator doesn't support SQL",
     )
     @CrossSync.pytest
+    async def test_authorized_view_unauthenticated(
+        self, client, authorized_view_id, instance_id, table_id
+    ):
+        """
+        Requesting family outside authorized family_subset should raise exception
+        """
+        from google.cloud.bigtable.data.mutations import SetCell
+
+        async with client.get_authorized_view(
+            instance_id, table_id, authorized_view_id
+        ) as view:
+            mutation = SetCell(family="unauthorized", qualifier="q", new_value="v")
+            with pytest.raises(PermissionDenied) as e:
+                await view.mutate_row(b"row-key", mutation)
+            assert "outside the Authorized View" in e.value.message
+
     @pytest.mark.usefixtures("client")
     @CrossSync.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
     )
+    @CrossSync.pytest
     async def test_execute_query_simple(self, client, table_id, instance_id):
         result = await client.execute_query("SELECT 1 AS a, 'foo' AS b", instance_id)
         rows = [r async for r in result]

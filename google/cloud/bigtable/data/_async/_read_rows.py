@@ -37,9 +37,11 @@ from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
     if CrossSync.is_async:
-        from google.cloud.bigtable.data._async.client import TableAsync as TableType
+        from google.cloud.bigtable.data._async.client import (
+            _ApiSurfaceAsync as ApiSurfaceType,
+        )
     else:
-        from google.cloud.bigtable.data._sync_autogen.client import Table as TableType  # type: ignore
+        from google.cloud.bigtable.data._sync_autogen.client import _ApiSurface as ApiSurfaceType  # type: ignore
 
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._read_rows"
 
@@ -78,7 +80,7 @@ class _ReadRowsOperationAsync:
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: TableType,
+        table: ApiSurfaceType,
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
@@ -90,7 +92,7 @@ class _ReadRowsOperationAsync:
         if isinstance(query, dict):
             self.request = ReadRowsRequestPB(
                 **query,
-                table_name=table.table_name,
+                **table._request_path,
                 app_profile_id=table.app_profile_id,
             )
         else:
