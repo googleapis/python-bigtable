@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +33,8 @@ from .types.bigtable import MutateRowsRequest
 from .types.bigtable import MutateRowsResponse
 from .types.bigtable import PingAndWarmRequest
 from .types.bigtable import PingAndWarmResponse
+from .types.bigtable import PrepareQueryRequest
+from .types.bigtable import PrepareQueryResponse
 from .types.bigtable import RateLimitInfo
 from .types.bigtable import ReadChangeStreamRequest
 from .types.bigtable import ReadChangeStreamResponse
@@ -99,6 +101,8 @@ __all__ = (
     "PartialResultSet",
     "PingAndWarmRequest",
     "PingAndWarmResponse",
+    "PrepareQueryRequest",
+    "PrepareQueryResponse",
     "ProtoFormat",
     "ProtoRows",
     "ProtoRowsBatch",

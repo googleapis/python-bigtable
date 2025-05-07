@@ -4,6 +4,38 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.30.1](https://github.com/googleapis/python-bigtable/compare/v2.30.0...v2.30.1) (2025-04-17)
+
+
+### Bug Fixes
+
+* Populate SQL app_profile_id header even when it is unset ([#1109](https://github.com/googleapis/python-bigtable/issues/1109)) ([17b75bd](https://github.com/googleapis/python-bigtable/commit/17b75bd746cb0a616f64a05eb0ed72b46de28a17))
+
+## [2.30.0](https://github.com/googleapis/python-bigtable/compare/v2.29.0...v2.30.0) (2025-03-18)
+
+
+### Features
+
+* Update ExecuteQuery to use Prepare ([#1100](https://github.com/googleapis/python-bigtable/issues/1100)) ([8a7abc1](https://github.com/googleapis/python-bigtable/commit/8a7abc1e9c34a9122b2d648e8a358a7097ed3a5d))
+
+
+### Bug Fixes
+
+* Allow protobuf 6.x ([#1092](https://github.com/googleapis/python-bigtable/issues/1092)) ([1015fa8](https://github.com/googleapis/python-bigtable/commit/1015fa83c505487f09820e3a37f76690bd00ab5d))
+* Remove setup.cfg configuration for creating universal wheels ([#1097](https://github.com/googleapis/python-bigtable/issues/1097)) ([95f4b82](https://github.com/googleapis/python-bigtable/commit/95f4b8233cba2a18633e64c5e0bc177e23767a83))
+
+## [2.29.0](https://github.com/googleapis/python-bigtable/compare/v2.28.1...v2.29.0) (2025-02-26)
+
+
+### Features
+
+* Add support for array and float32 SQL query params ([#1078](https://github.com/googleapis/python-bigtable/issues/1078)) ([89b8da8](https://github.com/googleapis/python-bigtable/commit/89b8da8a445aeb08854d9fa77cbc0e4fc042c87f))
+
+
+### Bug Fixes
+
+* Grpc channel refresh ([#1087](https://github.com/googleapis/python-bigtable/issues/1087)) ([f44b36b](https://github.com/googleapis/python-bigtable/commit/f44b36bf51e3e4e3b8a774f96e682d3f1f8d4b16))
+
 ## [2.28.1](https://github.com/googleapis/python-bigtable/compare/v2.28.0...v2.28.1) (2025-01-17)
 
 

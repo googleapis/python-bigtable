@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -480,9 +480,13 @@ class UpdateTableRequest(proto.Message):
             -  ``change_stream_config``
             -  ``change_stream_config.retention_period``
             -  ``deletion_protection``
+            -  ``row_key_schema``
 
             If ``column_families`` is set in ``update_mask``, it will
             return an UNIMPLEMENTED error.
+        ignore_warnings (bool):
+            Optional. If true, ignore safety checks when
+            updating the table.
     """
 
     table: gba_table.Table = proto.Field(
@@ -494,6 +498,10 @@ class UpdateTableRequest(proto.Message):
         proto.MESSAGE,
         number=2,
         message=field_mask_pb2.FieldMask,
+    )
+    ignore_warnings: bool = proto.Field(
+        proto.BOOL,
+        number=3,
     )
 
 

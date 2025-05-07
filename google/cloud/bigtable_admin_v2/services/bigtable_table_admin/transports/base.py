@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -258,9 +258,9 @@ class BigtableTableAdminTransport(abc.ABC):
                         core_exceptions.DeadlineExceeded,
                         core_exceptions.ServiceUnavailable,
                     ),
-                    deadline=60.0,
+                    deadline=3600.0,
                 ),
-                default_timeout=60.0,
+                default_timeout=3600.0,
                 client_info=client_info,
             ),
             self.snapshot_table: gapic_v1.method.wrap_method(

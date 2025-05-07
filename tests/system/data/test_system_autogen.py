@@ -174,6 +174,33 @@ class TestSystem:
         assert len(results) == 1
         assert results[0] is None
 
+    def test_channel_refresh(self, table_id, instance_id, temp_rows):
+        """change grpc channel to refresh after 1 second. Schedule a read_rows call after refresh,
+        to ensure new channel works"""
+        temp_rows.add_row(b"row_key_1")
+        temp_rows.add_row(b"row_key_2")
+        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
+        client = CrossSync._Sync_Impl.DataClient(project=project)
+        try:
+            client._channel_refresh_task = CrossSync._Sync_Impl.create_task(
+                client._manage_channel,
+                refresh_interval_min=1,
+                refresh_interval_max=1,
+                sync_executor=client._executor,
+            )
+            CrossSync._Sync_Impl.yield_to_event_loop()
+            with client.get_table(instance_id, table_id) as table:
+                rows = table.read_rows({})
+                first_channel = client.transport.grpc_channel
+                assert len(rows) == 2
+                CrossSync._Sync_Impl.sleep(2)
+                rows_after_refresh = table.read_rows({})
+                assert len(rows_after_refresh) == 2
+                assert client.transport.grpc_channel is not first_channel
+                print(table)
+        finally:
+            client.close()
+
     @pytest.mark.usefixtures("table")
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
@@ -853,6 +880,9 @@ class TestSystem:
                 view.mutate_row(b"row-key", mutation)
             assert "outside the Authorized View" in e.value.message
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
+    )
     @pytest.mark.usefixtures("client")
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
@@ -865,6 +895,36 @@ class TestSystem:
         assert row["a"] == 1
         assert row["b"] == "foo"
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
+    )
+    @pytest.mark.usefixtures("table")
+    @CrossSync._Sync_Impl.Retry(
+        predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
+    )
+    def test_execute_against_table(self, client, instance_id, table_id, temp_rows):
+        temp_rows.add_row(b"row_key_1")
+        result = client.execute_query("SELECT * FROM `" + table_id + "`", instance_id)
+        rows = [r for r in result]
+        assert len(rows) == 1
+        assert rows[0]["_key"] == b"row_key_1"
+        family_map = rows[0][TEST_FAMILY]
+        assert len(family_map) == 1
+        assert family_map[b"q"] == b"test-value"
+        assert len(rows[0][TEST_FAMILY_2]) == 0
+        md = result.metadata
+        assert len(md) == 3
+        assert md["_key"].column_type == SqlType.Bytes()
+        assert md[TEST_FAMILY].column_type == SqlType.Map(
+            SqlType.Bytes(), SqlType.Bytes()
+        )
+        assert md[TEST_FAMILY_2].column_type == SqlType.Map(
+            SqlType.Bytes(), SqlType.Bytes()
+        )
+
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
+    )
     @pytest.mark.usefixtures("client")
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
@@ -898,8 +958,14 @@ class TestSystem:
             ],
         }
         param_types = {
+            "stringParam": SqlType.String(),
+            "bytesParam": SqlType.Bytes(),
+            "int64Param": SqlType.Int64(),
             "float32Param": SqlType.Float32(),
             "float64Param": SqlType.Float64(),
+            "boolParam": SqlType.Bool(),
+            "tsParam": SqlType.Timestamp(),
+            "dateParam": SqlType.Date(),
             "byteArrayParam": SqlType.Array(SqlType.Bytes()),
             "stringArrayParam": SqlType.Array(SqlType.String()),
             "intArrayParam": SqlType.Array(SqlType.Int64()),
@@ -935,3 +1001,29 @@ class TestSystem:
             date_pb2.Date(year=2025, month=1, day=17),
             None,
         ]
+
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
+    )
+    @pytest.mark.usefixtures("table")
+    @CrossSync._Sync_Impl.Retry(
+        predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
+    )
+    def test_execute_metadata_on_empty_response(
+        self, client, instance_id, table_id, temp_rows
+    ):
+        temp_rows.add_row(b"row_key_1")
+        result = client.execute_query(
+            "SELECT * FROM `" + table_id + "` WHERE _key='non-existent'", instance_id
+        )
+        rows = [r for r in result]
+        assert len(rows) == 0
+        md = result.metadata
+        assert len(md) == 3
+        assert md["_key"].column_type == SqlType.Bytes()
+        assert md[TEST_FAMILY].column_type == SqlType.Map(
+            SqlType.Bytes(), SqlType.Bytes()
+        )
+        assert md[TEST_FAMILY_2].column_type == SqlType.Map(
+            SqlType.Bytes(), SqlType.Bytes()
+        )

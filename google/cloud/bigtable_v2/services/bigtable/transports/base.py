@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -191,9 +191,24 @@ class BigtableTransport(abc.ABC):
                 default_timeout=43200.0,
                 client_info=client_info,
             ),
+            self.prepare_query: gapic_v1.method.wrap_method(
+                self.prepare_query,
+                default_timeout=None,
+                client_info=client_info,
+            ),
             self.execute_query: gapic_v1.method.wrap_method(
                 self.execute_query,
-                default_timeout=None,
+                default_retry=retries.Retry(
+                    initial=0.01,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.DeadlineExceeded,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=43200.0,
+                ),
+                default_timeout=43200.0,
                 client_info=client_info,
             ),
         }
@@ -299,6 +314,15 @@ class BigtableTransport(abc.ABC):
             bigtable.ReadChangeStreamResponse,
             Awaitable[bigtable.ReadChangeStreamResponse],
         ],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def prepare_query(
+        self,
+    ) -> Callable[
+        [bigtable.PrepareQueryRequest],
+        Union[bigtable.PrepareQueryResponse, Awaitable[bigtable.PrepareQueryResponse]],
     ]:
         raise NotImplementedError()
 
