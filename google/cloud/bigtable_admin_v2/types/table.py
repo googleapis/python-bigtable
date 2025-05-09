@@ -574,6 +574,14 @@ class OneOfMessage(proto.Message):
     def __setattr__(self, key, value):
         raise RuntimeError("Can not set to OneOf field")
 
+    def __init__(self, mapping=None, *, ignore_unknown_fields=False, **kwargs):
+        if kwargs and len(kwargs) > 1 or mapping and len(mapping) > 1:
+            raise RuntimeError("Received multiple arguments for OneOf proto")
+        elif not kwargs and not mapping:
+            raise RuntimeError("Received no arguments for OneOf proto")
+
+        super().__init__(mapping=mapping, ignore_unknown_fields=ignore_unknown_fields, **kwargs)
+
 class GcRule(OneOfMessage):
     r"""Rule for determining which cells to delete during garbage
     collection.
