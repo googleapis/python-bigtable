@@ -569,7 +569,12 @@ class ColumnFamily(proto.Message):
     )
 
 
-class GcRule(proto.Message):
+class OneOfMessage(proto.Message):
+
+    def __setattr__(self, key, value):
+        raise RuntimeError("Can not set to OneOf field")
+
+class GcRule(OneOfMessage):
     r"""Rule for determining which cells to delete during garbage
     collection.
 
