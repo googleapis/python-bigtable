@@ -238,4 +238,18 @@ s.replace(
 """
 )
 
+# Add the oneof_message import into table.py for GcRule
+s.replace(
+    "google/cloud/bigtable/admin_v2/types/table.py",
+    r"from google\.cloud\.bigtable\.admin_v2\.types import types",
+    "from google.cloud.bigtable.admin_v2.types import types, oneof_message",
+)
+
+# Re-subclass GcRule in table.py
+s.replace(
+    "google/cloud/bigtable/admin_v2/types/table.py",
+    r"class GcRule\(proto\.Message\)\:",
+    "class GcRule(oneof_message.OneofMessage):",
+)
+
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
