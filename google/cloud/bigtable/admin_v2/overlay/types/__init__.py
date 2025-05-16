@@ -12,14 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .gc_rule import (
-    BaseGarbageCollectionRule,
-    MaxAgeGarbageCollectionRule,
-    MaxNumVersionsGarbageCollectionRule,
-    UnionGarbageCollectionRule,
-    IntersectionGarbageCollectionRule,
-)
-
 from .consistency import (
     CheckConsistencyPollingFuture,
 )
@@ -29,11 +21,6 @@ from .restore_table import (
 )
 
 __all__ = (
-    "BaseGarbageCollectionRule",
-    "MaxAgeGarbageCollectionRule",
-    "MaxNumVersionsGarbageCollectionRule",
-    "UnionGarbageCollectionRule",
-    "IntersectionGarbageCollectionRule",
     "CheckConsistencyPollingFuture",
     "RestoreTableOperation",
 )
