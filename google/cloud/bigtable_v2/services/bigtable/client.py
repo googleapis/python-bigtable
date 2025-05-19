@@ -863,7 +863,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -984,7 +984,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -1126,7 +1126,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -1262,7 +1262,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -1439,7 +1439,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -1555,7 +1555,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("name"):
             header_params["name"] = regex_match.group("name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:
@@ -1694,7 +1694,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -2034,7 +2034,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("name"):
             header_params["name"] = regex_match.group("name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:
@@ -2151,7 +2151,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if regex_match and regex_match.group("name"):
             header_params["name"] = regex_match.group("name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:
