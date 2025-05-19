@@ -552,7 +552,7 @@ class BigtableDataClientAsync(ClientWithProject):
         },
     )
     def get_authorized_view(
-        self, instance_id: str, table_id: str, view_id: str, *args, **kwargs
+        self, instance_id: str, table_id: str, authorized_view_id: str, *args, **kwargs
     ) -> AuthorizedViewAsync:
         """
         Returns an authorized view instance for making data API requests. All arguments are passed
@@ -566,7 +566,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 specify the instance
             table_id: The ID of the table. table_id is combined with the
                 instance_id and the client's project to fully specify the table
-            view_id: The id for the authorized view to use for requests
+            authorized_view_id: The id for the authorized view to use for requests
             app_profile_id: The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_read_rows_operation_timeout: The default timeout for read rows
@@ -599,7 +599,7 @@ class BigtableDataClientAsync(ClientWithProject):
             self,
             instance_id,
             table_id,
-            view_id,
+            authorized_view_id,
             *args,
             **kwargs,
         )
@@ -1660,7 +1660,7 @@ class AuthorizedViewAsync(_ApiSurfaceAsync):
         client,
         instance_id,
         table_id,
-        view_id,
+        authorized_view_id,
         app_profile_id: str | None = None,
         **kwargs,
     ):
@@ -1675,7 +1675,7 @@ class AuthorizedViewAsync(_ApiSurfaceAsync):
                 specify the instance
             table_id: The ID of the table. table_id is combined with the
                 instance_id and the client's project to fully specify the table
-            view_id: The id for the authorized view to use for requests
+            authorized_view_id: The id for the authorized view to use for requests
             app_profile_id: The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_read_rows_operation_timeout: The default timeout for read rows
@@ -1703,8 +1703,8 @@ class AuthorizedViewAsync(_ApiSurfaceAsync):
             {RAISE_NO_LOOP}
         """
         super().__init__(client, instance_id, table_id, app_profile_id, **kwargs)
-        self.authorized_view_id = view_id
+        self.authorized_authorized_view_id = authorized_view_id
         self.authorized_view_name: str = self.client._gapic_client.authorized_view_path(
-            self.client.project, instance_id, table_id, view_id
+            self.client.project, instance_id, table_id, authorized_view_id
         )
         self._request_path = {"authorized_view_name": self.authorized_view_name}
