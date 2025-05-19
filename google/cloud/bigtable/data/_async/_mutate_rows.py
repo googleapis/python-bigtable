@@ -37,14 +37,14 @@ if TYPE_CHECKING:
             BigtableAsyncClient as GapicClientType,
         )
         from google.cloud.bigtable.data._async.client import (  # type: ignore
-            _ApiSurfaceAsync as ApiSurfaceType,
+            _DataApiTargetAsync as TargetType,
         )
     else:
         from google.cloud.bigtable_v2.services.bigtable.client import (  # type: ignore
             BigtableClient as GapicClientType,
         )
         from google.cloud.bigtable.data._sync_autogen.client import (  # type: ignore
-            _ApiSurface as ApiSurfaceType,
+            _DataApiTarget as TargetType,
         )
 
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._mutate_rows"
@@ -63,7 +63,7 @@ class _MutateRowsOperationAsync:
 
     Args:
         gapic_client: the client to use for the mutate_rows call
-        table: the table associated with the request
+        target: the table or view associated with the request
         mutation_entries: a list of RowMutationEntry objects to send to the server
         operation_timeout: the timeout to use for the entire operation, in seconds.
         attempt_timeout: the timeout to use for each mutate_rows attempt, in seconds.
@@ -74,7 +74,7 @@ class _MutateRowsOperationAsync:
     def __init__(
         self,
         gapic_client: GapicClientType,
-        table: ApiSurfaceType,
+        target: TargetType,
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
@@ -88,7 +88,7 @@ class _MutateRowsOperationAsync:
                 f"{_MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across "
                 f"all entries. Found {total_mutations}."
             )
-        self._table = table
+        self._target = target
         self._gapic_fn = gapic_client.mutate_rows
         # create predicate for determining which errors are retryable
         self.is_retryable = retries.if_exception_type(
@@ -174,8 +174,8 @@ class _MutateRowsOperationAsync:
             result_generator = await self._gapic_fn(
                 request=types_pb.MutateRowsRequest(
                     entries=request_entries,
-                    app_profile_id=self._table.app_profile_id,
-                    **self._table._request_path,
+                    app_profile_id=self._target.app_profile_id,
+                    **self._target._request_path,
                 ),
                 timeout=next(self.timeout_generator),
                 retry=None,

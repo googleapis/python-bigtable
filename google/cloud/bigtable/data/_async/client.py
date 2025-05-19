@@ -408,13 +408,13 @@ class BigtableDataClientAsync(ClientWithProject):
         replace_symbols={
             "TableAsync": "Table",
             "ExecuteQueryIteratorAsync": "ExecuteQueryIterator",
-            "_ApiSurfaceAsync": "_ApiSurface",
+            "_DataApiTargetAsync": "_DataApiTarget",
         }
     )
     async def _register_instance(
         self,
         instance_id: str,
-        owner: _ApiSurfaceAsync | ExecuteQueryIteratorAsync,
+        owner: _DataApiTargetAsync | ExecuteQueryIteratorAsync,
     ) -> None:
         """
         Registers an instance with the client, and warms the channel for the instance
@@ -447,13 +447,13 @@ class BigtableDataClientAsync(ClientWithProject):
         replace_symbols={
             "TableAsync": "Table",
             "ExecuteQueryIteratorAsync": "ExecuteQueryIterator",
-            "_ApiSurfaceAsync": "_ApiSurface",
+            "_DataApiTargetAsync": "_DataApiTarget",
         }
     )
     async def _remove_instance_registration(
         self,
         instance_id: str,
-        owner: _ApiSurfaceAsync | ExecuteQueryIteratorAsync,
+        owner: _DataApiTargetAsync | ExecuteQueryIteratorAsync,
     ) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
@@ -755,8 +755,8 @@ class BigtableDataClientAsync(ClientWithProject):
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
-@CrossSync.convert_class(sync_name="_ApiSurface")
-class _ApiSurfaceAsync:
+@CrossSync.convert_class(sync_name="_DataApiTarget")
+class _DataApiTargetAsync:
     """
     Abstract class containing API surface for BigtableDataClient. Should not be created directly
 
@@ -1616,9 +1616,9 @@ class _ApiSurfaceAsync:
 @CrossSync.convert_class(
     sync_name="Table",
     add_mapping_for_name="Table",
-    replace_symbols={"_ApiSurfaceAsync": "_ApiSurface"},
+    replace_symbols={"_DataApiTargetAsync": "_DataApiTarget"},
 )
-class TableAsync(_ApiSurfaceAsync):
+class TableAsync(_DataApiTargetAsync):
     """
     Main Data API surface for interacting with a Bigtable table.
 
@@ -1630,9 +1630,9 @@ class TableAsync(_ApiSurfaceAsync):
 @CrossSync.convert_class(
     sync_name="AuthorizedView",
     add_mapping_for_name="AuthorizedView",
-    replace_symbols={"_ApiSurfaceAsync": "_ApiSurface"},
+    replace_symbols={"_DataApiTargetAsync": "_DataApiTarget"},
 )
-class AuthorizedViewAsync(_ApiSurfaceAsync):
+class AuthorizedViewAsync(_DataApiTargetAsync):
     """
     Provides access to an authorized view of a table.
 

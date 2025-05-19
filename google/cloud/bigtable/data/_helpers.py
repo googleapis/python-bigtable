@@ -28,8 +28,8 @@ from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 
 if TYPE_CHECKING:
     import grpc
-    from google.cloud.bigtable.data._async.client import _ApiSurfaceAsync
-    from google.cloud.bigtable.data._sync_autogen.client import _ApiSurface
+    from google.cloud.bigtable.data._async.client import _DataApiTargetAsync
+    from google.cloud.bigtable.data._sync_autogen.client import _DataApiTarget
 
 """
 Helper functions used in various places in the library.
@@ -121,7 +121,7 @@ def _retry_exception_factory(
 def _get_timeouts(
     operation: float | TABLE_DEFAULT,
     attempt: float | None | TABLE_DEFAULT,
-    table: "_ApiSurfaceAsync" | "_ApiSurface",
+    table: "_DataApiTargetAsync" | "_DataApiTarget",
 ) -> tuple[float, float]:
     """
     Convert passed in timeout values to floats, using table defaults if necessary.
@@ -226,7 +226,7 @@ def _get_error_type(
 
 def _get_retryable_errors(
     call_codes: Sequence["grpc.StatusCode" | int | type[Exception]] | TABLE_DEFAULT,
-    table: "_ApiSurfaceAsync" | "_ApiSurface",
+    table: "_DataApiTargetAsync" | "_DataApiTarget",
 ) -> list[type[Exception]]:
     """
     Convert passed in retryable error codes to a list of exception types.
