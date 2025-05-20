@@ -25,6 +25,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
+import abc
 import time
 import warnings
 import random
@@ -756,7 +757,7 @@ class BigtableDataClientAsync(ClientWithProject):
 
 
 @CrossSync.convert_class(sync_name="_DataApiTarget")
-class _DataApiTargetAsync:
+class _DataApiTargetAsync(abc.ABC):
     """
     Abstract class containing API surface for BigtableDataClient. Should not be created directly
 
@@ -898,6 +899,7 @@ class _DataApiTargetAsync:
             ) from e
 
     @property
+    @abc.abstractmethod
     def _request_path(self) -> dict[str, str]:
         """
         Used to populate table_name or authorized_view_name for rpc requests, depending on the subclass
