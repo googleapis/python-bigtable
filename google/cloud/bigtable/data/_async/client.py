@@ -884,8 +884,6 @@ class _DataApiTargetAsync:
             default_mutate_rows_retryable_errors or ()
         )
         self.default_retryable_errors = default_retryable_errors or ()
-        # used to populate table_name or authorized_view_name fields in request protos
-        self._request_path = {"table_name": self.table_name}
 
         try:
             self._register_instance_future = CrossSync.create_task(
@@ -898,6 +896,23 @@ class _DataApiTargetAsync:
             raise RuntimeError(
                 f"{self.__class__.__name__} must be created within an async event loop context."
             ) from e
+
+    @property
+    def _request_path(self) -> dict[str, str]:
+        """
+        Used to populate table_name or authorized_view_name for rpc requests, depending on the subclass
+
+        Unimplemented in base class
+        """
+        raise NotImplementedError
+
+    def __str__(self):
+        try:
+            key, value = list(self._request_path.items())[0]
+            request_path_str = f"{key}={value}"
+        except NotImplementedError:
+            request_path_str = ""
+        return f"{self.__class__.__name__}<{request_path_str}>"
 
     @CrossSync.convert(replace_symbols={"AsyncIterable": "Iterable"})
     async def read_rows_stream(
@@ -1626,6 +1641,10 @@ class TableAsync(_DataApiTargetAsync):
     each call
     """
 
+    @property
+    def _request_path(self) -> dict[str, str]:
+        return {"table_name": self.table_name}
+
 
 @CrossSync.convert_class(
     sync_name="AuthorizedView",
@@ -1707,4 +1726,7 @@ class AuthorizedViewAsync(_DataApiTargetAsync):
         self.authorized_view_name: str = self.client._gapic_client.authorized_view_path(
             self.client.project, instance_id, table_id, authorized_view_id
         )
-        self._request_path = {"authorized_view_name": self.authorized_view_name}
+
+    @property
+    def _request_path(self) -> dict[str, str]:
+        return {"authorized_view_name": self.authorized_view_name}
