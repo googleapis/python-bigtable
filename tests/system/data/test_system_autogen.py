@@ -866,6 +866,9 @@ class TestSystem:
             expect_match
         ), f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
+    )
     def test_authorized_view_unauthenticated(
         self, client, authorized_view_id, instance_id, table_id
     ):
@@ -880,9 +883,6 @@ class TestSystem:
                 view.mutate_row(b"row-key", mutation)
             assert "outside the Authorized View" in e.value.message
 
-    @pytest.mark.skipif(
-        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
-    )
     @pytest.mark.usefixtures("client")
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
