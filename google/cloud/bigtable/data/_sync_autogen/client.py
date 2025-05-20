@@ -707,12 +707,8 @@ class _DataApiTarget(abc.ABC):
         raise NotImplementedError
 
     def __str__(self):
-        try:
-            (key, value) = list(self._request_path.items())[0]
-            request_path_str = f"{key}={value}"
-        except NotImplementedError:
-            request_path_str = ""
-        return f"{self.__class__.__name__}<{request_path_str}>"
+        path_str = list(self._request_path.values())[0] if self._request_path else ""
+        return f"{self.__class__.__name__}<{path_str!r}>"
 
     def read_rows_stream(
         self,
