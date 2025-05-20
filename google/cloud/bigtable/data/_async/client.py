@@ -214,8 +214,8 @@ class BigtableDataClientAsync(ClientWithProject):
         self.transport = cast(TransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[_WarmedInstanceKey] = set()
-        # keep track of table objects associated with each instance
-        # only remove instance from _active_instances when all associated tables remove it
+        # keep track of _DataApiTarget objects associated with each instance
+        # only remove instance from _active_instances when all associated targets are closed
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
         self._channel_refresh_task: CrossSync.Task[None] | None = None
@@ -324,7 +324,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 ],
                 wait_for_ready=True,
             )
-            for (instance_name, table_name, app_profile_id) in instance_list
+            for (instance_name, app_profile_id) in instance_list
         ]
         result_list = await CrossSync.gather_partials(
             partial_list, return_exceptions=True, sync_executor=self._executor
@@ -430,7 +430,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         instance_key = _WarmedInstanceKey(
-            instance_name, owner.table_name, owner.app_profile_id
+            instance_name, owner.app_profile_id
         )
         self._instance_owners.setdefault(instance_key, set()).add(id(owner))
         if instance_key not in self._active_instances:
@@ -471,7 +471,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         instance_key = _WarmedInstanceKey(
-            instance_name, owner.table_name, owner.app_profile_id
+            instance_name, owner.app_profile_id
         )
         owner_list = self._instance_owners.get(instance_key, set())
         try:

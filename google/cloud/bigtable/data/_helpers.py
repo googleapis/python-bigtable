@@ -44,9 +44,10 @@ ShardedQuery = List[ReadRowsQuery]
 # used by read_rows_sharded to limit how many requests are attempted in parallel
 _CONCURRENCY_LIMIT = 10
 
-# used to register instance data with the client for channel warming
+# used to identify an active bigtable resource that needs to be warmed through PingAndWarm
+# each instance/app_profile_id pair needs to be individually tracked
 _WarmedInstanceKey = namedtuple(
-    "_WarmedInstanceKey", ["instance_name", "table_name", "app_profile_id"]
+    "_WarmedInstanceKey", ["instance_name", "app_profile_id"]
 )
 
 
