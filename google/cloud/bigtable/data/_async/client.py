@@ -430,9 +430,7 @@ class BigtableDataClientAsync(ClientWithProject):
               owners call _remove_instance_registration
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        instance_key = _WarmedInstanceKey(
-            instance_name, owner.app_profile_id
-        )
+        instance_key = _WarmedInstanceKey(instance_name, owner.app_profile_id)
         self._instance_owners.setdefault(instance_key, set()).add(id(owner))
         if instance_key not in self._active_instances:
             self._active_instances.add(instance_key)
@@ -471,9 +469,7 @@ class BigtableDataClientAsync(ClientWithProject):
             bool: True if instance was removed, else False
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        instance_key = _WarmedInstanceKey(
-            instance_name, owner.app_profile_id
-        )
+        instance_key = _WarmedInstanceKey(instance_name, owner.app_profile_id)
         owner_list = self._instance_owners.get(instance_key, set())
         try:
             owner_list.remove(id(owner))

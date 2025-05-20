@@ -273,9 +273,7 @@ class TestBigtableDataClientAsync:
             assert gather.call_args[1]["return_exceptions"] is True
             assert gather.call_args[1]["sync_executor"] == client_mock._executor
             # test with instances
-            client_mock._active_instances = [
-                (mock.Mock(), mock.Mock())
-            ] * 4
+            client_mock._active_instances = [(mock.Mock(), mock.Mock())] * 4
             gather.reset_mock()
             channel.reset_mock()
             result = await self._get_target_class()._ping_and_warm_instances(
@@ -747,7 +745,9 @@ class TestBigtableDataClientAsync:
                     assert id(table_1) in client._instance_owners[instance_1_key]
                     assert id(table_2) in client._instance_owners[instance_1_key]
                     # unique table should register in instance_owners and active_instances
-                    async with client.get_table("instance_1", "table_3", app_profile_id="diff") as table_3:
+                    async with client.get_table(
+                        "instance_1", "table_3", app_profile_id="diff"
+                    ) as table_3:
                         assert table_3._register_instance_future is not None
                         if not CrossSync.is_async:
                             # give the background task time to run
@@ -867,9 +867,7 @@ class TestBigtableDataClientAsync:
         )
         assert surface.app_profile_id == expected_app_profile_id
         assert surface.client is client
-        instance_key = _WarmedInstanceKey(
-            surface.instance_name, surface.app_profile_id
-        )
+        instance_key = _WarmedInstanceKey(surface.instance_name, surface.app_profile_id)
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(surface)}
         await client.close()
@@ -1105,9 +1103,7 @@ class TestTableAsync:
         )
         assert table.app_profile_id == expected_app_profile_id
         assert table.client is client
-        instance_key = _WarmedInstanceKey(
-            table.instance_name, table.app_profile_id
-        )
+        instance_key = _WarmedInstanceKey(table.instance_name, table.app_profile_id)
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(table)}
         assert table.default_operation_timeout == expected_operation_timeout
@@ -1457,9 +1453,7 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
         )
         assert view.app_profile_id == expected_app_profile_id
         assert view.client is client
-        instance_key = _WarmedInstanceKey(
-            view.instance_name, view.app_profile_id
-        )
+        instance_key = _WarmedInstanceKey(view.instance_name, view.app_profile_id)
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(view)}
         assert view.default_operation_timeout == expected_operation_timeout
@@ -1469,8 +1463,7 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
             == expected_read_rows_operation_timeout
         )
         assert (
-            view.default_read_rows_attempt_timeout
-            == expected_read_rows_attempt_timeout
+            view.default_read_rows_attempt_timeout == expected_read_rows_attempt_timeout
         )
         assert (
             view.default_mutate_rows_operation_timeout
