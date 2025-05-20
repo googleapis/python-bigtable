@@ -274,7 +274,7 @@ class TestBigtableDataClientAsync:
             assert gather.call_args[1]["sync_executor"] == client_mock._executor
             # test with instances
             client_mock._active_instances = [
-                (mock.Mock(), mock.Mock(), mock.Mock())
+                (mock.Mock(), mock.Mock())
             ] * 4
             gather.reset_mock()
             channel.reset_mock()
@@ -293,7 +293,6 @@ class TestBigtableDataClientAsync:
             for idx, (_, kwargs) in enumerate(grpc_call_args):
                 (
                     expected_instance,
-                    expected_table,
                     expected_app_profile,
                 ) = client_mock._active_instances[idx]
                 request = kwargs["request"]
@@ -324,7 +323,7 @@ class TestBigtableDataClientAsync:
             gather.side_effect = lambda *args, **kwargs: [fn() for fn in args[0]]
             # test with large set of instances
             client_mock._active_instances = [mock.Mock()] * 100
-            test_key = ("test-instance", "test-table", "test-app-profile")
+            test_key = ("test-instance", "test-app-profile")
             result = await self._get_target_class()._ping_and_warm_instances(
                 client_mock, test_key
             )
@@ -552,7 +551,6 @@ class TestBigtableDataClientAsync:
         # ensure active_instances and instance_owners were updated properly
         expected_key = (
             "prefix/instance-1",
-            table_mock.table_name,
             table_mock.app_profile_id,
         )
         assert len(active_instances) == 1
@@ -578,7 +576,6 @@ class TestBigtableDataClientAsync:
         assert len(instance_owners) == 2
         expected_key2 = (
             "prefix/instance-2",
-            table_mock2.table_name,
             table_mock2.app_profile_id,
         )
         assert any(
@@ -613,7 +610,6 @@ class TestBigtableDataClientAsync:
         table_mock = mock.Mock()
         expected_key = (
             "prefix/instance-1",
-            table_mock.table_name,
             table_mock.app_profile_id,
         )
         # fake first registration
@@ -640,13 +636,13 @@ class TestBigtableDataClientAsync:
     @pytest.mark.parametrize(
         "insert_instances,expected_active,expected_owner_keys",
         [
-            ([("i", "t", None)], [("i", "t", None)], [("i", "t", None)]),
-            ([("i", "t", "p")], [("i", "t", "p")], [("i", "t", "p")]),
-            ([("1", "t", "p"), ("1", "t", "p")], [("1", "t", "p")], [("1", "t", "p")]),
+            ([("i", None)], [("i", None)], [("i", None)]),
+            ([("i", "p")], [("i", "p")], [("i", "p")]),
+            ([("1", "p"), ("1", "p")], [("1", "p")], [("1", "p")]),
             (
-                [("1", "t", "p"), ("2", "t", "p")],
-                [("1", "t", "p"), ("2", "t", "p")],
-                [("1", "t", "p"), ("2", "t", "p")],
+                [("1", "p"), ("2", "p")],
+                [("1", "p"), ("2", "p")],
+                [("1", "p"), ("2", "p")],
             ),
         ],
     )
@@ -667,8 +663,7 @@ class TestBigtableDataClientAsync:
         client_mock._ping_and_warm_instances = CrossSync.Mock()
         table_mock = mock.Mock()
         # register instances
-        for instance, table, profile in insert_instances:
-            table_mock.table_name = table
+        for instance, profile in insert_instances:
             table_mock.app_profile_id = profile
             await self._get_target_class()._register_instance(
                 client_mock, instance, table_mock
@@ -701,11 +696,11 @@ class TestBigtableDataClientAsync:
         instance_1_path = client._gapic_client.instance_path(
             client.project, "instance-1"
         )
-        instance_1_key = (instance_1_path, table.table_name, table.app_profile_id)
+        instance_1_key = (instance_1_path, table.app_profile_id)
         instance_2_path = client._gapic_client.instance_path(
             client.project, "instance-2"
         )
-        instance_2_key = (instance_2_path, table.table_name, table.app_profile_id)
+        instance_2_key = (instance_2_path, table.app_profile_id)
         assert len(client._instance_owners[instance_1_key]) == 1
         assert list(client._instance_owners[instance_1_key])[0] == id(table)
         assert len(client._instance_owners[instance_2_key]) == 1
@@ -736,13 +731,13 @@ class TestBigtableDataClientAsync:
                     client.project, "instance_1"
                 )
                 instance_1_key = _WarmedInstanceKey(
-                    instance_1_path, table_1.table_name, table_1.app_profile_id
+                    instance_1_path, table_1.app_profile_id
                 )
                 assert len(client._instance_owners[instance_1_key]) == 1
                 assert len(client._active_instances) == 1
                 assert id(table_1) in client._instance_owners[instance_1_key]
                 # duplicate table should register in instance_owners under same key
-                async with client.get_table("instance_1", "table_1") as table_2:
+                async with client.get_table("instance_1", "table_2") as table_2:
                     assert table_2._register_instance_future is not None
                     if not CrossSync.is_async:
                         # give the background task time to run
@@ -752,7 +747,7 @@ class TestBigtableDataClientAsync:
                     assert id(table_1) in client._instance_owners[instance_1_key]
                     assert id(table_2) in client._instance_owners[instance_1_key]
                     # unique table should register in instance_owners and active_instances
-                    async with client.get_table("instance_1", "table_3") as table_3:
+                    async with client.get_table("instance_1", "table_3", app_profile_id="diff") as table_3:
                         assert table_3._register_instance_future is not None
                         if not CrossSync.is_async:
                             # give the background task time to run
@@ -761,7 +756,7 @@ class TestBigtableDataClientAsync:
                             client.project, "instance_1"
                         )
                         instance_3_key = _WarmedInstanceKey(
-                            instance_3_path, table_3.table_name, table_3.app_profile_id
+                            instance_3_path, table_3.app_profile_id
                         )
                         assert len(client._instance_owners[instance_1_key]) == 2
                         assert len(client._instance_owners[instance_3_key]) == 1
@@ -801,13 +796,13 @@ class TestBigtableDataClientAsync:
                         client.project, "instance_1"
                     )
                     instance_1_key = _WarmedInstanceKey(
-                        instance_1_path, table_1.table_name, table_1.app_profile_id
+                        instance_1_path, table_1.app_profile_id
                     )
                     instance_2_path = client._gapic_client.instance_path(
                         client.project, "instance_2"
                     )
                     instance_2_key = _WarmedInstanceKey(
-                        instance_2_path, table_2.table_name, table_2.app_profile_id
+                        instance_2_path, table_2.app_profile_id
                     )
                     assert len(client._instance_owners[instance_1_key]) == 1
                     assert len(client._instance_owners[instance_2_key]) == 1
@@ -873,7 +868,7 @@ class TestBigtableDataClientAsync:
         assert surface.app_profile_id == expected_app_profile_id
         assert surface.client is client
         instance_key = _WarmedInstanceKey(
-            surface.instance_name, surface.table_name, surface.app_profile_id
+            surface.instance_name, surface.app_profile_id
         )
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(surface)}
@@ -973,7 +968,7 @@ class TestBigtableDataClientAsync:
                     assert table.app_profile_id == expected_app_profile_id
                     assert table.client is client
                     instance_key = _WarmedInstanceKey(
-                        table.instance_name, table.table_name, table.app_profile_id
+                        table.instance_name, table.app_profile_id
                     )
                     assert instance_key in client._active_instances
                     assert client._instance_owners[instance_key] == {id(table)}
@@ -1111,7 +1106,7 @@ class TestTableAsync:
         assert table.app_profile_id == expected_app_profile_id
         assert table.client is client
         instance_key = _WarmedInstanceKey(
-            table.instance_name, table.table_name, table.app_profile_id
+            table.instance_name, table.app_profile_id
         )
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(table)}
@@ -1431,7 +1426,7 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
         client = self._make_client()
         assert not client._active_instances
 
-        table = self._get_target_class()(
+        view = self._get_target_class()(
             client,
             expected_instance_id,
             expected_table_id,
@@ -1445,51 +1440,51 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
             default_mutate_rows_attempt_timeout=expected_mutate_rows_attempt_timeout,
         )
         await CrossSync.yield_to_event_loop()
-        assert table.table_id == expected_table_id
+        assert view.table_id == expected_table_id
         assert (
-            table.table_name
+            view.table_name
             == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}"
         )
-        assert table.instance_id == expected_instance_id
+        assert view.instance_id == expected_instance_id
         assert (
-            table.instance_name
+            view.instance_name
             == f"projects/{client.project}/instances/{expected_instance_id}"
         )
-        assert table.authorized_view_id == expected_view_id
+        assert view.authorized_view_id == expected_view_id
         assert (
-            table.authorized_view_name
+            view.authorized_view_name
             == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}/authorizedViews/{expected_view_id}"
         )
-        assert table.app_profile_id == expected_app_profile_id
-        assert table.client is client
+        assert view.app_profile_id == expected_app_profile_id
+        assert view.client is client
         instance_key = _WarmedInstanceKey(
-            table.instance_name, table.table_name, table.app_profile_id
+            view.instance_name, view.app_profile_id
         )
         assert instance_key in client._active_instances
-        assert client._instance_owners[instance_key] == {id(table)}
-        assert table.default_operation_timeout == expected_operation_timeout
-        assert table.default_attempt_timeout == expected_attempt_timeout
+        assert client._instance_owners[instance_key] == {id(view)}
+        assert view.default_operation_timeout == expected_operation_timeout
+        assert view.default_attempt_timeout == expected_attempt_timeout
         assert (
-            table.default_read_rows_operation_timeout
+            view.default_read_rows_operation_timeout
             == expected_read_rows_operation_timeout
         )
         assert (
-            table.default_read_rows_attempt_timeout
+            view.default_read_rows_attempt_timeout
             == expected_read_rows_attempt_timeout
         )
         assert (
-            table.default_mutate_rows_operation_timeout
+            view.default_mutate_rows_operation_timeout
             == expected_mutate_rows_operation_timeout
         )
         assert (
-            table.default_mutate_rows_attempt_timeout
+            view.default_mutate_rows_attempt_timeout
             == expected_mutate_rows_attempt_timeout
         )
         # ensure task reaches completion
-        await table._register_instance_future
-        assert table._register_instance_future.done()
-        assert not table._register_instance_future.cancelled()
-        assert table._register_instance_future.exception() is None
+        await view._register_instance_future
+        assert view._register_instance_future.done()
+        assert not view._register_instance_future.cancelled()
+        assert view._register_instance_future.exception() is None
         await client.close()
 
 

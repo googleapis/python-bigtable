@@ -288,7 +288,7 @@ class TestMutationsBatcher:
             table.default_mutate_rows_attempt_timeout = 8
             table.default_mutate_rows_retryable_errors = [Exception]
             with self._make_one(table) as instance:
-                assert instance._table == table
+                assert instance._target == table
                 assert instance.closed is False
                 assert instance._flush_jobs == set()
                 assert len(instance._staged_entries) == 0
@@ -345,7 +345,7 @@ class TestMutationsBatcher:
                 batch_attempt_timeout=attempt_timeout,
                 batch_retryable_errors=retryable_errors,
             ) as instance:
-                assert instance._table == table
+                assert instance._target == table
                 assert instance.closed is False
                 assert instance._flush_jobs == set()
                 assert len(instance._staged_entries) == 0
@@ -391,7 +391,7 @@ class TestMutationsBatcher:
                 flush_limit_mutation_count=flush_limit_count,
                 flush_limit_bytes=flush_limit_bytes,
             ) as instance:
-                assert instance._table == table
+                assert instance._target == table
                 assert instance.closed is False
                 assert instance._staged_entries == []
                 assert len(instance._oldest_exceptions) == 0
@@ -787,10 +787,10 @@ class TestMutationsBatcher:
         num_mutations = 10
         mutations = [self._make_mutation(count=2, size=2)] * num_mutations
         with self._make_one(flush_interval=0.05) as instance:
-            instance._table.default_operation_timeout = 10
-            instance._table.default_attempt_timeout = 9
+            instance._target.default_operation_timeout = 10
+            instance._target.default_attempt_timeout = 9
             with mock.patch.object(
-                instance._table.client._gapic_client, "mutate_rows"
+                instance._target.client._gapic_client, "mutate_rows"
             ) as gapic_mock:
                 gapic_mock.side_effect = (
                     lambda *args, **kwargs: self._mock_gapic_return(num_mutations)

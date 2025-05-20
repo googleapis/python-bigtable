@@ -33,7 +33,7 @@ if TYPE_CHECKING:
         BigtableClient as GapicClientType,
     )
     from google.cloud.bigtable.data._sync_autogen.client import (
-        _ApiSurface as ApiSurfaceType,
+        _DataApiTarget as TargetType,
     )
 
 
@@ -49,7 +49,7 @@ class _MutateRowsOperation:
 
     Args:
         gapic_client: the client to use for the mutate_rows call
-        table: the table associated with the request
+        target: the table or view associated with the request
         mutation_entries: a list of RowMutationEntry objects to send to the server
         operation_timeout: the timeout to use for the entire operation, in seconds.
         attempt_timeout: the timeout to use for each mutate_rows attempt, in seconds.
@@ -59,7 +59,7 @@ class _MutateRowsOperation:
     def __init__(
         self,
         gapic_client: GapicClientType,
-        table: ApiSurfaceType,
+        target: TargetType,
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
@@ -70,7 +70,7 @@ class _MutateRowsOperation:
             raise ValueError(
                 f"mutate_rows requests can contain at most {_MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across all entries. Found {total_mutations}."
             )
-        self._table = table
+        self._target = target
         self._gapic_fn = gapic_client.mutate_rows
         self.is_retryable = retries.if_exception_type(
             *retryable_exceptions, bt_exceptions._MutateRowsIncomplete
@@ -140,8 +140,8 @@ class _MutateRowsOperation:
             result_generator = self._gapic_fn(
                 request=types_pb.MutateRowsRequest(
                     entries=request_entries,
-                    app_profile_id=self._table.app_profile_id,
-                    **self._table._request_path,
+                    app_profile_id=self._target.app_profile_id,
+                    **self._target._request_path,
                 ),
                 timeout=next(self.timeout_generator),
                 retry=None,

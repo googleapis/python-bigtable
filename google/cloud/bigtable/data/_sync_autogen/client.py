@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 from typing import cast, Any, Optional, Set, Sequence, TYPE_CHECKING
+import abc
 import time
 import warnings
 import random
@@ -247,7 +248,7 @@ class BigtableDataClient(ClientWithProject):
                 ],
                 wait_for_ready=True,
             )
-            for (instance_name, table_name, app_profile_id) in instance_list
+            for (instance_name, app_profile_id) in instance_list
         ]
         result_list = CrossSync._Sync_Impl.gather_partials(
             partial_list, return_exceptions=True, sync_executor=self._executor
@@ -304,7 +305,7 @@ class BigtableDataClient(ClientWithProject):
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
 
     def _register_instance(
-        self, instance_id: str, owner: _ApiSurface | ExecuteQueryIterator
+        self, instance_id: str, owner: _DataApiTarget | ExecuteQueryIterator
     ) -> None:
         """Registers an instance with the client, and warms the channel for the instance
         The client will periodically refresh grpc channel used to make
@@ -317,9 +318,7 @@ class BigtableDataClient(ClientWithProject):
               _instance_owners, and instances will only be unregistered when all
               owners call _remove_instance_registration"""
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        instance_key = _WarmedInstanceKey(
-            instance_name, owner.table_name, owner.app_profile_id
-        )
+        instance_key = _WarmedInstanceKey(instance_name, owner.app_profile_id)
         self._instance_owners.setdefault(instance_key, set()).add(id(owner))
         if instance_key not in self._active_instances:
             self._active_instances.add(instance_key)
@@ -329,7 +328,7 @@ class BigtableDataClient(ClientWithProject):
                 self._start_background_channel_refresh()
 
     def _remove_instance_registration(
-        self, instance_id: str, owner: _ApiSurface | ExecuteQueryIterator
+        self, instance_id: str, owner: _DataApiTarget | ExecuteQueryIterator
     ) -> bool:
         """Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
@@ -344,9 +343,7 @@ class BigtableDataClient(ClientWithProject):
         Returns:
             bool: True if instance was removed, else False"""
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        instance_key = _WarmedInstanceKey(
-            instance_name, owner.table_name, owner.app_profile_id
-        )
+        instance_key = _WarmedInstanceKey(instance_name, owner.app_profile_id)
         owner_list = self._instance_owners.get(instance_key, set())
         try:
             owner_list.remove(id(owner))
@@ -398,7 +395,7 @@ class BigtableDataClient(ClientWithProject):
         return Table(self, instance_id, table_id, *args, **kwargs)
 
     def get_authorized_view(
-        self, instance_id: str, table_id: str, view_id: str, *args, **kwargs
+        self, instance_id: str, table_id: str, authorized_view_id: str, *args, **kwargs
     ) -> AuthorizedView:
         """Returns an authorized view instance for making data API requests. All arguments are passed
         directly to the AuthorizedView constructor.
@@ -411,7 +408,7 @@ class BigtableDataClient(ClientWithProject):
                 specify the instance
             table_id: The ID of the table. table_id is combined with the
                 instance_id and the client's project to fully specify the table
-            view_id: The id for the authorized view to use for requests
+            authorized_view_id: The id for the authorized view to use for requests
             app_profile_id: The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_read_rows_operation_timeout: The default timeout for read rows
@@ -440,7 +437,7 @@ class BigtableDataClient(ClientWithProject):
         Raises:
             None"""
         return CrossSync._Sync_Impl.AuthorizedView(
-            self, instance_id, table_id, view_id, *args, **kwargs
+            self, instance_id, table_id, authorized_view_id, *args, **kwargs
         )
 
     def execute_query(
@@ -582,7 +579,7 @@ class BigtableDataClient(ClientWithProject):
         self._gapic_client.__exit__(exc_type, exc_val, exc_tb)
 
 
-class _ApiSurface:
+class _DataApiTarget(abc.ABC):
     """
     Abstract class containing API surface for BigtableDataClient. Should not be created directly
 
@@ -689,7 +686,6 @@ class _ApiSurface:
             default_mutate_rows_retryable_errors or ()
         )
         self.default_retryable_errors = default_retryable_errors or ()
-        self._request_path = {"table_name": self.table_name}
         try:
             self._register_instance_future = CrossSync._Sync_Impl.create_task(
                 self.client._register_instance,
@@ -701,6 +697,22 @@ class _ApiSurface:
             raise RuntimeError(
                 f"{self.__class__.__name__} must be created within an async event loop context."
             ) from e
+
+    @property
+    @abc.abstractmethod
+    def _request_path(self) -> dict[str, str]:
+        """Used to populate table_name or authorized_view_name for rpc requests, depending on the subclass
+
+        Unimplemented in base class"""
+        raise NotImplementedError
+
+    def __str__(self):
+        try:
+            (key, value) = list(self._request_path.items())[0]
+            request_path_str = f"{key}={value}"
+        except NotImplementedError:
+            request_path_str = ""
+        return f"{self.__class__.__name__}<{request_path_str}>"
 
     def read_rows_stream(
         self,
@@ -1356,7 +1368,7 @@ class _ApiSurface:
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("Table")
-class Table(_ApiSurface):
+class Table(_DataApiTarget):
     """
     Main Data API surface for interacting with a Bigtable table.
 
@@ -1364,9 +1376,13 @@ class Table(_ApiSurface):
     each call
     """
 
+    @property
+    def _request_path(self) -> dict[str, str]:
+        return {"table_name": self.table_name}
+
 
 @CrossSync._Sync_Impl.add_mapping_decorator("AuthorizedView")
-class AuthorizedView(_ApiSurface):
+class AuthorizedView(_DataApiTarget):
     """
     Provides access to an authorized view of a table.
 
@@ -1382,7 +1398,7 @@ class AuthorizedView(_ApiSurface):
         client,
         instance_id,
         table_id,
-        view_id,
+        authorized_view_id,
         app_profile_id: str | None = None,
         **kwargs,
     ):
@@ -1396,7 +1412,7 @@ class AuthorizedView(_ApiSurface):
                 specify the instance
             table_id: The ID of the table. table_id is combined with the
                 instance_id and the client's project to fully specify the table
-            view_id: The id for the authorized view to use for requests
+            authorized_view_id: The id for the authorized view to use for requests
             app_profile_id: The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_read_rows_operation_timeout: The default timeout for read rows
@@ -1423,8 +1439,11 @@ class AuthorizedView(_ApiSurface):
         Raises:
             None"""
         super().__init__(client, instance_id, table_id, app_profile_id, **kwargs)
-        self.authorized_view_id = view_id
+        self.authorized_view_id = authorized_view_id
         self.authorized_view_name: str = self.client._gapic_client.authorized_view_path(
-            self.client.project, instance_id, table_id, view_id
+            self.client.project, instance_id, table_id, authorized_view_id
         )
-        self._request_path = {"authorized_view_name": self.authorized_view_name}
+
+    @property
+    def _request_path(self) -> dict[str, str]:
+        return {"authorized_view_name": self.authorized_view_name}

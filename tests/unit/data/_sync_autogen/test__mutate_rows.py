@@ -36,11 +36,11 @@ class TestMutateRowsOperation:
 
     def _make_one(self, *args, **kwargs):
         if not args:
-            fake_table = CrossSync._Sync_Impl.Mock()
-            fake_table._request_path = {"table_name": "table"}
-            fake_table.app_profile_id = None
+            fake_target = CrossSync._Sync_Impl.Mock()
+            fake_target._request_path = {"table_name": "table"}
+            fake_target.app_profile_id = None
             kwargs["gapic_client"] = kwargs.pop("gapic_client", mock.Mock())
-            kwargs["table"] = kwargs.pop("table", fake_table)
+            kwargs["target"] = kwargs.pop("target", fake_target)
             kwargs["operation_timeout"] = kwargs.pop("operation_timeout", 5)
             kwargs["attempt_timeout"] = kwargs.pop("attempt_timeout", 0.1)
             kwargs["retryable_exceptions"] = kwargs.pop("retryable_exceptions", ())

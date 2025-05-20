@@ -35,7 +35,7 @@ from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._sync_autogen.client import (
-        _ApiSurface as ApiSurfaceType,
+        _DataApiTarget as TargetType,
     )
 
 
@@ -53,7 +53,7 @@ class _ReadRowsOperation:
 
     Args:
         query: The query to execute
-        table: The table to send the request to
+        target: The table or view to send the request to
         operation_timeout: The total time to allow for the operation, in seconds
         attempt_timeout: The time to allow for each individual attempt, in seconds
         retryable_exceptions: A list of exceptions that should trigger a retry
@@ -63,7 +63,7 @@ class _ReadRowsOperation:
         "attempt_timeout_gen",
         "operation_timeout",
         "request",
-        "table",
+        "target",
         "_predicate",
         "_last_yielded_row_key",
         "_remaining_count",
@@ -72,7 +72,7 @@ class _ReadRowsOperation:
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: ApiSurfaceType,
+        target: TargetType,
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
@@ -83,11 +83,11 @@ class _ReadRowsOperation:
         self.operation_timeout = operation_timeout
         if isinstance(query, dict):
             self.request = ReadRowsRequestPB(
-                **query, **table._request_path, app_profile_id=table.app_profile_id
+                **query, **target._request_path, app_profile_id=target.app_profile_id
             )
         else:
-            self.request = query._to_pb(table)
-        self.table = table
+            self.request = query._to_pb(target)
+        self.target = target
         self._predicate = retries.if_exception_type(*retryable_exceptions)
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
@@ -125,7 +125,7 @@ class _ReadRowsOperation:
             self.request.rows_limit = self._remaining_count
             if self._remaining_count == 0:
                 return self.merge_rows(None)
-        gapic_stream = self.table.client._gapic_client.read_rows(
+        gapic_stream = self.target.client._gapic_client.read_rows(
             self.request, timeout=next(self.attempt_timeout_gen), retry=None
         )
         chunked_stream = self.chunk_stream(gapic_stream)
