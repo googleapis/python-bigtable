@@ -1724,7 +1724,7 @@ class AuthorizedViewAsync(_DataApiTargetAsync):
             {RAISE_NO_LOOP}
         """
         super().__init__(client, instance_id, table_id, app_profile_id, **kwargs)
-        self.authorized_authorized_view_id = authorized_view_id
+        self.authorized_view_id = authorized_view_id
         self.authorized_view_name: str = self.client._gapic_client.authorized_view_path(
             self.client.project, instance_id, table_id, authorized_view_id
         )
