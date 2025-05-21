@@ -423,11 +423,11 @@ class PytestFixture(AstDecorator):
         import copy
 
         arg_nodes = [
-            a if isinstance(a, ast.AST) else ast.Constant(value=a) for a in self._args
+            a if isinstance(a, ast.expr) else ast.Constant(value=a) for a in self._args
         ]
         kwarg_nodes = []
         for k, v in self._kwargs.items():
-            if not isinstance(v, ast.AST):
+            if not isinstance(v, ast.expr):
                 v = ast.Constant(value=v)
             kwarg_nodes.append(ast.keyword(arg=k, value=v))
 
