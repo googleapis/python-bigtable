@@ -170,8 +170,6 @@ class AstDecorator:
             return None
         if isinstance(ast_node, ast.Constant):
             return ast_node.value
-        if isinstance(ast_node, ast.Name):
-            return ast_node.id
         if isinstance(ast_node, ast.List):
             return [cls._convert_ast_to_py(node) for node in ast_node.elts]
         if isinstance(ast_node, ast.Tuple):
@@ -181,7 +179,8 @@ class AstDecorator:
                 cls._convert_ast_to_py(k): cls._convert_ast_to_py(v)
                 for k, v in zip(ast_node.keys, ast_node.values)
             }
-        raise ValueError(f"Unsupported type {type(ast_node)}")
+        # unsupported node type
+        return ast_node
 
 
 class ConvertClass(AstDecorator):
@@ -423,6 +422,13 @@ class PytestFixture(AstDecorator):
         import ast
         import copy
 
+        arg_nodes = [a if isinstance(a, ast.AST) else ast.Constant(value=a) for a in self._args]
+        kwarg_nodes = []
+        for k,v in self._kwargs.items():
+            if not isinstance(v, ast.AST):
+                v = ast.Constant(value=v)
+            kwarg_nodes.append(ast.keyword(arg=k, value=v))
+
         new_node = copy.deepcopy(wrapped_node)
         if not hasattr(new_node, "decorator_list"):
             new_node.decorator_list = []
@@ -433,11 +439,8 @@ class PytestFixture(AstDecorator):
                     attr="fixture",
                     ctx=ast.Load(),
                 ),
-                args=[ast.Constant(value=a) for a in self._args],
-                keywords=[
-                    ast.keyword(arg=k, value=ast.Constant(value=v))
-                    for k, v in self._kwargs.items()
-                ],
+                args=arg_nodes,
+                keywords=kwarg_nodes,
             )
         )
         return new_node
