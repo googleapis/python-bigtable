@@ -28,6 +28,10 @@ from google.type import date_pb2
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from . import TEST_FAMILY, TEST_FAMILY_2
 
+TARGETS = ["target"]
+if not os.environ.get(BIGTABLE_EMULATOR):
+    TARGETS = ["authorized_view"]
+
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TempRowBuilder")
 class TempRowBuilder:
@@ -81,9 +85,11 @@ class TestSystem:
         with CrossSync._Sync_Impl.DataClient(project=project) as client:
             yield client
 
-    @pytest.fixture(scope="session", params=["table", "authorized_view"])
+    @CrossSync._Sync_Impl.pytest_fixture(scope="session", params=TARGETS)
     def table(self, client, table_id, authorized_view_id, instance_id, request):
-        """This fixture runs twice: once for a standard table, and once with an authorized view"""
+        """This fixture runs twice: once for a standard table, and once with an authorized view
+
+        Note: emulator doesn't support authorized views. Only use target"""
         if request.param == "table":
             with client.get_table(instance_id, table_id) as table:
                 yield table

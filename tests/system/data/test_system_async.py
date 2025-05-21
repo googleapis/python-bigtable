@@ -33,6 +33,12 @@ from . import TEST_FAMILY, TEST_FAMILY_2
 __CROSS_SYNC_OUTPUT__ = "tests.system.data.test_system_autogen"
 
 
+TARGETS = ["target"]
+if not os.environ.get(BIGTABLE_EMULATOR):
+    # emulator doesn't support authorized views
+    TARGETS = ["authorized_view"]
+
+
 @CrossSync.convert_class(
     sync_name="TempRowBuilder",
     add_mapping_for_name="TempRowBuilder",
@@ -93,10 +99,12 @@ class TestSystemAsync:
             yield client
 
     @CrossSync.convert
-    @CrossSync.pytest_fixture(scope="session", params=["table", "authorized_view"])
+    @CrossSync.pytest_fixture(scope="session", params=TARGETS)
     async def table(self, client, table_id, authorized_view_id, instance_id, request):
         """
         This fixture runs twice: once for a standard table, and once with an authorized view
+
+        Note: emulator doesn't support authorized views. Only use target
         """
         if request.param == "table":
             async with client.get_table(instance_id, table_id) as table:
