@@ -170,6 +170,8 @@ class AstDecorator:
             return None
         if isinstance(ast_node, ast.Constant):
             return ast_node.value
+        if isinstance(ast_node, ast.Name):
+            return ast_node.id
         if isinstance(ast_node, ast.List):
             return [cls._convert_ast_to_py(node) for node in ast_node.elts]
         if isinstance(ast_node, ast.Tuple):

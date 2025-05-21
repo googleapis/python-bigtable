@@ -85,7 +85,7 @@ class TestSystem:
         with CrossSync._Sync_Impl.DataClient(project=project) as client:
             yield client
 
-    @CrossSync._Sync_Impl.pytest_fixture(scope="session", params=TARGETS)
+    @pytest.fixture(scope="session", params="TARGETS")
     def table(self, client, table_id, authorized_view_id, instance_id, request):
         """This fixture runs twice: once for a standard table, and once with an authorized view
 
