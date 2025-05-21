@@ -36,7 +36,7 @@ __CROSS_SYNC_OUTPUT__ = "tests.system.data.test_system_autogen"
 TARGETS = ["table"]
 if not os.environ.get(BIGTABLE_EMULATOR):
     # emulator doesn't support authorized views
-    TARGETS.append(["authorized_view"])
+    TARGETS.append("authorized_view")
 
 
 @CrossSync.convert_class(

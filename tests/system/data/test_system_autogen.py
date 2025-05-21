@@ -30,7 +30,7 @@ from . import TEST_FAMILY, TEST_FAMILY_2
 
 TARGETS = ["table"]
 if not os.environ.get(BIGTABLE_EMULATOR):
-    TARGETS.append(["authorized_view"])
+    TARGETS.append("authorized_view")
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TempRowBuilder")
