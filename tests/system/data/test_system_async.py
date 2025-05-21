@@ -1092,6 +1092,10 @@ class TestSystemAsync:
                 await view.mutate_row(b"row-key", mutation)
             assert "outside the Authorized View" in e.value.message
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)),
+        reason="emulator doesn't support SQL",
+    )
     @pytest.mark.usefixtures("client")
     @CrossSync.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
@@ -1114,7 +1118,7 @@ class TestSystemAsync:
     @CrossSync.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
     )
-    async def test_execute_against_table(
+    async def test_execute_against_target(
         self, client, instance_id, table_id, temp_rows
     ):
         await temp_rows.add_row(b"row_key_1")

@@ -889,6 +889,9 @@ class TestSystem:
                 view.mutate_row(b"row-key", mutation)
             assert "outside the Authorized View" in e.value.message
 
+    @pytest.mark.skipif(
+        bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't support SQL"
+    )
     @pytest.mark.usefixtures("client")
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
@@ -908,7 +911,7 @@ class TestSystem:
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
     )
-    def test_execute_against_table(self, client, instance_id, table_id, temp_rows):
+    def test_execute_against_target(self, client, instance_id, table_id, temp_rows):
         temp_rows.add_row(b"row_key_1")
         result = client.execute_query("SELECT * FROM `" + table_id + "`", instance_id)
         rows = [r for r in result]
