@@ -191,12 +191,16 @@ def authorized_view_id(
         )
     except exceptions.AlreadyExists:
         pass
+    except exceptions.MethodNotImplemented:
+        # will occur when run in emulator. Pass empty id
+        new_view_id = None
     yield new_view_id
-    print(f"Deleting view: {new_path}")
-    try:
-        admin_client.table_admin_client.delete_authorized_view(name=new_path)
-    except exceptions.NotFound:
-        print(f"View {new_view_id} not found, skipping deletion")
+    if new_view_id:
+        print(f"Deleting view: {new_path}")
+        try:
+            admin_client.table_admin_client.delete_authorized_view(name=new_path)
+        except exceptions.NotFound:
+            print(f"View {new_view_id} not found, skipping deletion")
 
 
 @pytest.fixture(scope="session")
