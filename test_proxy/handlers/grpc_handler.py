@@ -78,7 +78,7 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
             status = Status(code=5, message=client_response["error"])
         else:
             rows = [data_pb2.Row(**d) for d in client_response]
-        result = test_proxy_pb2.RowsResult(row=rows, status=status)
+        result = test_proxy_pb2.RowsResult(rows=rows, status=status)
         return result
 
     @delegate_to_client_handler
@@ -122,8 +122,7 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
                     code=client_response.get("code", 5),
                     message=client_response["error"],
                 )
-        # TODO: protos were updated. entry is now entries: https://github.com/googleapis/cndb-client-testing-protos/commit/e6205a2bba04acc10d12421a1402870b4a525fb3
-        response = test_proxy_pb2.MutateRowsResult(status=status, entry=entries)
+        response = test_proxy_pb2.MutateRowsResult(status=status, entries=entries)
         return response
 
     @delegate_to_client_handler
@@ -172,8 +171,7 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
                         offset_bytes=sample[1], row_key=sample[0]
                     )
                 )
-        # TODO: protos were updated. sample is now samples: https://github.com/googleapis/cndb-client-testing-protos/commit/e6205a2bba04acc10d12421a1402870b4a525fb3
-        return test_proxy_pb2.SampleRowKeysResult(status=status, sample=sample_list)
+        return test_proxy_pb2.SampleRowKeysResult(status=status, samples=sample_list)
 
     @delegate_to_client_handler
     def ExecuteQuery(self, request, context, client_response=None):
