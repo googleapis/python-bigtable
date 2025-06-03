@@ -17,7 +17,7 @@ from typing import Union, Callable
 from google.api_core.future import polling
 from google.api_core import gapic_v1
 from google.api_core import retry as retries
-from google.bigtable.admin_v2.types import bigtable_table_admin
+from google.cloud.bigtable.admin_v2.types import bigtable_table_admin
 
 try:
     OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
@@ -89,6 +89,7 @@ class CheckConsistencyPollingFuture(polling.PollingFuture):
             return check_consistency_response.consistent
         except Exception as e:
             self.set_exception(e)
+            raise e
 
     def cancel(self):
         raise NotImplementedError("Cannot cancel consistency token operation")
