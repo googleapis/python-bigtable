@@ -102,7 +102,6 @@ class CheckConsistencyPollingFuture(polling.PollingFuture):
             return check_consistency_response.consistent
         except Exception as e:
             self.set_exception(e)
-            raise e
 
     def cancel(self):
         raise NotImplementedError("Cannot cancel consistency token operation")
