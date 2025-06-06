@@ -248,3 +248,7 @@ __all__ = (
     "UpdateTableMetadata",
     "UpdateTableRequest",
 )
+
+from .overlay import *
+
+__all__ += overlay.__all__

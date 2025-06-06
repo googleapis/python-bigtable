@@ -179,21 +179,36 @@ class Table(proto.Message):
 
             For example, if \_key =
             "some_id#2024-04-30#\x00\x13\x00\xf3" with the following
-            schema: { fields { field_name: "id" type { string {
-            encoding: utf8_bytes {} } } } fields { field_name: "date"
-            type { string { encoding: utf8_bytes {} } } } fields {
-            field_name: "product_code" type { int64 { encoding:
-            big_endian_bytes {} } } } encoding { delimited_bytes {
-            delimiter: "#" } } }
+            schema:
 
-            | The decoded key parts would be: id = "some_id", date =
-              "2024-04-30", product_code = 1245427 The query "SELECT
-              \_key, product_code FROM table" will return two columns:
-              /------------------------------------------------------
-            | \| \_key \| product_code \| \|
-              --------------------------------------|--------------\| \|
-              "some_id#2024-04-30#\x00\x13\x00\xf3" \| 1245427 \|
-              ------------------------------------------------------/
+            .. code-block::
+
+                {
+                  fields {
+                    field_name: "id"
+                    type { string { encoding: utf8_bytes {} } }
+                  }
+                  fields {
+                    field_name: "date"
+                    type { string { encoding: utf8_bytes {} } }
+                  }
+                  fields {
+                    field_name: "product_code"
+                    type { int64 { encoding: big_endian_bytes {} } }
+                  }
+                  encoding { delimited_bytes { delimiter: "#" } }
+                }
+
+            The decoded key parts would be:
+            id = "some_id", date = "2024-04-30", product_code = 1245427
+            The query "SELECT \_key, product_code FROM table" will return
+            two columns:
+
+            +========================================+==============+
+            | \_key                                  | product_code |
+            +========================================+==============+
+            | "some_id#2024-04-30#\x00\x13\x00\xf3"  |    1245427   |
+            +----------------------------------------+--------------+
 
             The schema has the following invariants: (1) The decoded
             field values are order-preserved. For read, the field values

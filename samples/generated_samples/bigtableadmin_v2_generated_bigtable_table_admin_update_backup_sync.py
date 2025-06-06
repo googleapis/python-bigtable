@@ -36,7 +36,7 @@ from google.cloud.bigtable import admin_v2
 
 def sample_update_backup():
     # Create a client
-    client = admin_v2.BaseBigtableTableAdminClient()
+    client = admin_v2.BigtableTableAdminClient()
 
     # Initialize request argument(s)
     backup = admin_v2.Backup()

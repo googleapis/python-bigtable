@@ -408,3 +408,8 @@ __all__ = (
     "RestoreSourceType",
     "Type",
 )
+
+import google.cloud.bigtable.admin_v2.overlay
+from google.cloud.bigtable.admin_v2.overlay import *
+
+__all__ += google.cloud.bigtable.admin_v2.overlay.__all__

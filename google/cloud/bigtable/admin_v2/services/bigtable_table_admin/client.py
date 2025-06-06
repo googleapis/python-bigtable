@@ -45,6 +45,7 @@ from google.auth.transport import mtls  # type: ignore
 from google.auth.transport.grpc import SslCredentials  # type: ignore
 from google.auth.exceptions import MutualTLSChannelError  # type: ignore
 from google.oauth2 import service_account  # type: ignore
+import google.protobuf
 
 try:
     OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
@@ -894,7 +895,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_create_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CreateTableRequest(
@@ -1037,7 +1038,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_create_table_from_snapshot():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CreateTableFromSnapshotRequest(
@@ -1193,7 +1194,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_list_tables():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListTablesRequest(
@@ -1317,7 +1318,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_get_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetTableRequest(
@@ -1429,7 +1430,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_update_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.UpdateTableRequest(
@@ -1576,7 +1577,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_delete_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteTableRequest(
@@ -1676,7 +1677,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_undelete_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.UndeleteTableRequest(
@@ -1804,7 +1805,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_create_authorized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CreateAuthorizedViewRequest(
@@ -1953,7 +1954,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_list_authorized_views():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListAuthorizedViewsRequest(
@@ -2079,7 +2080,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_get_authorized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetAuthorizedViewRequest(
@@ -2195,7 +2196,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_update_authorized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.UpdateAuthorizedViewRequest(
@@ -2339,7 +2340,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_delete_authorized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteAuthorizedViewRequest(
@@ -2447,7 +2448,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_modify_column_families():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ModifyColumnFamiliesRequest(
@@ -2574,7 +2575,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_drop_row_range():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DropRowRangeRequest(
@@ -2654,7 +2655,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_generate_consistency_token():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GenerateConsistencyTokenRequest(
@@ -2773,7 +2774,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_check_consistency():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CheckConsistencyRequest(
@@ -2906,7 +2907,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_snapshot_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.SnapshotTableRequest(
@@ -3082,7 +3083,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_get_snapshot():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetSnapshotRequest(
@@ -3218,7 +3219,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_list_snapshots():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListSnapshotsRequest(
@@ -3368,7 +3369,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_delete_snapshot():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteSnapshotRequest(
@@ -3482,7 +3483,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_create_backup():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 backup = admin_v2.Backup()
@@ -3634,7 +3635,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_get_backup():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetBackupRequest(
@@ -3741,7 +3742,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_update_backup():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 backup = admin_v2.Backup()
@@ -3870,7 +3871,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_delete_backup():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteBackupRequest(
@@ -3968,7 +3969,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_list_backups():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListBackupsRequest(
@@ -4101,7 +4102,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_restore_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.RestoreTableRequest(
@@ -4208,7 +4209,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_copy_backup():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CopyBackupRequest(
@@ -4379,7 +4380,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_get_iam_policy():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = iam_policy_pb2.GetIamPolicyRequest(
@@ -4519,7 +4520,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_set_iam_policy():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = iam_policy_pb2.SetIamPolicyRequest(
@@ -4660,7 +4661,7 @@ class BaseBigtableTableAdminClient(metaclass=BaseBigtableTableAdminClientMeta):
 
             def sample_test_iam_permissions():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminClient()
 
                 # Initialize request argument(s)
                 request = iam_policy_pb2.TestIamPermissionsRequest(
@@ -4774,5 +4775,7 @@ DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
 
+if hasattr(DEFAULT_CLIENT_INFO, "protobuf_runtime_version"):  # pragma: NO COVER
+    DEFAULT_CLIENT_INFO.protobuf_runtime_version = google.protobuf.__version__
 
 __all__ = ("BaseBigtableTableAdminClient",)
