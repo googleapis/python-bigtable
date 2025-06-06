@@ -24,23 +24,24 @@ class RestoreTableOperation(operation.Operation):
     """A Future for interacting with Bigtable Admin's RestoreTable Long-Running Operation.
 
     This is needed to expose a potential long-running operation that might run after this operation
-    finishes, OptimizeRestoreTable. This is exposed via the the :meth:`optimize_restore_table` method.
+    finishes, OptimizeRestoreTable. This is exposed via the the :meth:`optimize_restore_table_operation`
+    method.
 
     **This class should not be instantiated by users** and should only be instantiated by the admin
-    client's `google.cloud.bigtable.admin_v2.overlay.services.BigtableTableAdminClient.restore_table`
+    client's :meth:`restore_table
+    <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.restore_table>`
     method.
 
     Args:
         operations_client (google.api_core.operations_v1.AbstractOperationsClient): The operations
-            client from the :class:`google.cloud.bigtable.admin_v2.overlay.services.BigtableTableAdminClient`'s
-            transport.
+            client from the admin client class's transport.
         restore_table_operation (google.api_core.operation.Operation): A :class:`google.api_core.operation.Operation`
             instance resembling a RestoreTable long-running operation
     """
 
     def __init__(self, operations_client, restore_table_operation: operation.Operation):
         self._operations_client = operations_client
-        self._optimize_restore_table_operation = None
+        self._optimize_restored_table_operation = None
         super().__init__(
             restore_table_operation._operation,
             restore_table_operation._refresh,
@@ -50,25 +51,26 @@ class RestoreTableOperation(operation.Operation):
             polling=restore_table_operation._polling,
         )
 
-    def optimize_restore_table_operation(
+    def optimize_restored_table_operation(
         self, timeout=operation.Operation._DEFAULT_VALUE, retry=None, polling=None
     ) -> Optional[operation.Operation]:
-        """Gets the OptimizeRestoreTable long-running operation that runs after this operation finishes.
+        """Gets the OptimizeRestoredTable long-running operation that runs after this operation finishes.
 
         This is a blocking call that will return the operation after this current long-running operation
-        finishes, just like :meth:`result`. The follow-up operation has
-        :ref:`metadata <:attr:google.api_core.operation.Operation.metadata>` type
-        :ref:`OptimizeRestoreTableMetadata <:class:google.bigtable.admin_v2.types.OptimizeRestoreTableMetadata>`
+        finishes, just like :meth:`google.api_core.operation.Operation.result`. The follow-up operation has
+        :attr:`metadata <google.api_core.operation.Operation.metadata>` type
+        :class:`OptimizeRestoredTableMetadata
+        <google.cloud.bigtable.admin_v2.types.bigtable_table_admin.OptimizeRestoredTableMetadata>`
         and no return value, but can be waited for with `result`.
-        
-        The current operation might not trigger a follow-up OptimizeRestoreTable operation, in which case, this
+
+        The current operation might not trigger a follow-up OptimizeRestoredTable operation, in which case, this
         method will return `None`.
 
-        For more documentation on the parameters for this method, see the documentation on :meth:`result`.
+        For more documentation on the parameters for this method, see the documentation on :meth:`google.api_core.operation.Operation.result`.
 
         Returns:
             Optional[google.api_core.operation.Operation]:
-                An object representing a long-running operation, or None if there is no OptimizeRestoreTable operation
+                An object representing a long-running operation, or None if there is no OptimizeRestoredTable operation
                 after this one.
         """
         self._blocking_poll(timeout=timeout, retry=retry, polling=polling)
@@ -78,20 +80,20 @@ class RestoreTableOperation(operation.Operation):
             # Pylint doesn't recognize that this is valid in this case.
             raise self._exception
 
-        return self._optimize_restore_table_operation
+        return self._optimize_restored_table_operation
 
     def set_result(self, response):
-        optimize_restore_table_operation_name = (
+        optimize_restored_table_operation_name = (
             self.metadata.optimize_table_operation_name
         )
 
         # When the RestoreTable operation finishes, it might not necessarily trigger
         # an optimize operation.
-        if optimize_restore_table_operation_name:
+        if optimize_restored_table_operation_name:
             optimize_restore_table_operation = self._operations_client.get_operation(
-                name=optimize_restore_table_operation_name
+                name=optimize_restored_table_operation_name
             )
-            self._optimize_restore_table_operation = operation.from_gapic(
+            self._optimize_restored_table_operation = operation.from_gapic(
                 optimize_restore_table_operation,
                 self._operations_client,
                 empty_pb2.Empty,

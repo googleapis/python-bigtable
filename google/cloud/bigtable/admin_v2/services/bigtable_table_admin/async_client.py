@@ -37,6 +37,7 @@ from google.api_core import gapic_v1
 from google.api_core import retry_async as retries
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.oauth2 import service_account  # type: ignore
+import google.protobuf
 
 
 try:
@@ -354,7 +355,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_create_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CreateTableRequest(
@@ -500,7 +501,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_create_table_from_snapshot():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CreateTableFromSnapshotRequest(
@@ -657,7 +658,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_list_tables():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListTablesRequest(
@@ -784,7 +785,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_get_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetTableRequest(
@@ -899,7 +900,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_update_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.UpdateTableRequest(
@@ -1049,7 +1050,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_delete_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteTableRequest(
@@ -1152,7 +1153,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_undelete_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.UndeleteTableRequest(
@@ -1283,7 +1284,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_create_authorized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CreateAuthorizedViewRequest(
@@ -1435,7 +1436,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_list_authorized_views():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListAuthorizedViewsRequest(
@@ -1564,7 +1565,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_get_authorized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetAuthorizedViewRequest(
@@ -1683,7 +1684,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_update_authorized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.UpdateAuthorizedViewRequest(
@@ -1830,7 +1831,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_delete_authorized_view():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteAuthorizedViewRequest(
@@ -1941,7 +1942,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_modify_column_families():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ModifyColumnFamiliesRequest(
@@ -2071,7 +2072,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_drop_row_range():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DropRowRangeRequest(
@@ -2153,7 +2154,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_generate_consistency_token():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GenerateConsistencyTokenRequest(
@@ -2273,7 +2274,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_check_consistency():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CheckConsistencyRequest(
@@ -2409,7 +2410,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_snapshot_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.SnapshotTableRequest(
@@ -2588,7 +2589,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_get_snapshot():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetSnapshotRequest(
@@ -2727,7 +2728,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_list_snapshots():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListSnapshotsRequest(
@@ -2880,7 +2881,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_delete_snapshot():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteSnapshotRequest(
@@ -2997,7 +2998,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_create_backup():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 backup = admin_v2.Backup()
@@ -3152,7 +3153,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_get_backup():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.GetBackupRequest(
@@ -3262,7 +3263,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_update_backup():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 backup = admin_v2.Backup()
@@ -3394,7 +3395,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_delete_backup():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.DeleteBackupRequest(
@@ -3495,7 +3496,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_list_backups():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.ListBackupsRequest(
@@ -3631,7 +3632,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_restore_table():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.RestoreTableRequest(
@@ -3740,7 +3741,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_copy_backup():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = admin_v2.CopyBackupRequest(
@@ -3914,7 +3915,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_get_iam_policy():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = iam_policy_pb2.GetIamPolicyRequest(
@@ -4053,7 +4054,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_set_iam_policy():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = iam_policy_pb2.SetIamPolicyRequest(
@@ -4193,7 +4194,7 @@ class BaseBigtableTableAdminAsyncClient:
 
             async def sample_test_iam_permissions():
                 # Create a client
-                client = admin_v2.BaseBigtableTableAdminAsyncClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
                 request = iam_policy_pb2.TestIamPermissionsRequest(
@@ -4298,6 +4299,9 @@ class BaseBigtableTableAdminAsyncClient:
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
+
+if hasattr(DEFAULT_CLIENT_INFO, "protobuf_runtime_version"):  # pragma: NO COVER
+    DEFAULT_CLIENT_INFO.protobuf_runtime_version = google.protobuf.__version__
 
 
 __all__ = ("BaseBigtableTableAdminAsyncClient",)

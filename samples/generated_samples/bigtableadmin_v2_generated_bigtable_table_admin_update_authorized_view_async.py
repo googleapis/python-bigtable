@@ -36,7 +36,7 @@ from google.cloud.bigtable import admin_v2
 
 async def sample_update_authorized_view():
     # Create a client
-    client = admin_v2.BaseBigtableTableAdminAsyncClient()
+    client = admin_v2.BigtableTableAdminAsyncClient()
 
     # Initialize request argument(s)
     request = admin_v2.UpdateAuthorizedViewRequest(
