@@ -20,9 +20,8 @@ This module contains the client handler process for proxy_server.py.
 import os
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.cloud.bigtable.data._cross_sync import CrossSync
-import sql_encoding
 from client_handler_data_async import error_safe
-
+from helpers import sql_encoding_helpers
 
 class TestProxyClientHandler:
     """
@@ -190,7 +189,7 @@ class TestProxyClientHandler:
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         query = request.get("query")
         params = request.get("params") or {}
-        (formatted_params, parameter_types) = sql_encoding.convert_params(params)
+        (formatted_params, parameter_types) = sql_encoding_helpers.convert_params(params)
         operation_timeout = (
             kwargs.get("operation_timeout", self.per_operation_timeout) or 20
         )
@@ -209,14 +208,14 @@ class TestProxyClientHandler:
         for r in rows:
             vals = []
             for c in md.columns:
-                vals.append(sql_encoding.convert_value(c.column_type, r[c.column_name]))
+                vals.append(sql_encoding_helpers.convert_value(c.column_type, r[c.column_name]))
             proto_rows.append({"values": vals})
         proto_columns = []
         for c in md.columns:
             proto_columns.append(
                 {
                     "name": c.column_name,
-                    "type": sql_encoding.convert_type(c.column_type),
+                    "type": sql_encoding_helpers.convert_type(c.column_type),
                 }
             )
         return {"metadata": {"columns": proto_columns}, "rows": proto_rows}

@@ -19,7 +19,7 @@ import os
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.cloud.bigtable.data import BigtableDataClientAsync
 from google.cloud.bigtable.data._cross_sync import CrossSync
-import sql_encoding
+from helpers import sql_encoding_helpers
 
 if not CrossSync.is_async:
     from client_handler_data_async import error_safe
@@ -261,7 +261,7 @@ class TestProxyClientHandlerAsync:
         # Note that the request has been coverted to json, and the code for this converts
         # query param names to snake case. convert_params reverses this conversion. For this
         # reason, snake case params will have issues if they're used in the conformance tests.
-        formatted_params, parameter_types = sql_encoding.convert_params(params)
+        formatted_params, parameter_types = sql_encoding_helpers.convert_params(params)
         operation_timeout = (
             kwargs.get("operation_timeout", self.per_operation_timeout) or 20
         )
@@ -282,7 +282,7 @@ class TestProxyClientHandlerAsync:
         for r in rows:
             vals = []
             for c in md.columns:
-                vals.append(sql_encoding.convert_value(c.column_type, r[c.column_name]))
+                vals.append(sql_encoding_helpers.convert_value(c.column_type, r[c.column_name]))
 
             proto_rows.append({"values": vals})
 
@@ -291,7 +291,7 @@ class TestProxyClientHandlerAsync:
             proto_columns.append(
                 {
                     "name": c.column_name,
-                    "type": sql_encoding.convert_type(c.column_type),
+                    "type": sql_encoding_helpers.convert_type(c.column_type),
                 }
             )
 
