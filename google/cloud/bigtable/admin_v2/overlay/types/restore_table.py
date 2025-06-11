@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import enum
-from typing import Optional
+from typing import Optional, Union
 
 from google.api_core import retry
 from google.api_core import operation
@@ -61,7 +61,7 @@ class RestoreTableOperation(operation.Operation):
 
     def optimize_restored_table_operation(
         self,
-        timeout: Optional[int | Timeout] = Timeout.DEFAULT_TIMEOUT,
+        timeout: Optional[Union[int, Timeout]] = Timeout.DEFAULT_TIMEOUT,
         retry: Optional[retry.Retry] = None,
         polling: Optional[retry.Retry] = None,
     ) -> Optional[operation.Operation]:
