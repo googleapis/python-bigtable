@@ -154,6 +154,28 @@ class TocSection:
             )
 
 
+class UIDFilteredTocSection(TocSection):
+    def __init__(self,toc_file_path, section_name, title, uid_prefix):
+        """Creates a filtered section denoted by section_name in the toc_file_path to items with the given UID prefix.
+
+        The section is then renamed to the title.
+        """
+        current_toc = yaml.safe_load(open(toc_file_path, "r"))
+
+        # Since we are looking for a specific section_name there should only
+        # be one match.
+        section_items = [d for d in current_toc[0]["items"] if d["name"] == section_name][0]["items"]
+        filtered_items = [d for d in section_items if d["uid"].startswith(uid_prefix)]
+        self.items = filtered_items
+        self.title = title
+
+    def copy_markdown(self):
+        """
+        No-op because we are filtering on UIDs, not markdown files.
+        """
+        pass
+
+
 def validate_toc(toc_file_path, expected_section_list, added_sections):
     current_toc = yaml.safe_load(open(toc_file_path, "r"))
     # make sure the set of sections matches what we expect
@@ -171,13 +193,19 @@ def validate_toc(toc_file_path, expected_section_list, added_sections):
             for d in current_toc[0]["items"]
             if d["name"] == section.title and ".rst"
         ][0]
-        items_in_dir = [f for f in os.listdir(section.dir_name) if f.endswith(".rst")]
-        # subtract 1 for index
-        assert len(items_in_toc) == len(items_in_dir) - 1
-        for file in items_in_dir:
-            if file != section.index_file_name:
-                base_name, _ = os.path.splitext(file)
-                assert any(d["href"] == f"{base_name}.md" for d in items_in_toc)
+        hrefs_in_toc = [
+            d
+            for d in items_in_toc
+            if "href" in d
+        ]
+        if hrefs_in_toc:
+            items_in_dir = [f for f in os.listdir(section.dir_name) if f.endswith(".rst")]
+            # subtract 1 for index
+            assert len(hrefs_in_toc) == len(items_in_dir) - 1
+            for file in items_in_dir:
+                if file != section.index_file_name:
+                    base_name, _ = os.path.splitext(file)
+                    assert any(d["href"] == f"{base_name}.md" for d in hrefs_in_toc)
     # make sure the markdown files are present in the docfx_yaml directory
     for section in added_sections:
         items_in_toc = [
@@ -185,7 +213,7 @@ def validate_toc(toc_file_path, expected_section_list, added_sections):
             for d in current_toc[0]["items"]
             if d["name"] == section.title and ".rst"
         ][0]
-        md_files = [d["href"] for d in items_in_toc]
+        md_files = [d["href"] for d in items_in_toc if "href" in d]
         for file in md_files:
             assert os.path.exists(f"_build/html/docfx_yaml/{file}")
     print("Toc validation passed")
@@ -194,8 +222,15 @@ def validate_toc(toc_file_path, expected_section_list, added_sections):
 if __name__ == "__main__":
     # Add secrtions for the async_data_client and classic_client directories
     toc_path = "_build/html/docfx_yaml/toc.yml"
+
     custom_sections = [
         TocSection(dir_name="data_client", index_file_name="data_client_usage.rst"),
+        UIDFilteredTocSection(
+            toc_file_path=toc_path,
+            section_name="Bigtable",
+            title="Admin Client",
+            uid_prefix="google.cloud.bigtable.admin_v2",
+        ),
         TocSection(dir_name="classic_client", index_file_name="usage.rst"),
     ]
     add_sections(toc_path, custom_sections)
@@ -210,6 +245,7 @@ if __name__ == "__main__":
             "Changelog",
             "Multiprocessing",
             "Data Client",
+            "Admin Client",
             "Classic Client",
         ],
         added_sections=custom_sections,

@@ -30,10 +30,9 @@ class CheckConsistencyPollingFuture(polling.PollingFuture):
 
     **This class should not be instantiated by users** and should only be instantiated by the admin
     client's
-    :meth:`wait_for_consistency
-    <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_consistency>`
-    or :meth:`wait_for_replication
-    <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_replication>`
+    :meth:`google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_consistency`
+    or
+    :meth:`google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_replication`
     methods.
 
     Args:

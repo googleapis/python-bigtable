@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import enum
 from typing import Optional
 
+from google.api_core import retry
 from google.api_core import operation
 from google.protobuf import empty_pb2
 
 from google.cloud.bigtable.admin_v2.types import OptimizeRestoredTableMetadata
+
+
+# This is needed due to a documentation issue with using object() as the default
+# value for a parameter.
+class Timeout(enum.Enum):
+    DEFAULT_TIMEOUT = "DEFAULT_TIMEOUT"
 
 
 class RestoreTableOperation(operation.Operation):
@@ -52,7 +60,10 @@ class RestoreTableOperation(operation.Operation):
         )
 
     def optimize_restored_table_operation(
-        self, timeout=operation.Operation._DEFAULT_VALUE, retry=None, polling=None
+        self,
+        timeout: Optional[int | Timeout] = Timeout.DEFAULT_TIMEOUT,
+        retry: Optional[retry.Retry] = None,
+        polling: Optional[retry.Retry] = None,
     ) -> Optional[operation.Operation]:
         """Gets the OptimizeRestoredTable long-running operation that runs after this operation finishes.
 
@@ -66,13 +77,26 @@ class RestoreTableOperation(operation.Operation):
         The current operation might not trigger a follow-up OptimizeRestoredTable operation, in which case, this
         method will return `None`.
 
-        For more documentation on the parameters for this method, see the documentation on :meth:`google.api_core.operation.Operation.result`.
+        Args:
+            timeout (Optional[int | google.cloud.bigtable.admin_v2.overlay.types.restore_table.Timeout]):
+                How long (in seconds) to wait for the operation to complete. If None, wait indefinitely. If
+                `Timeout.DEFAULT_TIMEOUT`, wait the default amount.
+            retry (Optional[google.api_core.retry.Retry]): How to retry the polling RPC. This defines ONLY
+                how the polling RPC call is retried (i.e. what to do if the RPC we used for polling returned
+                an error). It does NOT define how the polling is done (i.e. how frequently and for how long
+                to call the polling RPC).
+            polling (Optional[google.api_core.retry.Retry]): How often and for how long to call polling RPC
+                periodically. This parameter does NOT define how to retry each individual polling RPC call
+                (use the `retry` parameter for that).
 
         Returns:
             Optional[google.api_core.operation.Operation]:
                 An object representing a long-running operation, or None if there is no OptimizeRestoredTable operation
                 after this one.
         """
+        if timeout == Timeout.DEFAULT_TIMEOUT:
+            timeout = operation.Operation._DEFAULT_VALUE
+
         self._blocking_poll(timeout=timeout, retry=retry, polling=polling)
 
         if self._exception is not None:

@@ -16,12 +16,9 @@ import importlib
 
 import pytest
 
+
 @pytest.mark.parametrize(
-    "module",
-    [
-        "google.cloud.bigtable.admin",
-        "google.cloud.bigtable.admin_v2"
-    ]
+    "module", ["google.cloud.bigtable.admin", "google.cloud.bigtable.admin_v2"]
 )
 def test_admin_overlay_imports(module):
     # Simulate from <module> import <class> dynamically using importlib
@@ -39,3 +36,6 @@ def test_admin_overlay_imports(module):
         cls = getattr(mod, cls_name)
         submodule = importlib.import_module(submodule_name)
         assert cls == getattr(submodule, cls_name)
+
+        # Check that from <module> import * has the class inside.
+        assert cls_name in mod.__all__
