@@ -37,18 +37,17 @@ RESTORE_TABLE_OPERATION_NAME = "test/restore_table"
 RESTORE_TABLE_OPERATION_METADATA = bigtable_table_admin.RestoreTableMetadata(
     name=RESTORE_TABLE_OPERATION_TABLE_NAME,
 )
-OPTIMIZE_RESTORE_TABLE_OPERATION_NAME = "test/optimize_restore_table"
-OPTIMIZE_RESTORE_TABLE_METADATA = bigtable_table_admin.OptimizeRestoredTableMetadata(
+OPTIMIZE_RESTORED_TABLE_OPERATION_NAME = "test/optimize_restore_table"
+OPTIMIZE_RESTORED_TABLE_METADATA = bigtable_table_admin.OptimizeRestoredTableMetadata(
     name=RESTORE_TABLE_OPERATION_TABLE_NAME,
 )
 
-OPTIMIZE_RESTORE_TABLE_OPERATION_ID = "abcdefg"
+OPTIMIZE_RESTORED_TABLE_OPERATION_ID = "abcdefg"
 RESTORE_TABLE_OPERATION_FINISHED_RESPONSE = table.Table(
     name=RESTORE_TABLE_OPERATION_TABLE_NAME,
 )
 RESTORE_TABLE_OPERATION_FINISHED_ERROR = status_pb2.Status(
-    code=code_pb2.DEADLINE_EXCEEDED,
-    message="Deadline Exceeded"
+    code=code_pb2.DEADLINE_EXCEEDED, message="Deadline Exceeded"
 )
 
 
@@ -75,14 +74,16 @@ RESTORE_TABLE_IN_PROGRESS_OPERATION_PROTO = make_operation_proto(
     metadata=RESTORE_TABLE_OPERATION_METADATA,
 )
 
-OPTIMIZE_RESTORE_TABLE_OPERATION_PROTO = make_operation_proto(
-    name=OPTIMIZE_RESTORE_TABLE_OPERATION_NAME,
-    metadata=OPTIMIZE_RESTORE_TABLE_METADATA,
+OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO = make_operation_proto(
+    name=OPTIMIZE_RESTORED_TABLE_OPERATION_NAME,
+    metadata=OPTIMIZE_RESTORED_TABLE_METADATA,
 )
 
 
 # Set up the mock operation client
-def mock_restore_table_operation(max_poll_count=DEFAULT_MAX_POLL, fail=False, has_optimize_operation=True):
+def mock_restore_table_operation(
+    max_poll_count=DEFAULT_MAX_POLL, fail=False, has_optimize_operation=True
+):
     client = mock.Mock(spec=operations_client.OperationsClient)
 
     # Set up the polling
@@ -92,7 +93,9 @@ def mock_restore_table_operation(max_poll_count=DEFAULT_MAX_POLL, fail=False, ha
         finished_operation_metadata, RESTORE_TABLE_OPERATION_METADATA
     )
     if has_optimize_operation:
-        finished_operation_metadata.optimize_table_operation_name = OPTIMIZE_RESTORE_TABLE_OPERATION_ID
+        finished_operation_metadata.optimize_table_operation_name = (
+            OPTIMIZE_RESTORED_TABLE_OPERATION_ID
+        )
 
     if fail:
         final_operation_proto = make_operation_proto(
@@ -120,7 +123,7 @@ def mock_restore_table_operation(max_poll_count=DEFAULT_MAX_POLL, fail=False, ha
     )
 
     # Set up the optimize_restore_table_operation
-    client.get_operation.side_effect = [OPTIMIZE_RESTORE_TABLE_OPERATION_PROTO]
+    client.get_operation.side_effect = [OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO]
 
     return restore_table.RestoreTableOperation(client, future)
 
@@ -128,46 +131,72 @@ def mock_restore_table_operation(max_poll_count=DEFAULT_MAX_POLL, fail=False, ha
 def test_restore_table_operation_client_success_has_optimize():
     restore_table_operation = mock_restore_table_operation()
 
-    optimize_restore_table_operation = restore_table_operation.optimize_restore_table_operation()
+    optimize_restored_table_operation = (
+        restore_table_operation.optimize_restored_table_operation()
+    )
 
-    assert type(optimize_restore_table_operation) == operation.Operation
-    assert optimize_restore_table_operation._operation == OPTIMIZE_RESTORE_TABLE_OPERATION_PROTO
+    assert type(optimize_restored_table_operation) == operation.Operation
+    assert (
+        optimize_restored_table_operation._operation
+        == OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO
+    )
     restore_table_operation._operations_client.get_operation.assert_called_with(
-        name=OPTIMIZE_RESTORE_TABLE_OPERATION_ID
+        name=OPTIMIZE_RESTORED_TABLE_OPERATION_ID
     )
-    restore_table_operation._refresh.assert_has_calls(
-        [mock.call()] * DEFAULT_MAX_POLL
-    )
+    restore_table_operation._refresh.assert_has_calls([mock.call()] * DEFAULT_MAX_POLL)
+
+
+@pytest.mark.parametrize(
+    "input_timeout,expected_timeout",
+    [
+        (restore_table.Timeout.DEFAULT_TIMEOUT, operation.Operation._DEFAULT_VALUE),
+        (100, 100),
+    ],
+)
+def test_restore_table_timeouts(input_timeout, expected_timeout):
+    restore_table_operation = mock_restore_table_operation()
+    with mock.patch.object(restore_table_operation, "_blocking_poll") as poll_mock:
+        restore_table_operation.optimize_restored_table_operation(timeout=input_timeout)
+        poll_mock.assert_called_once_with(
+            timeout=expected_timeout, retry=None, polling=None
+        )
 
 
 def test_restore_table_operation_success_has_optimize_also_call_result():
     restore_table_operation = mock_restore_table_operation()
 
     restore_table_operation.result()
-    optimize_restore_table_operation = restore_table_operation.optimize_restore_table_operation()
+    optimize_restored_table_operation = (
+        restore_table_operation.optimize_restored_table_operation()
+    )
 
-    assert type(optimize_restore_table_operation) == operation.Operation
-    assert optimize_restore_table_operation._operation == OPTIMIZE_RESTORE_TABLE_OPERATION_PROTO
+    assert type(optimize_restored_table_operation) == operation.Operation
+    assert (
+        optimize_restored_table_operation._operation
+        == OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO
+    )
     restore_table_operation._operations_client.get_operation.assert_called_with(
-        name=OPTIMIZE_RESTORE_TABLE_OPERATION_ID
+        name=OPTIMIZE_RESTORED_TABLE_OPERATION_ID
     )
-    restore_table_operation._refresh.assert_has_calls(
-        [mock.call()] * DEFAULT_MAX_POLL
-    )
+    restore_table_operation._refresh.assert_has_calls([mock.call()] * DEFAULT_MAX_POLL)
 
 
 def test_restore_table_operation_success_no_optimize():
     restore_table_operation = mock_restore_table_operation(has_optimize_operation=False)
 
     restore_table_operation.result()
-    optimize_restore_table_operation = restore_table_operation.optimize_restore_table_operation()
+    optimize_restored_table_operation = (
+        restore_table_operation.optimize_restored_table_operation()
+    )
 
-    assert optimize_restore_table_operation is None
+    assert optimize_restored_table_operation is None
     restore_table_operation._operations_client.get_operation.assert_not_called()
 
 
 def test_restore_table_operation_exception():
-    restore_table_operation = mock_restore_table_operation(fail=True, has_optimize_operation=False)
+    restore_table_operation = mock_restore_table_operation(
+        fail=True, has_optimize_operation=False
+    )
 
     with pytest.raises(exceptions.GoogleAPICallError):
-        restore_table_operation.optimize_restore_table_operation()
+        restore_table_operation.optimize_restored_table_operation()
