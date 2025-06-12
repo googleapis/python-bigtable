@@ -15,7 +15,6 @@
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock  # pragma: NO COVER
 except ImportError:  # pragma: NO COVER
     import mock
 
@@ -135,7 +134,7 @@ def test_restore_table_operation_client_success_has_optimize():
         restore_table_operation.optimize_restored_table_operation()
     )
 
-    assert type(optimize_restored_table_operation) == operation.Operation
+    assert isinstance(optimize_restored_table_operation, operation.Operation)
     assert (
         optimize_restored_table_operation._operation
         == OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO
@@ -170,7 +169,7 @@ def test_restore_table_operation_success_has_optimize_also_call_result():
         restore_table_operation.optimize_restored_table_operation()
     )
 
-    assert type(optimize_restored_table_operation) == operation.Operation
+    assert isinstance(optimize_restored_table_operation, operation.Operation)
     assert (
         optimize_restored_table_operation._operation
         == OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO
