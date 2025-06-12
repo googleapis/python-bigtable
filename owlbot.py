@@ -130,15 +130,15 @@ def add_overlay_to_init_py(init_py_location, import_statements):
 
 add_overlay_to_init_py(
     "google/cloud/bigtable/admin_v2/__init__.py",
-    """from .overlay import *
-__all__ += overlay.__all__
+    """from .overlay import *  # noqa: F403
+__all__ += overlay.__all__  # noqa: F405
 """
 )
 
 add_overlay_to_init_py(
     "google/cloud/bigtable/admin/__init__.py",
-    """import google.cloud.bigtable.admin_v2.overlay
-from google.cloud.bigtable.admin_v2.overlay import *
+    """import google.cloud.bigtable.admin_v2.overlay  # noqa: F401
+from google.cloud.bigtable.admin_v2.overlay import *  # noqa: F401, F403
 
 __all__ += google.cloud.bigtable.admin_v2.overlay.__all__
 """
