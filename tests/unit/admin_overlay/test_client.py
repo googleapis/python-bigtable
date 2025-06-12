@@ -16,7 +16,6 @@
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock  # pragma: NO COVER
 except ImportError:  # pragma: NO COVER
     import mock
 
@@ -150,11 +149,11 @@ def test_bigtable_table_admin_client_wait_for_consistency(kwargs):
 
     future = client.wait_for_consistency(**kwargs)
 
-    assert type(future) == consistency.CheckConsistencyPollingFuture
+    assert isinstance(future, consistency.CheckConsistencyPollingFuture)
     assert future._default_retry == kwargs.get("retry", gapic_v1.method.DEFAULT)
 
     check_consistency_call = future._check_consistency_call
-    assert type(check_consistency_call) == functools.partial
+    assert isinstance(check_consistency_call, functools.partial)
 
     assert check_consistency_call.func == client.check_consistency
     assert check_consistency_call.args == (kwargs.get("request", None),)
@@ -208,11 +207,11 @@ def test_bigtable_table_admin_client_wait_for_replication(kwargs):
             )
         )
 
-        assert type(future) == consistency.CheckConsistencyPollingFuture
+        assert isinstance(future, consistency.CheckConsistencyPollingFuture)
         assert future._default_retry == kwargs.get("retry", gapic_v1.method.DEFAULT)
 
         check_consistency_call = future._check_consistency_call
-        assert type(check_consistency_call) == functools.partial
+        assert isinstance(check_consistency_call, functools.partial)
 
         assert check_consistency_call.func == client.check_consistency
         assert check_consistency_call.args == (expected_check_consistency_request,)

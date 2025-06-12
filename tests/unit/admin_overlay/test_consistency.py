@@ -16,7 +16,6 @@
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock  # pragma: NO COVER
 except ImportError:  # pragma: NO COVER
     import mock
 
@@ -61,7 +60,7 @@ def test_check_consistency_future_result():
     future = consistency.CheckConsistencyPollingFuture(check_consistency_call)
     is_consistent = future.result()
 
-    assert is_consistent == True
+    assert is_consistent
     check_consistency_call.assert_has_calls(
         [mock.call(retry=future._default_retry)] * times
     )
@@ -69,7 +68,7 @@ def test_check_consistency_future_result():
     # Check that calling result again doesn't produce more calls.
     is_consistent = future.result()
 
-    assert is_consistent == True
+    assert is_consistent
     check_consistency_call.assert_has_calls(
         [mock.call(retry=future._default_retry)] * times
     )
@@ -84,7 +83,7 @@ def test_check_consistency_future_result_default_retry():
     )
     is_consistent = future.result()
 
-    assert is_consistent == True
+    assert is_consistent
     check_consistency_call.assert_has_calls([mock.call(retry=retry)] * times)
 
 
