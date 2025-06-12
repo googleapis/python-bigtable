@@ -16,6 +16,7 @@
 
 from pathlib import Path
 import re
+import textwrap
 from typing import List, Optional
 
 import synthtool as s
@@ -80,6 +81,7 @@ for library in get_staging_dirs(bigtable_admin_default_version, "bigtable_admin"
     s.move(library / "tests")
     s.move(library / "samples")
     s.move(library / "scripts")
+    s.move(library / "docs/admin_v2", destination="docs/admin_client")
 
 s.remove_staging_dirs()
 
@@ -112,5 +114,128 @@ s.replace(
 \)""",
     """# todo(kolea2): temporary workaround to install pinned dep version
 INSTALL_LIBRARY_FROM_SOURCE = False""")
+
+# --------------------------------------------------------------------------
+# Admin Overlay work
+# --------------------------------------------------------------------------
+
+# Add overlay imports to top level __init__.py files in admin_v2 and admin at the end
+# of each file, after the __all__ definition.
+def add_overlay_to_init_py(init_py_location, import_statements):
+    s.replace(
+        init_py_location,
+        r"(?s)(^__all__ = \(.*\)$)",
+        r"\1\n\n" + import_statements
+    )
+
+add_overlay_to_init_py(
+    "google/cloud/bigtable/admin_v2/__init__.py",
+    """from .overlay import *  # noqa: F403
+__all__ += overlay.__all__  # noqa: F405
+"""
+)
+
+add_overlay_to_init_py(
+    "google/cloud/bigtable/admin/__init__.py",
+    """import google.cloud.bigtable.admin_v2.overlay  # noqa: F401
+from google.cloud.bigtable.admin_v2.overlay import *  # noqa: F401, F403
+
+__all__ += google.cloud.bigtable.admin_v2.overlay.__all__
+"""
+)
+
+# Replace all instances of BaseBigtableTableAdminClient/BaseBigtableAdminAsyncClient
+# in samples and docstrings with BigtableTableAdminClient/BigtableTableAdminAsyncClient
+s.replace(
+    [
+        "google/cloud/bigtable/admin_v2/services/*/client.py",
+        "google/cloud/bigtable/admin_v2/services/*/async_client.py",
+        "samples/generated_samples/bigtableadmin_v2_*.py"
+    ],
+    r"client = admin_v2\.Base(BigtableTableAdmin(Async)?Client\(\))",
+    r"client = admin_v2.\1"
+)
+
+# Fix an improperly formatted table that breaks nox -s docs.
+s.replace(
+    "google/cloud/bigtable/admin_v2/types/table.py",
+    """            For example, if \\\\_key =
+            "some_id#2024-04-30#\\\\x00\\\\x13\\\\x00\\\\xf3" with the following
+            schema: \\{ fields \\{ field_name: "id" type \\{ string \\{
+            encoding: utf8_bytes \\{\\} \\} \\} \\} fields \\{ field_name: "date"
+            type \\{ string \\{ encoding: utf8_bytes \\{\\} \\} \\} \\} fields \\{
+            field_name: "product_code" type \\{ int64 \\{ encoding:
+            big_endian_bytes \\{\\} \\} \\} \\} encoding \\{ delimited_bytes \\{
+            delimiter: "#" \\} \\} \\}
+
+            \\| The decoded key parts would be: id = "some_id", date =
+              "2024-04-30", product_code = 1245427 The query "SELECT
+              \\\\_key, product_code FROM table" will return two columns:
+              /------------------------------------------------------
+            \\| \\\\\\| \\\\_key \\\\\\| product_code \\\\\\| \\\\\\|
+              --------------------------------------\\|--------------\\\\\\| \\\\\\|
+              "some_id#2024-04-30#\\\\x00\\\\x13\\\\x00\\\\xf3" \\\\\\| 1245427 \\\\\\|
+              ------------------------------------------------------/
+""",
+    textwrap.indent(
+        """For example, if \\\\_key =
+"some_id#2024-04-30#\\\\x00\\\\x13\\\\x00\\\\xf3" with the following
+schema:
+
+.. code-block::
+
+    {
+      fields {
+        field_name: "id"
+        type { string { encoding: utf8_bytes {} } }
+      }
+      fields {
+        field_name: "date"
+        type { string { encoding: utf8_bytes {} } }
+      }
+      fields {
+        field_name: "product_code"
+        type { int64 { encoding: big_endian_bytes {} } }
+      }
+      encoding { delimited_bytes { delimiter: "#" } }
+    }
+
+The decoded key parts would be:
+id = "some_id", date = "2024-04-30", product_code = 1245427
+The query "SELECT \\\\_key, product_code FROM table" will return
+two columns:
+
++========================================+==============+
+| \\\\_key                                  | product_code |
++========================================+==============+
+| "some_id#2024-04-30#\\\\x00\\\\x13\\\\x00\\\\xf3"  |    1245427   |
++----------------------------------------+--------------+
+""",
+    " " * 12,
+    ),
+)
+
+# Change the subpackage for clients with overridden internal methods in them
+# from service to overlay.service.
+s.replace(
+    "docs/admin_client/bigtable_table_admin.rst",
+    r"^\.\. automodule:: google\.cloud\.bigtable\.admin_v2\.services\.bigtable_table_admin$",
+    ".. automodule:: google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin"
+)
+
+# Add overlay types to types documentation
+s.replace(
+    "docs/admin_client/types_.rst",
+    r"""(\.\. automodule:: google\.cloud\.bigtable\.admin_v2\.types
+    :members:
+    :show-inheritance:)
+""",
+    r"""\1
+
+.. automodule:: google.cloud.bigtable.admin_v2.overlay.types
+    :members:
+    :show-inheritance:
+"""
+)
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)

@@ -58,15 +58,15 @@ class BigtableTableAdminClient(BaseBigtableTableAdminClient):
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
     ) -> restore_table.RestoreTableOperation:
         r"""Create a new table by restoring from a completed backup. The
-        returned table :ref:`long-running operation
-        <:class:google.cloud.bigtable.admin_v2.overlay.types.restore_table.RestoreTableOperation>`
+        returned table :class:`long-running operation
+        <google.cloud.bigtable.admin_v2.overlay.types.restore_table.RestoreTableOperation>`
         can be used to track the progress of the operation, and to cancel it. The
-        :ref:`metadata <:attr:google.api_core.operation.Operation.metadata>` field type is
-        :ref:`RestoreTableMetadata <:class:google.bigtable.admin_v2.types.RestoreTableMetadata>`.
-        The :ref:`response <:meth:google.api_core.operation.Operation.result>` type is
+        :attr:`metadata <google.api_core.operation.Operation.metadata>` field type is
+        :class:`RestoreTableMetadata <google.cloud.bigtable.admin_v2.types.RestoreTableMetadata>`.
+        The :meth:`response <google.api_core.operation.Operation.result>` type is
         :class:`google.cloud.bigtable.admin_v2.types.Table`, if successful.
 
-        Additionally, the returned :ref:`long-running-operation <:class:google.cloud.bigtable.admin_v2.overlay.types.restore_table.RestoreTableOperation>`
+        Additionally, the returned :class:`long-running-operation <google.cloud.bigtable.admin_v2.overlay.types.restore_table.RestoreTableOperation>`
         provides a method, :meth:`google.cloud.bigtable.admin_v2.overlay.types.restore_table.RestoreTableOperation.optimize_restore_table_operation` that
         provides access to a :class:`google.api_core.operation.Operation` object representing the OptimizeRestoreTable long-running-operation
         after the current one has completed.

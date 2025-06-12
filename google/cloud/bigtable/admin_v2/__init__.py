@@ -248,3 +248,7 @@ __all__ = (
     "UpdateTableMetadata",
     "UpdateTableRequest",
 )
+
+from .overlay import *  # noqa: F403
+
+__all__ += overlay.__all__  # noqa: F405
