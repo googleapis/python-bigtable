@@ -42,16 +42,17 @@ except AttributeError:  # pragma: NO COVER
 from google.api_core import client_options as client_options_lib
 from google.auth import credentials as ga_credentials  # type: ignore
 
-from google.cloud.bigtable import __version__ as bigtable_version
 from google.cloud.bigtable.admin_v2.types import bigtable_table_admin
 
 from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import (
     client as base_client,
 )
 from google.cloud.bigtable.admin_v2.services.bigtable_table_admin.transports.base import (
-    BigtableTableAdminTransport
+    BigtableTableAdminTransport,
 )
 from google.cloud.bigtable.admin_v2.overlay.types import consistency, restore_table
+
+from google.cloud.bigtable.gapic_version import __version__ as bigtable_version
 
 
 DEFAULT_CLIENT_INFO = copy.copy(base_client.DEFAULT_CLIENT_INFO)
@@ -128,7 +129,6 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
             client_options=client_options,
             client_info=client_info,
         )
-
 
     def restore_table(
         self,
@@ -224,7 +224,6 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
         )
         return restore_table_operation
 
-
     def wait_for_consistency(
         self,
         request: Optional[
@@ -317,7 +316,6 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
             metadata=metadata,
         )
         return consistency.CheckConsistencyPollingFuture(api_call, default_retry=retry)
-
 
     def wait_for_replication(
         self,

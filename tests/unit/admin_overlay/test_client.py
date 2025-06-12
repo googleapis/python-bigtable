@@ -27,9 +27,12 @@ from google.api_core import retry as retries
 from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import transports
 from google.cloud.bigtable.admin_v2.types import bigtable_table_admin
 from google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.client import (
-    BigtableTableAdminClient, DEFAULT_CLIENT_INFO
+    BigtableTableAdminClient,
+    DEFAULT_CLIENT_INFO,
 )
 from google.cloud.bigtable.admin_v2.overlay.types import consistency, restore_table
+
+from google.cloud.bigtable import __version__ as bigtable_version
 
 import pytest
 
@@ -52,15 +55,17 @@ CONSISTENCY_TOKEN = "abcdefg"
         ),
     ],
 )
-def test_bigtable_table_admin_client_client_version(
-    transport_class, transport_name
-):
+def test_bigtable_table_admin_client_client_version(transport_class, transport_name):
     with mock.patch.object(transport_class, "__init__") as patched:
         patched.return_value = None
         BigtableTableAdminClient(transport=transport_name)
         transport_init_call = patched.call_args
         assert transport_init_call.kwargs["client_info"] == DEFAULT_CLIENT_INFO
 
+    assert (
+        DEFAULT_CLIENT_INFO.client_library_version
+        == f"{bigtable_version}-admin-overlay"
+    )
 
 
 @pytest.mark.parametrize(
@@ -85,9 +90,9 @@ def test_bigtable_table_admin_client_client_version(
             ),
             "retry": mock.Mock(spec=retries.Retry),
             "timeout": mock.Mock(spec=retries.Retry),
-            "metadata": [("foo", "bar")]
+            "metadata": [("foo", "bar")],
         },
-    ]
+    ],
 )
 def test_bigtable_table_admin_client_restore_table(kwargs):
     client = BigtableTableAdminClient()
@@ -105,7 +110,9 @@ def test_bigtable_table_admin_client_restore_table(kwargs):
                     timeout=kwargs.get("timeout", gapic_v1.method.DEFAULT),
                     metadata=kwargs.get("metadata", ()),
                 )
-                future_mock.assert_called_once_with(transport_mock.operations_client, operation_mock)
+                future_mock.assert_called_once_with(
+                    transport_mock.operations_client, operation_mock
+                )
 
 
 @pytest.mark.parametrize(
@@ -134,9 +141,9 @@ def test_bigtable_table_admin_client_restore_table(kwargs):
             ),
             "retry": mock.Mock(spec=retries.Retry),
             "timeout": mock.Mock(spec=retries.Retry),
-            "metadata": [("foo", "bar")]
+            "metadata": [("foo", "bar")],
         },
-    ]
+    ],
 )
 def test_bigtable_table_admin_client_wait_for_consistency(kwargs):
     client = BigtableTableAdminClient()
@@ -150,9 +157,7 @@ def test_bigtable_table_admin_client_wait_for_consistency(kwargs):
     assert type(check_consistency_call) == functools.partial
 
     assert check_consistency_call.func == client.check_consistency
-    assert check_consistency_call.args == (
-        kwargs.get("request", None),
-    )
+    assert check_consistency_call.args == (kwargs.get("request", None),)
     assert check_consistency_call.keywords == {
         "name": kwargs.get("name", None),
         "consistency_token": kwargs.get("consistency_token", None),
@@ -170,9 +175,7 @@ def test_bigtable_table_admin_client_wait_for_consistency(kwargs):
             )
         },
         {
-            "request": {
-                "name": TABLE_NAME
-            },
+            "request": {"name": TABLE_NAME},
         },
         {
             "name": TABLE_NAME,
@@ -183,22 +186,26 @@ def test_bigtable_table_admin_client_wait_for_consistency(kwargs):
             ),
             "retry": mock.Mock(spec=retries.Retry),
             "timeout": mock.Mock(spec=retries.Retry),
-            "metadata": [("foo", "bar")]
+            "metadata": [("foo", "bar")],
         },
-    ]
+    ],
 )
 def test_bigtable_table_admin_client_wait_for_replication(kwargs):
     client = BigtableTableAdminClient()
 
     with mock.patch.object(client, "generate_consistency_token") as generate_mock:
-        generate_mock.return_value = bigtable_table_admin.GenerateConsistencyTokenResponse(
-            consistency_token=CONSISTENCY_TOKEN,
+        generate_mock.return_value = (
+            bigtable_table_admin.GenerateConsistencyTokenResponse(
+                consistency_token=CONSISTENCY_TOKEN,
+            )
         )
         future = client.wait_for_replication(**kwargs)
 
-        expected_check_consistency_request = bigtable_table_admin.CheckConsistencyRequest(
-            name=TABLE_NAME,
-            consistency_token=CONSISTENCY_TOKEN,
+        expected_check_consistency_request = (
+            bigtable_table_admin.CheckConsistencyRequest(
+                name=TABLE_NAME,
+                consistency_token=CONSISTENCY_TOKEN,
+            )
         )
 
         assert type(future) == consistency.CheckConsistencyPollingFuture
@@ -208,9 +215,7 @@ def test_bigtable_table_admin_client_wait_for_replication(kwargs):
         assert type(check_consistency_call) == functools.partial
 
         assert check_consistency_call.func == client.check_consistency
-        assert check_consistency_call.args == (
-            expected_check_consistency_request,
-        )
+        assert check_consistency_call.args == (expected_check_consistency_request,)
         assert check_consistency_call.keywords == {
             "name": None,
             "consistency_token": None,

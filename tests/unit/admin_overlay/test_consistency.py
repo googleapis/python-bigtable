@@ -36,6 +36,7 @@ FALSE_CONSISTENCY_RESPONSE = bigtable_table_admin.CheckConsistencyResponse(
     consistent=False
 )
 
+
 def mock_check_consistency_callable(max_poll_count=1):
     # Return False max_poll_count - 1 times, then True, for a total of
     # max_poll_count calls.
@@ -49,7 +50,7 @@ def test_check_consistency_future_cancel():
     future = consistency.CheckConsistencyPollingFuture(check_consistency_call)
     with pytest.raises(NotImplementedError):
         future.cancel()
-    
+
     with pytest.raises(NotImplementedError):
         future.cancelled()
 
@@ -61,20 +62,26 @@ def test_check_consistency_future_result():
     is_consistent = future.result()
 
     assert is_consistent == True
-    check_consistency_call.assert_has_calls([mock.call(retry=future._default_retry)] * times)
+    check_consistency_call.assert_has_calls(
+        [mock.call(retry=future._default_retry)] * times
+    )
 
     # Check that calling result again doesn't produce more calls.
     is_consistent = future.result()
 
     assert is_consistent == True
-    check_consistency_call.assert_has_calls([mock.call(retry=future._default_retry)] * times)
+    check_consistency_call.assert_has_calls(
+        [mock.call(retry=future._default_retry)] * times
+    )
 
 
 def test_check_consistency_future_result_default_retry():
     times = 5
     check_consistency_call = mock_check_consistency_callable(times)
     retry = mock.Mock(spec=retries.Retry)
-    future = consistency.CheckConsistencyPollingFuture(check_consistency_call, default_retry=retry)
+    future = consistency.CheckConsistencyPollingFuture(
+        check_consistency_call, default_retry=retry
+    )
     is_consistent = future.result()
 
     assert is_consistent == True
@@ -82,8 +89,8 @@ def test_check_consistency_future_result_default_retry():
 
 
 def test_check_consistency_future_result_different_retry():
-    check_consistency_call = mock.Mock(spec=["__call__"],
-                                       side_effect=exceptions.DeadlineExceeded("Deadline Exceeded.")
+    check_consistency_call = mock.Mock(
+        spec=["__call__"], side_effect=exceptions.DeadlineExceeded("Deadline Exceeded.")
     )
     future = consistency.CheckConsistencyPollingFuture(check_consistency_call)
 
