@@ -27,10 +27,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import copy
 import functools
 
-from typing import Optional, Sequence, Tuple, Union
+from typing import Callable, Optional, Sequence, Tuple, Union
 from google.api_core import gapic_v1
 from google.api_core import retry as retries
 
@@ -39,16 +39,97 @@ try:
 except AttributeError:  # pragma: NO COVER
     OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
-from google.api_core import operation  # type: ignore
+from google.api_core import client_options as client_options_lib
+from google.auth import credentials as ga_credentials  # type: ignore
+
 from google.cloud.bigtable.admin_v2.types import bigtable_table_admin
 
 from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import (
-    BaseBigtableTableAdminClient,
+    client as base_client,
+)
+from google.cloud.bigtable.admin_v2.services.bigtable_table_admin.transports.base import (
+    BigtableTableAdminTransport,
 )
 from google.cloud.bigtable.admin_v2.overlay.types import consistency, restore_table
 
+from google.cloud.bigtable.gapic_version import __version__ as bigtable_version
 
-class BigtableTableAdminClient(BaseBigtableTableAdminClient):
+
+DEFAULT_CLIENT_INFO = copy.copy(base_client.DEFAULT_CLIENT_INFO)
+DEFAULT_CLIENT_INFO.client_library_version = f"{bigtable_version}-admin-overlay"
+
+
+class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
+    def __init__(
+        self,
+        *,
+        credentials: Optional[ga_credentials.Credentials] = None,
+        transport: Optional[
+            Union[
+                str,
+                BigtableTableAdminTransport,
+                Callable[..., BigtableTableAdminTransport],
+            ]
+        ] = None,
+        client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
+        client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
+    ) -> None:
+        """Instantiates the Bigtable table admin client.
+
+        Args:
+            credentials (Optional[google.auth.credentials.Credentials]): The
+                authorization credentials to attach to requests. These
+                credentials identify the application to the service; if none
+                are specified, the client will attempt to ascertain the
+                credentials from the environment.
+            transport (Optional[Union[str,BigtableTableAdminTransport,Callable[..., BigtableTableAdminTransport]]]):
+                The transport to use, or a Callable that constructs and returns a new transport.
+                If a Callable is given, it will be called with the same set of initialization
+                arguments as used in the BigtableTableAdminTransport constructor.
+                If set to None, a transport is chosen automatically.
+            client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]):
+                Custom options for the client.
+
+                1. The ``api_endpoint`` property can be used to override the
+                default endpoint provided by the client when ``transport`` is
+                not explicitly provided. Only if this property is not set and
+                ``transport`` was not explicitly provided, the endpoint is
+                determined by the GOOGLE_API_USE_MTLS_ENDPOINT environment
+                variable, which have one of the following values:
+                "always" (always use the default mTLS endpoint), "never" (always
+                use the default regular endpoint) and "auto" (auto-switch to the
+                default mTLS endpoint if client certificate is present; this is
+                the default value).
+
+                2. If the GOOGLE_API_USE_CLIENT_CERTIFICATE environment variable
+                is "true", then the ``client_cert_source`` property can be used
+                to provide a client certificate for mTLS transport. If
+                not provided, the default SSL client certificate will be used if
+                present. If GOOGLE_API_USE_CLIENT_CERTIFICATE is "false" or not
+                set, no client certificate will be used.
+
+                3. The ``universe_domain`` property can be used to override the
+                default "googleapis.com" universe. Note that the ``api_endpoint``
+                property still takes precedence; and ``universe_domain`` is
+                currently not supported for mTLS.
+
+            client_info (google.api_core.gapic_v1.client_info.ClientInfo):
+                The client info used to send a user-agent string along with
+                API requests. If ``None``, then default info will be used.
+                Generally, you only need to set this if you're developing
+                your own client library.
+
+        Raises:
+            google.auth.exceptions.MutualTLSChannelError: If mutual TLS transport
+                creation failed for any reason.
+        """
+        super(BigtableTableAdminClient, self).__init__(
+            credentials=credentials,
+            transport=transport,
+            client_options=client_options,
+            client_info=client_info,
+        )
+
     def restore_table(
         self,
         request: Optional[Union[bigtable_table_admin.RestoreTableRequest, dict]] = None,
@@ -334,6 +415,6 @@ class BigtableTableAdminClient(BaseBigtableTableAdminClient):
             generate_consistency_response.consistency_token
         )
 
-        return self.await_consistency(
+        return self.wait_for_consistency(
             check_consistency_request, retry=retry, timeout=timeout, metadata=metadata
         )
