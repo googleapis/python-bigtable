@@ -58,8 +58,11 @@ def test_bigtable_table_admin_client_client_version(transport_class, transport_n
     with mock.patch.object(transport_class, "__init__") as patched:
         patched.return_value = None
         BigtableTableAdminClient(transport=transport_name)
-        transport_init_call = patched.call_args
-        assert transport_init_call.kwargs["client_info"] == DEFAULT_CLIENT_INFO
+
+        # call_args.kwargs is not supported in Python 3.7, so find them from the tuple
+        # instead. It's always the last item in the call_args tuple.
+        transport_init_call_kwargs = patched.call_args[-1]
+        assert transport_init_call_kwargs["client_info"] == DEFAULT_CLIENT_INFO
 
     assert (
         DEFAULT_CLIENT_INFO.client_library_version
