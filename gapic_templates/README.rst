@@ -7,3 +7,11 @@ it is needed for inserting the definition of `OneofMessage` into
 `google/cloud/bigtable/admin_v2/types` to prevent circular import
 issues with having something in that directory import from
 `google/cloud/bigtable/admin_v2/overlay`.
+
+
+Usage
+-----
+
+The contents of this directory will be copied in to `google/cloud/bigtable`.
+As such, create subdirectories in this directory to mirror the final location
+under `google/cloud/bigtable` that your file will be under.
