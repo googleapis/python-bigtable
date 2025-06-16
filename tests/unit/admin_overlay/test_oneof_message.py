@@ -38,6 +38,7 @@ GCRULE_RAW_PROTO_BYTESTRING = b"\x1a\x0c\n\x03\x08\xd2\t\n\x05\x12\x03\x08\xb9`"
 INITIAL_VALUE = 123
 FINAL_VALUE = 456
 
+
 @pytest.fixture
 def default_msg():
     return my_oneof_message.MyOneofMessage()
@@ -66,7 +67,7 @@ def test_oneof_message_setattr_conflict(default_msg, foo_msg):
     with pytest.raises(ValueError):
         default_msg.foo = INITIAL_VALUE
     assert default_msg.bar == INITIAL_VALUE
-    assert not default_msg.foo    
+    assert not default_msg.foo
 
 
 def test_oneof_message_setattr_oneof_same_oneof_field(default_msg, foo_msg):
