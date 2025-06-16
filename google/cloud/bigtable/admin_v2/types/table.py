@@ -19,7 +19,8 @@ from typing import MutableMapping, MutableSequence
 
 import proto  # type: ignore
 
-from google.cloud.bigtable.admin_v2.types import types, oneof_message
+from google.cloud.bigtable.admin_v2.types import types
+from google.cloud.bigtable.admin_v2.types import oneof_message
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
 from google.rpc import status_pb2  # type: ignore

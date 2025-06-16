@@ -18,7 +18,8 @@ from google.protobuf import duration_pb2
 
 import my_oneof_message
 
-import unittest
+import pytest
+
 
 # The following proto bytestring was constructed running printproto in
 # text-to-binary mode on the following textproto for GcRule:
@@ -37,120 +38,126 @@ GCRULE_RAW_PROTO_BYTESTRING = b"\x1a\x0c\n\x03\x08\xd2\t\n\x05\x12\x03\x08\xb9`"
 INITIAL_VALUE = 123
 FINAL_VALUE = 456
 
+@pytest.fixture
+def default_msg():
+    return my_oneof_message.MyOneofMessage()
 
-class TestGenericOneofMessage(unittest.TestCase):
-    def setUp(self):
-        self.default_msg = my_oneof_message.MyOneofMessage()
-        self.foo_msg = my_oneof_message.MyOneofMessage(foo=INITIAL_VALUE)
 
-    def test_setattr_oneof_no_conflict(self):
-        self.default_msg.foo = INITIAL_VALUE
-        self.default_msg.baz = INITIAL_VALUE
-        self.assertEqual(self.default_msg.foo, INITIAL_VALUE)
-        self.assertEqual(self.default_msg.baz, INITIAL_VALUE)
-        self.assertFalse(self.default_msg.bar)
+@pytest.fixture
+def foo_msg():
+    return my_oneof_message.MyOneofMessage(foo=INITIAL_VALUE)
 
-    def test_setattr_oneof_conflict(self):
-        with self.assertRaises(ValueError):
-            self.foo_msg.bar = INITIAL_VALUE
-        self.assertEqual(self.foo_msg.foo, INITIAL_VALUE)
-        self.assertFalse(self.foo_msg.bar)
 
-        self.default_msg.bar = INITIAL_VALUE
-        with self.assertRaises(ValueError):
-            self.default_msg.foo = INITIAL_VALUE
-        self.assertEqual(self.default_msg.bar, INITIAL_VALUE)
-        self.assertFalse(self.default_msg.foo)
+def test_oneof_message_setattr_oneof_no_conflict(default_msg):
+    default_msg.foo = INITIAL_VALUE
+    default_msg.baz = INITIAL_VALUE
+    assert default_msg.foo == INITIAL_VALUE
+    assert default_msg.baz == INITIAL_VALUE
+    assert not default_msg.bar
 
-    def test_setattr_oneof_same_oneof_field(self):
-        self.foo_msg.foo = FINAL_VALUE
-        self.assertEqual(self.foo_msg.foo, FINAL_VALUE)
-        self.assertFalse(self.foo_msg.bar)
 
-        self.default_msg.foo = INITIAL_VALUE
-        self.default_msg.foo = FINAL_VALUE
-        self.assertEqual(self.default_msg.foo, FINAL_VALUE)
+def test_oneof_message_setattr_conflict(default_msg, foo_msg):
+    with pytest.raises(ValueError):
+        foo_msg.bar = INITIAL_VALUE
+    assert foo_msg.foo == INITIAL_VALUE
+    assert not foo_msg.bar
 
-    def test_setattr_oneof_delattr(self):
-        del self.foo_msg.foo
-        self.foo_msg.bar = INITIAL_VALUE
-        self.assertEqual(self.foo_msg.bar, INITIAL_VALUE)
-        self.assertFalse(self.foo_msg.foo)
+    default_msg.bar = INITIAL_VALUE
+    with pytest.raises(ValueError):
+        default_msg.foo = INITIAL_VALUE
+    assert default_msg.bar == INITIAL_VALUE
+    assert not default_msg.foo    
 
-    def test_init_oneof_conflict(self):
-        with self.assertRaises(ValueError):
-            my_oneof_message.MyOneofMessage(foo=INITIAL_VALUE, bar=INITIAL_VALUE)
 
-        with self.assertRaises(ValueError):
-            my_oneof_message.MyOneofMessage(
-                {
-                    "foo": INITIAL_VALUE,
-                    "bar": INITIAL_VALUE,
-                }
-            )
+def test_oneof_message_setattr_oneof_same_oneof_field(default_msg, foo_msg):
+    foo_msg.foo = FINAL_VALUE
+    assert foo_msg.foo == FINAL_VALUE
+    assert not foo_msg.bar
 
-        with self.assertRaises(ValueError):
-            my_oneof_message.MyOneofMessage(self.foo_msg._pb, bar=INITIAL_VALUE)
+    default_msg.bar = INITIAL_VALUE
+    default_msg.bar = FINAL_VALUE
+    assert default_msg.bar == FINAL_VALUE
+    assert not default_msg.foo
 
-        with self.assertRaises(ValueError):
-            my_oneof_message.MyOneofMessage(self.foo_msg, bar=INITIAL_VALUE)
 
-    def test_init_oneof_no_conflict(self):
-        msg = my_oneof_message.MyOneofMessage(foo=INITIAL_VALUE, baz=INITIAL_VALUE)
-        self.assertEqual(msg.foo, INITIAL_VALUE)
-        self.assertEqual(msg.baz, INITIAL_VALUE)
-        self.assertFalse(msg.bar)
+def test_oneof_message_setattr_oneof_delattr(foo_msg):
+    del foo_msg.foo
+    foo_msg.bar = INITIAL_VALUE
+    assert foo_msg.bar == INITIAL_VALUE
+    assert not foo_msg.foo
 
-        msg = my_oneof_message.MyOneofMessage(
+
+def test_oneof_message_init_oneof_conflict(foo_msg):
+    with pytest.raises(ValueError):
+        my_oneof_message.MyOneofMessage(foo=INITIAL_VALUE, bar=INITIAL_VALUE)
+
+    with pytest.raises(ValueError):
+        my_oneof_message.MyOneofMessage(
             {
                 "foo": INITIAL_VALUE,
-                "baz": INITIAL_VALUE,
+                "bar": INITIAL_VALUE,
             }
         )
-        self.assertEqual(msg.foo, INITIAL_VALUE)
-        self.assertEqual(msg.baz, INITIAL_VALUE)
-        self.assertFalse(msg.bar)
 
-        msg = my_oneof_message.MyOneofMessage(self.foo_msg, baz=INITIAL_VALUE)
-        self.assertEqual(msg.foo, INITIAL_VALUE)
-        self.assertEqual(msg.baz, INITIAL_VALUE)
-        self.assertFalse(msg.bar)
+    with pytest.raises(ValueError):
+        my_oneof_message.MyOneofMessage(foo_msg._pb, bar=INITIAL_VALUE)
 
-        msg = my_oneof_message.MyOneofMessage(self.foo_msg._pb, baz=INITIAL_VALUE)
-        self.assertEqual(msg.foo, INITIAL_VALUE)
-        self.assertEqual(msg.baz, INITIAL_VALUE)
-        self.assertFalse(msg.bar)
+    with pytest.raises(ValueError):
+        my_oneof_message.MyOneofMessage(foo_msg, bar=INITIAL_VALUE)
 
-    def test_init_kwargs_override_same_field_oneof(self):
-        # Kwargs take precedence over mapping, and this should be OK
-        msg = my_oneof_message.MyOneofMessage(
-            {
-                "foo": INITIAL_VALUE,
-            },
-            foo=FINAL_VALUE,
+
+def test_oneof_message_init_oneof_no_conflict(foo_msg):
+    msg = my_oneof_message.MyOneofMessage(foo=INITIAL_VALUE, baz=INITIAL_VALUE)
+    assert msg.foo == INITIAL_VALUE
+    assert msg.baz == INITIAL_VALUE
+    assert not msg.bar
+
+    msg = my_oneof_message.MyOneofMessage(
+        {
+            "foo": INITIAL_VALUE,
+            "baz": INITIAL_VALUE,
+        }
+    )
+    assert msg.foo == INITIAL_VALUE
+    assert msg.baz == INITIAL_VALUE
+    assert not msg.bar
+
+    msg = my_oneof_message.MyOneofMessage(foo_msg, baz=INITIAL_VALUE)
+    assert msg.foo == INITIAL_VALUE
+    assert msg.baz == INITIAL_VALUE
+    assert not msg.bar
+
+    msg = my_oneof_message.MyOneofMessage(foo_msg._pb, baz=INITIAL_VALUE)
+    assert msg.foo == INITIAL_VALUE
+    assert msg.baz == INITIAL_VALUE
+    assert not msg.bar
+
+
+def test_oneof_message_init_kwargs_override_same_field_oneof(foo_msg):
+    # Kwargs take precedence over mapping, and this should be OK
+    msg = my_oneof_message.MyOneofMessage(
+        {
+            "foo": INITIAL_VALUE,
+        },
+        foo=FINAL_VALUE,
+    )
+    assert msg.foo == FINAL_VALUE
+
+    msg = my_oneof_message.MyOneofMessage(foo_msg, foo=FINAL_VALUE)
+    assert msg.foo == FINAL_VALUE
+
+    msg = my_oneof_message.MyOneofMessage(foo_msg._pb, foo=FINAL_VALUE)
+    assert msg.foo == FINAL_VALUE
+
+
+def test_gcrule_serialize_deserialize():
+    test = GcRule(
+        intersection=GcRule.Intersection(
+            rules=[
+                GcRule(max_num_versions=1234),
+                GcRule(max_age=duration_pb2.Duration(seconds=12345)),
+            ]
         )
-        self.assertEqual(msg.foo, FINAL_VALUE)
-
-        msg = my_oneof_message.MyOneofMessage(self.foo_msg, foo=FINAL_VALUE)
-        self.assertEqual(msg.foo, FINAL_VALUE)
-
-        msg = my_oneof_message.MyOneofMessage(self.foo_msg._pb, foo=FINAL_VALUE)
-        self.assertEqual(msg.foo, FINAL_VALUE)
-
-
-class TestGcRule(unittest.TestCase):
-    def test_serialize_deserialize(self):
-        test = GcRule(
-            intersection=GcRule.Intersection(
-                rules=[
-                    GcRule(max_num_versions=1234),
-                    GcRule(max_age=duration_pb2.Duration(seconds=12345)),
-                ]
-            )
-        )
-        self.assertEqual(GcRule.serialize(test), GCRULE_RAW_PROTO_BYTESTRING)
-        self.assertEqual(GcRule.deserialize(GCRULE_RAW_PROTO_BYTESTRING), test)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    )
+    assert GcRule.serialize(test) == GCRULE_RAW_PROTO_BYTESTRING
+    assert GcRule.deserialize(GCRULE_RAW_PROTO_BYTESTRING) == test
