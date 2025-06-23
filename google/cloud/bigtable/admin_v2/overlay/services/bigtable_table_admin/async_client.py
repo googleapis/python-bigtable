@@ -61,7 +61,6 @@ from google.cloud.bigtable.gapic_version import __version__ as bigtable_version
 DEFAULT_CLIENT_INFO = copy.copy(base_client.DEFAULT_CLIENT_INFO)
 DEFAULT_CLIENT_INFO.client_library_version = f"{bigtable_version}-admin-overlay-async"
 
-
 class BigtableTableAdminAsyncClient(base_client.BaseBigtableTableAdminAsyncClient):
     def __init__(
         self,
