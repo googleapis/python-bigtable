@@ -21,6 +21,7 @@ except ImportError:  # pragma: NO COVER
 
 import functools
 
+from google.api_core import exceptions
 from google.api_core import gapic_v1
 from google.api_core import retry as retries
 from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import transports
@@ -29,9 +30,14 @@ from google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.client
     BigtableTableAdminClient,
     DEFAULT_CLIENT_INFO,
 )
-from google.cloud.bigtable.admin_v2.overlay.types import consistency, restore_table
+from google.cloud.bigtable.admin_v2.overlay.types import restore_table, wait_for_consistency_request
 
 from google.cloud.bigtable import __version__ as bigtable_version
+
+from test_consistency import (
+    FALSE_CONSISTENCY_RESPONSE,
+    TRUE_CONSISTENCY_RESPONSE,
+)
 
 import pytest
 
@@ -118,109 +124,139 @@ def test_bigtable_table_admin_client_restore_table(kwargs):
 
 
 @pytest.mark.parametrize(
-    "kwargs",
+    "kwargs,check_consistency_request_extras",
     [
-        {
-            "request": bigtable_table_admin.CheckConsistencyRequest(
-                name=TABLE_NAME,
-                consistency_token=CONSISTENCY_TOKEN,
-            )
-        },
-        {
-            "request": {
-                "name": TABLE_NAME,
-                "consistency_token": CONSISTENCY_TOKEN,
+        (
+            {
+                "request": wait_for_consistency_request.WaitForConsistencyRequest(
+                    name=TABLE_NAME,
+                )
             },
-        },
-        {
-            "name": TABLE_NAME,
-            "consistency_token": CONSISTENCY_TOKEN,
-        },
-        {
-            "request": bigtable_table_admin.CheckConsistencyRequest(
-                name=TABLE_NAME,
-                consistency_token=CONSISTENCY_TOKEN,
-            ),
-            "retry": mock.Mock(spec=retries.Retry),
-            "timeout": mock.Mock(spec=retries.Retry),
-            "metadata": [("foo", "bar")],
-        },
+            {},
+        ),
+        (
+            {
+                "request": wait_for_consistency_request.WaitForConsistencyRequest(
+                    name=TABLE_NAME,
+                    standard_read_remote_writes=bigtable_table_admin.StandardReadRemoteWrites(),
+                )
+            },
+            {
+                "standard_read_remote_writes": bigtable_table_admin.StandardReadRemoteWrites(),
+            },
+        ),
+        (
+            {
+                "request": wait_for_consistency_request.WaitForConsistencyRequest(
+                    name=TABLE_NAME,
+                    data_boost_read_local_writes=bigtable_table_admin.DataBoostReadLocalWrites(),
+                )
+            },
+            {
+                "data_boost_read_local_writes": bigtable_table_admin.DataBoostReadLocalWrites(),
+            },
+        ),
+        (
+            {
+                "request": {
+                    "name": TABLE_NAME,
+                    "data_boost_read_local_writes": {},
+                }
+            },
+            {
+                "data_boost_read_local_writes": bigtable_table_admin.DataBoostReadLocalWrites(),
+            },
+        ),
+        (
+            {
+                "name": TABLE_NAME,
+            },
+            {},
+        ),
+        (
+            {
+                "request": wait_for_consistency_request.WaitForConsistencyRequest(
+                    name=TABLE_NAME,
+                ),
+                "retry": mock.Mock(spec=retries.Retry),
+                "timeout": mock.Mock(spec=retries.Retry),
+                "metadata": [("foo", "bar")],
+            },
+            {},
+        ),
     ],
 )
-def test_bigtable_table_admin_client_wait_for_consistency(kwargs):
+def test_bigtable_table_admin_client_wait_for_consistency(kwargs, check_consistency_request_extras):
     client = BigtableTableAdminClient()
-
-    future = client.wait_for_consistency(**kwargs)
-
-    assert isinstance(future, consistency.CheckConsistencyPollingFuture)
-    assert future._default_retry == kwargs.get("retry", gapic_v1.method.DEFAULT)
-
-    check_consistency_call = future._check_consistency_call
-    assert isinstance(check_consistency_call, functools.partial)
-
-    assert check_consistency_call.func == client.check_consistency
-    assert check_consistency_call.args == (kwargs.get("request", None),)
-    assert check_consistency_call.keywords == {
-        "name": kwargs.get("name", None),
-        "consistency_token": kwargs.get("consistency_token", None),
-        "timeout": kwargs.get("timeout", gapic_v1.method.DEFAULT),
-        "metadata": kwargs.get("metadata", ()),
-    }
-
-
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {
-            "request": bigtable_table_admin.GenerateConsistencyTokenRequest(
-                name=TABLE_NAME,
-            )
-        },
-        {
-            "request": {"name": TABLE_NAME},
-        },
-        {
-            "name": TABLE_NAME,
-        },
-        {
-            "request": bigtable_table_admin.GenerateConsistencyTokenRequest(
-                name=TABLE_NAME,
-            ),
-            "retry": mock.Mock(spec=retries.Retry),
-            "timeout": mock.Mock(spec=retries.Retry),
-            "metadata": [("foo", "bar")],
-        },
-    ],
-)
-def test_bigtable_table_admin_client_wait_for_replication(kwargs):
-    client = BigtableTableAdminClient()
+    poll_count = 3
+    check_mock_side_effect = [FALSE_CONSISTENCY_RESPONSE] * (poll_count - 1)
+    check_mock_side_effect.append(TRUE_CONSISTENCY_RESPONSE)
 
     with mock.patch.object(client, "generate_consistency_token") as generate_mock:
-        generate_mock.return_value = (
-            bigtable_table_admin.GenerateConsistencyTokenResponse(
-                consistency_token=CONSISTENCY_TOKEN,
+        with mock.patch.object(client, "check_consistency") as check_mock:
+            generate_mock.return_value = (
+                bigtable_table_admin.GenerateConsistencyTokenResponse(
+                    consistency_token=CONSISTENCY_TOKEN,
+                )
             )
-        )
-        future = client.wait_for_replication(**kwargs)
 
-        expected_check_consistency_request = (
-            bigtable_table_admin.CheckConsistencyRequest(
+            check_mock.side_effect = check_mock_side_effect
+            result = client.wait_for_consistency(**kwargs)
+
+            assert result is True
+
+            generate_mock.assert_called_once_with(
+                bigtable_table_admin.GenerateConsistencyTokenRequest(
+                    name=TABLE_NAME,
+                ),
+                retry=kwargs.get("retry", gapic_v1.method.DEFAULT),
+                timeout=kwargs.get("timeout", gapic_v1.method.DEFAULT),
+                metadata=kwargs.get("metadata", ()),
+            )
+
+            expected_check_consistency_request = bigtable_table_admin.CheckConsistencyRequest(
                 name=TABLE_NAME,
                 consistency_token=CONSISTENCY_TOKEN,
+                **check_consistency_request_extras,
             )
-        )
 
-        assert isinstance(future, consistency.CheckConsistencyPollingFuture)
-        assert future._default_retry == kwargs.get("retry", gapic_v1.method.DEFAULT)
+            check_mock.assert_called_with(
+                    expected_check_consistency_request,
+                    retry=kwargs.get("retry", gapic_v1.method.DEFAULT),
+                    timeout=kwargs.get("timeout", gapic_v1.method.DEFAULT),
+                    metadata=kwargs.get("metadata", ()),
+            )
 
-        check_consistency_call = future._check_consistency_call
-        assert isinstance(check_consistency_call, functools.partial)
 
-        assert check_consistency_call.func == client.check_consistency
-        assert check_consistency_call.args == (expected_check_consistency_request,)
-        assert check_consistency_call.keywords == {
-            "name": None,
-            "consistency_token": None,
-            "timeout": kwargs.get("timeout", gapic_v1.method.DEFAULT),
-            "metadata": kwargs.get("metadata", ()),
-        }
+def test_bigtable_table_admin_client_wait_for_consistency_error_in_call():
+    client = BigtableTableAdminClient()
+    request = wait_for_consistency_request.WaitForConsistencyRequest(
+        name=TABLE_NAME,
+    )
+
+    with pytest.raises(exceptions.GoogleAPICallError):
+        with mock.patch.object(client, "generate_consistency_token") as generate_mock:
+            generate_mock.side_effect = exceptions.DeadlineExceeded("Deadline Exceeded.")
+            client.wait_for_consistency(request)
+    
+
+    with pytest.raises(exceptions.GoogleAPICallError):
+        with mock.patch.object(client, "generate_consistency_token") as generate_mock:
+            with mock.patch.object(client, "check_consistency") as check_mock:
+                generate_mock.return_value = (
+                    bigtable_table_admin.GenerateConsistencyTokenResponse(
+                        consistency_token=CONSISTENCY_TOKEN,
+                    )
+                )
+
+                check_mock.side_effect = exceptions.DeadlineExceeded("Deadline Exceeded.")
+                client.wait_for_consistency(request)
+
+
+def test_bigtable_table_admin_client_wait_for_consistency_user_error():
+    client = BigtableTableAdminClient()
+    with pytest.raises(ValueError):
+        client.wait_for_consistency({
+            "name": TABLE_NAME,
+        },
+        name=TABLE_NAME)

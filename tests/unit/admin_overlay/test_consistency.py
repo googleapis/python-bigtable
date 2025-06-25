@@ -46,7 +46,7 @@ def mock_check_consistency_callable(max_poll_count=1):
 
 def test_check_consistency_future_cancel():
     check_consistency_call = mock_check_consistency_callable()
-    future = consistency.CheckConsistencyPollingFuture(check_consistency_call)
+    future = consistency._CheckConsistencyPollingFuture(check_consistency_call)
     with pytest.raises(NotImplementedError):
         future.cancel()
 
@@ -57,12 +57,12 @@ def test_check_consistency_future_cancel():
 def test_check_consistency_future_result():
     times = 5
     check_consistency_call = mock_check_consistency_callable(times)
-    future = consistency.CheckConsistencyPollingFuture(check_consistency_call)
+    future = consistency._CheckConsistencyPollingFuture(check_consistency_call)
     is_consistent = future.result()
 
     assert is_consistent
     check_consistency_call.assert_has_calls(
-        [mock.call(retry=future._default_retry)] * times
+        [mock.call()] * times
     )
 
     # Check that calling result again doesn't produce more calls.
@@ -70,28 +70,5 @@ def test_check_consistency_future_result():
 
     assert is_consistent
     check_consistency_call.assert_has_calls(
-        [mock.call(retry=future._default_retry)] * times
+        [mock.call()] * times
     )
-
-
-def test_check_consistency_future_result_default_retry():
-    times = 5
-    check_consistency_call = mock_check_consistency_callable(times)
-    retry = mock.Mock(spec=retries.Retry)
-    future = consistency.CheckConsistencyPollingFuture(
-        check_consistency_call, default_retry=retry
-    )
-    is_consistent = future.result()
-
-    assert is_consistent
-    check_consistency_call.assert_has_calls([mock.call(retry=retry)] * times)
-
-
-def test_check_consistency_future_result_different_retry():
-    check_consistency_call = mock.Mock(
-        spec=["__call__"], side_effect=exceptions.DeadlineExceeded("Deadline Exceeded.")
-    )
-    future = consistency.CheckConsistencyPollingFuture(check_consistency_call)
-
-    with pytest.raises(exceptions.DeadlineExceeded):
-        future.result()
