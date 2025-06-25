@@ -61,14 +61,10 @@ def test_check_consistency_future_result():
     is_consistent = future.result()
 
     assert is_consistent
-    check_consistency_call.assert_has_calls(
-        [mock.call()] * times
-    )
+    check_consistency_call.assert_has_calls([mock.call()] * times)
 
     # Check that calling result again doesn't produce more calls.
     is_consistent = future.result()
 
     assert is_consistent
-    check_consistency_call.assert_has_calls(
-        [mock.call()] * times
-    )
+    check_consistency_call.assert_has_calls([mock.call()] * times)

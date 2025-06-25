@@ -228,7 +228,6 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
         )
         return restore_table_operation
 
-
     def wait_for_consistency(
         self,
         request: Optional[
@@ -318,11 +317,12 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
             # request, apply these.
             if name is not None:
                 request.name = name
-        
 
         # Generate the consistency token.
-        generate_consistency_token_request = bigtable_table_admin.GenerateConsistencyTokenRequest(
-            name=request.name,
+        generate_consistency_token_request = (
+            bigtable_table_admin.GenerateConsistencyTokenRequest(
+                name=request.name,
+            )
         )
 
         generate_consistency_response = self.generate_consistency_token(
@@ -335,24 +335,30 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
         # Create the CheckConsistencyRequest object.
         check_consistency_request = bigtable_table_admin.CheckConsistencyRequest(
             name=request.name,
-            consistency_token=generate_consistency_response.consistency_token
+            consistency_token=generate_consistency_response.consistency_token,
         )
 
         # Since the default values of StandardReadRemoteWrites and DataBoostReadLocalWrites evaluate to
         # False in proto plus, we cannot do a simple "if request.standard_read_remote_writes" to check
-        # whether or not that field is defined in the original request object. 
+        # whether or not that field is defined in the original request object.
         mode_oneof_field = request._pb.WhichOneof("mode")
         if mode_oneof_field:
-            setattr(check_consistency_request, mode_oneof_field, getattr(request, mode_oneof_field))
-    
+            setattr(
+                check_consistency_request,
+                mode_oneof_field,
+                getattr(request, mode_oneof_field),
+            )
+
         check_consistency_call = functools.partial(
             self.check_consistency,
             check_consistency_request,
             retry=retry,
             timeout=timeout,
-            metadata=metadata
+            metadata=metadata,
         )
 
         # Block and wait until the polling harness returns True.
-        check_consistency_future = consistency._CheckConsistencyPollingFuture(check_consistency_call)
+        check_consistency_future = consistency._CheckConsistencyPollingFuture(
+            check_consistency_call
+        )
         return check_consistency_future.result()

@@ -30,7 +30,10 @@ from google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.client
     BigtableTableAdminClient,
     DEFAULT_CLIENT_INFO,
 )
-from google.cloud.bigtable.admin_v2.overlay.types import restore_table, wait_for_consistency_request
+from google.cloud.bigtable.admin_v2.overlay.types import (
+    restore_table,
+    wait_for_consistency_request,
+)
 
 from google.cloud.bigtable import __version__ as bigtable_version
 
@@ -186,7 +189,9 @@ def test_bigtable_table_admin_client_restore_table(kwargs):
         ),
     ],
 )
-def test_bigtable_table_admin_client_wait_for_consistency(kwargs, check_consistency_request_extras):
+def test_bigtable_table_admin_client_wait_for_consistency(
+    kwargs, check_consistency_request_extras
+):
     client = BigtableTableAdminClient()
     poll_count = 3
     check_mock_side_effect = [FALSE_CONSISTENCY_RESPONSE] * (poll_count - 1)
@@ -214,17 +219,19 @@ def test_bigtable_table_admin_client_wait_for_consistency(kwargs, check_consiste
                 metadata=kwargs.get("metadata", ()),
             )
 
-            expected_check_consistency_request = bigtable_table_admin.CheckConsistencyRequest(
-                name=TABLE_NAME,
-                consistency_token=CONSISTENCY_TOKEN,
-                **check_consistency_request_extras,
+            expected_check_consistency_request = (
+                bigtable_table_admin.CheckConsistencyRequest(
+                    name=TABLE_NAME,
+                    consistency_token=CONSISTENCY_TOKEN,
+                    **check_consistency_request_extras,
+                )
             )
 
             check_mock.assert_called_with(
-                    expected_check_consistency_request,
-                    retry=kwargs.get("retry", gapic_v1.method.DEFAULT),
-                    timeout=kwargs.get("timeout", gapic_v1.method.DEFAULT),
-                    metadata=kwargs.get("metadata", ()),
+                expected_check_consistency_request,
+                retry=kwargs.get("retry", gapic_v1.method.DEFAULT),
+                timeout=kwargs.get("timeout", gapic_v1.method.DEFAULT),
+                metadata=kwargs.get("metadata", ()),
             )
 
 
@@ -236,9 +243,10 @@ def test_bigtable_table_admin_client_wait_for_consistency_error_in_call():
 
     with pytest.raises(exceptions.GoogleAPICallError):
         with mock.patch.object(client, "generate_consistency_token") as generate_mock:
-            generate_mock.side_effect = exceptions.DeadlineExceeded("Deadline Exceeded.")
+            generate_mock.side_effect = exceptions.DeadlineExceeded(
+                "Deadline Exceeded."
+            )
             client.wait_for_consistency(request)
-    
 
     with pytest.raises(exceptions.GoogleAPICallError):
         with mock.patch.object(client, "generate_consistency_token") as generate_mock:
@@ -249,14 +257,18 @@ def test_bigtable_table_admin_client_wait_for_consistency_error_in_call():
                     )
                 )
 
-                check_mock.side_effect = exceptions.DeadlineExceeded("Deadline Exceeded.")
+                check_mock.side_effect = exceptions.DeadlineExceeded(
+                    "Deadline Exceeded."
+                )
                 client.wait_for_consistency(request)
 
 
 def test_bigtable_table_admin_client_wait_for_consistency_user_error():
     client = BigtableTableAdminClient()
     with pytest.raises(ValueError):
-        client.wait_for_consistency({
-            "name": TABLE_NAME,
-        },
-        name=TABLE_NAME)
+        client.wait_for_consistency(
+            {
+                "name": TABLE_NAME,
+            },
+            name=TABLE_NAME,
+        )

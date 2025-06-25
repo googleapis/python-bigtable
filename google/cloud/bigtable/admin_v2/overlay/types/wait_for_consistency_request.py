@@ -22,8 +22,9 @@ __protobuf__ = proto.module(
     package="google.bigtable.admin.v2",
     manifest={
         "WaitForConsistencyRequest",
-    }
+    },
 )
+
 
 # The WaitForConsistencyRequest object is not a real proto. It is a wrapper
 # class intended for the handwritten method wait_for_consistency. It is
@@ -35,7 +36,7 @@ class WaitForConsistencyRequest(proto.Message):
     """Wrapper class for encapsulating parameters for the `wait_for_consistency` method in both
     :class:`google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.client.BigtableTableAdminClient`
     and :class:`google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.async_client.BigtableTableAdmiAsyncClient`.
-    
+
 
     This message has `oneof`_ fields (mutually exclusive fields).
     For each oneof, at most one member field can be set at the same time.
@@ -64,19 +65,21 @@ class WaitForConsistencyRequest(proto.Message):
 
             This field is a member of `oneof`_ ``mode``.
     """
-    name : str = proto.Field(
-        proto.STRING,
-        number=1
+
+    name: str = proto.Field(proto.STRING, number=1)
+    standard_read_remote_writes: bigtable_table_admin.StandardReadRemoteWrites = (
+        proto.Field(
+            proto.MESSAGE,
+            number=2,
+            oneof="mode",
+            message=bigtable_table_admin.StandardReadRemoteWrites,
+        )
     )
-    standard_read_remote_writes: bigtable_table_admin.StandardReadRemoteWrites = proto.Field(
-        proto.MESSAGE,
-        number=2,
-        oneof="mode",
-        message=bigtable_table_admin.StandardReadRemoteWrites,
-    )
-    data_boost_read_local_writes: bigtable_table_admin.DataBoostReadLocalWrites = proto.Field(
-        proto.MESSAGE,
-        number=3,
-        oneof="mode",
-        message=bigtable_table_admin.DataBoostReadLocalWrites,
+    data_boost_read_local_writes: bigtable_table_admin.DataBoostReadLocalWrites = (
+        proto.Field(
+            proto.MESSAGE,
+            number=3,
+            oneof="mode",
+            message=bigtable_table_admin.DataBoostReadLocalWrites,
+        )
     )
