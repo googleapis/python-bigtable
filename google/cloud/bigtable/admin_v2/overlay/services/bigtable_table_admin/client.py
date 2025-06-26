@@ -298,7 +298,7 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
                 `data_boost_read_local_writes` mode is specified in the request object, returns `True`
                 after reads using an app profile with `DataBoostIsolationReadOnly` can see all writes
                 committed before the token was created.
-        
+
         Raises:
             google.api_core.GoogleAPICallError: If the operation errors or if
                 the timeout is reached before the operation completes.
