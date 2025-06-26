@@ -240,7 +240,8 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
     ) -> bool:
         r"""Blocks until the mutations for the specified Table that have been
-        made before the call have been replicated. This is done by generating
+        made before the call have been replicated or reads using an app profile with `DataBoostIsolationReadOnly`
+        can see all writes committed before the token was created. This is done by generating
         a consistency token for the Table, then polling :meth:`check_consistency`
         for the specified table until the call returns True.
 
