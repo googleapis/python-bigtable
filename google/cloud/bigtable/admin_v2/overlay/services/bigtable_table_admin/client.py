@@ -293,7 +293,15 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
 
         Returns:
             bool:
-                Returns `True` after the mutations of the specified table have been fully replicated
+                If the `standard_read_remote_writes` mode is specified in the request object, returns
+                `True` after the mutations of the specified table have been fully replicated. If the
+                `data_boost_read_local_writes` mode is specified in the request object, returns `True`
+                after reads using an app profile with `DataBoostIsolationReadOnly` can see all writes
+                committed before the token was created.
+        
+        Raises:
+            google.api_core.GoogleAPICallError: If the operation errors or if
+                the timeout is reached before the operation completes.
         """
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
