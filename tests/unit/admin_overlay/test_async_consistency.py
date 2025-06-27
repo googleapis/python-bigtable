@@ -20,8 +20,6 @@ try:
 except ImportError:  # pragma: NO COVER
     import mock
 
-from google.api_core import retry as retries
-from google.api_core import exceptions
 from google.cloud.bigtable.admin_v2.overlay.types import async_consistency
 from google.cloud.bigtable.admin_v2.types import bigtable_table_admin
 
@@ -45,9 +43,9 @@ def async_mock_check_consistency_callable(max_poll_count=1):
     return mock.AsyncMock(spec=["__call__"], side_effect=side_effect)
 
 
-def test_async_check_consistency_future_cancel():
+def test_check_consistency_future_cancel():
     check_consistency_call = async_mock_check_consistency_callable()
-    future = async_consistency.AsyncCheckConsistencyPollingFuture(check_consistency_call)
+    future = async_consistency._AsyncCheckConsistencyPollingFuture(check_consistency_call)
     with pytest.raises(NotImplementedError):
         future.cancel()
 
@@ -56,46 +54,17 @@ def test_async_check_consistency_future_cancel():
 
 
 @pytest.mark.asyncio
-async def test_async_check_consistency_future_result():
+async def test_check_consistency_future_result():
     times = 5
     check_consistency_call = async_mock_check_consistency_callable(times)
-    future = async_consistency.AsyncCheckConsistencyPollingFuture(check_consistency_call)
+    future = async_consistency._AsyncCheckConsistencyPollingFuture(check_consistency_call)
     is_consistent = await future.result()
 
     assert is_consistent
-    check_consistency_call.assert_has_calls(
-        [mock.call(retry=future._check_consistency_call_retry)] * times
-    )
+    check_consistency_call.assert_has_calls([mock.call()] * times)
 
     # Check that calling result again doesn't produce more calls.
     is_consistent = future.result()
 
     assert is_consistent
-    check_consistency_call.assert_has_calls(
-        [mock.call(retry=future._check_consistency_call_retry)] * times
-    )
-
-
-@pytest.mark.asyncio
-async def test_async_check_consistency_future_result_different_retry():
-    times = 5
-    check_consistency_call = async_mock_check_consistency_callable(times)
-    retry = mock.Mock(spec=retries.Retry)
-    future = async_consistency.AsyncCheckConsistencyPollingFuture(
-        check_consistency_call, check_consistency_call_retry=retry
-    )
-    is_consistent = await future.result()
-
-    assert is_consistent
-    check_consistency_call.assert_has_calls([mock.call(retry=retry)] * times)
-
-
-@pytest.mark.asyncio
-async def test_async_check_consistency_future_result_exception():
-    check_consistency_call = mock.Mock(
-        spec=["__call__"], side_effect=exceptions.DeadlineExceeded("Deadline Exceeded.")
-    )
-    future = async_consistency.AsyncCheckConsistencyPollingFuture(check_consistency_call)
-
-    with pytest.raises(exceptions.DeadlineExceeded):
-        await future.result()
+    check_consistency_call.assert_has_calls([mock.call()] * times)

@@ -50,7 +50,7 @@ from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import (
 from google.cloud.bigtable.admin_v2.services.bigtable_table_admin.transports.base import (
     BigtableTableAdminTransport,
 )
-from google.cloud.bigtable.admin_v2.overlay.types import async_consistency
+from google.cloud.bigtable.admin_v2.overlay.types import async_consistency, wait_for_consistency_request
 
 from google.cloud.bigtable.gapic_version import __version__ as bigtable_version
 
@@ -133,20 +133,19 @@ class BigtableTableAdminAsyncClient(base_client.BaseBigtableTableAdminAsyncClien
     async def wait_for_consistency(
         self,
         request: Optional[
-            Union[bigtable_table_admin.CheckConsistencyRequest, dict]
+            Union[wait_for_consistency_request.WaitForConsistencyRequest, dict]
         ] = None,
         *,
         name: Optional[str] = None,
-        consistency_token: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> async_consistency.AsyncCheckConsistencyPollingFuture:
-        r"""Creates a polling future that periodically checks replication
-        consistency based on a consistency token, that is, if replication
-        has caught up based on the conditions specified in the token and
-        the check request. The future will stop checking once the underlying
-        :meth:`check_consistency` request involving that token returns True.
+    ) -> bool:
+        r"""Blocks until the mutations for the specified Table that have been
+        made before the call have been replicated or reads using an app profile with `DataBoostIsolationReadOnly`
+        can see all writes committed before the token was created. This is done by generating
+        a consistency token for the Table, then polling :meth:`check_consistency`
+        for the specified table until the call returns True.
 
         .. code-block:: python
 
@@ -160,42 +159,30 @@ class BigtableTableAdminAsyncClient(base_client.BaseBigtableTableAdminAsyncClien
 
             def sample_wait_for_consistency():
                 # Create a client
-                client = admin_v2.BigtableTableAdminClient()
+                client = admin_v2.BigtableTableAdminAsyncClient()
 
                 # Initialize request argument(s)
-                request = admin_v2.CheckConsistencyRequest(
+                request = admin_v2.WaitForConsistencyRequest(
                     name="name_value",
-                    consistency_token="consistency_token_value",
                 )
 
                 # Make the request
-                future = client.wait_for_consistency(request=request)
-
-                # Wait for the table to become consistent
                 print("Waiting for operation to complete...")
 
-                response = future.result()
+                response = await client.wait_for_replication(request=request)
 
                 # Handle the response
                 print(response)
 
         Args:
-            request (Union[google.cloud.bigtable.admin_v2.types.CheckConsistencyRequest, dict]):
-                The request object. Request message for
-                [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
+            request (Union[google.cloud.bigtable.admin_v2.overlay.types.WaitForConsistencyRequest, dict]):
+                The request object.
             name (str):
                 Required. The unique name of the Table for which to
-                check replication consistency. Values are of the form
+                create a consistency token. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
 
                 This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            consistency_token (str):
-                Required. The token created using
-                GenerateConsistencyToken for the Table.
-
-                This corresponds to the ``consistency_token`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
@@ -207,22 +194,83 @@ class BigtableTableAdminAsyncClient(base_client.BaseBigtableTableAdminAsyncClien
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable.admin_v2.overlay.types.async_consistency.AsyncCheckConsistencyPollingFuture:
-                An object representing a polling future.
+            bool:
+                If the `standard_read_remote_writes` mode is specified in the request object, returns
+                `True` after the mutations of the specified table have been fully replicated. If the
+                `data_boost_read_local_writes` mode is specified in the request object, returns `True`
+                after reads using an app profile with `DataBoostIsolationReadOnly` can see all writes
+                committed before the token was created.
 
-                The result type for the operation will be `bool`, and will return True when the
-                consistency check involving the given consistency token returns True.
+        Raises:
+            google.api_core.GoogleAPICallError: If the operation errors or if
+                the timeout is reached before the operation completes.
         """
-        api_call = functools.partial(
-            self.check_consistency,
-            request,
-            name=name,
-            consistency_token=consistency_token,
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(
+            request, wait_for_consistency_request.WaitForConsistencyRequest
+        ):
+            request = wait_for_consistency_request.WaitForConsistencyRequest(request)
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
+
+        # Generate the consistency token.
+        generate_consistency_token_request = (
+            bigtable_table_admin.GenerateConsistencyTokenRequest(
+                name=request.name,
+            )
+        )
+
+        generate_consistency_response = await self.generate_consistency_token(
+            generate_consistency_token_request,
+            retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
 
-        return async_consistency.AsyncCheckConsistencyPollingFuture(
-            api_call,
-            check_consistency_call_retry=retry
+        # Create the CheckConsistencyRequest object.
+        check_consistency_request = bigtable_table_admin.CheckConsistencyRequest(
+            name=request.name,
+            consistency_token=generate_consistency_response.consistency_token,
         )
+
+        # Since the default values of StandardReadRemoteWrites and DataBoostReadLocalWrites evaluate to
+        # False in proto plus, we cannot do a simple "if request.standard_read_remote_writes" to check
+        # whether or not that field is defined in the original request object.
+        mode_oneof_field = request._pb.WhichOneof("mode")
+        if mode_oneof_field:
+            setattr(
+                check_consistency_request,
+                mode_oneof_field,
+                getattr(request, mode_oneof_field),
+            )
+
+        check_consistency_call = functools.partial(
+            self.check_consistency,
+            check_consistency_request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Block and wait until the polling harness returns True.
+        check_consistency_future = async_consistency._AsyncCheckConsistencyPollingFuture(
+            check_consistency_call
+        )
+        return (await check_consistency_future.result())
+
