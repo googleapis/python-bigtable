@@ -31,7 +31,6 @@
 
 from .types import (
     RestoreTableOperation,
-    CheckConsistencyPollingFuture,
 )
 
 from .services.bigtable_table_admin import (
@@ -40,6 +39,5 @@ from .services.bigtable_table_admin import (
 
 __all__ = (
     "RestoreTableOperation",
-    "CheckConsistencyPollingFuture",
     "BigtableTableAdminClient",
 )

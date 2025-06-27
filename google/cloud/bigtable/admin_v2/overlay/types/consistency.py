@@ -25,7 +25,7 @@ except AttributeError:  # pragma: NO COVER
     OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
 
-class CheckConsistencyPollingFuture(polling.PollingFuture):
+class _CheckConsistencyPollingFuture(polling.PollingFuture):
     """A Future that polls an underlying `check_consistency` operation until it returns True.
 
     **This class should not be instantiated by users** and should only be instantiated by the admin
@@ -41,13 +41,8 @@ class CheckConsistencyPollingFuture(polling.PollingFuture):
             google.cloud.bigtable.admin_v2.types.CheckConsistencyResponse]):
             A :meth:`check_consistency
             <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.check_consistency>`
-            call from the admin client. The call should fix every user parameter except for retry,
+            call from the admin client. The call should fix every user parameter,
             which will be done via :meth:`functools.partial`.
-        default_retry(Optional[google.api_core.retry.Retry]): The `retry` parameter passed in to either
-            :meth:`wait_for_consistency
-            <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_consistency>`
-            or :meth:`wait_for_replication
-            <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_replication>`
         polling (google.api_core.retry.Retry): The configuration used for polling.
             This parameter controls how often :meth:`done` is polled. If the
             ``timeout`` argument is specified in the :meth:`result
@@ -60,17 +55,15 @@ class CheckConsistencyPollingFuture(polling.PollingFuture):
         check_consistency_call: Callable[
             [OptionalRetry], bigtable_table_admin.CheckConsistencyResponse
         ],
-        default_retry: OptionalRetry = gapic_v1.method.DEFAULT,
         polling: retries.Retry = polling.DEFAULT_POLLING,
         **kwargs
     ):
-        super(CheckConsistencyPollingFuture, self).__init__(polling=polling, **kwargs)
+        super(_CheckConsistencyPollingFuture, self).__init__(polling=polling, **kwargs)
 
         # Done is called with two different scenarios, retry is specified or not specified.
         # API_call will be a functools partial with everything except retry specified because of
         # that.
         self._check_consistency_call = check_consistency_call
-        self._default_retry = default_retry
 
     def done(self, retry: OptionalRetry = None):
         """Polls the underlying `check_consistency` call to see if the future is complete.
@@ -92,10 +85,8 @@ class CheckConsistencyPollingFuture(polling.PollingFuture):
         if self._result_set:
             return True
 
-        retry = retry or self._default_retry
-
         try:
-            check_consistency_response = self._check_consistency_call(retry=retry)
+            check_consistency_response = self._check_consistency_call()
             if check_consistency_response.consistent:
                 self.set_result(True)
 
