@@ -19,8 +19,6 @@ try:
 except ImportError:  # pragma: NO COVER
     import mock
 
-import functools
-
 from google.api_core import exceptions
 from google.api_core import gapic_v1
 from google.api_core import retry as retries

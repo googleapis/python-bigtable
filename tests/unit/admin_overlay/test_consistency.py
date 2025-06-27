@@ -19,8 +19,6 @@ try:
 except ImportError:  # pragma: NO COVER
     import mock
 
-from google.api_core import retry as retries
-from google.api_core import exceptions
 from google.cloud.bigtable.admin_v2.overlay.types import consistency
 from google.cloud.bigtable.admin_v2.types import bigtable_table_admin
 
