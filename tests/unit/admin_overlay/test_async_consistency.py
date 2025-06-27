@@ -45,7 +45,9 @@ def async_mock_check_consistency_callable(max_poll_count=1):
 
 def test_check_consistency_future_cancel():
     check_consistency_call = async_mock_check_consistency_callable()
-    future = async_consistency._AsyncCheckConsistencyPollingFuture(check_consistency_call)
+    future = async_consistency._AsyncCheckConsistencyPollingFuture(
+        check_consistency_call
+    )
     with pytest.raises(NotImplementedError):
         future.cancel()
 
@@ -57,7 +59,9 @@ def test_check_consistency_future_cancel():
 async def test_check_consistency_future_result():
     times = 5
     check_consistency_call = async_mock_check_consistency_callable(times)
-    future = async_consistency._AsyncCheckConsistencyPollingFuture(check_consistency_call)
+    future = async_consistency._AsyncCheckConsistencyPollingFuture(
+        check_consistency_call
+    )
     is_consistent = await future.result()
 
     assert is_consistent

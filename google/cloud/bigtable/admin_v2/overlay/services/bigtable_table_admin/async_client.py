@@ -50,13 +50,17 @@ from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import (
 from google.cloud.bigtable.admin_v2.services.bigtable_table_admin.transports.base import (
     BigtableTableAdminTransport,
 )
-from google.cloud.bigtable.admin_v2.overlay.types import async_consistency, wait_for_consistency_request
+from google.cloud.bigtable.admin_v2.overlay.types import (
+    async_consistency,
+    wait_for_consistency_request,
+)
 
 from google.cloud.bigtable.gapic_version import __version__ as bigtable_version
 
 
 DEFAULT_CLIENT_INFO = copy.copy(base_client.DEFAULT_CLIENT_INFO)
 DEFAULT_CLIENT_INFO.client_library_version = f"{bigtable_version}-admin-overlay-async"
+
 
 class BigtableTableAdminAsyncClient(base_client.BaseBigtableTableAdminAsyncClient):
     def __init__(
@@ -128,7 +132,6 @@ class BigtableTableAdminAsyncClient(base_client.BaseBigtableTableAdminAsyncClien
             client_options=client_options,
             client_info=client_info,
         )
-
 
     async def wait_for_consistency(
         self,
@@ -269,8 +272,9 @@ class BigtableTableAdminAsyncClient(base_client.BaseBigtableTableAdminAsyncClien
         )
 
         # Block and wait until the polling harness returns True.
-        check_consistency_future = async_consistency._AsyncCheckConsistencyPollingFuture(
-            check_consistency_call
+        check_consistency_future = (
+            async_consistency._AsyncCheckConsistencyPollingFuture(
+                check_consistency_call
+            )
         )
-        return (await check_consistency_future.result())
-
+        return await check_consistency_future.result()

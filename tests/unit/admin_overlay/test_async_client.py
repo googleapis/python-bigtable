@@ -55,7 +55,9 @@ CONSISTENCY_TOKEN = "abcdefg"
         ),
     ],
 )
-def test_bigtable_table_admin_async_client_client_version(transport_class, transport_name):
+def test_bigtable_table_admin_async_client_client_version(
+    transport_class, transport_name
+):
     with mock.patch.object(transport_class, "__init__") as patched:
         patched.return_value = None
         BigtableTableAdminAsyncClient(transport=transport_name)
@@ -143,8 +145,12 @@ async def test_bigtable_table_admin_async_client_wait_for_consistency(
     check_mock_side_effect = [FALSE_CONSISTENCY_RESPONSE] * (poll_count - 1)
     check_mock_side_effect.append(TRUE_CONSISTENCY_RESPONSE)
 
-    with mock.patch.object(client, "generate_consistency_token", new_callable=mock.AsyncMock) as generate_mock:
-        with mock.patch.object(client, "check_consistency", new_callable=mock.AsyncMock) as check_mock:
+    with mock.patch.object(
+        client, "generate_consistency_token", new_callable=mock.AsyncMock
+    ) as generate_mock:
+        with mock.patch.object(
+            client, "check_consistency", new_callable=mock.AsyncMock
+        ) as check_mock:
             generate_mock.return_value = (
                 bigtable_table_admin.GenerateConsistencyTokenResponse(
                     consistency_token=CONSISTENCY_TOKEN,
@@ -189,15 +195,21 @@ async def test_bigtable_table_admin_async_client_wait_for_consistency_error_in_c
     )
 
     with pytest.raises(exceptions.GoogleAPICallError):
-        with mock.patch.object(client, "generate_consistency_token", new_callable=mock.AsyncMock) as generate_mock:
+        with mock.patch.object(
+            client, "generate_consistency_token", new_callable=mock.AsyncMock
+        ) as generate_mock:
             generate_mock.side_effect = exceptions.DeadlineExceeded(
                 "Deadline Exceeded."
             )
             await client.wait_for_consistency(request)
 
     with pytest.raises(exceptions.GoogleAPICallError):
-        with mock.patch.object(client, "generate_consistency_token", new_callable=mock.AsyncMock) as generate_mock:
-            with mock.patch.object(client, "check_consistency", new_callable=mock.AsyncMock) as check_mock:
+        with mock.patch.object(
+            client, "generate_consistency_token", new_callable=mock.AsyncMock
+        ) as generate_mock:
+            with mock.patch.object(
+                client, "check_consistency", new_callable=mock.AsyncMock
+            ) as check_mock:
                 generate_mock.return_value = (
                     bigtable_table_admin.GenerateConsistencyTokenResponse(
                         consistency_token=CONSISTENCY_TOKEN,
