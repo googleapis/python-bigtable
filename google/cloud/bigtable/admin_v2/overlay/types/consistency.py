@@ -68,10 +68,6 @@ class _CheckConsistencyPollingFuture(polling.PollingFuture):
     def done(self, retry: OptionalRetry = None):
         """Polls the underlying `check_consistency` call to see if the future is complete.
 
-        This should not be used by the user to wait until the `check_consistency` call finishes;
-        use the :meth:`result <google.api_core.future.polling.PollingFuture.result>` method of
-        this class instead.
-
         Args:
             retry (google.api_core.retry.Retry): (Optional) How to retry the
                 polling RPC (to not be confused with polling configuration. See

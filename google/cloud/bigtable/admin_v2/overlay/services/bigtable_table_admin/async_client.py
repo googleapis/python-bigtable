@@ -35,9 +35,9 @@ from google.api_core import gapic_v1
 from google.api_core import retry as retries
 
 try:
-    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
+    OptionalRetry = Union[retries.AsyncRetry, gapic_v1.method._MethodDefault, None]
 except AttributeError:  # pragma: NO COVER
-    OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
+    OptionalRetry = Union[retries.AsyncRetry, object, None]  # type: ignore
 
 from google.api_core import client_options as client_options_lib
 from google.auth import credentials as ga_credentials  # type: ignore
@@ -160,7 +160,7 @@ class BigtableTableAdminAsyncClient(base_client.BaseBigtableTableAdminAsyncClien
             #   https://googleapis.dev/python/google-api-core/latest/client_options.html
             from google.cloud.bigtable import admin_v2
 
-            def sample_wait_for_consistency():
+            async def sample_wait_for_consistency():
                 # Create a client
                 client = admin_v2.BigtableTableAdminAsyncClient()
 
