@@ -725,7 +725,7 @@ class TestAddToCell:
 
     @pytest.mark.parametrize("input_val", ["", "a", "abc", "hello world!"])
     def test_ctor_str_value(self, input_val):
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(TypeError) as e:
             self._make_one(family="f", qualifier=b"b", value=input_val)
         assert "value must be int" in str(e.value)
 
@@ -744,13 +744,10 @@ class TestAddToCell:
         assert instance.timestamp_micros == expected_timestamp
 
     def test_ctor_negative_timestamp(self):
-        """Only positive or -1 timestamps are valid"""
+        """Only positive timestamps are valid"""
         with pytest.raises(ValueError) as e:
-            self._make_one("test-family", b"test-qualifier", b"test-value", -2)
-        assert (
-            "timestamp_micros must be positive (or -1 for server-side timestamp)"
-            in str(e.value)
-        )
+            self._make_one("test-family", b"test-qualifier", 1234, -2)
+        assert "timestamp must be positive" in str(e.value)
 
     @pytest.mark.parametrize(
         "timestamp_ns,expected_timestamp_micros",
@@ -787,8 +784,8 @@ class TestAddToCell:
         got_inner_dict = got_dict["add_to_cell"]
         assert got_inner_dict["family_name"] == expected_family
         assert got_inner_dict["column_qualifier"]["raw_value"] == expected_qualifier
-        assert got_inner_dict["timestamp_micros"]["raw_timestamp_micros"] == expected_timestamp
-        assert got_inner_dict["value"]["int_value"] == expected_value
+        assert got_inner_dict["timestamp"]["raw_timestamp_micros"] == expected_timestamp
+        assert got_inner_dict["input"]["int_value"] == expected_value
         assert len(got_inner_dict.keys()) == 4
 
     def test__to_pb(self):
@@ -806,8 +803,8 @@ class TestAddToCell:
         assert isinstance(got_pb, data_pb.Mutation)
         assert got_pb.set_cell.family_name == expected_family
         assert got_pb.set_cell.column_qualifier.raw_value == expected_qualifier
-        assert got_pb.set_cell.timestamp_micros.raw_timestamp_micros == expected_timestamp
-        assert got_pb.set_cell.value.int_value == expected_value
+        assert got_pb.set_cell.timestamp.raw_timestamp_micros == expected_timestamp
+        assert got_pb.set_cell.input.int_value == expected_value
 
     @pytest.mark.parametrize(
         "timestamp",
@@ -819,18 +816,14 @@ class TestAddToCell:
             (None),
         ],
     )
-    def test_is_idempotent(self, timestamp, expected_value):
-        """is_idempotent is not based on whether an explicit timestamp is set"""
-        instance = self._make_one(
-            "test-family", b"test-qualifier", 1234, timestamp
-        )
+    def test_is_idempotent(self, timestamp):
+        """is_idempotent is not based on the timestamp"""
+        instance = self._make_one("test-family", b"test-qualifier", 1234, timestamp)
         assert not instance.is_idempotent()
 
     def test___str__(self):
         """Str representation of mutations should be to_dict"""
-        instance = self._make_one(
-            "test-family", b"test-qualifier", 1234, 1234567890
-        )
+        instance = self._make_one("test-family", b"test-qualifier", 1234, 1234567890)
         str_value = instance.__str__()
         dict_value = instance._to_dict()
         assert str_value == str(dict_value)

@@ -307,7 +307,7 @@ class AddToCell(Mutation):
         family: str,
         qualifier: bytes | str,
         value: int,
-        timestamp_micros: int | None = None,
+        timestamp: int | None = None,
     ):
         qualifier = qualifier.encode() if isinstance(qualifier, str) else qualifier
         if not isinstance(qualifier, bytes):
@@ -319,22 +319,25 @@ class AddToCell(Mutation):
                 "int values must be between -2**63 and 2**63 (64-bit signed int)"
             )
 
-        if timestamp_micros is None:
+        if timestamp is None:
             # use current timestamp, with milisecond precision
-            timestamp_micros = time.time_ns() // 1000
-            timestamp_micros = timestamp_micros - (timestamp_micros % 1000)
+            timestamp = time.time_ns() // 1000
+            timestamp = timestamp - (timestamp % 1000)
+
+        if timestamp < 0:
+            raise ValueError("timestamp must be positive")
 
         self.family = family
         self.qualifier = qualifier
         self.value = value
-        self.timestamp_micros = timestamp_micros
+        self.timestamp = timestamp
 
     def _to_dict(self) -> dict[str, Any]:
         return {
             "add_to_cell": {
                 "family_name": self.family,
                 "column_qualifier": {"raw_value": self.qualifier},
-                "timestamp": {"raw_timestamp_micros": self.timestamp_micros},
+                "timestamp": {"raw_timestamp_micros": self.timestamp},
                 "input": {"int_value": self.value},
             }
         }
