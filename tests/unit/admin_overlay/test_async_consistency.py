@@ -16,7 +16,7 @@
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock  # pragma: NO COVER
+    from unittest.mock import AsyncMock  # pragma: NO COVER  # noqa: F401
 except ImportError:  # pragma: NO COVER
     import mock
 
