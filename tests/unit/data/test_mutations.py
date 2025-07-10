@@ -741,7 +741,7 @@ class TestAddToCell:
         assert instance.family == expected_family
         assert instance.qualifier == expected_qualifier
         assert instance.value == expected_value
-        assert instance.timestamp_micros == expected_timestamp
+        assert instance.timestamp == expected_timestamp
 
     def test_ctor_negative_timestamp(self):
         """Only positive timestamps are valid"""
@@ -768,7 +768,7 @@ class TestAddToCell:
         """If no timestamp is given, should use current time with millisecond precision"""
         with mock.patch("time.time_ns", return_value=timestamp_ns):
             instance = self._make_one("test-family", b"test-qualifier", 1234)
-            assert instance.timestamp_micros == expected_timestamp_micros
+            assert instance.timestamp == expected_timestamp_micros
 
     def test__to_dict(self):
         """ensure dict representation is as expected"""
@@ -801,10 +801,10 @@ class TestAddToCell:
         )
         got_pb = instance._to_pb()
         assert isinstance(got_pb, data_pb.Mutation)
-        assert got_pb.set_cell.family_name == expected_family
-        assert got_pb.set_cell.column_qualifier.raw_value == expected_qualifier
-        assert got_pb.set_cell.timestamp.raw_timestamp_micros == expected_timestamp
-        assert got_pb.set_cell.input.int_value == expected_value
+        assert got_pb.add_to_cell.family_name == expected_family
+        assert got_pb.add_to_cell.column_qualifier.raw_value == expected_qualifier
+        assert got_pb.add_to_cell.timestamp.raw_timestamp_micros == expected_timestamp
+        assert got_pb.add_to_cell.input.int_value == expected_value
 
     @pytest.mark.parametrize(
         "timestamp",
@@ -812,7 +812,6 @@ class TestAddToCell:
             (1234567890),
             (1),
             (0),
-            (-1),
             (None),
         ],
     )
