@@ -15,13 +15,13 @@
 from typing import Optional
 
 from google.api_core import exceptions
-from google.api_core import operation
+from google.api_core import operation_async
 from google.protobuf import empty_pb2
 
 from google.cloud.bigtable.admin_v2.types import OptimizeRestoredTableMetadata
 
 
-class RestoreTableOperation(operation.Operation):
+class AsyncRestoreTableOperation(operation_async.AsyncOperation):
     """A Future for interacting with Bigtable Admin's RestoreTable Long-Running Operation.
 
     This is needed to expose a potential long-running operation that might run after this operation
@@ -30,17 +30,20 @@ class RestoreTableOperation(operation.Operation):
 
     **This class should not be instantiated by users** and should only be instantiated by the admin
     client's :meth:`restore_table
-    <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.restore_table>`
+    <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminAsyncClient.restore_table>`
     method.
 
     Args:
         operations_client (google.api_core.operations_v1.AbstractOperationsClient): The operations
             client from the admin client class's transport.
-        restore_table_operation (google.api_core.operation.Operation): A :class:`google.api_core.operation.Operation`
+        restore_table_operation (google.api_core.operation_async.AsyncOperation): A
+            :class:`google.api_core.operation_async.AsyncOperation`
             instance resembling a RestoreTable long-running operation
     """
 
-    def __init__(self, operations_client, restore_table_operation: operation.Operation):
+    def __init__(
+        self, operations_client, restore_table_operation: operation_async.AsyncOperation
+    ):
         self._operations_client = operations_client
         self._optimize_restored_table_operation = None
         super().__init__(
@@ -49,34 +52,26 @@ class RestoreTableOperation(operation.Operation):
             restore_table_operation._cancel,
             restore_table_operation._result_type,
             restore_table_operation._metadata_type,
-            polling=restore_table_operation._polling,
+            retry=restore_table_operation._retry,
         )
 
-    def optimize_restored_table_operation(self) -> Optional[operation.Operation]:
+    async def optimize_restored_table_operation(
+        self,
+    ) -> Optional[operation_async.AsyncOperation]:
         """Gets the OptimizeRestoredTable long-running operation that runs after this operation finishes.
-
-        This must not be called before the parent restore_table operation is complete. You can guarantee
-        this happening by calling this function after this class's :meth:`google.api_core.operation.Operation.result`
-        method.
-
-        The follow-up operation has
-        :attr:`metadata <google.api_core.operation.Operation.metadata>` type
-        :class:`OptimizeRestoredTableMetadata
-        <google.cloud.bigtable.admin_v2.types.bigtable_table_admin.OptimizeRestoredTableMetadata>`
-        and no return value, but can be waited for with `result`.
-
         The current operation might not trigger a follow-up OptimizeRestoredTable operation, in which case, this
         method will return `None`.
-
+        This method must not be called before the parent restore_table operation is complete.
         Returns:
-            Optional[google.api_core.operation.Operation]:
-                An object representing a long-running operation, or None if there is no OptimizeRestoredTable operation
+            An object representing a long-running operation, or None if there is no OptimizeRestoredTable operation
                 after this one.
+        Raises:
+            RuntimeError: raised when accessed before the restore_table operation is complete
 
         Raises:
             google.api_core.GoogleAPIError: raised when accessed before the restore_table operation is complete
         """
-        if not self.done():
+        if not await self.done():
             raise exceptions.GoogleAPIError(
                 "optimize_restored_table operation can't be accessed until the restore_table operation is complete"
             )
@@ -89,8 +84,10 @@ class RestoreTableOperation(operation.Operation):
         # When the RestoreTable operation finishes, it might not necessarily trigger
         # an optimize operation.
         if operation_name:
-            gapic_operation = self._operations_client.get_operation(name=operation_name)
-            self._optimize_restored_table_operation = operation.from_gapic(
+            gapic_operation = await self._operations_client.get_operation(
+                name=operation_name
+            )
+            self._optimize_restored_table_operation = operation_async.from_gapic(
                 gapic_operation,
                 self._operations_client,
                 empty_pb2.Empty,
