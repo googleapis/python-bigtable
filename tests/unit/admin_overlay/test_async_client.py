@@ -16,7 +16,7 @@
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock  # pragma: NO COVER
+    from unittest.mock import AsyncMock  # pragma: NO COVER  # noqa: F401
 except ImportError:  # pragma: NO COVER
     import mock
 
@@ -29,7 +29,10 @@ from google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.async_
     BigtableTableAdminAsyncClient,
     DEFAULT_CLIENT_INFO,
 )
-from google.cloud.bigtable.admin_v2.overlay.types import wait_for_consistency_request
+from google.cloud.bigtable.admin_v2.overlay.types import (
+    async_restore_table,
+    wait_for_consistency_request,
+)
 
 from google.cloud.bigtable import __version__ as bigtable_version
 
@@ -71,6 +74,60 @@ def test_bigtable_table_admin_async_client_client_version(
         DEFAULT_CLIENT_INFO.client_library_version
         == f"{bigtable_version}-admin-overlay-async"
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {
+            "request": bigtable_table_admin.RestoreTableRequest(
+                parent=PARENT_NAME,
+                table_id=TABLE_NAME,
+            )
+        },
+        {
+            "request": {
+                "parent": PARENT_NAME,
+                "table_id": TABLE_NAME,
+            },
+        },
+        {
+            "request": bigtable_table_admin.RestoreTableRequest(
+                parent=PARENT_NAME,
+                table_id=TABLE_NAME,
+            ),
+            "retry": mock.Mock(spec=retries.Retry),
+            "timeout": mock.Mock(spec=retries.Retry),
+            "metadata": [("foo", "bar")],
+        },
+    ],
+)
+async def test_bigtable_table_admin_async_client_restore_table(kwargs):
+    client = BigtableTableAdminAsyncClient()
+
+    with mock.patch.object(
+        async_restore_table, "AsyncRestoreTableOperation", new_callable=mock.AsyncMock
+    ) as future_mock:
+        with mock.patch.object(
+            client._client, "_transport", new_callable=mock.AsyncMock
+        ) as transport_mock:
+            with mock.patch.object(
+                client, "_restore_table", new_callable=mock.AsyncMock
+            ) as restore_table_mock:
+                operation_mock = mock.Mock()
+                restore_table_mock.return_value = operation_mock
+                await client.restore_table(**kwargs)
+
+                restore_table_mock.assert_called_once_with(
+                    request=kwargs["request"],
+                    retry=kwargs.get("retry", gapic_v1.method.DEFAULT),
+                    timeout=kwargs.get("timeout", gapic_v1.method.DEFAULT),
+                    metadata=kwargs.get("metadata", ()),
+                )
+                future_mock.assert_called_once_with(
+                    transport_mock.operations_client, operation_mock
+                )
 
 
 @pytest.mark.asyncio

@@ -52,6 +52,7 @@ from google.cloud.bigtable.admin_v2.services.bigtable_table_admin.transports.bas
 )
 from google.cloud.bigtable.admin_v2.overlay.types import (
     async_consistency,
+    async_restore_table,
     wait_for_consistency_request,
 )
 
@@ -132,6 +133,100 @@ class BigtableTableAdminAsyncClient(base_client.BaseBigtableTableAdminAsyncClien
             client_options=client_options,
             client_info=client_info,
         )
+
+    async def restore_table(
+        self,
+        request: Optional[Union[bigtable_table_admin.RestoreTableRequest, dict]] = None,
+        *,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> async_restore_table.AsyncRestoreTableOperation:
+        r"""Create a new table by restoring from a completed backup. The
+        returned table :class:`long-running operation
+        <google.cloud.bigtable.admin_v2.overlay.types.restore_table.RestoreTableOperation>`
+        can be used to track the progress of the operation, and to cancel it. The
+        :attr:`metadata <google.api_core.operation.Operation.metadata>` field type is
+        :class:`RestoreTableMetadata <google.cloud.bigtable.admin_v2.types.RestoreTableMetadata>`.
+        The :meth:`response <google.api_core.operation.Operation.result>` type is
+        :class:`google.cloud.bigtable.admin_v2.types.Table`, if successful.
+
+        Additionally, the returned :class:`long-running-operation <google.cloud.bigtable.admin_v2.overlay.types.async_restore_table.AsyncRestoreTableOperation>`
+        provides a method, :meth:`google.cloud.bigtable.admin_v2.overlay.types.async_restore_table.AsyncRestoreTableOperation.optimize_restore_table_operation` that
+        provides access to a :class:`google.api_core.operation_async.AsyncOperation` object representing the OptimizeRestoreTable long-running-operation
+        after the current one has completed.
+
+        .. code-block:: python
+
+            # This snippet should be regarded as a code template only.
+            #
+            # It will require modifications to work:
+            # - It may require correct/in-range values for request initialization.
+            # - It may require specifying regional endpoints when creating the service
+            #   client as shown in:
+            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
+            from google.cloud.bigtable import admin_v2
+
+            async def sample_restore_table():
+                # Create a client
+                client = admin_v2.BigtableTableAdminAsyncClient()
+
+                # Initialize request argument(s)
+                request = admin_v2.RestoreTableRequest(
+                    backup="backup_value",
+                    parent="parent_value",
+                    table_id="table_id_value",
+                )
+
+                # Make the request
+                operation = await client.restore_table(request=request)
+
+                print("Waiting for operation to complete...")
+
+                response = await operation.result()
+
+                # Handle the response
+                print(response)
+
+                # Handle LRO2
+                optimize_operation = await operation.optimize_restore_table_operation()
+
+                if optimize_operation:
+                    print("Waiting for table optimization to complete...")
+
+                    response = await optimize_operation.result()
+
+        Args:
+            request (Union[google.cloud.bigtable.admin_v2.types.RestoreTableRequest, dict]):
+                The request object. The request for
+                [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin_v2.overlay.types.async_restore_table.AsyncRestoreTableOperation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be :class:`google.cloud.bigtable.admin_v2.types.Table` A collection of user data indexed by row, column, and timestamp.
+                   Each table is served using the resources of its
+                   parent cluster.
+        """
+        operation = await self._restore_table(
+            request=request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        restore_table_operation = async_restore_table.AsyncRestoreTableOperation(
+            self._client._transport.operations_client, operation
+        )
+        return restore_table_operation
 
     async def wait_for_consistency(
         self,
