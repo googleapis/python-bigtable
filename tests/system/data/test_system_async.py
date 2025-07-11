@@ -27,7 +27,7 @@ from google.type import date_pb2
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
-from . import TEST_FAMILY, TEST_FAMILY_2
+from . import TEST_FAMILY, TEST_FAMILY_2, TEST_AGGREGATE_FAMILY
 
 
 __CROSS_SYNC_OUTPUT__ = "tests.system.data.test_system_autogen"
@@ -69,6 +69,27 @@ class TempRowBuilderAsync:
                         "family_name": family,
                         "column_qualifier": qualifier,
                         "value": value,
+                    }
+                }
+            ],
+        }
+        await self.target.client._gapic_client.mutate_row(request)
+        self.rows.append(row_key)
+
+    @CrossSync.convert
+    async def add_aggregate_row(
+        self, row_key, *, family=TEST_AGGREGATE_FAMILY, qualifier=b"q", input=0
+    ):
+        request = {
+            "table_name": self.target.table_name,
+            "row_key": row_key,
+            "mutations": [
+                {
+                    "add_to_cell": {
+                        "family_name": family,
+                        "column_qualifier": {"raw_value": qualifier},
+                        "timestamp": {"raw_timestamp_micros": 0},
+                        "input": {"int_value": input},
                     }
                 }
             ],
@@ -132,7 +153,17 @@ class TestSystemAsync:
         """
         from google.cloud.bigtable_admin_v2 import types
 
-        return {TEST_FAMILY: types.ColumnFamily(), TEST_FAMILY_2: types.ColumnFamily()}
+        int_aggregate_type = types.Type.Aggregate(
+            input_type=types.Type(int64_type={"encoding": {"big_endian_bytes": {}}}),
+            sum={},
+        )
+        return {
+            TEST_FAMILY: types.ColumnFamily(),
+            TEST_FAMILY_2: types.ColumnFamily(),
+            TEST_AGGREGATE_FAMILY: types.ColumnFamily(
+                value_type=types.Type(aggregate_type=int_aggregate_type)
+            ),
+        }
 
     @pytest.fixture(scope="session")
     def init_table_id(self):
@@ -280,6 +311,33 @@ class TestSystemAsync:
 
         # ensure cell is updated
         assert (await self._retrieve_cell_value(target, row_key)) == new_value
+
+    @CrossSync.pytest
+    @pytest.mark.usefixtures("target")
+    @CrossSync.Retry(
+        predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
+    )
+    async def test_mutation_add_to_cell(self, target, temp_rows):
+        """
+        Test add to cell mutation
+        """
+        from google.cloud.bigtable.data.mutations import AddToCell, DeleteAllFromFamily
+
+        row_key = b"add_to_cell"
+        family = TEST_AGGREGATE_FAMILY
+        qualifier = b"test-qualifier"
+        # add row to temp_rows, for future deletion
+        await temp_rows.add_aggregate_row(row_key, family=family, qualifier=qualifier)
+        # set and check cell value
+        await target.mutate_row(row_key, AddToCell(family, qualifier, 1, timestamp=0))
+        encoded_result = await self._retrieve_cell_value(target, row_key)
+        int_result = int.from_bytes(encoded_result, byteorder="big")
+        assert int_result == 1
+        # update again
+        await target.mutate_row(row_key, AddToCell(family, qualifier, 9, timestamp=0))
+        encoded_result = await self._retrieve_cell_value(target, row_key)
+        int_result = int.from_bytes(encoded_result, byteorder="big")
+        assert int_result == 10
 
     @pytest.mark.skipif(
         bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't use splits"
