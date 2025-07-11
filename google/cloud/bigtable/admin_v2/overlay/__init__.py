@@ -34,10 +34,12 @@ from .types import (
 )
 
 from .services.bigtable_table_admin import (
+    BigtableTableAdminAsyncClient,
     BigtableTableAdminClient,
 )
 
 __all__ = (
     "RestoreTableOperation",
+    "BigtableTableAdminAsyncClient",
     "BigtableTableAdminClient",
 )

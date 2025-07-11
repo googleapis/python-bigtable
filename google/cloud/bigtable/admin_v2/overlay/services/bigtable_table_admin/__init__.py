@@ -14,6 +14,10 @@
 
 # TODO: Add the async client after owlbot changes.
 
+from .async_client import BigtableTableAdminAsyncClient
 from .client import BigtableTableAdminClient
 
-__all__ = ("BigtableTableAdminClient",)
+__all__ = (
+    "BigtableTableAdminAsyncClient",
+    "BigtableTableAdminClient",
+)
