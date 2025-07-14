@@ -15,16 +15,18 @@
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
+    from unittest.mock import AsyncMock  # pragma: NO COVER  # noqa: F401
 except ImportError:  # pragma: NO COVER
     import mock
 
 from google.longrunning import operations_pb2
 from google.rpc import status_pb2, code_pb2
 
-from google.api_core import operation, exceptions
-from google.api_core.operations_v1 import operations_client
+from google.api_core import operation_async, exceptions
+from google.api_core.future import async_future
+from google.api_core.operations_v1 import operations_async_client
 from google.cloud.bigtable.admin_v2.types import bigtable_table_admin, table
-from google.cloud.bigtable.admin_v2.overlay.types import restore_table
+from google.cloud.bigtable.admin_v2.overlay.types import async_restore_table
 
 import pytest
 
@@ -83,7 +85,7 @@ OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO = make_operation_proto(
 def mock_restore_table_operation(
     max_poll_count=DEFAULT_MAX_POLL, fail=False, has_optimize_operation=True
 ):
-    client = mock.Mock(spec=operations_client.OperationsClient)
+    client = mock.AsyncMock(spec=operations_async_client.OperationsAsyncClient)
 
     # Set up the polling
     side_effect = [RESTORE_TABLE_IN_PROGRESS_OPERATION_PROTO] * (max_poll_count - 1)
@@ -111,9 +113,9 @@ def mock_restore_table_operation(
             response=RESTORE_TABLE_OPERATION_FINISHED_RESPONSE,
         )
     side_effect.append(final_operation_proto)
-    refresh = mock.Mock(spec=["__call__"], side_effect=side_effect)
-    cancel = mock.Mock(spec=["__call__"])
-    future = operation.Operation(
+    refresh = mock.AsyncMock(spec=["__call__"], side_effect=side_effect)
+    cancel = mock.AsyncMock(spec=["__call__"])
+    future = operation_async.AsyncOperation(
         RESTORE_TABLE_IN_PROGRESS_OPERATION_PROTO,
         refresh,
         cancel,
@@ -124,18 +126,19 @@ def mock_restore_table_operation(
     # Set up the optimize_restore_table_operation
     client.get_operation.side_effect = [OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO]
 
-    return restore_table.RestoreTableOperation(client, future)
+    return async_restore_table.AsyncRestoreTableOperation(client, future)
 
 
-def test_restore_table_operation_client_success_has_optimize():
+@pytest.mark.asyncio
+async def test_async_restore_table_operation_client_success_has_optimize():
     restore_table_operation = mock_restore_table_operation()
 
-    restore_table_operation.result()
+    await restore_table_operation.result()
     optimize_restored_table_operation = (
-        restore_table_operation.optimize_restored_table_operation()
+        await restore_table_operation.optimize_restored_table_operation()
     )
 
-    assert isinstance(optimize_restored_table_operation, operation.Operation)
+    assert isinstance(optimize_restored_table_operation, operation_async.AsyncOperation)
     assert (
         optimize_restored_table_operation._operation
         == OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO
@@ -143,18 +146,21 @@ def test_restore_table_operation_client_success_has_optimize():
     restore_table_operation._operations_client.get_operation.assert_called_with(
         name=OPTIMIZE_RESTORED_TABLE_OPERATION_ID
     )
-    restore_table_operation._refresh.assert_has_calls([mock.call()] * DEFAULT_MAX_POLL)
-
-
-def test_restore_table_operation_client_success_has_optimize_multiple_calls():
-    restore_table_operation = mock_restore_table_operation()
-
-    restore_table_operation.result()
-    optimize_restored_table_operation = (
-        restore_table_operation.optimize_restored_table_operation()
+    restore_table_operation._refresh.assert_has_calls(
+        [mock.call(retry=async_future.DEFAULT_RETRY)] * DEFAULT_MAX_POLL
     )
 
-    assert isinstance(optimize_restored_table_operation, operation.Operation)
+
+@pytest.mark.asyncio
+async def test_restore_table_operation_client_success_has_optimize_multiple_calls():
+    restore_table_operation = mock_restore_table_operation()
+
+    await restore_table_operation.result()
+    optimize_restored_table_operation = (
+        await restore_table_operation.optimize_restored_table_operation()
+    )
+
+    assert isinstance(optimize_restored_table_operation, operation_async.AsyncOperation)
     assert (
         optimize_restored_table_operation._operation
         == OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO
@@ -162,33 +168,39 @@ def test_restore_table_operation_client_success_has_optimize_multiple_calls():
     restore_table_operation._operations_client.get_operation.assert_called_with(
         name=OPTIMIZE_RESTORED_TABLE_OPERATION_ID
     )
-    restore_table_operation._refresh.assert_has_calls([mock.call()] * DEFAULT_MAX_POLL)
+    restore_table_operation._refresh.assert_has_calls(
+        [mock.call(retry=async_future.DEFAULT_RETRY)] * DEFAULT_MAX_POLL
+    )
 
-    restore_table_operation.optimize_restored_table_operation()
-    restore_table_operation._refresh.assert_has_calls([mock.call()] * DEFAULT_MAX_POLL)
+    await restore_table_operation.optimize_restored_table_operation()
+    restore_table_operation._refresh.assert_has_calls(
+        [mock.call(retry=async_future.DEFAULT_RETRY)] * DEFAULT_MAX_POLL
+    )
 
 
-def test_restore_table_operation_success_has_optimize_call_before_done():
+@pytest.mark.asyncio
+async def test_restore_table_operation_success_has_optimize_call_before_done():
     restore_table_operation = mock_restore_table_operation()
 
     with pytest.raises(exceptions.GoogleAPIError):
-        restore_table_operation.optimize_restored_table_operation()
+        await restore_table_operation.optimize_restored_table_operation()
 
     restore_table_operation._operations_client.get_operation.assert_not_called()
 
 
-def test_restore_table_operation_client_success_only_cache_after_finishing():
+@pytest.mark.asyncio
+async def test_restore_table_operation_client_success_only_cache_after_finishing():
     restore_table_operation = mock_restore_table_operation()
 
     with pytest.raises(exceptions.GoogleAPIError):
-        restore_table_operation.optimize_restored_table_operation()
+        await restore_table_operation.optimize_restored_table_operation()
 
-    restore_table_operation.result()
+    await restore_table_operation.result()
     optimize_restored_table_operation = (
-        restore_table_operation.optimize_restored_table_operation()
+        await restore_table_operation.optimize_restored_table_operation()
     )
 
-    assert isinstance(optimize_restored_table_operation, operation.Operation)
+    assert isinstance(optimize_restored_table_operation, operation_async.AsyncOperation)
     assert (
         optimize_restored_table_operation._operation
         == OPTIMIZE_RESTORED_TABLE_OPERATION_PROTO
@@ -196,34 +208,40 @@ def test_restore_table_operation_client_success_only_cache_after_finishing():
     restore_table_operation._operations_client.get_operation.assert_called_with(
         name=OPTIMIZE_RESTORED_TABLE_OPERATION_ID
     )
-    restore_table_operation._refresh.assert_has_calls([mock.call()] * DEFAULT_MAX_POLL)
+    restore_table_operation._refresh.assert_has_calls(
+        [mock.call(retry=async_future.DEFAULT_RETRY)] * DEFAULT_MAX_POLL
+    )
 
     restore_table_operation.optimize_restored_table_operation()
-    restore_table_operation._refresh.assert_has_calls([mock.call()] * DEFAULT_MAX_POLL)
+    restore_table_operation._refresh.assert_has_calls(
+        [mock.call(retry=async_future.DEFAULT_RETRY)] * DEFAULT_MAX_POLL
+    )
 
 
-def test_restore_table_operation_success_no_optimize():
+@pytest.mark.asyncio
+async def test_restore_table_operation_success_no_optimize():
     restore_table_operation = mock_restore_table_operation(has_optimize_operation=False)
 
-    restore_table_operation.result()
+    await restore_table_operation.result()
     optimize_restored_table_operation = (
-        restore_table_operation.optimize_restored_table_operation()
+        await restore_table_operation.optimize_restored_table_operation()
     )
 
     assert optimize_restored_table_operation is None
     restore_table_operation._operations_client.get_operation.assert_not_called()
 
 
-def test_restore_table_operation_exception():
+@pytest.mark.asyncio
+async def test_restore_table_operation_exception():
     restore_table_operation = mock_restore_table_operation(
         fail=True, has_optimize_operation=False
     )
 
     with pytest.raises(exceptions.GoogleAPICallError):
-        restore_table_operation.result()
+        await restore_table_operation.result()
 
     optimize_restored_table_operation = (
-        restore_table_operation.optimize_restored_table_operation()
+        await restore_table_operation.optimize_restored_table_operation()
     )
 
     assert optimize_restored_table_operation is None
