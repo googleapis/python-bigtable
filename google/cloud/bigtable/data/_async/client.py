@@ -213,7 +213,7 @@ class BigtableDataClientAsync(ClientWithProject):
         )
         if (
             credentials
-            and credentials._universe_domain != self.universe_domain
+            and credentials.universe_domain != self.universe_domain
             and self._emulator_host is None
         ):
             # validate that the universe domain of the credentials matches the
