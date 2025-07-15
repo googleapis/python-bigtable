@@ -31,6 +31,7 @@
 
 from .types import (
     RestoreTableOperation,
+    WaitForConsistencyRequest,
 )
 
 from .services.bigtable_table_admin import (
@@ -42,4 +43,5 @@ __all__ = (
     "RestoreTableOperation",
     "BigtableTableAdminAsyncClient",
     "BigtableTableAdminClient",
+    "WaitForConsistencyRequest",
 )
