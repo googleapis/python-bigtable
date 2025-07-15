@@ -744,31 +744,10 @@ class TestAddToCell:
         assert instance.timestamp == expected_timestamp
 
     def test_ctor_negative_timestamp(self):
-        """Only positive timestamps are valid"""
+        """Only non-negative timestamps are valid"""
         with pytest.raises(ValueError) as e:
             self._make_one("test-family", b"test-qualifier", 1234, -2)
-        assert "timestamp must be positive" in str(e.value)
-
-    @pytest.mark.parametrize(
-        "timestamp_ns,expected_timestamp_micros",
-        [
-            (0, 0),
-            (1, 0),
-            (123, 0),
-            (999, 0),
-            (999_999, 0),
-            (1_000_000, 1000),
-            (1_234_567, 1000),
-            (1_999_999, 1000),
-            (2_000_000, 2000),
-            (1_234_567_890_123, 1_234_567_000),
-        ],
-    )
-    def test_ctor_no_timestamp(self, timestamp_ns, expected_timestamp_micros):
-        """If no timestamp is given, should use current time with millisecond precision"""
-        with mock.patch("time.time_ns", return_value=timestamp_ns):
-            instance = self._make_one("test-family", b"test-qualifier", 1234)
-            assert instance.timestamp == expected_timestamp_micros
+        assert "timestamp must be non-negative" in str(e.value)
 
     def test__to_dict(self):
         """ensure dict representation is as expected"""

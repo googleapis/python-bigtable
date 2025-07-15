@@ -287,19 +287,28 @@ class DeleteAllFromRow(Mutation):
 @dataclass
 class AddToCell(Mutation):
     """
-    Mutation to add a value to an aggregate cell.
+    Adds an int64 value to an aggregate cell. The column family must be an
+    aggregate family and have an "int64" input type or this mutation will be
+    rejected.
 
+    Note: The timestamp values are in microseconds but must match the
+    granularity of the table (defaults to `MILLIS`). Therefore, the given value
+    must be a multiple of 1000 (millisecond granularity). For example:
+    `1571902339435000`.
 
     Args:
         family: The name of the column family to which the cell belongs.
         qualifier: The column qualifier of the cell.
         value: The value to be accumulated into the cell.
-        timestamp_micros: The timestamp of the cell.
+        timestamp_micros: The timestamp of the cell. Must be provided for
+          cell aggregation to work correctly.
+
 
     Raises:
         TypeError: If `qualifier` is not `bytes` or `str`.
         TypeError: If `value` is not `int`.
-        ValueError: If `timestamp_micros` is less than `_SERVER_SIDE_TIMESTAMP`.
+        TypeError: If `timestamp_micros` is not `int`.
+        ValueError: If `timestamp_micros` is less than 0.
     """
 
     def __init__(
@@ -307,30 +316,27 @@ class AddToCell(Mutation):
         family: str,
         qualifier: bytes | str,
         value: int,
-        timestamp: int | None = None,
+        timestamp_micros: int,
     ):
         qualifier = qualifier.encode() if isinstance(qualifier, str) else qualifier
         if not isinstance(qualifier, bytes):
             raise TypeError("qualifier must be bytes or str")
         if not isinstance(value, int):
             raise TypeError("value must be int")
+        if not isinstance(timestamp_micros, int):
+            raise TypeError("value must be int")
         if abs(value) > _MAX_INCREMENT_VALUE:
             raise ValueError(
                 "int values must be between -2**63 and 2**63 (64-bit signed int)"
             )
 
-        if timestamp is None:
-            # use current timestamp, with milisecond precision
-            timestamp = time.time_ns() // 1000
-            timestamp = timestamp - (timestamp % 1000)
-
-        if timestamp < 0:
-            raise ValueError("timestamp must be positive")
+        if timestamp_micros < 0:
+            raise ValueError("timestamp must be non-negative")
 
         self.family = family
         self.qualifier = qualifier
         self.value = value
-        self.timestamp = timestamp
+        self.timestamp = timestamp_micros
 
     def _to_dict(self) -> dict[str, Any]:
         return {
