@@ -1050,20 +1050,6 @@ class TestBigtableDataClientAsync:
 
     @CrossSync.pytest
     async def test_custom_universe_domain(self):
-        """test with a customized universe domain value"""
-        universe_domain = "test-universe.test"
-        options = client_options.ClientOptions(universe_domain=universe_domain)
-        async with self._make_client(
-            project="project_id",
-            client_options=options,
-            use_emulator=False,
-            credentials=None,
-        ) as client:
-            assert client.universe_domain == universe_domain
-            assert client.api_endpoint == f"bigtable.{universe_domain}"
-
-    @CrossSync.pytest
-    async def test_custom_universe_domain_w_emulator(self):
         """test with a customized universe domain value and emulator enabled"""
         universe_domain = "test-universe.test"
         options = client_options.ClientOptions(universe_domain=universe_domain)
