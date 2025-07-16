@@ -267,11 +267,11 @@ class TestSystem:
         family = TEST_AGGREGATE_FAMILY
         qualifier = b"test-qualifier"
         temp_rows.add_aggregate_row(row_key, family=family, qualifier=qualifier)
-        target.mutate_row(row_key, AddToCell(family, qualifier, 1, timestamp=0))
+        target.mutate_row(row_key, AddToCell(family, qualifier, 1, timestamp_micros=0))
         encoded_result = self._retrieve_cell_value(target, row_key)
         int_result = int.from_bytes(encoded_result, byteorder="big")
         assert int_result == 1
-        target.mutate_row(row_key, AddToCell(family, qualifier, 9, timestamp=0))
+        target.mutate_row(row_key, AddToCell(family, qualifier, 9, timestamp_micros=0))
         encoded_result = self._retrieve_cell_value(target, row_key)
         int_result = int.from_bytes(encoded_result, byteorder="big")
         assert int_result == 10
