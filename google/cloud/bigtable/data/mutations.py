@@ -308,6 +308,7 @@ class AddToCell(Mutation):
         TypeError: If `qualifier` is not `bytes` or `str`.
         TypeError: If `value` is not `int`.
         TypeError: If `timestamp_micros` is not `int`.
+        ValueError: If `value` is out of bounds for a 64-bit signed int.
         ValueError: If `timestamp_micros` is less than 0.
     """
 
@@ -324,7 +325,7 @@ class AddToCell(Mutation):
         if not isinstance(value, int):
             raise TypeError("value must be int")
         if not isinstance(timestamp_micros, int):
-            raise TypeError("value must be int")
+            raise TypeError("timestamp_micros must be int")
         if abs(value) > _MAX_INCREMENT_VALUE:
             raise ValueError(
                 "int values must be between -2**63 and 2**63 (64-bit signed int)"
