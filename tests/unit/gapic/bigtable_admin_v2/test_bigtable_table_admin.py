@@ -23318,6 +23318,14 @@ def test_update_table_rest_call_success(request_type):
                         "struct_type": {},
                         "array_type": {"element_type": {}},
                         "map_type": {"key_type": {}, "value_type": {}},
+                        "proto_type": {
+                            "schema_bundle_id": "schema_bundle_id_value",
+                            "message_name": "message_name_value",
+                        },
+                        "enum_type": {
+                            "schema_bundle_id": "schema_bundle_id_value",
+                            "enum_name": "enum_name_value",
+                        },
                     },
                 }
             ],
