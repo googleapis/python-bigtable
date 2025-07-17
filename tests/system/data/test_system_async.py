@@ -321,7 +321,7 @@ class TestSystemAsync:
         """
         Test add to cell mutation
         """
-        from google.cloud.bigtable.data.mutations import AddToCell, DeleteAllFromFamily
+        from google.cloud.bigtable.data.mutations import AddToCell
 
         row_key = b"add_to_cell"
         family = TEST_AGGREGATE_FAMILY
@@ -329,12 +329,12 @@ class TestSystemAsync:
         # add row to temp_rows, for future deletion
         await temp_rows.add_aggregate_row(row_key, family=family, qualifier=qualifier)
         # set and check cell value
-        await target.mutate_row(row_key, AddToCell(family, qualifier, 1, timestamp=0))
+        await target.mutate_row(row_key, AddToCell(family, qualifier, 1, timestamp_micros=0))
         encoded_result = await self._retrieve_cell_value(target, row_key)
         int_result = int.from_bytes(encoded_result, byteorder="big")
         assert int_result == 1
         # update again
-        await target.mutate_row(row_key, AddToCell(family, qualifier, 9, timestamp=0))
+        await target.mutate_row(row_key, AddToCell(family, qualifier, 9, timestamp_micros=0))
         encoded_result = await self._retrieve_cell_value(target, row_key)
         int_result = int.from_bytes(encoded_result, byteorder="big")
         assert int_result == 10
