@@ -31,13 +31,13 @@ from .conftest import (
     NUM_ROWS,
     INITIAL_CELL_VALUE,
     NEW_CELL_VALUE,
+    generate_unique_suffix,
 )
 
 from datetime import datetime, timedelta
 
 import asyncio
 import pytest
-import time
 
 
 if CrossSync.is_async:
@@ -61,30 +61,35 @@ def event_loop():
 
 @CrossSync.convert
 @CrossSync.pytest_fixture(scope="session")
-async def data_client():
-    client = CrossSync.DataClient()
-    yield client
-    await client.close()
+async def data_client(admin_overlay_project_id):
+    async with CrossSync.DataClient(project=admin_overlay_project_id) as client:
+        yield client
 
 
 @CrossSync.convert(
     replace_symbols={"BigtableTableAdminAsyncClient": "BigtableTableAdminClient"}
 )
 @CrossSync.pytest_fixture(scope="session")
-async def table_admin_client():
-    client = admin_v2.BigtableTableAdminAsyncClient()
-    yield client
-    await client.transport.close()
+async def table_admin_client(admin_overlay_project_id):
+    async with admin_v2.BigtableTableAdminAsyncClient(
+        client_options={
+            "quota_project_id": admin_overlay_project_id,
+        }
+    ) as client:
+        yield client
 
 
 @CrossSync.convert(
     replace_symbols={"BigtableInstanceAdminAsyncClient": "BigtableInstanceAdminClient"}
 )
 @CrossSync.pytest_fixture(scope="session")
-async def instance_admin_client():
-    client = admin_v2.BigtableInstanceAdminAsyncClient()
-    yield client
-    await client.transport.close()
+async def instance_admin_client(admin_overlay_project_id):
+    async with admin_v2.BigtableInstanceAdminAsyncClient(
+        client_options={
+            "quota_project_id": admin_overlay_project_id,
+        }
+    ) as client:
+        yield client
 
 
 @CrossSync.convert
@@ -92,10 +97,11 @@ async def instance_admin_client():
 async def instances_to_delete(instance_admin_client):
     instances = []
 
-    yield instances
-
-    for instance in instances:
-        await instance_admin_client.delete_instance(name=instance.name)
+    try:
+        yield instances
+    finally:
+        for instance in instances:
+            await instance_admin_client.delete_instance(name=instance.name)
 
 
 @CrossSync.convert
@@ -103,14 +109,11 @@ async def instances_to_delete(instance_admin_client):
 async def backups_to_delete(table_admin_client):
     backups = []
 
-    yield backups
-
-    for backup in backups:
-        await table_admin_client.delete_backup(name=backup.name)
-
-
-def ctime() -> int:
-    return int(time.time())
+    try:
+        yield backups
+    finally:
+        for backup in backups:
+            await table_admin_client.delete_backup(name=backup.name)
 
 
 @CrossSync.convert
@@ -123,10 +126,16 @@ async def create_instance(
     storage_type=admin_v2.StorageType.HDD,
     cluster_locations=DEFAULT_CLUSTER_LOCATIONS,
 ) -> Tuple[admin_v2.Instance, admin_v2.Table]:
+    """
+    Creates a new Bigtable instance with the specified project_id, storage type, and cluster locations.
+
+    After creating the Bigtable instance, it will create a test table and populate it with dummy data.
+    This is not defined as a fixture because the different system tests need different kinds of instances.
+    """
     # Create the instance
     clusters = {}
 
-    instance_id = f"{INSTANCE_PREFIX}-{ctime()}"
+    instance_id = generate_unique_suffix(INSTANCE_PREFIX)
 
     for idx, location in enumerate(cluster_locations):
         clusters[location] = admin_v2.Cluster(
@@ -175,6 +184,12 @@ async def create_instance(
 
 @CrossSync.convert
 async def populate_table(table_admin_client, data_client, instance, table, cell_value):
+    """
+    Populates all the test cells in the given table with the given cell value.
+
+    This is used to populate test data when creating an instance, and for testing the
+    wait_for_consistency call.
+    """
     data_client_table = data_client.get_table(
         table_admin_client.parse_instance_path(instance.name)["instance"],
         table_admin_client.parse_table_path(table.name)["table"],
@@ -202,13 +217,19 @@ async def populate_table(table_admin_client, data_client, instance, table, cell_
 async def create_backup(
     instance_admin_client, table_admin_client, instance, table, backups_to_delete
 ) -> admin_v2.Backup:
+    """
+    Creates a backup of the given table under the given instance.
+
+    This will be restored to a different instance later on, to test
+    optimize_restored_table.
+    """
     # Get a cluster in the instance for the backup
     list_clusters_response = await instance_admin_client.list_clusters(
         parent=instance.name
     )
     cluster_name = list_clusters_response.clusters[0].name
 
-    backup_id = f"{BACKUP_PREFIX}-{ctime()}"
+    backup_id = generate_unique_suffix(BACKUP_PREFIX)
 
     # Create the backup
     operation = await table_admin_client.create_backup(
@@ -232,6 +253,9 @@ async def create_backup(
 async def assert_table_cell_value_equal_to(
     table_admin_client, data_client, instance, table, value
 ):
+    """
+    Asserts that all cells in the given table have the given value.
+    """
     data_client_table = data_client.get_table(
         table_admin_client.parse_instance_path(instance.name)["instance"],
         table_admin_client.parse_table_path(table.name)["table"],
@@ -330,7 +354,6 @@ async def test_optimize_restored_table(
     )
 
 
-@CrossSync.convert
 @CrossSync.pytest
 async def test_wait_for_consistency(
     instance_admin_client,

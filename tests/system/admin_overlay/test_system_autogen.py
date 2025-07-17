@@ -32,52 +32,53 @@ from .conftest import (
     NUM_ROWS,
     INITIAL_CELL_VALUE,
     NEW_CELL_VALUE,
+    generate_unique_suffix,
 )
 from datetime import datetime, timedelta
 import pytest
-import time
 from google.api_core import operation as api_core_operation
 
 
 @pytest.fixture(scope="session")
-def data_client():
-    client = CrossSync._Sync_Impl.DataClient()
-    yield client
-    client.close()
+def data_client(admin_overlay_project_id):
+    with CrossSync._Sync_Impl.DataClient(project=admin_overlay_project_id) as client:
+        yield client
 
 
 @pytest.fixture(scope="session")
-def table_admin_client():
-    client = admin_v2.BigtableTableAdminClient()
-    yield client
-    client.transport.close()
+def table_admin_client(admin_overlay_project_id):
+    with admin_v2.BigtableTableAdminClient(
+        client_options={"quota_project_id": admin_overlay_project_id}
+    ) as client:
+        yield client
 
 
 @pytest.fixture(scope="session")
-def instance_admin_client():
-    client = admin_v2.BigtableInstanceAdminClient()
-    yield client
-    client.transport.close()
+def instance_admin_client(admin_overlay_project_id):
+    with admin_v2.BigtableInstanceAdminClient(
+        client_options={"quota_project_id": admin_overlay_project_id}
+    ) as client:
+        yield client
 
 
 @pytest.fixture(scope="session")
 def instances_to_delete(instance_admin_client):
     instances = []
-    yield instances
-    for instance in instances:
-        instance_admin_client.delete_instance(name=instance.name)
+    try:
+        yield instances
+    finally:
+        for instance in instances:
+            instance_admin_client.delete_instance(name=instance.name)
 
 
 @pytest.fixture(scope="session")
 def backups_to_delete(table_admin_client):
     backups = []
-    yield backups
-    for backup in backups:
-        table_admin_client.delete_backup(name=backup.name)
-
-
-def ctime() -> int:
-    return int(time.time())
+    try:
+        yield backups
+    finally:
+        for backup in backups:
+            table_admin_client.delete_backup(name=backup.name)
 
 
 def create_instance(
@@ -89,8 +90,13 @@ def create_instance(
     storage_type=admin_v2.StorageType.HDD,
     cluster_locations=DEFAULT_CLUSTER_LOCATIONS,
 ) -> Tuple[admin_v2.Instance, admin_v2.Table]:
+    """Creates a new Bigtable instance with the specified project_id, storage type, and cluster locations.
+
+    After creating the Bigtable instance, it will create a test table and populate it with dummy data.
+    This is not defined as a fixture because the different system tests need different kinds of instances.
+    """
     clusters = {}
-    instance_id = f"{INSTANCE_PREFIX}-{ctime()}"
+    instance_id = generate_unique_suffix(INSTANCE_PREFIX)
     for idx, location in enumerate(cluster_locations):
         clusters[location] = admin_v2.Cluster(
             name=instance_admin_client.cluster_path(
@@ -121,6 +127,10 @@ def create_instance(
 
 
 def populate_table(table_admin_client, data_client, instance, table, cell_value):
+    """Populates all the test cells in the given table with the given cell value.
+
+    This is used to populate test data when creating an instance, and for testing the
+    wait_for_consistency call."""
     data_client_table = data_client.get_table(
         table_admin_client.parse_instance_path(instance.name)["instance"],
         table_admin_client.parse_table_path(table.name)["table"],
@@ -146,9 +156,13 @@ def populate_table(table_admin_client, data_client, instance, table, cell_value)
 def create_backup(
     instance_admin_client, table_admin_client, instance, table, backups_to_delete
 ) -> admin_v2.Backup:
+    """Creates a backup of the given table under the given instance.
+
+    This will be restored to a different instance later on, to test
+    optimize_restored_table."""
     list_clusters_response = instance_admin_client.list_clusters(parent=instance.name)
     cluster_name = list_clusters_response.clusters[0].name
-    backup_id = f"{BACKUP_PREFIX}-{ctime()}"
+    backup_id = generate_unique_suffix(BACKUP_PREFIX)
     operation = table_admin_client.create_backup(
         admin_v2.CreateBackupRequest(
             parent=cluster_name,
@@ -168,6 +182,7 @@ def create_backup(
 def assert_table_cell_value_equal_to(
     table_admin_client, data_client, instance, table, value
 ):
+    """Asserts that all cells in the given table have the given value."""
     data_client_table = data_client.get_table(
         table_admin_client.parse_instance_path(instance.name)["instance"],
         table_admin_client.parse_table_path(table.name)["table"],

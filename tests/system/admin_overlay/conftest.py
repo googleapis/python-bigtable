@@ -1,6 +1,8 @@
-from google.cloud.client import ClientWithProject
+import google.auth
 
+import os
 import pytest
+import uuid
 
 
 INSTANCE_PREFIX = "admin-overlay-instance"
@@ -20,7 +22,15 @@ NEW_CELL_VALUE = "World"
 
 @pytest.fixture(scope="session")
 def admin_overlay_project_id():
-    # Instantiate a meaningless client to get project name
-    # from environment variables.
-    client = ClientWithProject()
-    yield client.project
+    _, default_project = google.auth.default()
+    yield os.getenv("ADMIN_TEST_PROJECT") or default_project
+
+
+def generate_unique_suffix(name):
+    """
+    Generates a unique suffix for the name.
+
+    Uses UUID4 because using time.time doesn't guarantee
+    uniqueness when the time is frozen in containers.
+    """
+    return f"{name}-{uuid.uuid4().hex[:7]}"
