@@ -25,6 +25,10 @@ except AttributeError:  # pragma: NO COVER
     OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
 
+# The consistency check could take a very long time, so we wait indefinitely.
+DEFAULT_RETRY = async_future.DEFAULT_RETRY.with_timeout(None)
+
+
 class _AsyncCheckConsistencyPollingFuture(async_future.AsyncFuture):
     """A Future that polls an underlying `check_consistency` operation until it returns True.
 
@@ -48,7 +52,7 @@ class _AsyncCheckConsistencyPollingFuture(async_future.AsyncFuture):
             <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_consistency>`
             or :meth:`wait_for_replication
             <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_replication>`
-        retry (google.api_core.retry.Retry): The retry configuration used
+        retry (google.api_core.retry.AsyncRetry): The retry configuration used
             when polling. This can be used to control how often :meth:`done`
             is polled. Regardless of the retry's ``deadline``, it will be
             overridden by the ``timeout`` argument to :meth:`result`.
@@ -59,7 +63,7 @@ class _AsyncCheckConsistencyPollingFuture(async_future.AsyncFuture):
         check_consistency_call: Callable[
             [OptionalRetry], Awaitable[bigtable_table_admin.CheckConsistencyResponse]
         ],
-        retry: retries.Retry = async_future.DEFAULT_RETRY,
+        retry: retries.AsyncRetry = DEFAULT_RETRY,
         **kwargs
     ):
         super(_AsyncCheckConsistencyPollingFuture, self).__init__(retry=retry, **kwargs)

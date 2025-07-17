@@ -25,6 +25,10 @@ except AttributeError:  # pragma: NO COVER
     OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
 
+# The consistency check could take a very long time, so we wait indefinitely.
+DEFAULT_RETRY = polling.DEFAULT_POLLING.with_timeout(None)
+
+
 class _CheckConsistencyPollingFuture(polling.PollingFuture):
     """A Future that polls an underlying `check_consistency` operation until it returns True.
 
@@ -55,7 +59,7 @@ class _CheckConsistencyPollingFuture(polling.PollingFuture):
         check_consistency_call: Callable[
             [OptionalRetry], bigtable_table_admin.CheckConsistencyResponse
         ],
-        polling: retries.Retry = polling.DEFAULT_POLLING,
+        polling: retries.Retry = DEFAULT_RETRY,
         **kwargs
     ):
         super(_CheckConsistencyPollingFuture, self).__init__(polling=polling, **kwargs)

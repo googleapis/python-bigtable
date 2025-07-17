@@ -30,6 +30,7 @@
 # client class under overlay/services.
 
 from .types import (
+    AsyncRestoreTableOperation,
     RestoreTableOperation,
     WaitForConsistencyRequest,
 )
@@ -40,6 +41,7 @@ from .services.bigtable_table_admin import (
 )
 
 __all__ = (
+    "AsyncRestoreTableOperation",
     "RestoreTableOperation",
     "BigtableTableAdminAsyncClient",
     "BigtableTableAdminClient",

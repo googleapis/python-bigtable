@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .async_restore_table import (
+    AsyncRestoreTableOperation,
+)
+
 from .restore_table import (
     RestoreTableOperation,
 )
@@ -21,6 +25,7 @@ from .wait_for_consistency_request import (
 )
 
 __all__ = (
+    "AsyncRestoreTableOperation",
     "RestoreTableOperation",
     "WaitForConsistencyRequest",
 )
