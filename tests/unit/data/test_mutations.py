@@ -117,6 +117,17 @@ class TestBaseMutation:
                 {"delete_from_family": {"family_name": "foo"}},
             ),
             (mutations.DeleteAllFromRow, {"delete_from_row": {}}),
+            (
+                mutations.AddToCell,
+                {
+                    "add_to_cell": {
+                        "family_name": "foo",
+                        "column_qualifier": {"raw_value": b"bar"},
+                        "timestamp": {"raw_timestamp_micros": 12345},
+                        "input": {"int_value": 123},
+                    }
+                },
+            ),
         ],
     )
     def test__from_dict(self, expected_class, input_dict):
@@ -162,6 +173,7 @@ class TestBaseMutation:
             mutations.DeleteRangeFromColumn("foo", b"bar"),
             mutations.DeleteAllFromFamily("foo"),
             mutations.DeleteAllFromRow(),
+            mutations.AddToCell("foo", b"bar", 123, 456),
         ]
         for instance in subclasses:
             others = [other for other in subclasses if other != instance]

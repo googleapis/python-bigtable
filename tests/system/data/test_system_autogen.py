@@ -966,7 +966,9 @@ class TestSystem:
     @CrossSync._Sync_Impl.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
     )
-    def test_execute_against_target(self, client, instance_id, table_id, temp_rows):
+    def test_execute_against_target(
+        self, client, instance_id, table_id, temp_rows, column_family_config
+    ):
         temp_rows.add_row(b"row_key_1")
         result = client.execute_query("SELECT * FROM `" + table_id + "`", instance_id)
         rows = [r for r in result]
@@ -977,13 +979,16 @@ class TestSystem:
         assert family_map[b"q"] == b"test-value"
         assert len(rows[0][TEST_FAMILY_2]) == 0
         md = result.metadata
-        assert len(md) == 3
+        assert len(md) == len(column_family_config) + 1
         assert md["_key"].column_type == SqlType.Bytes()
         assert md[TEST_FAMILY].column_type == SqlType.Map(
             SqlType.Bytes(), SqlType.Bytes()
         )
         assert md[TEST_FAMILY_2].column_type == SqlType.Map(
             SqlType.Bytes(), SqlType.Bytes()
+        )
+        assert md[TEST_AGGREGATE_FAMILY].column_type == SqlType.Map(
+            SqlType.Bytes(), SqlType.Int64()
         )
 
     @pytest.mark.skipif(
@@ -1074,7 +1079,7 @@ class TestSystem:
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
     )
     def test_execute_metadata_on_empty_response(
-        self, client, instance_id, table_id, temp_rows
+        self, client, instance_id, table_id, temp_rows, column_family_config
     ):
         temp_rows.add_row(b"row_key_1")
         result = client.execute_query(
@@ -1083,11 +1088,14 @@ class TestSystem:
         rows = [r for r in result]
         assert len(rows) == 0
         md = result.metadata
-        assert len(md) == 3
+        assert len(md) == len(column_family_config) + 1
         assert md["_key"].column_type == SqlType.Bytes()
         assert md[TEST_FAMILY].column_type == SqlType.Map(
             SqlType.Bytes(), SqlType.Bytes()
         )
         assert md[TEST_FAMILY_2].column_type == SqlType.Map(
             SqlType.Bytes(), SqlType.Bytes()
+        )
+        assert md[TEST_AGGREGATE_FAMILY].column_type == SqlType.Map(
+            SqlType.Bytes(), SqlType.Int64()
         )
