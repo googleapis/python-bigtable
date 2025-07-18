@@ -36,7 +36,6 @@ from .conftest import (
 
 from datetime import datetime, timedelta
 
-import asyncio
 import pytest
 
 
@@ -47,16 +46,6 @@ else:
 
 
 __CROSS_SYNC_OUTPUT__ = "tests.system.admin_overlay.test_system_autogen"
-
-
-@CrossSync.drop
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    yield loop
-    loop.stop()
-    loop.close()
 
 
 @CrossSync.convert
