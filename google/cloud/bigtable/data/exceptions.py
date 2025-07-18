@@ -41,6 +41,21 @@ class _RowSetComplete(Exception):
     pass
 
 
+class _ResetRow(Exception):  # noqa: F811
+    """
+    Internal exception for _ReadRowsOperation
+
+    Denotes that the server sent a reset_row marker, telling the client to drop
+    all previous chunks for row_key and re-read from the beginning.
+
+    Args:
+        chunk: the reset_row chunk
+    """
+
+    def __init__(self, chunk):
+        self.chunk = chunk
+
+
 class _MutateRowsIncomplete(RuntimeError):
     """
     Exception raised when a mutate_rows call has unfinished work.
@@ -142,10 +157,12 @@ class MutationsExceptionGroup(_BigtableExceptionGroup):
         Format a message for the exception group
 
         Args:
-          - excs: the exceptions in the group
-          - total_entries: the total number of entries attempted, successful or not
-          - exc_count: the number of exceptions associated with the request
-             if None, this will be len(excs)
+            excs: the exceptions in the group
+            total_entries: the total number of entries attempted, successful or not
+            exc_count: the number of exceptions associated with the request
+                if None, this will be len(excs)
+        Returns:
+            str: the formatted message
         """
         exc_count = exc_count if exc_count is not None else len(excs)
         entry_str = "entry" if exc_count == 1 else "entries"
@@ -156,10 +173,10 @@ class MutationsExceptionGroup(_BigtableExceptionGroup):
     ):
         """
         Args:
-          - excs: the exceptions in the group
-          - total_entries: the total number of entries attempted, successful or not
-          - message: the message for the exception group. If None, a default message
-              will be generated
+            excs: the exceptions in the group
+            total_entries: the total number of entries attempted, successful or not
+            message: the message for the exception group. If None, a default message
+                will be generated
         """
         message = (
             message
@@ -174,9 +191,11 @@ class MutationsExceptionGroup(_BigtableExceptionGroup):
     ):
         """
         Args:
-          - excs: the exceptions in the group
-          - total_entries: the total number of entries attempted, successful or not
-          - message: the message for the exception group. If None, a default message
+            excs: the exceptions in the group
+            total_entries: the total number of entries attempted, successful or not
+            message: the message for the exception group. If None, a default message
+        Returns:
+            MutationsExceptionGroup: the new instance
         """
         message = (
             message if message is not None else cls._format_message(excs, total_entries)
@@ -200,12 +219,14 @@ class MutationsExceptionGroup(_BigtableExceptionGroup):
         describe the number of exceptions that were truncated.
 
         Args:
-          - first_list: the set of oldest exceptions to add to the ExceptionGroup
-          - last_list: the set of newest exceptions to add to the ExceptionGroup
-          - total_excs: the total number of exceptions associated with the request
-             Should be len(first_list) + len(last_list) + number of dropped exceptions
-             in the middle
-          - entry_count: the total number of entries attempted, successful or not
+            first_list: the set of oldest exceptions to add to the ExceptionGroup
+            last_list: the set of newest exceptions to add to the ExceptionGroup
+            total_excs: the total number of exceptions associated with the request
+                Should be len(first_list) + len(last_list) + number of dropped exceptions
+                in the middle
+            entry_count: the total number of entries attempted, successful or not
+        Returns:
+            MutationsExceptionGroup: the new instance
         """
         first_count, last_count = len(first_list), len(last_list)
         if first_count + last_count >= total_excs:
@@ -305,3 +326,18 @@ class FailedQueryShardError(Exception):
         self.__cause__ = cause
         self.index = failed_index
         self.query = failed_query
+
+
+class InvalidExecuteQueryResponse(core_exceptions.GoogleAPICallError):
+    """Exception raised to invalid query response data from back-end."""
+
+    # Set to internal. This is representative of an internal error.
+    code = 13
+
+
+class ParameterTypeInferenceFailed(ValueError):
+    """Exception raised when query parameter types were not provided and cannot be inferred."""
+
+
+class EarlyMetadataCallError(RuntimeError):
+    """Execption raised when metadata is request from an ExecuteQueryIterator before the first row has been read, or the query has completed"""

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ from google.api_core import retry as retries
 from google.api_core import operations_v1
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.oauth2 import service_account  # type: ignore
+import google.protobuf
 
 from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
 from google.cloud.bigtable_admin_v2.types import table
@@ -38,6 +39,9 @@ from google.protobuf import empty_pb2  # type: ignore
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
+
+if hasattr(DEFAULT_CLIENT_INFO, "protobuf_runtime_version"):  # pragma: NO COVER
+    DEFAULT_CLIENT_INFO.protobuf_runtime_version = google.protobuf.__version__
 
 
 class BigtableTableAdminTransport(abc.ABC):
@@ -96,6 +100,8 @@ class BigtableTableAdminTransport(abc.ABC):
 
         # Save the scopes.
         self._scopes = scopes
+        if not hasattr(self, "_ignore_credentials"):
+            self._ignore_credentials: bool = False
 
         # If no credentials are provided, then determine the appropriate
         # defaults.
@@ -108,7 +114,7 @@ class BigtableTableAdminTransport(abc.ABC):
             credentials, _ = google.auth.load_credentials_from_file(
                 credentials_file, **scopes_kwargs, quota_project_id=quota_project_id
             )
-        elif credentials is None:
+        elif credentials is None and not self._ignore_credentials:
             credentials, _ = google.auth.default(
                 **scopes_kwargs, quota_project_id=quota_project_id
             )
@@ -188,11 +194,36 @@ class BigtableTableAdminTransport(abc.ABC):
             ),
             self.delete_table: gapic_v1.method.wrap_method(
                 self.delete_table,
-                default_timeout=60.0,
+                default_timeout=300.0,
                 client_info=client_info,
             ),
             self.undelete_table: gapic_v1.method.wrap_method(
                 self.undelete_table,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.create_authorized_view: gapic_v1.method.wrap_method(
+                self.create_authorized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.list_authorized_views: gapic_v1.method.wrap_method(
+                self.list_authorized_views,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.get_authorized_view: gapic_v1.method.wrap_method(
+                self.get_authorized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.update_authorized_view: gapic_v1.method.wrap_method(
+                self.update_authorized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.delete_authorized_view: gapic_v1.method.wrap_method(
+                self.delete_authorized_view,
                 default_timeout=None,
                 client_info=client_info,
             ),
@@ -231,9 +262,9 @@ class BigtableTableAdminTransport(abc.ABC):
                         core_exceptions.DeadlineExceeded,
                         core_exceptions.ServiceUnavailable,
                     ),
-                    deadline=60.0,
+                    deadline=3600.0,
                 ),
-                default_timeout=60.0,
+                default_timeout=3600.0,
                 client_info=client_info,
             ),
             self.snapshot_table: gapic_v1.method.wrap_method(
@@ -273,7 +304,7 @@ class BigtableTableAdminTransport(abc.ABC):
             ),
             self.delete_snapshot: gapic_v1.method.wrap_method(
                 self.delete_snapshot,
-                default_timeout=60.0,
+                default_timeout=300.0,
                 client_info=client_info,
             ),
             self.create_backup: gapic_v1.method.wrap_method(
@@ -303,7 +334,7 @@ class BigtableTableAdminTransport(abc.ABC):
             ),
             self.delete_backup: gapic_v1.method.wrap_method(
                 self.delete_backup,
-                default_timeout=60.0,
+                default_timeout=300.0,
                 client_info=client_info,
             ),
             self.list_backups: gapic_v1.method.wrap_method(
@@ -445,6 +476,54 @@ class BigtableTableAdminTransport(abc.ABC):
     ) -> Callable[
         [bigtable_table_admin.UndeleteTableRequest],
         Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def create_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.CreateAuthorizedViewRequest],
+        Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def list_authorized_views(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.ListAuthorizedViewsRequest],
+        Union[
+            bigtable_table_admin.ListAuthorizedViewsResponse,
+            Awaitable[bigtable_table_admin.ListAuthorizedViewsResponse],
+        ],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def get_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.GetAuthorizedViewRequest],
+        Union[table.AuthorizedView, Awaitable[table.AuthorizedView]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def update_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.UpdateAuthorizedViewRequest],
+        Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def delete_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.DeleteAuthorizedViewRequest],
+        Union[empty_pb2.Empty, Awaitable[empty_pb2.Empty]],
     ]:
         raise NotImplementedError()
 

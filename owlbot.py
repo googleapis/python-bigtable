@@ -91,131 +91,56 @@ templated_files = common.py_library(
     microgenerator=True,
     cov_level=99,
     system_test_external_dependencies=[
-        "pytest-asyncio",
+        "pytest-asyncio==0.21.2",
     ],
 )
 
-s.move(templated_files, excludes=[".coveragerc", "README.rst", ".github/release-please.yml"])
+s.move(templated_files, excludes=[".coveragerc", "README.rst", ".github/release-please.yml", "noxfile.py", "renovate.json"])
+
 
 # ----------------------------------------------------------------------------
-# Customize noxfile.py
+# Always supply app_profile_id in routing headers: https://github.com/googleapis/python-bigtable/pull/1109
+# TODO: remove after backend no longer requires empty strings
 # ----------------------------------------------------------------------------
-
-def place_before(path, text, *before_text, escape=None):
-    replacement = "\n".join(before_text) + "\n" + text
-    if escape:
-        for c in escape:
-            text = text.replace(c, '\\' + c)
-    s.replace([path], text, replacement)
-
-system_emulated_session = """
-@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-def system_emulated(session):
-    import subprocess
-    import signal
-
-    try:
-        subprocess.call(["gcloud", "--version"])
-    except OSError:
-        session.skip("gcloud not found but required for emulator support")
-
-    # Currently, CI/CD doesn't have beta component of gcloud.
-    subprocess.call(["gcloud", "components", "install", "beta", "bigtable"])
-
-    hostport = "localhost:8789"
-    session.env["BIGTABLE_EMULATOR_HOST"] = hostport
-
-    p = subprocess.Popen(
-        ["gcloud", "beta", "emulators", "bigtable", "start", "--host-port", hostport]
+for file in ["async_client.py", "client.py"]:
+    s.replace(
+        f"google/cloud/bigtable_v2/services/bigtable/{file}",
+        "if request.app_profile_id:",
+        "if True:  # always attach app_profile_id, even if empty string"
     )
-
-    try:
-        system(session)
-    finally:
-        # Stop Emulator
-        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
-
-"""
-
-place_before(
-    "noxfile.py",
-    "@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)\n"
-    "def system(session):",
-    system_emulated_session,
-    escape="()"
-)
-
-conformance_session = """
-@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-def conformance(session):
-    TEST_REPO_URL = "https://github.com/googleapis/cloud-bigtable-clients-test.git"
-    CLONE_REPO_DIR = "cloud-bigtable-clients-test"
-    # install dependencies
-    constraints_path = str(
-        CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
-    )
-    install_unittest_dependencies(session, "-c", constraints_path)
-    with session.chdir("test_proxy"):
-        # download the conformance test suite
-        clone_dir = os.path.join(CURRENT_DIRECTORY, CLONE_REPO_DIR)
-        if not os.path.exists(clone_dir):
-            print("downloading copy of test repo")
-            session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR, external=True)
-        session.run("bash", "-e", "run_tests.sh", external=True)
-
-"""
-
-place_before(
-    "noxfile.py",
-    "@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)\n"
-    "def system(session):",
-    conformance_session,
-    escape="()"
-)
-
-# add system_emulated and mypy and conformance to nox session
-s.replace("noxfile.py",
-    """nox.options.sessions = \[
-    "unit",
-    "system",""",
-    """nox.options.sessions = [
-    "unit",
-    "system_emulated",
-    "system",
-    "mypy",""",
-)
-
-
+# fix tests
 s.replace(
-    "noxfile.py",
-    """\
-@nox.session\(python=DEFAULT_PYTHON_VERSION\)
-def lint_setup_py\(session\):
-""",
-    '''\
-@nox.session(python=DEFAULT_PYTHON_VERSION)
-def mypy(session):
-    """Verify type hints are mypy compatible."""
-    session.install("-e", ".")
-    session.install("mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests")
-    session.install("google-cloud-testutils")
-    session.run(
-        "mypy",
-        "-p",
-        "google.cloud.bigtable.data",
-        "--check-untyped-defs",
-        "--warn-unreachable",
-        "--disallow-any-generics",
-        "--exclude",
-        "tests/system/v2_client",
-        "--exclude",
-        "tests/unit/v2_client",
-    )
-
-
-@nox.session(python=DEFAULT_PYTHON_VERSION)
-def lint_setup_py(session):
-''',
+    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+    'expected_headers = {"name": "projects/sample1/instances/sample2"}',
+    'expected_headers = {"name": "projects/sample1/instances/sample2", "app_profile_id": ""}'
+)
+s.replace(
+    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+    """
+        expected_headers = {
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+        }
+    """,
+    """
+        expected_headers = {
+            "app_profile_id": "",
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+        }
+    """
+)
+s.replace(
+    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+    """
+        expected_headers = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+    """,
+    """
+        expected_headers = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "app_profile_id": ""
+        }
+    """
 )
 
 # ----------------------------------------------------------------------------

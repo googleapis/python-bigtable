@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 from .bigtable import (
     CheckAndMutateRowRequest,
     CheckAndMutateRowResponse,
+    ExecuteQueryRequest,
+    ExecuteQueryResponse,
     GenerateInitialChangeStreamPartitionsRequest,
     GenerateInitialChangeStreamPartitionsResponse,
     MutateRowRequest,
@@ -24,6 +26,8 @@ from .bigtable import (
     MutateRowsResponse,
     PingAndWarmRequest,
     PingAndWarmResponse,
+    PrepareQueryRequest,
+    PrepareQueryResponse,
     RateLimitInfo,
     ReadChangeStreamRequest,
     ReadChangeStreamResponse,
@@ -35,12 +39,20 @@ from .bigtable import (
     SampleRowKeysResponse,
 )
 from .data import (
+    ArrayValue,
     Cell,
     Column,
+    ColumnMetadata,
     ColumnRange,
     Family,
     Mutation,
+    PartialResultSet,
+    ProtoFormat,
+    ProtoRows,
+    ProtoRowsBatch,
+    ProtoSchema,
     ReadModifyWriteRule,
+    ResultSetMetadata,
     Row,
     RowFilter,
     RowRange,
@@ -49,6 +61,7 @@ from .data import (
     StreamContinuationTokens,
     StreamPartition,
     TimestampRange,
+    Value,
     ValueRange,
 )
 from .feature_flags import (
@@ -63,10 +76,15 @@ from .request_stats import (
 from .response_params import (
     ResponseParams,
 )
+from .types import (
+    Type,
+)
 
 __all__ = (
     "CheckAndMutateRowRequest",
     "CheckAndMutateRowResponse",
+    "ExecuteQueryRequest",
+    "ExecuteQueryResponse",
     "GenerateInitialChangeStreamPartitionsRequest",
     "GenerateInitialChangeStreamPartitionsResponse",
     "MutateRowRequest",
@@ -75,6 +93,8 @@ __all__ = (
     "MutateRowsResponse",
     "PingAndWarmRequest",
     "PingAndWarmResponse",
+    "PrepareQueryRequest",
+    "PrepareQueryResponse",
     "RateLimitInfo",
     "ReadChangeStreamRequest",
     "ReadChangeStreamResponse",
@@ -84,12 +104,20 @@ __all__ = (
     "ReadRowsResponse",
     "SampleRowKeysRequest",
     "SampleRowKeysResponse",
+    "ArrayValue",
     "Cell",
     "Column",
+    "ColumnMetadata",
     "ColumnRange",
     "Family",
     "Mutation",
+    "PartialResultSet",
+    "ProtoFormat",
+    "ProtoRows",
+    "ProtoRowsBatch",
+    "ProtoSchema",
     "ReadModifyWriteRule",
+    "ResultSetMetadata",
     "Row",
     "RowFilter",
     "RowRange",
@@ -98,6 +126,7 @@ __all__ = (
     "StreamContinuationTokens",
     "StreamPartition",
     "TimestampRange",
+    "Value",
     "ValueRange",
     "FeatureFlags",
     "FullReadStatsView",
@@ -105,4 +134,5 @@ __all__ = (
     "RequestLatencyStats",
     "RequestStats",
     "ResponseParams",
+    "Type",
 )

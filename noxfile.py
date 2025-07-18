@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,19 +28,29 @@ import warnings
 import nox
 
 FLAKE8_VERSION = "flake8==6.1.0"
-BLACK_VERSION = "black[jupyter]==23.7.0"
+BLACK_VERSION = "black[jupyter]==23.3.0"
 ISORT_VERSION = "isort==5.11.0"
 LINT_PATHS = ["docs", "google", "tests", "noxfile.py", "setup.py"]
 
 DEFAULT_PYTHON_VERSION = "3.8"
 
-UNIT_TEST_PYTHON_VERSIONS: List[str] = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
+UNIT_TEST_PYTHON_VERSIONS: List[str] = [
+    "3.7",
+    "3.8",
+    "3.9",
+    "3.10",
+    "3.11",
+    "3.12",
+    "3.13",
+]
 UNIT_TEST_STANDARD_DEPENDENCIES = [
     "mock",
     "asyncmock",
     "pytest",
     "pytest-cov",
     "pytest-asyncio",
+    BLACK_VERSION,
+    "autoflake",
 ]
 UNIT_TEST_EXTERNAL_DEPENDENCIES: List[str] = []
 UNIT_TEST_LOCAL_DEPENDENCIES: List[str] = []
@@ -48,14 +58,16 @@ UNIT_TEST_DEPENDENCIES: List[str] = []
 UNIT_TEST_EXTRAS: List[str] = []
 UNIT_TEST_EXTRAS_BY_PYTHON: Dict[str, List[str]] = {}
 
-SYSTEM_TEST_PYTHON_VERSIONS: List[str] = ["3.8"]
+SYSTEM_TEST_PYTHON_VERSIONS: List[str] = ["3.8", "3.12"]
 SYSTEM_TEST_STANDARD_DEPENDENCIES: List[str] = [
     "mock",
     "pytest",
     "google-cloud-testutils",
 ]
 SYSTEM_TEST_EXTERNAL_DEPENDENCIES: List[str] = [
-    "pytest-asyncio",
+    "pytest-asyncio==0.21.2",
+    BLACK_VERSION,
+    "pyyaml==6.0.2",
 ]
 SYSTEM_TEST_LOCAL_DEPENDENCIES: List[str] = []
 SYSTEM_TEST_DEPENDENCIES: List[str] = []
@@ -147,6 +159,8 @@ def mypy(session):
         "tests/system/v2_client",
         "--exclude",
         "tests/unit/v2_client",
+        "--disable-error-code",
+        "func-returns-value",  # needed for CrossSync.rm_aio
     )
 
 
@@ -185,13 +199,27 @@ def install_unittest_dependencies(session, *constraints):
         session.install("-e", ".", *constraints)
 
 
-def default(session):
+@nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
+@nox.parametrize(
+    "protobuf_implementation",
+    ["python", "upb", "cpp"],
+)
+def unit(session, protobuf_implementation):
     # Install all test dependencies, then install this package in-place.
+
+    if protobuf_implementation == "cpp" and session.python in ("3.11", "3.12", "3.13"):
+        session.skip("cpp implementation is not supported in python 3.11+")
 
     constraints_path = str(
         CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
     )
     install_unittest_dependencies(session, "-c", constraints_path)
+
+    # TODO(https://github.com/googleapis/synthtool/issues/1976):
+    # Remove the 'cpp' implementation once support for Protobuf 3.x is dropped.
+    # The 'cpp' implementation requires Protobuf<4.
+    if protobuf_implementation == "cpp":
+        session.install("protobuf<4")
 
     # Run py.test against the unit tests.
     session.run(
@@ -206,13 +234,10 @@ def default(session):
         "--cov-fail-under=0",
         os.path.join("tests", "unit"),
         *session.posargs,
+        env={
+            "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": protobuf_implementation,
+        },
     )
-
-
-@nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
-def unit(session):
-    """Run the unit test suite."""
-    default(session)
 
 
 def install_systemtest_dependencies(session, *constraints):
@@ -245,7 +270,7 @@ def install_systemtest_dependencies(session, *constraints):
         session.install("-e", ".", *constraints)
 
 
-@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
+@nox.session(python="3.8")
 def system_emulated(session):
     import subprocess
     import signal
@@ -273,9 +298,8 @@ def system_emulated(session):
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-def conformance(session):
-    TEST_REPO_URL = "https://github.com/googleapis/cloud-bigtable-clients-test.git"
-    CLONE_REPO_DIR = "cloud-bigtable-clients-test"
+@nox.parametrize("client_type", ["async", "sync", "legacy"])
+def conformance(session, client_type):
     # install dependencies
     constraints_path = str(
         CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
@@ -283,11 +307,13 @@ def conformance(session):
     install_unittest_dependencies(session, "-c", constraints_path)
     with session.chdir("test_proxy"):
         # download the conformance test suite
-        clone_dir = os.path.join(CURRENT_DIRECTORY, CLONE_REPO_DIR)
-        if not os.path.exists(clone_dir):
-            print("downloading copy of test repo")
-            session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR, external=True)
-        session.run("bash", "-e", "run_tests.sh", external=True)
+        session.run(
+            "bash",
+            "-e",
+            "run_tests.sh",
+            external=True,
+            env={"CLIENT_TYPE": client_type},
+        )
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
@@ -346,7 +372,7 @@ def cover(session):
     session.run("coverage", "erase")
 
 
-@nox.session(python="3.9")
+@nox.session(python="3.10")
 def docs(session):
     """Build the docs for this library."""
 
@@ -425,11 +451,21 @@ def docfx(session):
         os.path.join("docs", ""),
         os.path.join("docs", "_build", "html", ""),
     )
+    # Customization: Add extra sections to the table of contents for the Classic vs Async clients
+    session.install("pyyaml")
+    session.run("python", "docs/scripts/patch_devsite_toc.py")
 
 
-@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-def prerelease_deps(session):
+@nox.session(python="3.12")
+@nox.parametrize(
+    "protobuf_implementation",
+    ["python", "upb", "cpp"],
+)
+def prerelease_deps(session, protobuf_implementation):
     """Run all tests with prerelease versions of dependencies installed."""
+
+    if protobuf_implementation == "cpp" and session.python in ("3.11", "3.12", "3.13"):
+        session.skip("cpp implementation is not supported in python 3.11+")
 
     # Install all dependencies
     session.install("-e", ".[all, tests, tracing]")
@@ -465,9 +501,9 @@ def prerelease_deps(session):
         "protobuf",
         # dependency of grpc
         "six",
+        "grpc-google-iam-v1",
         "googleapis-common-protos",
-        # Exclude version 1.52.0rc1 which has a known issue. See https://github.com/grpc/grpc/issues/32163
-        "grpcio!=1.52.0rc1",
+        "grpcio",
         "grpcio-status",
         "google-api-core",
         "google-auth",
@@ -493,7 +529,13 @@ def prerelease_deps(session):
     session.run("python", "-c", "import grpc; print(grpc.__version__)")
     session.run("python", "-c", "import google.auth; print(google.auth.__version__)")
 
-    session.run("py.test", "tests/unit")
+    session.run(
+        "py.test",
+        "tests/unit",
+        env={
+            "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": protobuf_implementation,
+        },
+    )
 
     system_test_path = os.path.join("tests", "system.py")
     system_test_folder_path = os.path.join("tests", "system")
@@ -506,6 +548,9 @@ def prerelease_deps(session):
             f"--junitxml=system_{session.python}_sponge_log.xml",
             system_test_path,
             *session.posargs,
+            env={
+                "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": protobuf_implementation,
+            },
         )
     if os.path.exists(system_test_folder_path):
         session.run(
@@ -514,4 +559,17 @@ def prerelease_deps(session):
             f"--junitxml=system_{session.python}_sponge_log.xml",
             system_test_folder_path,
             *session.posargs,
+            env={
+                "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": protobuf_implementation,
+            },
         )
+
+
+@nox.session(python="3.10")
+def generate_sync(session):
+    """
+    Re-generate sync files for the library from CrossSync-annotated async source
+    """
+    session.install(BLACK_VERSION)
+    session.install("autoflake")
+    session.run("python", ".cross_sync/generate.py", ".")

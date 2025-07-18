@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,31 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import logging
+import json  # type: ignore
 
 from google.auth.transport.requests import AuthorizedSession  # type: ignore
-import json  # type: ignore
-import grpc  # type: ignore
-from google.auth.transport.grpc import SslCredentials  # type: ignore
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
 from google.api_core import rest_helpers
 from google.api_core import rest_streaming
-from google.api_core import path_template
 from google.api_core import gapic_v1
+import google.protobuf
 
 from google.protobuf import json_format
 from google.api_core import operations_v1
+
 from requests import __version__ as requests_version
 import dataclasses
-import re
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import warnings
-
-try:
-    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
-except AttributeError:  # pragma: NO COVER
-    OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
 
 from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
@@ -48,17 +42,32 @@ from google.iam.v1 import policy_pb2  # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 from google.longrunning import operations_pb2  # type: ignore
 
-from .base import (
-    BigtableTableAdminTransport,
-    DEFAULT_CLIENT_INFO as BASE_DEFAULT_CLIENT_INFO,
-)
 
+from .rest_base import _BaseBigtableTableAdminRestTransport
+from .base import DEFAULT_CLIENT_INFO as BASE_DEFAULT_CLIENT_INFO
+
+try:
+    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
+except AttributeError:  # pragma: NO COVER
+    OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
+
+try:
+    from google.api_core import client_logging  # type: ignore
+
+    CLIENT_LOGGING_SUPPORTED = True  # pragma: NO COVER
+except ImportError:  # pragma: NO COVER
+    CLIENT_LOGGING_SUPPORTED = False
+
+_LOGGER = logging.getLogger(__name__)
 
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=BASE_DEFAULT_CLIENT_INFO.gapic_version,
     grpc_version=None,
-    rest_version=requests_version,
+    rest_version=f"requests@{requests_version}",
 )
+
+if hasattr(DEFAULT_CLIENT_INFO, "protobuf_runtime_version"):  # pragma: NO COVER
+    DEFAULT_CLIENT_INFO.protobuf_runtime_version = google.protobuf.__version__
 
 
 class BigtableTableAdminRestInterceptor:
@@ -92,6 +101,14 @@ class BigtableTableAdminRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
+            def pre_create_authorized_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_create_authorized_view(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
             def pre_create_backup(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
@@ -116,6 +133,10 @@ class BigtableTableAdminRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
+            def pre_delete_authorized_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
             def pre_delete_backup(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
@@ -137,6 +158,14 @@ class BigtableTableAdminRestInterceptor:
                 return request, metadata
 
             def post_generate_consistency_token(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_get_authorized_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_get_authorized_view(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -169,6 +198,14 @@ class BigtableTableAdminRestInterceptor:
                 return request, metadata
 
             def post_get_table(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_list_authorized_views(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_list_authorized_views(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -244,6 +281,14 @@ class BigtableTableAdminRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
+            def pre_update_authorized_view(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_update_authorized_view(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
             def pre_update_backup(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
@@ -269,8 +314,11 @@ class BigtableTableAdminRestInterceptor:
     def pre_check_consistency(
         self,
         request: bigtable_table_admin.CheckConsistencyRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.CheckConsistencyRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.CheckConsistencyRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for check_consistency
 
         Override in a subclass to manipulate the request or metadata
@@ -283,17 +331,45 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.CheckConsistencyResponse:
         """Post-rpc interceptor for check_consistency
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_check_consistency_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_check_consistency` interceptor runs
+        before the `post_check_consistency_with_metadata` interceptor.
         """
         return response
+
+    def post_check_consistency_with_metadata(
+        self,
+        response: bigtable_table_admin.CheckConsistencyResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.CheckConsistencyResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for check_consistency
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_check_consistency_with_metadata`
+        interceptor in new development instead of the `post_check_consistency` interceptor.
+        When both interceptors are used, this `post_check_consistency_with_metadata` interceptor runs after the
+        `post_check_consistency` interceptor. The (possibly modified) response returned by
+        `post_check_consistency` will be passed to
+        `post_check_consistency_with_metadata`.
+        """
+        return response, metadata
 
     def pre_copy_backup(
         self,
         request: bigtable_table_admin.CopyBackupRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.CopyBackupRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.CopyBackupRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for copy_backup
 
         Override in a subclass to manipulate the request or metadata
@@ -306,17 +382,92 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for copy_backup
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_copy_backup_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_copy_backup` interceptor runs
+        before the `post_copy_backup_with_metadata` interceptor.
         """
         return response
+
+    def post_copy_backup_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for copy_backup
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_copy_backup_with_metadata`
+        interceptor in new development instead of the `post_copy_backup` interceptor.
+        When both interceptors are used, this `post_copy_backup_with_metadata` interceptor runs after the
+        `post_copy_backup` interceptor. The (possibly modified) response returned by
+        `post_copy_backup` will be passed to
+        `post_copy_backup_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_create_authorized_view(
+        self,
+        request: bigtable_table_admin.CreateAuthorizedViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.CreateAuthorizedViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for create_authorized_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableTableAdmin server.
+        """
+        return request, metadata
+
+    def post_create_authorized_view(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
+        """Post-rpc interceptor for create_authorized_view
+
+        DEPRECATED. Please use the `post_create_authorized_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableTableAdmin server but before
+        it is returned to user code. This `post_create_authorized_view` interceptor runs
+        before the `post_create_authorized_view_with_metadata` interceptor.
+        """
+        return response
+
+    def post_create_authorized_view_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_authorized_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_authorized_view_with_metadata`
+        interceptor in new development instead of the `post_create_authorized_view` interceptor.
+        When both interceptors are used, this `post_create_authorized_view_with_metadata` interceptor runs after the
+        `post_create_authorized_view` interceptor. The (possibly modified) response returned by
+        `post_create_authorized_view` will be passed to
+        `post_create_authorized_view_with_metadata`.
+        """
+        return response, metadata
 
     def pre_create_backup(
         self,
         request: bigtable_table_admin.CreateBackupRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.CreateBackupRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.CreateBackupRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for create_backup
 
         Override in a subclass to manipulate the request or metadata
@@ -329,17 +480,42 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for create_backup
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_create_backup_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_create_backup` interceptor runs
+        before the `post_create_backup_with_metadata` interceptor.
         """
         return response
+
+    def post_create_backup_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_backup
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_backup_with_metadata`
+        interceptor in new development instead of the `post_create_backup` interceptor.
+        When both interceptors are used, this `post_create_backup_with_metadata` interceptor runs after the
+        `post_create_backup` interceptor. The (possibly modified) response returned by
+        `post_create_backup` will be passed to
+        `post_create_backup_with_metadata`.
+        """
+        return response, metadata
 
     def pre_create_table(
         self,
         request: bigtable_table_admin.CreateTableRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.CreateTableRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.CreateTableRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for create_table
 
         Override in a subclass to manipulate the request or metadata
@@ -350,18 +526,42 @@ class BigtableTableAdminRestInterceptor:
     def post_create_table(self, response: gba_table.Table) -> gba_table.Table:
         """Post-rpc interceptor for create_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_create_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_create_table` interceptor runs
+        before the `post_create_table_with_metadata` interceptor.
         """
         return response
+
+    def post_create_table_with_metadata(
+        self,
+        response: gba_table.Table,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[gba_table.Table, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_table_with_metadata`
+        interceptor in new development instead of the `post_create_table` interceptor.
+        When both interceptors are used, this `post_create_table_with_metadata` interceptor runs after the
+        `post_create_table` interceptor. The (possibly modified) response returned by
+        `post_create_table` will be passed to
+        `post_create_table_with_metadata`.
+        """
+        return response, metadata
 
     def pre_create_table_from_snapshot(
         self,
         request: bigtable_table_admin.CreateTableFromSnapshotRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_table_admin.CreateTableFromSnapshotRequest, Sequence[Tuple[str, str]]
+        bigtable_table_admin.CreateTableFromSnapshotRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for create_table_from_snapshot
 
@@ -375,17 +575,58 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for create_table_from_snapshot
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_create_table_from_snapshot_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_create_table_from_snapshot` interceptor runs
+        before the `post_create_table_from_snapshot_with_metadata` interceptor.
         """
         return response
+
+    def post_create_table_from_snapshot_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_table_from_snapshot
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_table_from_snapshot_with_metadata`
+        interceptor in new development instead of the `post_create_table_from_snapshot` interceptor.
+        When both interceptors are used, this `post_create_table_from_snapshot_with_metadata` interceptor runs after the
+        `post_create_table_from_snapshot` interceptor. The (possibly modified) response returned by
+        `post_create_table_from_snapshot` will be passed to
+        `post_create_table_from_snapshot_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_delete_authorized_view(
+        self,
+        request: bigtable_table_admin.DeleteAuthorizedViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.DeleteAuthorizedViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for delete_authorized_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableTableAdmin server.
+        """
+        return request, metadata
 
     def pre_delete_backup(
         self,
         request: bigtable_table_admin.DeleteBackupRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.DeleteBackupRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.DeleteBackupRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for delete_backup
 
         Override in a subclass to manipulate the request or metadata
@@ -396,8 +637,11 @@ class BigtableTableAdminRestInterceptor:
     def pre_delete_snapshot(
         self,
         request: bigtable_table_admin.DeleteSnapshotRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.DeleteSnapshotRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.DeleteSnapshotRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for delete_snapshot
 
         Override in a subclass to manipulate the request or metadata
@@ -408,8 +652,10 @@ class BigtableTableAdminRestInterceptor:
     def pre_delete_table(
         self,
         request: bigtable_table_admin.DeleteTableRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.DeleteTableRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.DeleteTableRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for delete_table
 
         Override in a subclass to manipulate the request or metadata
@@ -420,8 +666,11 @@ class BigtableTableAdminRestInterceptor:
     def pre_drop_row_range(
         self,
         request: bigtable_table_admin.DropRowRangeRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.DropRowRangeRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.DropRowRangeRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for drop_row_range
 
         Override in a subclass to manipulate the request or metadata
@@ -432,9 +681,10 @@ class BigtableTableAdminRestInterceptor:
     def pre_generate_consistency_token(
         self,
         request: bigtable_table_admin.GenerateConsistencyTokenRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_table_admin.GenerateConsistencyTokenRequest, Sequence[Tuple[str, str]]
+        bigtable_table_admin.GenerateConsistencyTokenRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for generate_consistency_token
 
@@ -448,17 +698,94 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.GenerateConsistencyTokenResponse:
         """Post-rpc interceptor for generate_consistency_token
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_generate_consistency_token_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_generate_consistency_token` interceptor runs
+        before the `post_generate_consistency_token_with_metadata` interceptor.
         """
         return response
+
+    def post_generate_consistency_token_with_metadata(
+        self,
+        response: bigtable_table_admin.GenerateConsistencyTokenResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.GenerateConsistencyTokenResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for generate_consistency_token
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_generate_consistency_token_with_metadata`
+        interceptor in new development instead of the `post_generate_consistency_token` interceptor.
+        When both interceptors are used, this `post_generate_consistency_token_with_metadata` interceptor runs after the
+        `post_generate_consistency_token` interceptor. The (possibly modified) response returned by
+        `post_generate_consistency_token` will be passed to
+        `post_generate_consistency_token_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_get_authorized_view(
+        self,
+        request: bigtable_table_admin.GetAuthorizedViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.GetAuthorizedViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for get_authorized_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableTableAdmin server.
+        """
+        return request, metadata
+
+    def post_get_authorized_view(
+        self, response: table.AuthorizedView
+    ) -> table.AuthorizedView:
+        """Post-rpc interceptor for get_authorized_view
+
+        DEPRECATED. Please use the `post_get_authorized_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableTableAdmin server but before
+        it is returned to user code. This `post_get_authorized_view` interceptor runs
+        before the `post_get_authorized_view_with_metadata` interceptor.
+        """
+        return response
+
+    def post_get_authorized_view_with_metadata(
+        self,
+        response: table.AuthorizedView,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[table.AuthorizedView, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_authorized_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_authorized_view_with_metadata`
+        interceptor in new development instead of the `post_get_authorized_view` interceptor.
+        When both interceptors are used, this `post_get_authorized_view_with_metadata` interceptor runs after the
+        `post_get_authorized_view` interceptor. The (possibly modified) response returned by
+        `post_get_authorized_view` will be passed to
+        `post_get_authorized_view_with_metadata`.
+        """
+        return response, metadata
 
     def pre_get_backup(
         self,
         request: bigtable_table_admin.GetBackupRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.GetBackupRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.GetBackupRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for get_backup
 
         Override in a subclass to manipulate the request or metadata
@@ -469,17 +796,40 @@ class BigtableTableAdminRestInterceptor:
     def post_get_backup(self, response: table.Backup) -> table.Backup:
         """Post-rpc interceptor for get_backup
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_get_backup_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_get_backup` interceptor runs
+        before the `post_get_backup_with_metadata` interceptor.
         """
         return response
+
+    def post_get_backup_with_metadata(
+        self, response: table.Backup, metadata: Sequence[Tuple[str, Union[str, bytes]]]
+    ) -> Tuple[table.Backup, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_backup
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_backup_with_metadata`
+        interceptor in new development instead of the `post_get_backup` interceptor.
+        When both interceptors are used, this `post_get_backup_with_metadata` interceptor runs after the
+        `post_get_backup` interceptor. The (possibly modified) response returned by
+        `post_get_backup` will be passed to
+        `post_get_backup_with_metadata`.
+        """
+        return response, metadata
 
     def pre_get_iam_policy(
         self,
         request: iam_policy_pb2.GetIamPolicyRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[iam_policy_pb2.GetIamPolicyRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        iam_policy_pb2.GetIamPolicyRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for get_iam_policy
 
         Override in a subclass to manipulate the request or metadata
@@ -490,17 +840,42 @@ class BigtableTableAdminRestInterceptor:
     def post_get_iam_policy(self, response: policy_pb2.Policy) -> policy_pb2.Policy:
         """Post-rpc interceptor for get_iam_policy
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_get_iam_policy_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_get_iam_policy` interceptor runs
+        before the `post_get_iam_policy_with_metadata` interceptor.
         """
         return response
+
+    def post_get_iam_policy_with_metadata(
+        self,
+        response: policy_pb2.Policy,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[policy_pb2.Policy, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_iam_policy
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_iam_policy_with_metadata`
+        interceptor in new development instead of the `post_get_iam_policy` interceptor.
+        When both interceptors are used, this `post_get_iam_policy_with_metadata` interceptor runs after the
+        `post_get_iam_policy` interceptor. The (possibly modified) response returned by
+        `post_get_iam_policy` will be passed to
+        `post_get_iam_policy_with_metadata`.
+        """
+        return response, metadata
 
     def pre_get_snapshot(
         self,
         request: bigtable_table_admin.GetSnapshotRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.GetSnapshotRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.GetSnapshotRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for get_snapshot
 
         Override in a subclass to manipulate the request or metadata
@@ -511,17 +886,42 @@ class BigtableTableAdminRestInterceptor:
     def post_get_snapshot(self, response: table.Snapshot) -> table.Snapshot:
         """Post-rpc interceptor for get_snapshot
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_get_snapshot_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_get_snapshot` interceptor runs
+        before the `post_get_snapshot_with_metadata` interceptor.
         """
         return response
+
+    def post_get_snapshot_with_metadata(
+        self,
+        response: table.Snapshot,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[table.Snapshot, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_snapshot
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_snapshot_with_metadata`
+        interceptor in new development instead of the `post_get_snapshot` interceptor.
+        When both interceptors are used, this `post_get_snapshot_with_metadata` interceptor runs after the
+        `post_get_snapshot` interceptor. The (possibly modified) response returned by
+        `post_get_snapshot` will be passed to
+        `post_get_snapshot_with_metadata`.
+        """
+        return response, metadata
 
     def pre_get_table(
         self,
         request: bigtable_table_admin.GetTableRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.GetTableRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.GetTableRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for get_table
 
         Override in a subclass to manipulate the request or metadata
@@ -532,17 +932,92 @@ class BigtableTableAdminRestInterceptor:
     def post_get_table(self, response: table.Table) -> table.Table:
         """Post-rpc interceptor for get_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_get_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_get_table` interceptor runs
+        before the `post_get_table_with_metadata` interceptor.
         """
         return response
+
+    def post_get_table_with_metadata(
+        self, response: table.Table, metadata: Sequence[Tuple[str, Union[str, bytes]]]
+    ) -> Tuple[table.Table, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_table_with_metadata`
+        interceptor in new development instead of the `post_get_table` interceptor.
+        When both interceptors are used, this `post_get_table_with_metadata` interceptor runs after the
+        `post_get_table` interceptor. The (possibly modified) response returned by
+        `post_get_table` will be passed to
+        `post_get_table_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_list_authorized_views(
+        self,
+        request: bigtable_table_admin.ListAuthorizedViewsRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListAuthorizedViewsRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for list_authorized_views
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableTableAdmin server.
+        """
+        return request, metadata
+
+    def post_list_authorized_views(
+        self, response: bigtable_table_admin.ListAuthorizedViewsResponse
+    ) -> bigtable_table_admin.ListAuthorizedViewsResponse:
+        """Post-rpc interceptor for list_authorized_views
+
+        DEPRECATED. Please use the `post_list_authorized_views_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableTableAdmin server but before
+        it is returned to user code. This `post_list_authorized_views` interceptor runs
+        before the `post_list_authorized_views_with_metadata` interceptor.
+        """
+        return response
+
+    def post_list_authorized_views_with_metadata(
+        self,
+        response: bigtable_table_admin.ListAuthorizedViewsResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListAuthorizedViewsResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for list_authorized_views
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_authorized_views_with_metadata`
+        interceptor in new development instead of the `post_list_authorized_views` interceptor.
+        When both interceptors are used, this `post_list_authorized_views_with_metadata` interceptor runs after the
+        `post_list_authorized_views` interceptor. The (possibly modified) response returned by
+        `post_list_authorized_views` will be passed to
+        `post_list_authorized_views_with_metadata`.
+        """
+        return response, metadata
 
     def pre_list_backups(
         self,
         request: bigtable_table_admin.ListBackupsRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.ListBackupsRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListBackupsRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for list_backups
 
         Override in a subclass to manipulate the request or metadata
@@ -555,17 +1030,46 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.ListBackupsResponse:
         """Post-rpc interceptor for list_backups
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_list_backups_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_list_backups` interceptor runs
+        before the `post_list_backups_with_metadata` interceptor.
         """
         return response
+
+    def post_list_backups_with_metadata(
+        self,
+        response: bigtable_table_admin.ListBackupsResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListBackupsResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for list_backups
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_backups_with_metadata`
+        interceptor in new development instead of the `post_list_backups` interceptor.
+        When both interceptors are used, this `post_list_backups_with_metadata` interceptor runs after the
+        `post_list_backups` interceptor. The (possibly modified) response returned by
+        `post_list_backups` will be passed to
+        `post_list_backups_with_metadata`.
+        """
+        return response, metadata
 
     def pre_list_snapshots(
         self,
         request: bigtable_table_admin.ListSnapshotsRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.ListSnapshotsRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListSnapshotsRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for list_snapshots
 
         Override in a subclass to manipulate the request or metadata
@@ -578,17 +1082,45 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.ListSnapshotsResponse:
         """Post-rpc interceptor for list_snapshots
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_list_snapshots_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_list_snapshots` interceptor runs
+        before the `post_list_snapshots_with_metadata` interceptor.
         """
         return response
+
+    def post_list_snapshots_with_metadata(
+        self,
+        response: bigtable_table_admin.ListSnapshotsResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListSnapshotsResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for list_snapshots
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_snapshots_with_metadata`
+        interceptor in new development instead of the `post_list_snapshots` interceptor.
+        When both interceptors are used, this `post_list_snapshots_with_metadata` interceptor runs after the
+        `post_list_snapshots` interceptor. The (possibly modified) response returned by
+        `post_list_snapshots` will be passed to
+        `post_list_snapshots_with_metadata`.
+        """
+        return response, metadata
 
     def pre_list_tables(
         self,
         request: bigtable_table_admin.ListTablesRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.ListTablesRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListTablesRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for list_tables
 
         Override in a subclass to manipulate the request or metadata
@@ -601,18 +1133,44 @@ class BigtableTableAdminRestInterceptor:
     ) -> bigtable_table_admin.ListTablesResponse:
         """Post-rpc interceptor for list_tables
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_list_tables_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_list_tables` interceptor runs
+        before the `post_list_tables_with_metadata` interceptor.
         """
         return response
+
+    def post_list_tables_with_metadata(
+        self,
+        response: bigtable_table_admin.ListTablesResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListTablesResponse, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
+        """Post-rpc interceptor for list_tables
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_tables_with_metadata`
+        interceptor in new development instead of the `post_list_tables` interceptor.
+        When both interceptors are used, this `post_list_tables_with_metadata` interceptor runs after the
+        `post_list_tables` interceptor. The (possibly modified) response returned by
+        `post_list_tables` will be passed to
+        `post_list_tables_with_metadata`.
+        """
+        return response, metadata
 
     def pre_modify_column_families(
         self,
         request: bigtable_table_admin.ModifyColumnFamiliesRequest,
-        metadata: Sequence[Tuple[str, str]],
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
     ) -> Tuple[
-        bigtable_table_admin.ModifyColumnFamiliesRequest, Sequence[Tuple[str, str]]
+        bigtable_table_admin.ModifyColumnFamiliesRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for modify_column_families
 
@@ -624,17 +1182,41 @@ class BigtableTableAdminRestInterceptor:
     def post_modify_column_families(self, response: table.Table) -> table.Table:
         """Post-rpc interceptor for modify_column_families
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_modify_column_families_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_modify_column_families` interceptor runs
+        before the `post_modify_column_families_with_metadata` interceptor.
         """
         return response
+
+    def post_modify_column_families_with_metadata(
+        self, response: table.Table, metadata: Sequence[Tuple[str, Union[str, bytes]]]
+    ) -> Tuple[table.Table, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for modify_column_families
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_modify_column_families_with_metadata`
+        interceptor in new development instead of the `post_modify_column_families` interceptor.
+        When both interceptors are used, this `post_modify_column_families_with_metadata` interceptor runs after the
+        `post_modify_column_families` interceptor. The (possibly modified) response returned by
+        `post_modify_column_families` will be passed to
+        `post_modify_column_families_with_metadata`.
+        """
+        return response, metadata
 
     def pre_restore_table(
         self,
         request: bigtable_table_admin.RestoreTableRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.RestoreTableRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.RestoreTableRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for restore_table
 
         Override in a subclass to manipulate the request or metadata
@@ -647,17 +1229,42 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for restore_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_restore_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_restore_table` interceptor runs
+        before the `post_restore_table_with_metadata` interceptor.
         """
         return response
+
+    def post_restore_table_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for restore_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_restore_table_with_metadata`
+        interceptor in new development instead of the `post_restore_table` interceptor.
+        When both interceptors are used, this `post_restore_table_with_metadata` interceptor runs after the
+        `post_restore_table` interceptor. The (possibly modified) response returned by
+        `post_restore_table` will be passed to
+        `post_restore_table_with_metadata`.
+        """
+        return response, metadata
 
     def pre_set_iam_policy(
         self,
         request: iam_policy_pb2.SetIamPolicyRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[iam_policy_pb2.SetIamPolicyRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        iam_policy_pb2.SetIamPolicyRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for set_iam_policy
 
         Override in a subclass to manipulate the request or metadata
@@ -668,17 +1275,43 @@ class BigtableTableAdminRestInterceptor:
     def post_set_iam_policy(self, response: policy_pb2.Policy) -> policy_pb2.Policy:
         """Post-rpc interceptor for set_iam_policy
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_set_iam_policy_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_set_iam_policy` interceptor runs
+        before the `post_set_iam_policy_with_metadata` interceptor.
         """
         return response
+
+    def post_set_iam_policy_with_metadata(
+        self,
+        response: policy_pb2.Policy,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[policy_pb2.Policy, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for set_iam_policy
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_set_iam_policy_with_metadata`
+        interceptor in new development instead of the `post_set_iam_policy` interceptor.
+        When both interceptors are used, this `post_set_iam_policy_with_metadata` interceptor runs after the
+        `post_set_iam_policy` interceptor. The (possibly modified) response returned by
+        `post_set_iam_policy` will be passed to
+        `post_set_iam_policy_with_metadata`.
+        """
+        return response, metadata
 
     def pre_snapshot_table(
         self,
         request: bigtable_table_admin.SnapshotTableRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.SnapshotTableRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.SnapshotTableRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for snapshot_table
 
         Override in a subclass to manipulate the request or metadata
@@ -691,17 +1324,43 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for snapshot_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_snapshot_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_snapshot_table` interceptor runs
+        before the `post_snapshot_table_with_metadata` interceptor.
         """
         return response
+
+    def post_snapshot_table_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for snapshot_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_snapshot_table_with_metadata`
+        interceptor in new development instead of the `post_snapshot_table` interceptor.
+        When both interceptors are used, this `post_snapshot_table_with_metadata` interceptor runs after the
+        `post_snapshot_table` interceptor. The (possibly modified) response returned by
+        `post_snapshot_table` will be passed to
+        `post_snapshot_table_with_metadata`.
+        """
+        return response, metadata
 
     def pre_test_iam_permissions(
         self,
         request: iam_policy_pb2.TestIamPermissionsRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[iam_policy_pb2.TestIamPermissionsRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        iam_policy_pb2.TestIamPermissionsRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for test_iam_permissions
 
         Override in a subclass to manipulate the request or metadata
@@ -714,17 +1373,46 @@ class BigtableTableAdminRestInterceptor:
     ) -> iam_policy_pb2.TestIamPermissionsResponse:
         """Post-rpc interceptor for test_iam_permissions
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_test_iam_permissions_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_test_iam_permissions` interceptor runs
+        before the `post_test_iam_permissions_with_metadata` interceptor.
         """
         return response
+
+    def post_test_iam_permissions_with_metadata(
+        self,
+        response: iam_policy_pb2.TestIamPermissionsResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        iam_policy_pb2.TestIamPermissionsResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for test_iam_permissions
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_test_iam_permissions_with_metadata`
+        interceptor in new development instead of the `post_test_iam_permissions` interceptor.
+        When both interceptors are used, this `post_test_iam_permissions_with_metadata` interceptor runs after the
+        `post_test_iam_permissions` interceptor. The (possibly modified) response returned by
+        `post_test_iam_permissions` will be passed to
+        `post_test_iam_permissions_with_metadata`.
+        """
+        return response, metadata
 
     def pre_undelete_table(
         self,
         request: bigtable_table_admin.UndeleteTableRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.UndeleteTableRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.UndeleteTableRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for undelete_table
 
         Override in a subclass to manipulate the request or metadata
@@ -737,17 +1425,92 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for undelete_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_undelete_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_undelete_table` interceptor runs
+        before the `post_undelete_table_with_metadata` interceptor.
         """
         return response
+
+    def post_undelete_table_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for undelete_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_undelete_table_with_metadata`
+        interceptor in new development instead of the `post_undelete_table` interceptor.
+        When both interceptors are used, this `post_undelete_table_with_metadata` interceptor runs after the
+        `post_undelete_table` interceptor. The (possibly modified) response returned by
+        `post_undelete_table` will be passed to
+        `post_undelete_table_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_update_authorized_view(
+        self,
+        request: bigtable_table_admin.UpdateAuthorizedViewRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.UpdateAuthorizedViewRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for update_authorized_view
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableTableAdmin server.
+        """
+        return request, metadata
+
+    def post_update_authorized_view(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
+        """Post-rpc interceptor for update_authorized_view
+
+        DEPRECATED. Please use the `post_update_authorized_view_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableTableAdmin server but before
+        it is returned to user code. This `post_update_authorized_view` interceptor runs
+        before the `post_update_authorized_view_with_metadata` interceptor.
+        """
+        return response
+
+    def post_update_authorized_view_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for update_authorized_view
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_update_authorized_view_with_metadata`
+        interceptor in new development instead of the `post_update_authorized_view` interceptor.
+        When both interceptors are used, this `post_update_authorized_view_with_metadata` interceptor runs after the
+        `post_update_authorized_view` interceptor. The (possibly modified) response returned by
+        `post_update_authorized_view` will be passed to
+        `post_update_authorized_view_with_metadata`.
+        """
+        return response, metadata
 
     def pre_update_backup(
         self,
         request: bigtable_table_admin.UpdateBackupRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.UpdateBackupRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.UpdateBackupRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
         """Pre-rpc interceptor for update_backup
 
         Override in a subclass to manipulate the request or metadata
@@ -758,17 +1521,40 @@ class BigtableTableAdminRestInterceptor:
     def post_update_backup(self, response: table.Backup) -> table.Backup:
         """Post-rpc interceptor for update_backup
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_update_backup_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_update_backup` interceptor runs
+        before the `post_update_backup_with_metadata` interceptor.
         """
         return response
+
+    def post_update_backup_with_metadata(
+        self, response: table.Backup, metadata: Sequence[Tuple[str, Union[str, bytes]]]
+    ) -> Tuple[table.Backup, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for update_backup
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_update_backup_with_metadata`
+        interceptor in new development instead of the `post_update_backup` interceptor.
+        When both interceptors are used, this `post_update_backup_with_metadata` interceptor runs after the
+        `post_update_backup` interceptor. The (possibly modified) response returned by
+        `post_update_backup` will be passed to
+        `post_update_backup_with_metadata`.
+        """
+        return response, metadata
 
     def pre_update_table(
         self,
         request: bigtable_table_admin.UpdateTableRequest,
-        metadata: Sequence[Tuple[str, str]],
-    ) -> Tuple[bigtable_table_admin.UpdateTableRequest, Sequence[Tuple[str, str]]]:
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.UpdateTableRequest, Sequence[Tuple[str, Union[str, bytes]]]
+    ]:
         """Pre-rpc interceptor for update_table
 
         Override in a subclass to manipulate the request or metadata
@@ -781,11 +1567,34 @@ class BigtableTableAdminRestInterceptor:
     ) -> operations_pb2.Operation:
         """Post-rpc interceptor for update_table
 
-        Override in a subclass to manipulate the response
+        DEPRECATED. Please use the `post_update_table_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
         after it is returned by the BigtableTableAdmin server but before
-        it is returned to user code.
+        it is returned to user code. This `post_update_table` interceptor runs
+        before the `post_update_table_with_metadata` interceptor.
         """
         return response
+
+    def post_update_table_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for update_table
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_update_table_with_metadata`
+        interceptor in new development instead of the `post_update_table` interceptor.
+        When both interceptors are used, this `post_update_table_with_metadata` interceptor runs after the
+        `post_update_table` interceptor. The (possibly modified) response returned by
+        `post_update_table` will be passed to
+        `post_update_table_with_metadata`.
+        """
+        return response, metadata
 
 
 @dataclasses.dataclass
@@ -795,8 +1604,8 @@ class BigtableTableAdminRestStub:
     _interceptor: BigtableTableAdminRestInterceptor
 
 
-class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
-    """REST backend transport for BigtableTableAdmin.
+class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
+    """REST backend synchronous transport for BigtableTableAdmin.
 
     Service for creating, configuring, and deleting Cloud
     Bigtable tables.
@@ -809,7 +1618,6 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
     and call it.
 
     It sends JSON representations of protocol buffers over HTTP/1.1
-
     """
 
     def __init__(
@@ -863,21 +1671,12 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         # TODO(yon-mg): resolve other ctor params i.e. scopes, quota, etc.
         # TODO: When custom host (api_endpoint) is set, `scopes` must *also* be set on the
         # credentials object
-        maybe_url_match = re.match("^(?P<scheme>http(?:s)?://)?(?P<host>.*)$", host)
-        if maybe_url_match is None:
-            raise ValueError(
-                f"Unexpected hostname structure: {host}"
-            )  # pragma: NO COVER
-
-        url_match_items = maybe_url_match.groupdict()
-
-        host = f"{url_scheme}://{host}" if not url_match_items["scheme"] else host
-
         super().__init__(
             host=host,
             credentials=credentials,
             client_info=client_info,
             always_use_jwt_access=always_use_jwt_access,
+            url_scheme=url_scheme,
             api_audience=api_audience,
         )
         self._session = AuthorizedSession(
@@ -941,19 +1740,35 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         # Return the client from cache.
         return self._operations_client
 
-    class _CheckConsistency(BigtableTableAdminRestStub):
+    class _CheckConsistency(
+        _BaseBigtableTableAdminRestTransport._BaseCheckConsistency,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("CheckConsistency")
+            return hash("BigtableTableAdminRestTransport.CheckConsistency")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -961,7 +1776,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable_table_admin.CheckConsistencyResponse:
             r"""Call the check consistency method over HTTP.
 
@@ -972,8 +1787,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable_table_admin.CheckConsistencyResponse:
@@ -982,47 +1799,62 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:checkConsistency",
-                    "body": "*",
-                },
-            ]
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseCheckConsistency._get_http_options()
+            )
+
             request, metadata = self._interceptor.pre_check_consistency(
                 request, metadata
             )
-            pb_request = bigtable_table_admin.CheckConsistencyRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseCheckConsistency._get_transcoded_request(
+                http_options, request
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            body = _BaseBigtableTableAdminRestTransport._BaseCheckConsistency._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseCheckConsistency._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CheckConsistency",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CheckConsistency",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._CheckConsistency._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1035,22 +1867,65 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = bigtable_table_admin.CheckConsistencyResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_check_consistency(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_check_consistency_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_table_admin.CheckConsistencyResponse.to_json(response)
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.check_consistency",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CheckConsistency",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _CopyBackup(BigtableTableAdminRestStub):
+    class _CopyBackup(
+        _BaseBigtableTableAdminRestTransport._BaseCopyBackup, BigtableTableAdminRestStub
+    ):
         def __hash__(self):
-            return hash("CopyBackup")
+            return hash("BigtableTableAdminRestTransport.CopyBackup")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -1058,7 +1933,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the copy backup method over HTTP.
 
@@ -1069,8 +1944,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -1080,45 +1957,60 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{parent=projects/*/instances/*/clusters/*}/backups:copy",
-                    "body": "*",
-                },
-            ]
-            request, metadata = self._interceptor.pre_copy_backup(request, metadata)
-            pb_request = bigtable_table_admin.CopyBackupRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseCopyBackup._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_copy_backup(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseCopyBackup._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseCopyBackup._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseCopyBackup._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CopyBackup",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CopyBackup",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._CopyBackup._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1129,24 +2021,221 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_copy_backup(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_copy_backup_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.copy_backup",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CopyBackup",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _CreateBackup(BigtableTableAdminRestStub):
+    class _CreateAuthorizedView(
+        _BaseBigtableTableAdminRestTransport._BaseCreateAuthorizedView,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("CreateBackup")
+            return hash("BigtableTableAdminRestTransport.CreateAuthorizedView")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
-            "backupId": "",
-        }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        def __call__(
+            self,
+            request: bigtable_table_admin.CreateAuthorizedViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> operations_pb2.Operation:
+            r"""Call the create authorized view method over HTTP.
+
+            Args:
+                request (~.bigtable_table_admin.CreateAuthorizedViewRequest):
+                    The request object. The request for
+                [CreateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.CreateAuthorizedView]
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.operations_pb2.Operation:
+                    This resource represents a
+                long-running operation that is the
+                result of a network API call.
+
+            """
+
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseCreateAuthorizedView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_create_authorized_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseCreateAuthorizedView._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseCreateAuthorizedView._get_request_body_json(
+                transcoded_request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableTableAdminRestTransport._BaseCreateAuthorizedView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CreateAuthorizedView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CreateAuthorizedView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableTableAdminRestTransport._CreateAuthorizedView._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                    body,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = operations_pb2.Operation()
+            json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_create_authorized_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_authorized_view_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.create_authorized_view",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CreateAuthorizedView",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _CreateBackup(
+        _BaseBigtableTableAdminRestTransport._BaseCreateBackup,
+        BigtableTableAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableTableAdminRestTransport.CreateBackup")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -1154,7 +2243,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the create backup method over HTTP.
 
@@ -1165,8 +2254,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -1176,45 +2267,60 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{parent=projects/*/instances/*/clusters/*}/backups",
-                    "body": "backup",
-                },
-            ]
-            request, metadata = self._interceptor.pre_create_backup(request, metadata)
-            pb_request = bigtable_table_admin.CreateBackupRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseCreateBackup._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_create_backup(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseCreateBackup._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseCreateBackup._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseCreateBackup._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CreateBackup",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CreateBackup",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._CreateBackup._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1225,22 +2331,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_create_backup(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_backup_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.create_backup",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CreateBackup",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _CreateTable(BigtableTableAdminRestStub):
+    class _CreateTable(
+        _BaseBigtableTableAdminRestTransport._BaseCreateTable,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("CreateTable")
+            return hash("BigtableTableAdminRestTransport.CreateTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -1248,7 +2396,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> gba_table.Table:
             r"""Call the create table method over HTTP.
 
@@ -1259,8 +2407,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.gba_table.Table:
@@ -1271,45 +2421,60 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{parent=projects/*/instances/*}/tables",
-                    "body": "*",
-                },
-            ]
-            request, metadata = self._interceptor.pre_create_table(request, metadata)
-            pb_request = bigtable_table_admin.CreateTableRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseCreateTable._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_create_table(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseCreateTable._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseCreateTable._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseCreateTable._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CreateTable",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CreateTable",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._CreateTable._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1322,22 +2487,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = gba_table.Table.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_create_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_table_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = gba_table.Table.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.create_table",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CreateTable",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _CreateTableFromSnapshot(BigtableTableAdminRestStub):
+    class _CreateTableFromSnapshot(
+        _BaseBigtableTableAdminRestTransport._BaseCreateTableFromSnapshot,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("CreateTableFromSnapshot")
+            return hash("BigtableTableAdminRestTransport.CreateTableFromSnapshot")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -1345,7 +2552,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the create table from
             snapshot method over HTTP.
@@ -1364,8 +2571,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                     retry (google.api_core.retry.Retry): Designation of what errors, if any,
                         should be retried.
                     timeout (float): The timeout for this request.
-                    metadata (Sequence[Tuple[str, str]]): Strings which should be
-                        sent along with the request as metadata.
+                    metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                        sent along with the request as metadata. Normally, each value must be of type `str`,
+                        but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                        be of type `bytes`.
 
                 Returns:
                     ~.operations_pb2.Operation:
@@ -1375,47 +2584,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{parent=projects/*/instances/*}/tables:createFromSnapshot",
-                    "body": "*",
-                },
-            ]
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseCreateTableFromSnapshot._get_http_options()
+            )
+
             request, metadata = self._interceptor.pre_create_table_from_snapshot(
                 request, metadata
             )
-            pb_request = bigtable_table_admin.CreateTableFromSnapshotRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseCreateTableFromSnapshot._get_transcoded_request(
+                http_options, request
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            body = _BaseBigtableTableAdminRestTransport._BaseCreateTableFromSnapshot._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseCreateTableFromSnapshot._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CreateTableFromSnapshot",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CreateTableFromSnapshot",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = (
+                BigtableTableAdminRestTransport._CreateTableFromSnapshot._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                    body,
+                )
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1426,22 +2652,175 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_create_table_from_snapshot(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_table_from_snapshot_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.create_table_from_snapshot",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CreateTableFromSnapshot",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _DeleteBackup(BigtableTableAdminRestStub):
+    class _DeleteAuthorizedView(
+        _BaseBigtableTableAdminRestTransport._BaseDeleteAuthorizedView,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("DeleteBackup")
+            return hash("BigtableTableAdminRestTransport.DeleteAuthorizedView")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        def __call__(
+            self,
+            request: bigtable_table_admin.DeleteAuthorizedViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ):
+            r"""Call the delete authorized view method over HTTP.
+
+            Args:
+                request (~.bigtable_table_admin.DeleteAuthorizedViewRequest):
+                    The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.DeleteAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.DeleteAuthorizedView]
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+            """
+
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseDeleteAuthorizedView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_delete_authorized_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseDeleteAuthorizedView._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableTableAdminRestTransport._BaseDeleteAuthorizedView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.DeleteAuthorizedView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "DeleteAuthorizedView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableTableAdminRestTransport._DeleteAuthorizedView._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+    class _DeleteBackup(
+        _BaseBigtableTableAdminRestTransport._BaseDeleteBackup,
+        BigtableTableAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableTableAdminRestTransport.DeleteBackup")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
         def __call__(
             self,
@@ -1449,7 +2828,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ):
             r"""Call the delete backup method over HTTP.
 
@@ -1460,42 +2839,61 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "delete",
-                    "uri": "/v2/{name=projects/*/instances/*/clusters/*/backups/*}",
-                },
-            ]
-            request, metadata = self._interceptor.pre_delete_backup(request, metadata)
-            pb_request = bigtable_table_admin.DeleteBackupRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseDeleteBackup._get_http_options()
+            )
 
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+            request, metadata = self._interceptor.pre_delete_backup(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseDeleteBackup._get_transcoded_request(
+                http_options, request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseDeleteBackup._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.DeleteBackup",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "DeleteBackup",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            response = BigtableTableAdminRestTransport._DeleteBackup._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1503,19 +2901,34 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             if response.status_code >= 400:
                 raise core_exceptions.from_http_response(response)
 
-    class _DeleteSnapshot(BigtableTableAdminRestStub):
+    class _DeleteSnapshot(
+        _BaseBigtableTableAdminRestTransport._BaseDeleteSnapshot,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("DeleteSnapshot")
+            return hash("BigtableTableAdminRestTransport.DeleteSnapshot")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
         def __call__(
             self,
@@ -1523,7 +2936,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ):
             r"""Call the delete snapshot method over HTTP.
 
@@ -1541,42 +2954,61 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "delete",
-                    "uri": "/v2/{name=projects/*/instances/*/clusters/*/snapshots/*}",
-                },
-            ]
-            request, metadata = self._interceptor.pre_delete_snapshot(request, metadata)
-            pb_request = bigtable_table_admin.DeleteSnapshotRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseDeleteSnapshot._get_http_options()
+            )
 
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+            request, metadata = self._interceptor.pre_delete_snapshot(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseDeleteSnapshot._get_transcoded_request(
+                http_options, request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseDeleteSnapshot._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.DeleteSnapshot",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "DeleteSnapshot",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            response = BigtableTableAdminRestTransport._DeleteSnapshot._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1584,19 +3016,34 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             if response.status_code >= 400:
                 raise core_exceptions.from_http_response(response)
 
-    class _DeleteTable(BigtableTableAdminRestStub):
+    class _DeleteTable(
+        _BaseBigtableTableAdminRestTransport._BaseDeleteTable,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("DeleteTable")
+            return hash("BigtableTableAdminRestTransport.DeleteTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
         def __call__(
             self,
@@ -1604,7 +3051,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ):
             r"""Call the delete table method over HTTP.
 
@@ -1615,42 +3062,61 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "delete",
-                    "uri": "/v2/{name=projects/*/instances/*/tables/*}",
-                },
-            ]
-            request, metadata = self._interceptor.pre_delete_table(request, metadata)
-            pb_request = bigtable_table_admin.DeleteTableRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseDeleteTable._get_http_options()
+            )
 
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+            request, metadata = self._interceptor.pre_delete_table(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseDeleteTable._get_transcoded_request(
+                http_options, request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseDeleteTable._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.DeleteTable",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "DeleteTable",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            response = BigtableTableAdminRestTransport._DeleteTable._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1658,19 +3124,35 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             if response.status_code >= 400:
                 raise core_exceptions.from_http_response(response)
 
-    class _DropRowRange(BigtableTableAdminRestStub):
+    class _DropRowRange(
+        _BaseBigtableTableAdminRestTransport._BaseDropRowRange,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("DropRowRange")
+            return hash("BigtableTableAdminRestTransport.DropRowRange")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -1678,7 +3160,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ):
             r"""Call the drop row range method over HTTP.
 
@@ -1689,49 +3171,66 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:dropRowRange",
-                    "body": "*",
-                },
-            ]
-            request, metadata = self._interceptor.pre_drop_row_range(request, metadata)
-            pb_request = bigtable_table_admin.DropRowRangeRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseDropRowRange._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_drop_row_range(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseDropRowRange._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseDropRowRange._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseDropRowRange._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.DropRowRange",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "DropRowRange",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._DropRowRange._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1739,19 +3238,35 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             if response.status_code >= 400:
                 raise core_exceptions.from_http_response(response)
 
-    class _GenerateConsistencyToken(BigtableTableAdminRestStub):
+    class _GenerateConsistencyToken(
+        _BaseBigtableTableAdminRestTransport._BaseGenerateConsistencyToken,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("GenerateConsistencyToken")
+            return hash("BigtableTableAdminRestTransport.GenerateConsistencyToken")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -1759,7 +3274,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable_table_admin.GenerateConsistencyTokenResponse:
             r"""Call the generate consistency
             token method over HTTP.
@@ -1771,8 +3286,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                     retry (google.api_core.retry.Retry): Designation of what errors, if any,
                         should be retried.
                     timeout (float): The timeout for this request.
-                    metadata (Sequence[Tuple[str, str]]): Strings which should be
-                        sent along with the request as metadata.
+                    metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                        sent along with the request as metadata. Normally, each value must be of type `str`,
+                        but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                        be of type `bytes`.
 
                 Returns:
                     ~.bigtable_table_admin.GenerateConsistencyTokenResponse:
@@ -1781,49 +3298,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:generateConsistencyToken",
-                    "body": "*",
-                },
-            ]
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseGenerateConsistencyToken._get_http_options()
+            )
+
             request, metadata = self._interceptor.pre_generate_consistency_token(
                 request, metadata
             )
-            pb_request = bigtable_table_admin.GenerateConsistencyTokenRequest.pb(
-                request
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseGenerateConsistencyToken._get_transcoded_request(
+                http_options, request
             )
-            transcoded_request = path_template.transcode(http_options, pb_request)
 
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            body = _BaseBigtableTableAdminRestTransport._BaseGenerateConsistencyToken._get_request_body_json(
+                transcoded_request
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseGenerateConsistencyToken._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GenerateConsistencyToken",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GenerateConsistencyToken",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = (
+                BigtableTableAdminRestTransport._GenerateConsistencyToken._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                    body,
+                )
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1836,22 +3368,220 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = bigtable_table_admin.GenerateConsistencyTokenResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_generate_consistency_token(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_generate_consistency_token_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_table_admin.GenerateConsistencyTokenResponse.to_json(
+                            response
+                        )
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.generate_consistency_token",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GenerateConsistencyToken",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _GetBackup(BigtableTableAdminRestStub):
+    class _GetAuthorizedView(
+        _BaseBigtableTableAdminRestTransport._BaseGetAuthorizedView,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("GetBackup")
+            return hash("BigtableTableAdminRestTransport.GetAuthorizedView")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        def __call__(
+            self,
+            request: bigtable_table_admin.GetAuthorizedViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> table.AuthorizedView:
+            r"""Call the get authorized view method over HTTP.
+
+            Args:
+                request (~.bigtable_table_admin.GetAuthorizedViewRequest):
+                    The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.GetAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.GetAuthorizedView]
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.table.AuthorizedView:
+                    AuthorizedViews represent subsets of
+                a particular Cloud Bigtable table. Users
+                can configure access to each Authorized
+                View independently from the table and
+                use the existing Data APIs to access the
+                subset of data.
+
+            """
+
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseGetAuthorizedView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_get_authorized_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseGetAuthorizedView._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableTableAdminRestTransport._BaseGetAuthorizedView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GetAuthorizedView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetAuthorizedView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = BigtableTableAdminRestTransport._GetAuthorizedView._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = table.AuthorizedView()
+            pb_resp = table.AuthorizedView.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_get_authorized_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_authorized_view_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = table.AuthorizedView.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.get_authorized_view",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetAuthorizedView",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _GetBackup(
+        _BaseBigtableTableAdminRestTransport._BaseGetBackup, BigtableTableAdminRestStub
+    ):
+        def __hash__(self):
+            return hash("BigtableTableAdminRestTransport.GetBackup")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
         def __call__(
             self,
@@ -1859,7 +3589,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> table.Backup:
             r"""Call the get backup method over HTTP.
 
@@ -1870,46 +3600,65 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.table.Backup:
                     A backup of a Cloud Bigtable table.
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "get",
-                    "uri": "/v2/{name=projects/*/instances/*/clusters/*/backups/*}",
-                },
-            ]
-            request, metadata = self._interceptor.pre_get_backup(request, metadata)
-            pb_request = bigtable_table_admin.GetBackupRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseGetBackup._get_http_options()
+            )
 
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+            request, metadata = self._interceptor.pre_get_backup(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseGetBackup._get_transcoded_request(
+                http_options, request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseGetBackup._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GetBackup",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetBackup",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            response = BigtableTableAdminRestTransport._GetBackup._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -1922,22 +3671,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = table.Backup.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_get_backup(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_backup_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = table.Backup.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.get_backup",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetBackup",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _GetIamPolicy(BigtableTableAdminRestStub):
+    class _GetIamPolicy(
+        _BaseBigtableTableAdminRestTransport._BaseGetIamPolicy,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("GetIamPolicy")
+            return hash("BigtableTableAdminRestTransport.GetIamPolicy")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -1945,7 +3736,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> policy_pb2.Policy:
             r"""Call the get iam policy method over HTTP.
 
@@ -1955,8 +3746,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.policy_pb2.Policy:
@@ -2038,50 +3831,60 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/tables/*}:getIamPolicy",
-                    "body": "*",
-                },
-                {
-                    "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/clusters/*/backups/*}:getIamPolicy",
-                    "body": "*",
-                },
-            ]
-            request, metadata = self._interceptor.pre_get_iam_policy(request, metadata)
-            pb_request = request
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseGetIamPolicy._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_get_iam_policy(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseGetIamPolicy._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseGetIamPolicy._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseGetIamPolicy._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GetIamPolicy",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetIamPolicy",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._GetIamPolicy._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -2094,22 +3897,63 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = resp
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_get_iam_policy(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_iam_policy_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.get_iam_policy",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetIamPolicy",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _GetSnapshot(BigtableTableAdminRestStub):
+    class _GetSnapshot(
+        _BaseBigtableTableAdminRestTransport._BaseGetSnapshot,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("GetSnapshot")
+            return hash("BigtableTableAdminRestTransport.GetSnapshot")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
         def __call__(
             self,
@@ -2117,7 +3961,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> table.Snapshot:
             r"""Call the get snapshot method over HTTP.
 
@@ -2135,8 +3979,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.table.Snapshot:
@@ -2156,38 +4002,55 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "get",
-                    "uri": "/v2/{name=projects/*/instances/*/clusters/*/snapshots/*}",
-                },
-            ]
-            request, metadata = self._interceptor.pre_get_snapshot(request, metadata)
-            pb_request = bigtable_table_admin.GetSnapshotRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseGetSnapshot._get_http_options()
+            )
 
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+            request, metadata = self._interceptor.pre_get_snapshot(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseGetSnapshot._get_transcoded_request(
+                http_options, request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseGetSnapshot._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GetSnapshot",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetSnapshot",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            response = BigtableTableAdminRestTransport._GetSnapshot._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -2200,22 +4063,62 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = table.Snapshot.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_get_snapshot(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_snapshot_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = table.Snapshot.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.get_snapshot",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetSnapshot",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _GetTable(BigtableTableAdminRestStub):
+    class _GetTable(
+        _BaseBigtableTableAdminRestTransport._BaseGetTable, BigtableTableAdminRestStub
+    ):
         def __hash__(self):
-            return hash("GetTable")
+            return hash("BigtableTableAdminRestTransport.GetTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
         def __call__(
             self,
@@ -2223,7 +4126,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> table.Table:
             r"""Call the get table method over HTTP.
 
@@ -2234,8 +4137,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.table.Table:
@@ -2246,38 +4151,55 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "get",
-                    "uri": "/v2/{name=projects/*/instances/*/tables/*}",
-                },
-            ]
-            request, metadata = self._interceptor.pre_get_table(request, metadata)
-            pb_request = bigtable_table_admin.GetTableRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseGetTable._get_http_options()
+            )
 
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+            request, metadata = self._interceptor.pre_get_table(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseGetTable._get_transcoded_request(
+                http_options, request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseGetTable._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GetTable",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetTable",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            response = BigtableTableAdminRestTransport._GetTable._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -2290,22 +4212,219 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = table.Table.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_get_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_table_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = table.Table.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.get_table",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetTable",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _ListBackups(BigtableTableAdminRestStub):
+    class _ListAuthorizedViews(
+        _BaseBigtableTableAdminRestTransport._BaseListAuthorizedViews,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("ListBackups")
+            return hash("BigtableTableAdminRestTransport.ListAuthorizedViews")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        def __call__(
+            self,
+            request: bigtable_table_admin.ListAuthorizedViewsRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> bigtable_table_admin.ListAuthorizedViewsResponse:
+            r"""Call the list authorized views method over HTTP.
+
+            Args:
+                request (~.bigtable_table_admin.ListAuthorizedViewsRequest):
+                    The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews][google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews]
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.bigtable_table_admin.ListAuthorizedViewsResponse:
+                    Response message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews][google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews]
+
+            """
+
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseListAuthorizedViews._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_list_authorized_views(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseListAuthorizedViews._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableTableAdminRestTransport._BaseListAuthorizedViews._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.ListAuthorizedViews",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ListAuthorizedViews",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableTableAdminRestTransport._ListAuthorizedViews._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = bigtable_table_admin.ListAuthorizedViewsResponse()
+            pb_resp = bigtable_table_admin.ListAuthorizedViewsResponse.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_list_authorized_views(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_authorized_views_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_table_admin.ListAuthorizedViewsResponse.to_json(
+                            response
+                        )
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.list_authorized_views",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ListAuthorizedViews",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _ListBackups(
+        _BaseBigtableTableAdminRestTransport._BaseListBackups,
+        BigtableTableAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableTableAdminRestTransport.ListBackups")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
         def __call__(
             self,
@@ -2313,7 +4432,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable_table_admin.ListBackupsResponse:
             r"""Call the list backups method over HTTP.
 
@@ -2324,8 +4443,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable_table_admin.ListBackupsResponse:
@@ -2334,38 +4455,55 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "get",
-                    "uri": "/v2/{parent=projects/*/instances/*/clusters/*}/backups",
-                },
-            ]
-            request, metadata = self._interceptor.pre_list_backups(request, metadata)
-            pb_request = bigtable_table_admin.ListBackupsRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseListBackups._get_http_options()
+            )
 
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+            request, metadata = self._interceptor.pre_list_backups(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseListBackups._get_transcoded_request(
+                http_options, request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseListBackups._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.ListBackups",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ListBackups",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            response = BigtableTableAdminRestTransport._ListBackups._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -2378,22 +4516,65 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = bigtable_table_admin.ListBackupsResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_list_backups(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_backups_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = bigtable_table_admin.ListBackupsResponse.to_json(
+                        response
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.list_backups",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ListBackups",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _ListSnapshots(BigtableTableAdminRestStub):
+    class _ListSnapshots(
+        _BaseBigtableTableAdminRestTransport._BaseListSnapshots,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("ListSnapshots")
+            return hash("BigtableTableAdminRestTransport.ListSnapshots")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
         def __call__(
             self,
@@ -2401,7 +4582,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable_table_admin.ListSnapshotsResponse:
             r"""Call the list snapshots method over HTTP.
 
@@ -2419,8 +4600,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable_table_admin.ListSnapshotsResponse:
@@ -2436,38 +4619,55 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "get",
-                    "uri": "/v2/{parent=projects/*/instances/*/clusters/*}/snapshots",
-                },
-            ]
-            request, metadata = self._interceptor.pre_list_snapshots(request, metadata)
-            pb_request = bigtable_table_admin.ListSnapshotsRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseListSnapshots._get_http_options()
+            )
 
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+            request, metadata = self._interceptor.pre_list_snapshots(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseListSnapshots._get_transcoded_request(
+                http_options, request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseListSnapshots._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.ListSnapshots",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ListSnapshots",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            response = BigtableTableAdminRestTransport._ListSnapshots._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -2480,22 +4680,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = bigtable_table_admin.ListSnapshotsResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_list_snapshots(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_snapshots_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_table_admin.ListSnapshotsResponse.to_json(response)
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.list_snapshots",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ListSnapshots",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _ListTables(BigtableTableAdminRestStub):
+    class _ListTables(
+        _BaseBigtableTableAdminRestTransport._BaseListTables, BigtableTableAdminRestStub
+    ):
         def __hash__(self):
-            return hash("ListTables")
+            return hash("BigtableTableAdminRestTransport.ListTables")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
 
         def __call__(
             self,
@@ -2503,7 +4745,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> bigtable_table_admin.ListTablesResponse:
             r"""Call the list tables method over HTTP.
 
@@ -2514,8 +4756,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.bigtable_table_admin.ListTablesResponse:
@@ -2524,38 +4768,55 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "get",
-                    "uri": "/v2/{parent=projects/*/instances/*}/tables",
-                },
-            ]
-            request, metadata = self._interceptor.pre_list_tables(request, metadata)
-            pb_request = bigtable_table_admin.ListTablesRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseListTables._get_http_options()
+            )
 
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+            request, metadata = self._interceptor.pre_list_tables(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseListTables._get_transcoded_request(
+                http_options, request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseListTables._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.ListTables",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ListTables",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            response = BigtableTableAdminRestTransport._ListTables._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -2568,22 +4829,66 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = bigtable_table_admin.ListTablesResponse.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_list_tables(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_tables_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = bigtable_table_admin.ListTablesResponse.to_json(
+                        response
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.list_tables",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ListTables",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _ModifyColumnFamilies(BigtableTableAdminRestStub):
+    class _ModifyColumnFamilies(
+        _BaseBigtableTableAdminRestTransport._BaseModifyColumnFamilies,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("ModifyColumnFamilies")
+            return hash("BigtableTableAdminRestTransport.ModifyColumnFamilies")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -2591,7 +4896,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> table.Table:
             r"""Call the modify column families method over HTTP.
 
@@ -2602,8 +4907,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.table.Table:
@@ -2614,47 +4921,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:modifyColumnFamilies",
-                    "body": "*",
-                },
-            ]
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseModifyColumnFamilies._get_http_options()
+            )
+
             request, metadata = self._interceptor.pre_modify_column_families(
                 request, metadata
             )
-            pb_request = bigtable_table_admin.ModifyColumnFamiliesRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseModifyColumnFamilies._get_transcoded_request(
+                http_options, request
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            body = _BaseBigtableTableAdminRestTransport._BaseModifyColumnFamilies._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseModifyColumnFamilies._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.ModifyColumnFamilies",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ModifyColumnFamilies",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = (
+                BigtableTableAdminRestTransport._ModifyColumnFamilies._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                    body,
+                )
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -2667,22 +4991,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = table.Table.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_modify_column_families(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_modify_column_families_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = table.Table.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.modify_column_families",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ModifyColumnFamilies",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _RestoreTable(BigtableTableAdminRestStub):
+    class _RestoreTable(
+        _BaseBigtableTableAdminRestTransport._BaseRestoreTable,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("RestoreTable")
+            return hash("BigtableTableAdminRestTransport.RestoreTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -2690,7 +5056,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the restore table method over HTTP.
 
@@ -2701,8 +5067,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -2712,45 +5080,60 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{parent=projects/*/instances/*}/tables:restore",
-                    "body": "*",
-                },
-            ]
-            request, metadata = self._interceptor.pre_restore_table(request, metadata)
-            pb_request = bigtable_table_admin.RestoreTableRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseRestoreTable._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_restore_table(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseRestoreTable._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseRestoreTable._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseRestoreTable._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.RestoreTable",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "RestoreTable",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._RestoreTable._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -2761,22 +5144,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_restore_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_restore_table_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.restore_table",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "RestoreTable",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _SetIamPolicy(BigtableTableAdminRestStub):
+    class _SetIamPolicy(
+        _BaseBigtableTableAdminRestTransport._BaseSetIamPolicy,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("SetIamPolicy")
+            return hash("BigtableTableAdminRestTransport.SetIamPolicy")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -2784,7 +5209,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> policy_pb2.Policy:
             r"""Call the set iam policy method over HTTP.
 
@@ -2794,8 +5219,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.policy_pb2.Policy:
@@ -2877,50 +5304,60 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/tables/*}:setIamPolicy",
-                    "body": "*",
-                },
-                {
-                    "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/clusters/*/backups/*}:setIamPolicy",
-                    "body": "*",
-                },
-            ]
-            request, metadata = self._interceptor.pre_set_iam_policy(request, metadata)
-            pb_request = request
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseSetIamPolicy._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_set_iam_policy(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseSetIamPolicy._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseSetIamPolicy._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseSetIamPolicy._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.SetIamPolicy",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "SetIamPolicy",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._SetIamPolicy._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -2933,22 +5370,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = resp
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_set_iam_policy(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_set_iam_policy_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.set_iam_policy",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "SetIamPolicy",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _SnapshotTable(BigtableTableAdminRestStub):
+    class _SnapshotTable(
+        _BaseBigtableTableAdminRestTransport._BaseSnapshotTable,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("SnapshotTable")
+            return hash("BigtableTableAdminRestTransport.SnapshotTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -2956,7 +5435,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the snapshot table method over HTTP.
 
@@ -2974,8 +5453,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -2985,45 +5466,60 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:snapshot",
-                    "body": "*",
-                },
-            ]
-            request, metadata = self._interceptor.pre_snapshot_table(request, metadata)
-            pb_request = bigtable_table_admin.SnapshotTableRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseSnapshotTable._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_snapshot_table(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseSnapshotTable._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseSnapshotTable._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseSnapshotTable._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.SnapshotTable",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "SnapshotTable",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._SnapshotTable._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -3034,22 +5530,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_snapshot_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_snapshot_table_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.snapshot_table",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "SnapshotTable",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _TestIamPermissions(BigtableTableAdminRestStub):
+    class _TestIamPermissions(
+        _BaseBigtableTableAdminRestTransport._BaseTestIamPermissions,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("TestIamPermissions")
+            return hash("BigtableTableAdminRestTransport.TestIamPermissions")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -3057,7 +5595,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> iam_policy_pb2.TestIamPermissionsResponse:
             r"""Call the test iam permissions method over HTTP.
 
@@ -3067,60 +5605,74 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.iam_policy_pb2.TestIamPermissionsResponse:
                     Response message for ``TestIamPermissions`` method.
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/tables/*}:testIamPermissions",
-                    "body": "*",
-                },
-                {
-                    "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/clusters/*/backups/*}:testIamPermissions",
-                    "body": "*",
-                },
-            ]
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseTestIamPermissions._get_http_options()
+            )
+
             request, metadata = self._interceptor.pre_test_iam_permissions(
                 request, metadata
             )
-            pb_request = request
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseTestIamPermissions._get_transcoded_request(
+                http_options, request
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            body = _BaseBigtableTableAdminRestTransport._BaseTestIamPermissions._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseTestIamPermissions._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.TestIamPermissions",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "TestIamPermissions",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = (
+                BigtableTableAdminRestTransport._TestIamPermissions._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                    body,
+                )
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -3133,22 +5685,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = resp
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_test_iam_permissions(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_test_iam_permissions_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.test_iam_permissions",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "TestIamPermissions",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _UndeleteTable(BigtableTableAdminRestStub):
+    class _UndeleteTable(
+        _BaseBigtableTableAdminRestTransport._BaseUndeleteTable,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("UndeleteTable")
+            return hash("BigtableTableAdminRestTransport.UndeleteTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -3156,7 +5750,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the undelete table method over HTTP.
 
@@ -3167,8 +5761,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -3178,45 +5774,60 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:undelete",
-                    "body": "*",
-                },
-            ]
-            request, metadata = self._interceptor.pre_undelete_table(request, metadata)
-            pb_request = bigtable_table_admin.UndeleteTableRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseUndeleteTable._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_undelete_table(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseUndeleteTable._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseUndeleteTable._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseUndeleteTable._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.UndeleteTable",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "UndeleteTable",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._UndeleteTable._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -3227,24 +5838,221 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_undelete_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_undelete_table_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.undelete_table",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "UndeleteTable",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _UpdateBackup(BigtableTableAdminRestStub):
+    class _UpdateAuthorizedView(
+        _BaseBigtableTableAdminRestTransport._BaseUpdateAuthorizedView,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("UpdateBackup")
+            return hash("BigtableTableAdminRestTransport.UpdateAuthorizedView")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
-            "updateMask": {},
-        }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        def __call__(
+            self,
+            request: bigtable_table_admin.UpdateAuthorizedViewRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> operations_pb2.Operation:
+            r"""Call the update authorized view method over HTTP.
+
+            Args:
+                request (~.bigtable_table_admin.UpdateAuthorizedViewRequest):
+                    The request object. The request for
+                [UpdateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.UpdateAuthorizedView].
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.operations_pb2.Operation:
+                    This resource represents a
+                long-running operation that is the
+                result of a network API call.
+
+            """
+
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseUpdateAuthorizedView._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_update_authorized_view(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseUpdateAuthorizedView._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseUpdateAuthorizedView._get_request_body_json(
+                transcoded_request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableTableAdminRestTransport._BaseUpdateAuthorizedView._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.UpdateAuthorizedView",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "UpdateAuthorizedView",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableTableAdminRestTransport._UpdateAuthorizedView._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                    body,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = operations_pb2.Operation()
+            json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_update_authorized_view(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_update_authorized_view_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.update_authorized_view",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "UpdateAuthorizedView",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _UpdateBackup(
+        _BaseBigtableTableAdminRestTransport._BaseUpdateBackup,
+        BigtableTableAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableTableAdminRestTransport.UpdateBackup")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -3252,7 +6060,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> table.Backup:
             r"""Call the update backup method over HTTP.
 
@@ -3263,53 +6071,70 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.table.Backup:
                     A backup of a Cloud Bigtable table.
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "patch",
-                    "uri": "/v2/{backup.name=projects/*/instances/*/clusters/*/backups/*}",
-                    "body": "backup",
-                },
-            ]
-            request, metadata = self._interceptor.pre_update_backup(request, metadata)
-            pb_request = bigtable_table_admin.UpdateBackupRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseUpdateBackup._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_update_backup(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseUpdateBackup._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseUpdateBackup._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseUpdateBackup._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.UpdateBackup",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "UpdateBackup",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._UpdateBackup._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -3322,24 +6147,64 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             pb_resp = table.Backup.pb(resp)
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_update_backup(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_update_backup_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = table.Backup.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.update_backup",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "UpdateBackup",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
-    class _UpdateTable(BigtableTableAdminRestStub):
+    class _UpdateTable(
+        _BaseBigtableTableAdminRestTransport._BaseUpdateTable,
+        BigtableTableAdminRestStub,
+    ):
         def __hash__(self):
-            return hash("UpdateTable")
+            return hash("BigtableTableAdminRestTransport.UpdateTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
-            "updateMask": {},
-        }
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
 
         def __call__(
             self,
@@ -3347,7 +6212,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             *,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Optional[float] = None,
-            metadata: Sequence[Tuple[str, str]] = (),
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
         ) -> operations_pb2.Operation:
             r"""Call the update table method over HTTP.
 
@@ -3358,8 +6223,10 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
-                metadata (Sequence[Tuple[str, str]]): Strings which should be
-                    sent along with the request as metadata.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
 
             Returns:
                 ~.operations_pb2.Operation:
@@ -3369,45 +6236,60 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "patch",
-                    "uri": "/v2/{table.name=projects/*/instances/*/tables/*}",
-                    "body": "table",
-                },
-            ]
-            request, metadata = self._interceptor.pre_update_table(request, metadata)
-            pb_request = bigtable_table_admin.UpdateTableRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseUpdateTable._get_http_options()
             )
-            uri = transcoded_request["uri"]
-            method = transcoded_request["method"]
+
+            request, metadata = self._interceptor.pre_update_table(request, metadata)
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseUpdateTable._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseUpdateTable._get_request_body_json(
+                transcoded_request
+            )
 
             # Jsonify the query params
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
+            query_params = _BaseBigtableTableAdminRestTransport._BaseUpdateTable._get_query_params_json(
+                transcoded_request
             )
-            query_params.update(self._get_unset_required_fields(query_params))
 
-            query_params["$alt"] = "json;enum-encoding=int"
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.UpdateTable",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "UpdateTable",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
 
             # Send the request
-            headers = dict(metadata)
-            headers["Content-Type"] = "application/json"
-            response = getattr(self._session, method)(
-                "{host}{uri}".format(host=self._host, uri=uri),
-                timeout=timeout,
-                headers=headers,
-                params=rest_helpers.flatten_query_params(query_params, strict=True),
-                data=body,
+            response = BigtableTableAdminRestTransport._UpdateTable._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+                body,
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -3418,7 +6300,33 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
             # Return the response
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
             resp = self._interceptor.post_update_table(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_update_table_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.update_table",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "UpdateTable",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     @property
@@ -3439,6 +6347,16 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._CopyBackup(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def create_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.CreateAuthorizedViewRequest], operations_pb2.Operation
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._CreateAuthorizedView(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def create_backup(
@@ -3465,6 +6383,14 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._CreateTableFromSnapshot(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def delete_authorized_view(
+        self,
+    ) -> Callable[[bigtable_table_admin.DeleteAuthorizedViewRequest], empty_pb2.Empty]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._DeleteAuthorizedView(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def delete_backup(
@@ -3510,6 +6436,16 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         return self._GenerateConsistencyToken(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
+    def get_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.GetAuthorizedViewRequest], table.AuthorizedView
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._GetAuthorizedView(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
     def get_backup(
         self,
     ) -> Callable[[bigtable_table_admin.GetBackupRequest], table.Backup]:
@@ -3540,6 +6476,17 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._GetTable(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def list_authorized_views(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.ListAuthorizedViewsRequest],
+        bigtable_table_admin.ListAuthorizedViewsResponse,
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._ListAuthorizedViews(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def list_backups(
@@ -3628,6 +6575,16 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._UndeleteTable(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def update_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.UpdateAuthorizedViewRequest], operations_pb2.Operation
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._UpdateAuthorizedView(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def update_backup(

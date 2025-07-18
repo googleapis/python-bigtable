@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,13 +15,7 @@
 
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    AsyncGenerator,
-    AsyncIterable,
-    Awaitable,
-    Sequence,
-)
+from typing import Sequence, TYPE_CHECKING
 
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
@@ -32,22 +26,27 @@ from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
+from google.cloud.bigtable.data.exceptions import _ResetRow
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 
 from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
 
+from google.cloud.bigtable.data._cross_sync import CrossSync
+
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._async.client import TableAsync
+    if CrossSync.is_async:
+        from google.cloud.bigtable.data._async.client import (
+            _DataApiTargetAsync as TargetType,
+        )
+    else:
+        from google.cloud.bigtable.data._sync_autogen.client import _DataApiTarget as TargetType  # type: ignore
+
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._read_rows"
 
 
-class _ResetRow(Exception):
-    def __init__(self, chunk):
-        self.chunk = chunk
-
-
+@CrossSync.convert_class("_ReadRowsOperation")
 class _ReadRowsOperationAsync:
     """
     ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream
@@ -59,15 +58,21 @@ class _ReadRowsOperationAsync:
 
     ReadRowsOperation(request, client) handles row merging logic end-to-end, including
     performing retries on stream errors.
+
+    Args:
+        query: The query to execute
+        target: The table or view to send the request to
+        operation_timeout: The total time to allow for the operation, in seconds
+        attempt_timeout: The time to allow for each individual attempt, in seconds
+        retryable_exceptions: A list of exceptions that should trigger a retry
     """
 
     __slots__ = (
         "attempt_timeout_gen",
         "operation_timeout",
         "request",
-        "table",
+        "target",
         "_predicate",
-        "_metadata",
         "_last_yielded_row_key",
         "_remaining_count",
     )
@@ -75,7 +80,7 @@ class _ReadRowsOperationAsync:
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: "TableAsync",
+        target: TargetType,
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
@@ -87,25 +92,24 @@ class _ReadRowsOperationAsync:
         if isinstance(query, dict):
             self.request = ReadRowsRequestPB(
                 **query,
-                table_name=table.table_name,
-                app_profile_id=table.app_profile_id,
+                **target._request_path,
+                app_profile_id=target.app_profile_id,
             )
         else:
-            self.request = query._to_pb(table)
-        self.table = table
+            self.request = query._to_pb(target)
+        self.target = target
         self._predicate = retries.if_exception_type(*retryable_exceptions)
-        self._metadata = _make_metadata(
-            table.table_name,
-            table.app_profile_id,
-        )
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
 
-    def start_operation(self) -> AsyncGenerator[Row, None]:
+    def start_operation(self) -> CrossSync.Iterable[Row]:
         """
         Start the read_rows operation, retrying on retryable errors.
+
+        Yields:
+            Row: The next row in the stream
         """
-        return retries.retry_target_stream_async(
+        return CrossSync.retry_target_stream(
             self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
@@ -113,12 +117,15 @@ class _ReadRowsOperationAsync:
             exception_factory=_retry_exception_factory,
         )
 
-    def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
+    def _read_rows_attempt(self) -> CrossSync.Iterable[Row]:
         """
         Attempt a single read_rows rpc call.
         This function is intended to be wrapped by retry logic,
         which will call this function until it succeeds or
         a non-retryable error is raised.
+
+        Yields:
+            Row: The next row in the stream
         """
         # revise request keys and ranges between attempts
         if self._last_yielded_row_key is not None:
@@ -137,20 +144,25 @@ class _ReadRowsOperationAsync:
             if self._remaining_count == 0:
                 return self.merge_rows(None)
         # create and return a new row merger
-        gapic_stream = self.table.client._gapic_client.read_rows(
+        gapic_stream = self.target.client._gapic_client.read_rows(
             self.request,
             timeout=next(self.attempt_timeout_gen),
-            metadata=self._metadata,
             retry=None,
         )
         chunked_stream = self.chunk_stream(gapic_stream)
         return self.merge_rows(chunked_stream)
 
+    @CrossSync.convert()
     async def chunk_stream(
-        self, stream: Awaitable[AsyncIterable[ReadRowsResponsePB]]
-    ) -> AsyncGenerator[ReadRowsResponsePB.CellChunk, None]:
+        self, stream: CrossSync.Awaitable[CrossSync.Iterable[ReadRowsResponsePB]]
+    ) -> CrossSync.Iterable[ReadRowsResponsePB.CellChunk]:
         """
         process chunks out of raw read_rows stream
+
+        Args:
+            stream: the raw read_rows stream from the gapic client
+        Yields:
+            ReadRowsResponsePB.CellChunk: the next chunk in the stream
         """
         async for resp in await stream:
             # extract proto from proto-plus wrapper
@@ -193,11 +205,19 @@ class _ReadRowsOperationAsync:
                     current_key = None
 
     @staticmethod
+    @CrossSync.convert(
+        replace_symbols={"__aiter__": "__iter__", "__anext__": "__next__"},
+    )
     async def merge_rows(
-        chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None
-    ):
+        chunks: CrossSync.Iterable[ReadRowsResponsePB.CellChunk] | None,
+    ) -> CrossSync.Iterable[Row]:
         """
         Merge chunks into rows
+
+        Args:
+            chunks: the chunk stream to merge
+        Yields:
+            Row: the next row in the stream
         """
         if chunks is None:
             return
@@ -206,7 +226,7 @@ class _ReadRowsOperationAsync:
         while True:
             try:
                 c = await it.__anext__()
-            except StopAsyncIteration:
+            except CrossSync.StopIteration:
                 # stream complete
                 return
             row_key = c.row_key
@@ -299,7 +319,7 @@ class _ReadRowsOperationAsync:
                 ):
                     raise InvalidChunk("reset row with data")
                 continue
-            except StopAsyncIteration:
+            except CrossSync.StopIteration:
                 raise InvalidChunk("premature end of stream")
 
     @staticmethod
@@ -311,13 +331,15 @@ class _ReadRowsOperationAsync:
         Revise the rows in the request to avoid ones we've already processed.
 
         Args:
-          - row_set: the row set from the request
-          - last_seen_row_key: the last row key encountered
+            row_set: the row set from the request
+            last_seen_row_key: the last row key encountered
+        Returns:
+            RowSetPB: the new rowset after adusting for the last seen key
         Raises:
-          - _RowSetComplete: if there are no rows left to process after the revision
+            _RowSetComplete: if there are no rows left to process after the revision
         """
         # if user is doing a whole table scan, start a new one with the last seen key
-        if row_set is None or (not row_set.row_ranges and row_set.row_keys is not None):
+        if row_set is None or (not row_set.row_ranges and not row_set.row_keys):
             last_seen = last_seen_row_key
             return RowSetPB(row_ranges=[RowRangePB(start_key_open=last_seen)])
         # remove seen keys from user-specific key list

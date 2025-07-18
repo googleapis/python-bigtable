@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ from google.api_core import retry as retries
 from google.api_core import operations_v1
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.oauth2 import service_account  # type: ignore
+import google.protobuf
 
 from google.cloud.bigtable_admin_v2.types import bigtable_instance_admin
 from google.cloud.bigtable_admin_v2.types import instance
@@ -37,6 +38,9 @@ from google.protobuf import empty_pb2  # type: ignore
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
+
+if hasattr(DEFAULT_CLIENT_INFO, "protobuf_runtime_version"):  # pragma: NO COVER
+    DEFAULT_CLIENT_INFO.protobuf_runtime_version = google.protobuf.__version__
 
 
 class BigtableInstanceAdminTransport(abc.ABC):
@@ -96,6 +100,8 @@ class BigtableInstanceAdminTransport(abc.ABC):
 
         # Save the scopes.
         self._scopes = scopes
+        if not hasattr(self, "_ignore_credentials"):
+            self._ignore_credentials: bool = False
 
         # If no credentials are provided, then determine the appropriate
         # defaults.
@@ -108,7 +114,7 @@ class BigtableInstanceAdminTransport(abc.ABC):
             credentials, _ = google.auth.load_credentials_from_file(
                 credentials_file, **scopes_kwargs, quota_project_id=quota_project_id
             )
-        elif credentials is None:
+        elif credentials is None and not self._ignore_credentials:
             credentials, _ = google.auth.default(
                 **scopes_kwargs, quota_project_id=quota_project_id
             )
@@ -376,6 +382,56 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
+            self.create_logical_view: gapic_v1.method.wrap_method(
+                self.create_logical_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.get_logical_view: gapic_v1.method.wrap_method(
+                self.get_logical_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.list_logical_views: gapic_v1.method.wrap_method(
+                self.list_logical_views,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.update_logical_view: gapic_v1.method.wrap_method(
+                self.update_logical_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.delete_logical_view: gapic_v1.method.wrap_method(
+                self.delete_logical_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.create_materialized_view: gapic_v1.method.wrap_method(
+                self.create_materialized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.get_materialized_view: gapic_v1.method.wrap_method(
+                self.get_materialized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.list_materialized_views: gapic_v1.method.wrap_method(
+                self.list_materialized_views,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.update_materialized_view: gapic_v1.method.wrap_method(
+                self.update_materialized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.delete_materialized_view: gapic_v1.method.wrap_method(
+                self.delete_materialized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
         }
 
     def close(self):
@@ -592,6 +648,102 @@ class BigtableInstanceAdminTransport(abc.ABC):
             bigtable_instance_admin.ListHotTabletsResponse,
             Awaitable[bigtable_instance_admin.ListHotTabletsResponse],
         ],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def create_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.CreateLogicalViewRequest],
+        Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def get_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.GetLogicalViewRequest],
+        Union[instance.LogicalView, Awaitable[instance.LogicalView]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def list_logical_views(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.ListLogicalViewsRequest],
+        Union[
+            bigtable_instance_admin.ListLogicalViewsResponse,
+            Awaitable[bigtable_instance_admin.ListLogicalViewsResponse],
+        ],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def update_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.UpdateLogicalViewRequest],
+        Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def delete_logical_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.DeleteLogicalViewRequest],
+        Union[empty_pb2.Empty, Awaitable[empty_pb2.Empty]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def create_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.CreateMaterializedViewRequest],
+        Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def get_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.GetMaterializedViewRequest],
+        Union[instance.MaterializedView, Awaitable[instance.MaterializedView]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def list_materialized_views(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.ListMaterializedViewsRequest],
+        Union[
+            bigtable_instance_admin.ListMaterializedViewsResponse,
+            Awaitable[bigtable_instance_admin.ListMaterializedViewsResponse],
+        ],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def update_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.UpdateMaterializedViewRequest],
+        Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def delete_materialized_view(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.DeleteMaterializedViewRequest],
+        Union[empty_pb2.Empty, Awaitable[empty_pb2.Empty]],
     ]:
         raise NotImplementedError()
 

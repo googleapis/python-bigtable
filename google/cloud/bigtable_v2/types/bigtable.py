@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import proto  # type: ignore
 
 from google.cloud.bigtable_v2.types import data
 from google.cloud.bigtable_v2.types import request_stats as gb_request_stats
+from google.cloud.bigtable_v2.types import types
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
 from google.protobuf import wrappers_pb2  # type: ignore
@@ -49,6 +50,10 @@ __protobuf__ = proto.module(
         "GenerateInitialChangeStreamPartitionsResponse",
         "ReadChangeStreamRequest",
         "ReadChangeStreamResponse",
+        "ExecuteQueryRequest",
+        "ExecuteQueryResponse",
+        "PrepareQueryRequest",
+        "PrepareQueryResponse",
     },
 )
 
@@ -58,9 +63,22 @@ class ReadRowsRequest(proto.Message):
 
     Attributes:
         table_name (str):
-            Required. The unique name of the table from which to read.
+            Optional. The unique name of the table from which to read.
+
             Values are of the form
             ``projects/<project>/instances/<instance>/tables/<table>``.
+        authorized_view_name (str):
+            Optional. The unique name of the AuthorizedView from which
+            to read.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/tables/<table>/authorizedViews/<authorized_view>``.
+        materialized_view_name (str):
+            Optional. The unique name of the MaterializedView from which
+            to read.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/materializedViews/<materialized_view>``.
         app_profile_id (str):
             This value specifies routing for replication.
             If not specified, the "default" application
@@ -122,6 +140,14 @@ class ReadRowsRequest(proto.Message):
     table_name: str = proto.Field(
         proto.STRING,
         number=1,
+    )
+    authorized_view_name: str = proto.Field(
+        proto.STRING,
+        number=9,
+    )
+    materialized_view_name: str = proto.Field(
+        proto.STRING,
+        number=11,
     )
     app_profile_id: str = proto.Field(
         proto.STRING,
@@ -327,9 +353,23 @@ class SampleRowKeysRequest(proto.Message):
 
     Attributes:
         table_name (str):
-            Required. The unique name of the table from which to sample
-            row keys. Values are of the form
+            Optional. The unique name of the table from which to sample
+            row keys.
+
+            Values are of the form
             ``projects/<project>/instances/<instance>/tables/<table>``.
+        authorized_view_name (str):
+            Optional. The unique name of the AuthorizedView from which
+            to sample row keys.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/tables/<table>/authorizedViews/<authorized_view>``.
+        materialized_view_name (str):
+            Optional. The unique name of the MaterializedView from which
+            to read.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/materializedViews/<materialized_view>``.
         app_profile_id (str):
             This value specifies routing for replication.
             If not specified, the "default" application
@@ -339,6 +379,14 @@ class SampleRowKeysRequest(proto.Message):
     table_name: str = proto.Field(
         proto.STRING,
         number=1,
+    )
+    authorized_view_name: str = proto.Field(
+        proto.STRING,
+        number=4,
+    )
+    materialized_view_name: str = proto.Field(
+        proto.STRING,
+        number=5,
     )
     app_profile_id: str = proto.Field(
         proto.STRING,
@@ -385,9 +433,17 @@ class MutateRowRequest(proto.Message):
 
     Attributes:
         table_name (str):
-            Required. The unique name of the table to which the mutation
-            should be applied. Values are of the form
+            Optional. The unique name of the table to which the mutation
+            should be applied.
+
+            Values are of the form
             ``projects/<project>/instances/<instance>/tables/<table>``.
+        authorized_view_name (str):
+            Optional. The unique name of the AuthorizedView to which the
+            mutation should be applied.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/tables/<table>/authorizedViews/<authorized_view>``.
         app_profile_id (str):
             This value specifies routing for replication.
             If not specified, the "default" application
@@ -406,6 +462,10 @@ class MutateRowRequest(proto.Message):
     table_name: str = proto.Field(
         proto.STRING,
         number=1,
+    )
+    authorized_view_name: str = proto.Field(
+        proto.STRING,
+        number=6,
     )
     app_profile_id: str = proto.Field(
         proto.STRING,
@@ -431,8 +491,17 @@ class MutateRowsRequest(proto.Message):
 
     Attributes:
         table_name (str):
-            Required. The unique name of the table to
-            which the mutations should be applied.
+            Optional. The unique name of the table to which the
+            mutations should be applied.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/tables/<table>``.
+        authorized_view_name (str):
+            Optional. The unique name of the AuthorizedView to which the
+            mutations should be applied.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/tables/<table>/authorizedViews/<authorized_view>``.
         app_profile_id (str):
             This value specifies routing for replication.
             If not specified, the "default" application
@@ -475,6 +544,10 @@ class MutateRowsRequest(proto.Message):
     table_name: str = proto.Field(
         proto.STRING,
         number=1,
+    )
+    authorized_view_name: str = proto.Field(
+        proto.STRING,
+        number=5,
     )
     app_profile_id: str = proto.Field(
         proto.STRING,
@@ -587,10 +660,17 @@ class CheckAndMutateRowRequest(proto.Message):
 
     Attributes:
         table_name (str):
-            Required. The unique name of the table to which the
-            conditional mutation should be applied. Values are of the
-            form
+            Optional. The unique name of the table to which the
+            conditional mutation should be applied.
+
+            Values are of the form
             ``projects/<project>/instances/<instance>/tables/<table>``.
+        authorized_view_name (str):
+            Optional. The unique name of the AuthorizedView to which the
+            conditional mutation should be applied.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/tables/<table>/authorizedViews/<authorized_view>``.
         app_profile_id (str):
             This value specifies routing for replication.
             If not specified, the "default" application
@@ -623,6 +703,10 @@ class CheckAndMutateRowRequest(proto.Message):
     table_name: str = proto.Field(
         proto.STRING,
         number=1,
+    )
+    authorized_view_name: str = proto.Field(
+        proto.STRING,
+        number=9,
     )
     app_profile_id: str = proto.Field(
         proto.STRING,
@@ -700,10 +784,17 @@ class ReadModifyWriteRowRequest(proto.Message):
 
     Attributes:
         table_name (str):
-            Required. The unique name of the table to which the
-            read/modify/write rules should be applied. Values are of the
-            form
+            Optional. The unique name of the table to which the
+            read/modify/write rules should be applied.
+
+            Values are of the form
             ``projects/<project>/instances/<instance>/tables/<table>``.
+        authorized_view_name (str):
+            Optional. The unique name of the AuthorizedView to which the
+            read/modify/write rules should be applied.
+
+            Values are of the form
+            ``projects/<project>/instances/<instance>/tables/<table>/authorizedViews/<authorized_view>``.
         app_profile_id (str):
             This value specifies routing for replication.
             If not specified, the "default" application
@@ -722,6 +813,10 @@ class ReadModifyWriteRowRequest(proto.Message):
     table_name: str = proto.Field(
         proto.STRING,
         number=1,
+    )
+    authorized_view_name: str = proto.Field(
+        proto.STRING,
+        number=6,
     )
     app_profile_id: str = proto.Field(
         proto.STRING,
@@ -1185,6 +1280,251 @@ class ReadChangeStreamResponse(proto.Message):
         number=3,
         oneof="stream_record",
         message=CloseStream,
+    )
+
+
+class ExecuteQueryRequest(proto.Message):
+    r"""Request message for Bigtable.ExecuteQuery
+
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
+    Attributes:
+        instance_name (str):
+            Required. The unique name of the instance against which the
+            query should be executed. Values are of the form
+            ``projects/<project>/instances/<instance>``
+        app_profile_id (str):
+            Optional. This value specifies routing for replication. If
+            not specified, the ``default`` application profile will be
+            used.
+        query (str):
+            Required. The query string.
+
+            Exactly one of ``query`` and ``prepared_query`` is required.
+            Setting both or neither is an ``INVALID_ARGUMENT``.
+        prepared_query (bytes):
+            A prepared query that was returned from
+            ``PrepareQueryResponse``.
+
+            Exactly one of ``query`` and ``prepared_query`` is required.
+            Setting both or neither is an ``INVALID_ARGUMENT``.
+
+            Setting this field also places restrictions on several other
+            fields:
+
+            -  ``data_format`` must be empty.
+            -  ``validate_only`` must be false.
+            -  ``params`` must match the ``param_types`` set in the
+               ``PrepareQueryRequest``.
+        proto_format (google.cloud.bigtable_v2.types.ProtoFormat):
+            Protocol buffer format as described by
+            ProtoSchema and ProtoRows messages.
+
+            This field is a member of `oneof`_ ``data_format``.
+        resume_token (bytes):
+            Optional. If this request is resuming a previously
+            interrupted query execution, ``resume_token`` should be
+            copied from the last PartialResultSet yielded before the
+            interruption. Doing this enables the query execution to
+            resume where the last one left off. The rest of the request
+            parameters must exactly match the request that yielded this
+            token. Otherwise the request will fail.
+        params (MutableMapping[str, google.cloud.bigtable_v2.types.Value]):
+            Required. params contains string type keys and Bigtable type
+            values that bind to placeholders in the query string. In
+            query string, a parameter placeholder consists of the ``@``
+            character followed by the parameter name (for example,
+            ``@firstName``) in the query string.
+
+            For example, if
+            ``params["firstName"] = bytes_value: "foo" type {bytes_type {}}``
+            then ``@firstName`` will be replaced with googlesql bytes
+            value "foo" in the query string during query evaluation.
+
+            If ``Value.kind`` is not set, the value is treated as a NULL
+            value of the given type. For example, if
+            ``params["firstName"] = type {string_type {}}`` then
+            ``@firstName`` will be replaced with googlesql null string.
+
+            If ``query`` is set, any empty ``Value.type`` in the map
+            will be rejected with ``INVALID_ARGUMENT``.
+
+            If ``prepared_query`` is set, any empty ``Value.type`` in
+            the map will be inferred from the ``param_types`` in the
+            ``PrepareQueryRequest``. Any non-empty ``Value.type`` must
+            match the corresponding ``param_types`` entry, or be
+            rejected with ``INVALID_ARGUMENT``.
+    """
+
+    instance_name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    app_profile_id: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    query: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+    prepared_query: bytes = proto.Field(
+        proto.BYTES,
+        number=9,
+    )
+    proto_format: data.ProtoFormat = proto.Field(
+        proto.MESSAGE,
+        number=4,
+        oneof="data_format",
+        message=data.ProtoFormat,
+    )
+    resume_token: bytes = proto.Field(
+        proto.BYTES,
+        number=8,
+    )
+    params: MutableMapping[str, data.Value] = proto.MapField(
+        proto.STRING,
+        proto.MESSAGE,
+        number=7,
+        message=data.Value,
+    )
+
+
+class ExecuteQueryResponse(proto.Message):
+    r"""Response message for Bigtable.ExecuteQuery
+
+    This message has `oneof`_ fields (mutually exclusive fields).
+    For each oneof, at most one member field can be set at the same time.
+    Setting any member of the oneof automatically clears all other
+    members.
+
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
+    Attributes:
+        metadata (google.cloud.bigtable_v2.types.ResultSetMetadata):
+            Structure of rows in this response stream.
+            The first (and only the first) response streamed
+            from the server will be of this type.
+
+            This field is a member of `oneof`_ ``response``.
+        results (google.cloud.bigtable_v2.types.PartialResultSet):
+            A partial result set with row data
+            potentially including additional instructions on
+            how recent past and future partial responses
+            should be interpreted.
+
+            This field is a member of `oneof`_ ``response``.
+    """
+
+    metadata: data.ResultSetMetadata = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        oneof="response",
+        message=data.ResultSetMetadata,
+    )
+    results: data.PartialResultSet = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        oneof="response",
+        message=data.PartialResultSet,
+    )
+
+
+class PrepareQueryRequest(proto.Message):
+    r"""Request message for Bigtable.PrepareQuery
+
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
+    Attributes:
+        instance_name (str):
+            Required. The unique name of the instance against which the
+            query should be executed. Values are of the form
+            ``projects/<project>/instances/<instance>``
+        app_profile_id (str):
+            Optional. This value specifies routing for preparing the
+            query. Note that this ``app_profile_id`` is only used for
+            preparing the query. The actual query execution will use the
+            app profile specified in the ``ExecuteQueryRequest``. If not
+            specified, the ``default`` application profile will be used.
+        query (str):
+            Required. The query string.
+        proto_format (google.cloud.bigtable_v2.types.ProtoFormat):
+            Protocol buffer format as described by
+            ProtoSchema and ProtoRows messages.
+
+            This field is a member of `oneof`_ ``data_format``.
+        param_types (MutableMapping[str, google.cloud.bigtable_v2.types.Type]):
+            Required. ``param_types`` is a map of parameter identifier
+            strings to their ``Type``\ s.
+
+            In query string, a parameter placeholder consists of the
+            ``@`` character followed by the parameter name (for example,
+            ``@firstName``) in the query string.
+
+            For example, if param_types["firstName"] = Bytes then
+            @firstName will be a query parameter of type Bytes. The
+            specific ``Value`` to be used for the query execution must
+            be sent in ``ExecuteQueryRequest`` in the ``params`` map.
+    """
+
+    instance_name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    app_profile_id: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    query: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+    proto_format: data.ProtoFormat = proto.Field(
+        proto.MESSAGE,
+        number=4,
+        oneof="data_format",
+        message=data.ProtoFormat,
+    )
+    param_types: MutableMapping[str, types.Type] = proto.MapField(
+        proto.STRING,
+        proto.MESSAGE,
+        number=6,
+        message=types.Type,
+    )
+
+
+class PrepareQueryResponse(proto.Message):
+    r"""Response message for Bigtable.PrepareQueryResponse
+
+    Attributes:
+        metadata (google.cloud.bigtable_v2.types.ResultSetMetadata):
+            Structure of rows in the response stream of
+            ``ExecuteQueryResponse`` for the returned
+            ``prepared_query``.
+        prepared_query (bytes):
+            A serialized prepared query. Clients should treat this as an
+            opaque blob of bytes to send in ``ExecuteQueryRequest``.
+        valid_until (google.protobuf.timestamp_pb2.Timestamp):
+            The time at which the prepared query token
+            becomes invalid. A token may become invalid
+            early due to changes in the data being read, but
+            it provides a guideline to refresh query plans
+            asynchronously.
+    """
+
+    metadata: data.ResultSetMetadata = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message=data.ResultSetMetadata,
+    )
+    prepared_query: bytes = proto.Field(
+        proto.BYTES,
+        number=2,
+    )
+    valid_until: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
     )
 
 

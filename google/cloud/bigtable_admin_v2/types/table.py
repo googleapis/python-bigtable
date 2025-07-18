@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ from typing import MutableMapping, MutableSequence
 
 import proto  # type: ignore
 
+from google.cloud.bigtable_admin_v2.types import types
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
 from google.rpc import status_pb2  # type: ignore
@@ -31,6 +32,7 @@ __protobuf__ = proto.module(
         "RestoreInfo",
         "ChangeStreamConfig",
         "Table",
+        "AuthorizedView",
         "ColumnFamily",
         "GcRule",
         "EncryptionInfo",
@@ -109,6 +111,9 @@ class Table(proto.Message):
     timestamp. Each table is served using the resources of its
     parent cluster.
 
+
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
     Attributes:
         name (str):
             The unique name of the table. Values are of the form
@@ -152,6 +157,65 @@ class Table(proto.Message):
 
             Note one can still delete the data stored in the table
             through Data APIs.
+        automated_backup_policy (google.cloud.bigtable_admin_v2.types.Table.AutomatedBackupPolicy):
+            If specified, automated backups are enabled
+            for this table. Otherwise, automated backups are
+            disabled.
+
+            This field is a member of `oneof`_ ``automated_backup_config``.
+        row_key_schema (google.cloud.bigtable_admin_v2.types.Type.Struct):
+            The row key schema for this table. The schema is used to
+            decode the raw row key bytes into a structured format. The
+            order of field declarations in this schema is important, as
+            it reflects how the raw row key bytes are structured.
+            Currently, this only affects how the key is read via a
+            GoogleSQL query from the ExecuteQuery API.
+
+            For a SQL query, the \_key column is still read as raw
+            bytes. But queries can reference the key fields by name,
+            which will be decoded from \_key using provided type and
+            encoding. Queries that reference key fields will fail if
+            they encounter an invalid row key.
+
+            For example, if \_key =
+            "some_id#2024-04-30#\x00\x13\x00\xf3" with the following
+            schema: { fields { field_name: "id" type { string {
+            encoding: utf8_bytes {} } } } fields { field_name: "date"
+            type { string { encoding: utf8_bytes {} } } } fields {
+            field_name: "product_code" type { int64 { encoding:
+            big_endian_bytes {} } } } encoding { delimited_bytes {
+            delimiter: "#" } } }
+
+            | The decoded key parts would be: id = "some_id", date =
+              "2024-04-30", product_code = 1245427 The query "SELECT
+              \_key, product_code FROM table" will return two columns:
+              /------------------------------------------------------
+            | \| \_key \| product_code \| \|
+              --------------------------------------|--------------\| \|
+              "some_id#2024-04-30#\x00\x13\x00\xf3" \| 1245427 \|
+              ------------------------------------------------------/
+
+            The schema has the following invariants: (1) The decoded
+            field values are order-preserved. For read, the field values
+            will be decoded in sorted mode from the raw bytes. (2) Every
+            field in the schema must specify a non-empty name. (3) Every
+            field must specify a type with an associated encoding. The
+            type is limited to scalar types only: Array, Map, Aggregate,
+            and Struct are not allowed. (4) The field names must not
+            collide with existing column family names and reserved
+            keywords "_key" and "_timestamp".
+
+            The following update operations are allowed for
+            row_key_schema:
+
+            -  Update from an empty schema to a new schema.
+            -  Remove the existing schema. This operation requires
+               setting the ``ignore_warnings`` flag to ``true``, since
+               it might be a backward incompatible change. Without the
+               flag, the update request will fail with an
+               INVALID_ARGUMENT error. Any other row key schema update
+               operation (e.g. update existing schema columns names or
+               types) is currently unsupported.
     """
 
     class TimestampGranularity(proto.Enum):
@@ -266,6 +330,31 @@ class Table(proto.Message):
             message="EncryptionInfo",
         )
 
+    class AutomatedBackupPolicy(proto.Message):
+        r"""Defines an automated backup policy for a table
+
+        Attributes:
+            retention_period (google.protobuf.duration_pb2.Duration):
+                Required. How long the automated backups
+                should be retained. The only supported value at
+                this time is 3 days.
+            frequency (google.protobuf.duration_pb2.Duration):
+                Required. How frequently automated backups
+                should occur. The only supported value at this
+                time is 24 hours.
+        """
+
+        retention_period: duration_pb2.Duration = proto.Field(
+            proto.MESSAGE,
+            number=1,
+            message=duration_pb2.Duration,
+        )
+        frequency: duration_pb2.Duration = proto.Field(
+            proto.MESSAGE,
+            number=2,
+            message=duration_pb2.Duration,
+        )
+
     name: str = proto.Field(
         proto.STRING,
         number=1,
@@ -301,6 +390,142 @@ class Table(proto.Message):
         proto.BOOL,
         number=9,
     )
+    automated_backup_policy: AutomatedBackupPolicy = proto.Field(
+        proto.MESSAGE,
+        number=13,
+        oneof="automated_backup_config",
+        message=AutomatedBackupPolicy,
+    )
+    row_key_schema: types.Type.Struct = proto.Field(
+        proto.MESSAGE,
+        number=15,
+        message=types.Type.Struct,
+    )
+
+
+class AuthorizedView(proto.Message):
+    r"""AuthorizedViews represent subsets of a particular Cloud
+    Bigtable table. Users can configure access to each Authorized
+    View independently from the table and use the existing Data APIs
+    to access the subset of data.
+
+
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
+    Attributes:
+        name (str):
+            Identifier. The name of this AuthorizedView. Values are of
+            the form
+            ``projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}``
+        subset_view (google.cloud.bigtable_admin_v2.types.AuthorizedView.SubsetView):
+            An AuthorizedView permitting access to an
+            explicit subset of a Table.
+
+            This field is a member of `oneof`_ ``authorized_view``.
+        etag (str):
+            The etag for this AuthorizedView.
+            If this is provided on update, it must match the
+            server's etag. The server returns ABORTED error
+            on a mismatched etag.
+        deletion_protection (bool):
+            Set to true to make the AuthorizedView
+            protected against deletion. The parent Table and
+            containing Instance cannot be deleted if an
+            AuthorizedView has this bit set.
+    """
+
+    class ResponseView(proto.Enum):
+        r"""Defines a subset of an AuthorizedView's fields.
+
+        Values:
+            RESPONSE_VIEW_UNSPECIFIED (0):
+                Uses the default view for each method as
+                documented in the request.
+            NAME_ONLY (1):
+                Only populates ``name``.
+            BASIC (2):
+                Only populates the AuthorizedView's basic metadata. This
+                includes: name, deletion_protection, etag.
+            FULL (3):
+                Populates every fields.
+        """
+        RESPONSE_VIEW_UNSPECIFIED = 0
+        NAME_ONLY = 1
+        BASIC = 2
+        FULL = 3
+
+    class FamilySubsets(proto.Message):
+        r"""Subsets of a column family that are included in this
+        AuthorizedView.
+
+        Attributes:
+            qualifiers (MutableSequence[bytes]):
+                Individual exact column qualifiers to be
+                included in the AuthorizedView.
+            qualifier_prefixes (MutableSequence[bytes]):
+                Prefixes for qualifiers to be included in the
+                AuthorizedView. Every qualifier starting with
+                one of these prefixes is included in the
+                AuthorizedView. To provide access to all
+                qualifiers, include the empty string as a prefix
+                ("").
+        """
+
+        qualifiers: MutableSequence[bytes] = proto.RepeatedField(
+            proto.BYTES,
+            number=1,
+        )
+        qualifier_prefixes: MutableSequence[bytes] = proto.RepeatedField(
+            proto.BYTES,
+            number=2,
+        )
+
+    class SubsetView(proto.Message):
+        r"""Defines a simple AuthorizedView that is a subset of the
+        underlying Table.
+
+        Attributes:
+            row_prefixes (MutableSequence[bytes]):
+                Row prefixes to be included in the
+                AuthorizedView. To provide access to all rows,
+                include the empty string as a prefix ("").
+            family_subsets (MutableMapping[str, google.cloud.bigtable_admin_v2.types.AuthorizedView.FamilySubsets]):
+                Map from column family name to the columns in
+                this family to be included in the
+                AuthorizedView.
+        """
+
+        row_prefixes: MutableSequence[bytes] = proto.RepeatedField(
+            proto.BYTES,
+            number=1,
+        )
+        family_subsets: MutableMapping[
+            str, "AuthorizedView.FamilySubsets"
+        ] = proto.MapField(
+            proto.STRING,
+            proto.MESSAGE,
+            number=2,
+            message="AuthorizedView.FamilySubsets",
+        )
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    subset_view: SubsetView = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        oneof="authorized_view",
+        message=SubsetView,
+    )
+    etag: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+    deletion_protection: bool = proto.Field(
+        proto.BOOL,
+        number=4,
+    )
 
 
 class ColumnFamily(proto.Message):
@@ -316,12 +541,31 @@ class ColumnFamily(proto.Message):
             opportunistically in the background, and so it's
             possible for reads to return a cell even if it
             matches the active GC expression for its family.
+        value_type (google.cloud.bigtable_admin_v2.types.Type):
+            The type of data stored in each of this family's cell
+            values, including its full encoding. If omitted, the family
+            only serves raw untyped bytes.
+
+            For now, only the ``Aggregate`` type is supported.
+
+            ``Aggregate`` can only be set at family creation and is
+            immutable afterwards.
+
+            If ``value_type`` is ``Aggregate``, written data must be
+            compatible with:
+
+            -  ``value_type.input_type`` for ``AddInput`` mutations
     """
 
     gc_rule: "GcRule" = proto.Field(
         proto.MESSAGE,
         number=1,
         message="GcRule",
+    )
+    value_type: types.Type = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=types.Type,
     )
 
 
@@ -595,13 +839,18 @@ class Backup(proto.Message):
             this backup was copied. If a backup is not
             created by copying a backup, this field will be
             empty. Values are of the form:
-            projects/<project>/instances/<instance>/backups/<backup>.
+
+            projects/<project>/instances/<instance>/clusters/<cluster>/backups/<backup>
         expire_time (google.protobuf.timestamp_pb2.Timestamp):
-            Required. The expiration time of the backup, with
-            microseconds granularity that must be at least 6 hours and
-            at most 90 days from the time the request is received. Once
-            the ``expire_time`` has passed, Cloud Bigtable will delete
-            the backup and free the resources used by the backup.
+            Required. The expiration time of the backup. When creating a
+            backup or updating its ``expire_time``, the value must be
+            greater than the backup creation time by:
+
+            -  At least 6 hours
+            -  At most 90 days
+
+            Once the ``expire_time`` has passed, Cloud Bigtable will
+            delete the backup.
         start_time (google.protobuf.timestamp_pb2.Timestamp):
             Output only. ``start_time`` is the time that the backup was
             started (i.e. approximately the time the
@@ -619,6 +868,20 @@ class Backup(proto.Message):
         encryption_info (google.cloud.bigtable_admin_v2.types.EncryptionInfo):
             Output only. The encryption information for
             the backup.
+        backup_type (google.cloud.bigtable_admin_v2.types.Backup.BackupType):
+            Indicates the backup type of the backup.
+        hot_to_standard_time (google.protobuf.timestamp_pb2.Timestamp):
+            The time at which the hot backup will be converted to a
+            standard backup. Once the ``hot_to_standard_time`` has
+            passed, Cloud Bigtable will convert the hot backup to a
+            standard backup. This value must be greater than the backup
+            creation time by:
+
+            -  At least 24 hours
+
+            This field only applies for hot backups. When creating or
+            updating a standard backup, attempting to set this field
+            will fail the request.
     """
 
     class State(proto.Enum):
@@ -636,6 +899,28 @@ class Backup(proto.Message):
         STATE_UNSPECIFIED = 0
         CREATING = 1
         READY = 2
+
+    class BackupType(proto.Enum):
+        r"""The type of the backup.
+
+        Values:
+            BACKUP_TYPE_UNSPECIFIED (0):
+                Not specified.
+            STANDARD (1):
+                The default type for Cloud Bigtable managed
+                backups. Supported for backups created in both
+                HDD and SSD instances. Requires optimization
+                when restored to a table in an SSD instance.
+            HOT (2):
+                A backup type with faster restore to SSD
+                performance. Only supported for backups created
+                in SSD instances. A new SSD table restored from
+                a hot backup reaches production performance more
+                quickly than a standard backup.
+        """
+        BACKUP_TYPE_UNSPECIFIED = 0
+        STANDARD = 1
+        HOT = 2
 
     name: str = proto.Field(
         proto.STRING,
@@ -678,6 +963,16 @@ class Backup(proto.Message):
         number=9,
         message="EncryptionInfo",
     )
+    backup_type: BackupType = proto.Field(
+        proto.ENUM,
+        number=11,
+        enum=BackupType,
+    )
+    hot_to_standard_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=12,
+        message=timestamp_pb2.Timestamp,
+    )
 
 
 class BackupInfo(proto.Message):
@@ -702,7 +997,8 @@ class BackupInfo(proto.Message):
             this backup was copied. If a backup is not
             created by copying a backup, this field will be
             empty. Values are of the form:
-            projects/<project>/instances/<instance>/backups/<backup>.
+
+            projects/<project>/instances/<instance>/clusters/<cluster>/backups/<backup>
     """
 
     backup: str = proto.Field(

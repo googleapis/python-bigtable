@@ -4,6 +4,127 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.31.0](https://github.com/googleapis/python-bigtable/compare/v2.30.1...v2.31.0) (2025-05-22)
+
+
+### Features
+
+* Add deletion_protection support for LVs ([#1108](https://github.com/googleapis/python-bigtable/issues/1108)) ([c6d384d](https://github.com/googleapis/python-bigtable/commit/c6d384d4a104c182326e22dc3f10b7b905780dee))
+* Support authorized views ([#1034](https://github.com/googleapis/python-bigtable/issues/1034)) ([97a0198](https://github.com/googleapis/python-bigtable/commit/97a019833d82e617769c56761aa5548d3ab896b9))
+* Throw better error on invalid metadata response ([#1107](https://github.com/googleapis/python-bigtable/issues/1107)) ([2642317](https://github.com/googleapis/python-bigtable/commit/2642317077b723ca8fd62aa86322b524868c2c4d))
+
+
+### Bug Fixes
+
+* Re-add py-typed file for bigtable package ([#1085](https://github.com/googleapis/python-bigtable/issues/1085)) ([0c322c7](https://github.com/googleapis/python-bigtable/commit/0c322c79ecbe4cde3e79d8e83ac655a978d07877))
+
+## [2.30.1](https://github.com/googleapis/python-bigtable/compare/v2.30.0...v2.30.1) (2025-04-17)
+
+
+### Bug Fixes
+
+* Populate SQL app_profile_id header even when it is unset ([#1109](https://github.com/googleapis/python-bigtable/issues/1109)) ([17b75bd](https://github.com/googleapis/python-bigtable/commit/17b75bd746cb0a616f64a05eb0ed72b46de28a17))
+
+## [2.30.0](https://github.com/googleapis/python-bigtable/compare/v2.29.0...v2.30.0) (2025-03-18)
+
+
+### Features
+
+* Update ExecuteQuery to use Prepare ([#1100](https://github.com/googleapis/python-bigtable/issues/1100)) ([8a7abc1](https://github.com/googleapis/python-bigtable/commit/8a7abc1e9c34a9122b2d648e8a358a7097ed3a5d))
+
+
+### Bug Fixes
+
+* Allow protobuf 6.x ([#1092](https://github.com/googleapis/python-bigtable/issues/1092)) ([1015fa8](https://github.com/googleapis/python-bigtable/commit/1015fa83c505487f09820e3a37f76690bd00ab5d))
+* Remove setup.cfg configuration for creating universal wheels ([#1097](https://github.com/googleapis/python-bigtable/issues/1097)) ([95f4b82](https://github.com/googleapis/python-bigtable/commit/95f4b8233cba2a18633e64c5e0bc177e23767a83))
+
+## [2.29.0](https://github.com/googleapis/python-bigtable/compare/v2.28.1...v2.29.0) (2025-02-26)
+
+
+### Features
+
+* Add support for array and float32 SQL query params ([#1078](https://github.com/googleapis/python-bigtable/issues/1078)) ([89b8da8](https://github.com/googleapis/python-bigtable/commit/89b8da8a445aeb08854d9fa77cbc0e4fc042c87f))
+
+
+### Bug Fixes
+
+* Grpc channel refresh ([#1087](https://github.com/googleapis/python-bigtable/issues/1087)) ([f44b36b](https://github.com/googleapis/python-bigtable/commit/f44b36bf51e3e4e3b8a774f96e682d3f1f8d4b16))
+
+## [2.28.1](https://github.com/googleapis/python-bigtable/compare/v2.28.0...v2.28.1) (2025-01-17)
+
+
+### Bug Fixes
+
+* Allow empty headers for btql routing ([#1072](https://github.com/googleapis/python-bigtable/issues/1072)) ([e7ecfeb](https://github.com/googleapis/python-bigtable/commit/e7ecfeb8984a45c880d9483305964fff347eb4b8))
+
+## [2.28.0](https://github.com/googleapis/python-bigtable/compare/v2.27.0...v2.28.0) (2025-01-08)
+
+
+### Features
+
+* Add generated sync client ([#1017](https://github.com/googleapis/python-bigtable/issues/1017)) ([f974823](https://github.com/googleapis/python-bigtable/commit/f974823bf8a74c2f8b1bc69997b13bc1acaf8bef))
+
+## [2.27.0](https://github.com/googleapis/python-bigtable/compare/v2.26.0...v2.27.0) (2024-11-12)
+
+
+### Features
+
+* Add support for Cloud Bigtable Node Scaling Factor for CBT Clusters ([#1023](https://github.com/googleapis/python-bigtable/issues/1023)) ([0809c6a](https://github.com/googleapis/python-bigtable/commit/0809c6ac274e909103ad160a8bcab95f8bb46f31))
+* Surface `retry` param to `Table.read_row` api ([#982](https://github.com/googleapis/python-bigtable/issues/982)) ([a8286d2](https://github.com/googleapis/python-bigtable/commit/a8286d2a510f654f9c270c3c761c02e4ab3817d4))
+
+
+### Bug Fixes
+
+* Registering duplicate instance ([#1033](https://github.com/googleapis/python-bigtable/issues/1033)) ([2bca8fb](https://github.com/googleapis/python-bigtable/commit/2bca8fb220eeb1906fc6a3cf1f879f3d41fbbff8))
+
+## [2.26.0](https://github.com/googleapis/python-bigtable/compare/v2.25.0...v2.26.0) (2024-08-12)
+
+
+### Features
+
+* Add fields and the BackupType proto for Hot Backups ([#1010](https://github.com/googleapis/python-bigtable/issues/1010)) ([b95801f](https://github.com/googleapis/python-bigtable/commit/b95801ffa8081e0072232247fbc5879105c109a6))
+* Add MergeToCell to Mutation APIs ([f029a24](https://github.com/googleapis/python-bigtable/commit/f029a242e2b0e6020d0b87ef256a414194321fad))
+* Add min, max, hll aggregators and more types ([f029a24](https://github.com/googleapis/python-bigtable/commit/f029a242e2b0e6020d0b87ef256a414194321fad))
+* Async execute query client ([#1011](https://github.com/googleapis/python-bigtable/issues/1011)) ([45bc8c4](https://github.com/googleapis/python-bigtable/commit/45bc8c4a0fe567ce5e0126a1a70e7eb3dca93e92))
+
+
+### Bug Fixes
+
+* Use single routing metadata header ([#1005](https://github.com/googleapis/python-bigtable/issues/1005)) ([20eeb0a](https://github.com/googleapis/python-bigtable/commit/20eeb0a68d7b44d07a6d84bc7a7e040ad63bb96d))
+
+
+### Documentation
+
+* Add clarification around SQL timestamps ([#1012](https://github.com/googleapis/python-bigtable/issues/1012)) ([6e80190](https://github.com/googleapis/python-bigtable/commit/6e801900bbe9385d3b579b8c3327c87c3617d92f))
+* Corrected various type documentation ([f029a24](https://github.com/googleapis/python-bigtable/commit/f029a242e2b0e6020d0b87ef256a414194321fad))
+
+## [2.25.0](https://github.com/googleapis/python-bigtable/compare/v2.24.0...v2.25.0) (2024-07-18)
+
+
+### Features
+
+* Publish ProtoRows Message ([7ac8e14](https://github.com/googleapis/python-bigtable/commit/7ac8e142f99a6891b6bc286858f764def503e89a))
+* Publish the Cloud Bigtable ExecuteQuery API ([7ac8e14](https://github.com/googleapis/python-bigtable/commit/7ac8e142f99a6891b6bc286858f764def503e89a))
+
+
+### Bug Fixes
+
+* Allow protobuf 5.x ([7ac8e14](https://github.com/googleapis/python-bigtable/commit/7ac8e142f99a6891b6bc286858f764def503e89a))
+
+## [2.24.0](https://github.com/googleapis/python-bigtable/compare/v2.23.1...v2.24.0) (2024-06-11)
+
+
+### Features
+
+* Add String type with Utf8Raw encoding to Bigtable API ([#968](https://github.com/googleapis/python-bigtable/issues/968)) ([2a2bbfd](https://github.com/googleapis/python-bigtable/commit/2a2bbfdba6737c508ab1073d37fef680ca2a8c2f))
+* Improve async sharding ([#977](https://github.com/googleapis/python-bigtable/issues/977)) ([fd1f7da](https://github.com/googleapis/python-bigtable/commit/fd1f7dafd38f7f0e714a3384a27176f485523682))
+
+
+### Bug Fixes
+
+* **backup:** Backup name regex ([#970](https://github.com/googleapis/python-bigtable/issues/970)) ([6ef122a](https://github.com/googleapis/python-bigtable/commit/6ef122ad49f43e3a22cde5cb6fdaefd947670136))
+* Improve rowset revision ([#979](https://github.com/googleapis/python-bigtable/issues/979)) ([da27527](https://github.com/googleapis/python-bigtable/commit/da275279a7e619e4cd3e72b10ac629d6e0e1fe47))
+
 ## [2.23.1](https://github.com/googleapis/python-bigtable/compare/v2.23.0...v2.23.1) (2024-04-15)
 
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +32,8 @@ __protobuf__ = proto.module(
         "Cluster",
         "AppProfile",
         "HotTablet",
+        "LogicalView",
+        "MaterializedView",
     },
 )
 
@@ -55,7 +57,8 @@ class Instance(proto.Message):
             any time, but should be kept globally unique to
             avoid confusion.
         state (google.cloud.bigtable_admin_v2.types.Instance.State):
-            (``OutputOnly``) The current state of the instance.
+            Output only. The current state of the
+            instance.
         type_ (google.cloud.bigtable_admin_v2.types.Instance.Type):
             The type of the instance. Defaults to ``PRODUCTION``.
         labels (MutableMapping[str, str]):
@@ -74,14 +77,18 @@ class Instance(proto.Message):
                resource.
             -  Keys and values must both be under 128 bytes.
         create_time (google.protobuf.timestamp_pb2.Timestamp):
-            Output only. A server-assigned timestamp representing when
-            this Instance was created. For instances created before this
+            Output only. A commit timestamp representing when this
+            Instance was created. For instances created before this
             field was added (August 2021), this value is
             ``seconds: 0, nanos: 1``.
         satisfies_pzs (bool):
             Output only. Reserved for future use.
 
             This field is a member of `oneof`_ ``_satisfies_pzs``.
+        satisfies_pzi (bool):
+            Output only. Reserved for future use.
+
+            This field is a member of `oneof`_ ``_satisfies_pzi``.
     """
 
     class State(proto.Enum):
@@ -155,6 +162,11 @@ class Instance(proto.Message):
     satisfies_pzs: bool = proto.Field(
         proto.BOOL,
         number=8,
+        optional=True,
+    )
+    satisfies_pzi: bool = proto.Field(
+        proto.BOOL,
+        number=11,
         optional=True,
     )
 
@@ -234,9 +246,13 @@ class Cluster(proto.Message):
             Output only. The current state of the
             cluster.
         serve_nodes (int):
-            The number of nodes allocated to this
-            cluster. More nodes enable higher throughput and
-            more consistent performance.
+            The number of nodes in the cluster. If no
+            value is set, Cloud Bigtable automatically
+            allocates nodes based on your data footprint and
+            optimized for 50% storage utilization.
+        node_scaling_factor (google.cloud.bigtable_admin_v2.types.Cluster.NodeScalingFactor):
+            Immutable. The node scaling factor of this
+            cluster.
         cluster_config (google.cloud.bigtable_admin_v2.types.Cluster.ClusterConfig):
             Configuration for this cluster.
 
@@ -283,6 +299,28 @@ class Cluster(proto.Message):
         CREATING = 2
         RESIZING = 3
         DISABLED = 4
+
+    class NodeScalingFactor(proto.Enum):
+        r"""Possible node scaling factors of the clusters. Node scaling
+        delivers better latency and more throughput by removing node
+        boundaries.
+
+        Values:
+            NODE_SCALING_FACTOR_UNSPECIFIED (0):
+                No node scaling specified. Defaults to
+                NODE_SCALING_FACTOR_1X.
+            NODE_SCALING_FACTOR_1X (1):
+                The cluster is running with a scaling factor
+                of 1.
+            NODE_SCALING_FACTOR_2X (2):
+                The cluster is running with a scaling factor of 2. All node
+                count values must be in increments of 2 with this scaling
+                factor enabled, otherwise an INVALID_ARGUMENT error will be
+                returned.
+        """
+        NODE_SCALING_FACTOR_UNSPECIFIED = 0
+        NODE_SCALING_FACTOR_1X = 1
+        NODE_SCALING_FACTOR_2X = 2
 
     class ClusterAutoscalingConfig(proto.Message):
         r"""Autoscaling config for a cluster.
@@ -336,9 +374,8 @@ class Cluster(proto.Message):
                    ``cloudkms.cryptoKeyEncrypterDecrypter`` role on the CMEK
                    key.
                 2) Only regional keys can be used and the region of the CMEK
-                   key must match the region of the cluster.
-                3) All clusters within an instance must use the same CMEK
-                   key. Values are of the form
+                   key must match the region of the cluster. Values are of
+                   the form
                    ``projects/{project}/locations/{location}/keyRings/{keyring}/cryptoKeys/{key}``
         """
 
@@ -363,6 +400,11 @@ class Cluster(proto.Message):
     serve_nodes: int = proto.Field(
         proto.INT32,
         number=4,
+    )
+    node_scaling_factor: NodeScalingFactor = proto.Field(
+        proto.ENUM,
+        number=9,
+        enum=NodeScalingFactor,
     )
     cluster_config: ClusterConfig = proto.Field(
         proto.MESSAGE,
@@ -432,6 +474,11 @@ class AppProfile(proto.Message):
             app profile's traffic from other use cases.
 
             This field is a member of `oneof`_ ``isolation``.
+        data_boost_isolation_read_only (google.cloud.bigtable_admin_v2.types.AppProfile.DataBoostIsolationReadOnly):
+            Specifies that this app profile is intended
+            for read-only usage via the Data Boost feature.
+
+            This field is a member of `oneof`_ ``isolation``.
     """
 
     class Priority(proto.Enum):
@@ -463,17 +510,46 @@ class AppProfile(proto.Message):
         in a region are considered equidistant. Choosing this option
         sacrifices read-your-writes consistency to improve availability.
 
+
+        .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
         Attributes:
             cluster_ids (MutableSequence[str]):
                 The set of clusters to route to. The order is
                 ignored; clusters will be tried in order of
                 distance. If left empty, all clusters are
                 eligible.
+            row_affinity (google.cloud.bigtable_admin_v2.types.AppProfile.MultiClusterRoutingUseAny.RowAffinity):
+                Row affinity sticky routing based on the row
+                key of the request. Requests that span multiple
+                rows are routed non-deterministically.
+
+                This field is a member of `oneof`_ ``affinity``.
         """
+
+        class RowAffinity(proto.Message):
+            r"""If enabled, Bigtable will route the request based on the row
+            key of the request, rather than randomly. Instead, each row key
+            will be assigned to a cluster, and will stick to that cluster.
+            If clusters are added or removed, then this may affect which row
+            keys stick to which clusters. To avoid this, users can use a
+            cluster group to specify which clusters are to be used. In this
+            case, new clusters that are not a part of the cluster group will
+            not be routed to, and routing will be unaffected by the new
+            cluster. Moreover, clusters specified in the cluster group
+            cannot be deleted unless removed from the cluster group.
+
+            """
 
         cluster_ids: MutableSequence[str] = proto.RepeatedField(
             proto.STRING,
             number=1,
+        )
+        row_affinity: "AppProfile.MultiClusterRoutingUseAny.RowAffinity" = proto.Field(
+            proto.MESSAGE,
+            number=3,
+            oneof="affinity",
+            message="AppProfile.MultiClusterRoutingUseAny.RowAffinity",
         )
 
     class SingleClusterRouting(proto.Message):
@@ -517,6 +593,47 @@ class AppProfile(proto.Message):
             enum="AppProfile.Priority",
         )
 
+    class DataBoostIsolationReadOnly(proto.Message):
+        r"""Data Boost is a serverless compute capability that lets you
+        run high-throughput read jobs and queries on your Bigtable data,
+        without impacting the performance of the clusters that handle
+        your application traffic. Data Boost supports read-only use
+        cases with single-cluster routing.
+
+
+        .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
+        Attributes:
+            compute_billing_owner (google.cloud.bigtable_admin_v2.types.AppProfile.DataBoostIsolationReadOnly.ComputeBillingOwner):
+                The Compute Billing Owner for this Data Boost
+                App Profile.
+
+                This field is a member of `oneof`_ ``_compute_billing_owner``.
+        """
+
+        class ComputeBillingOwner(proto.Enum):
+            r"""Compute Billing Owner specifies how usage should be accounted
+            when using Data Boost. Compute Billing Owner also configures
+            which Cloud Project is charged for relevant quota.
+
+            Values:
+                COMPUTE_BILLING_OWNER_UNSPECIFIED (0):
+                    Unspecified value.
+                HOST_PAYS (1):
+                    The host Cloud Project containing the
+                    targeted Bigtable Instance / Table pays for
+                    compute.
+            """
+            COMPUTE_BILLING_OWNER_UNSPECIFIED = 0
+            HOST_PAYS = 1
+
+        compute_billing_owner: "AppProfile.DataBoostIsolationReadOnly.ComputeBillingOwner" = proto.Field(
+            proto.ENUM,
+            number=1,
+            optional=True,
+            enum="AppProfile.DataBoostIsolationReadOnly.ComputeBillingOwner",
+        )
+
     name: str = proto.Field(
         proto.STRING,
         number=1,
@@ -552,6 +669,12 @@ class AppProfile(proto.Message):
         number=11,
         oneof="isolation",
         message=StandardIsolation,
+    )
+    data_boost_isolation_read_only: DataBoostIsolationReadOnly = proto.Field(
+        proto.MESSAGE,
+        number=10,
+        oneof="isolation",
+        message=DataBoostIsolationReadOnly,
     )
 
 
@@ -617,6 +740,86 @@ class HotTablet(proto.Message):
     node_cpu_usage_percent: float = proto.Field(
         proto.FLOAT,
         number=7,
+    )
+
+
+class LogicalView(proto.Message):
+    r"""A SQL logical view object that can be referenced in SQL
+    queries.
+
+    Attributes:
+        name (str):
+            Identifier. The unique name of the logical view. Format:
+            ``projects/{project}/instances/{instance}/logicalViews/{logical_view}``
+        query (str):
+            Required. The logical view's select query.
+        etag (str):
+            Optional. The etag for this logical view.
+            This may be sent on update requests to ensure
+            that the client has an up-to-date value before
+            proceeding. The server returns an ABORTED error
+            on a mismatched etag.
+        deletion_protection (bool):
+            Optional. Set to true to make the LogicalView
+            protected against deletion.
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    query: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    etag: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+    deletion_protection: bool = proto.Field(
+        proto.BOOL,
+        number=6,
+    )
+
+
+class MaterializedView(proto.Message):
+    r"""A materialized view object that can be referenced in SQL
+    queries.
+
+    Attributes:
+        name (str):
+            Identifier. The unique name of the materialized view.
+            Format:
+            ``projects/{project}/instances/{instance}/materializedViews/{materialized_view}``
+        query (str):
+            Required. Immutable. The materialized view's
+            select query.
+        etag (str):
+            Optional. The etag for this materialized
+            view. This may be sent on update requests to
+            ensure that the client has an up-to-date value
+            before proceeding. The server returns an ABORTED
+            error on a mismatched etag.
+        deletion_protection (bool):
+            Set to true to make the MaterializedView
+            protected against deletion.
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    query: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    etag: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+    deletion_protection: bool = proto.Field(
+        proto.BOOL,
+        number=6,
     )
 
 

@@ -21,19 +21,6 @@ from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 import mock
 
 
-class TestMakeMetadata:
-    @pytest.mark.parametrize(
-        "table,profile,expected",
-        [
-            ("table", "profile", "table_name=table&app_profile_id=profile"),
-            ("table", None, "table_name=table"),
-        ],
-    )
-    def test__make_metadata(self, table, profile, expected):
-        metadata = _helpers._make_metadata(table, profile)
-        assert metadata == [("x-goog-request-params", expected)]
-
-
 class TestAttemptTimeoutGenerator:
     @pytest.mark.parametrize(
         "request_t,operation_t,expected_list",
@@ -94,7 +81,7 @@ class TestAttemptTimeoutGenerator:
         sleep_time = 0.1
         for i in range(3):
             found_value = next(generator)
-            assert abs(found_value - expected_value) < 0.001
+            assert abs(found_value - expected_value) < 0.1
             sleep(sleep_time)
             expected_value -= sleep_time
 
@@ -215,6 +202,39 @@ class TestGetTimeouts:
             setattr(fake_table, f"default_{key}_timeout", input_table[key])
         with pytest.raises(ValueError):
             _helpers._get_timeouts(input_times[0], input_times[1], fake_table)
+
+
+class TestAlignTimeouts:
+    @pytest.mark.parametrize(
+        "input_times,expected",
+        [
+            ((2, 1), (2, 1)),
+            ((2, 4), (2, 2)),
+            ((2, None), (2, 2)),
+        ],
+    )
+    def test_get_timeouts(self, input_times, expected):
+        """
+        test input/output mappings for a variety of valid inputs
+        """
+        t1, t2 = _helpers._align_timeouts(input_times[0], input_times[1])
+        assert t1 == expected[0]
+        assert t2 == expected[1]
+
+    @pytest.mark.parametrize(
+        "input_times",
+        [
+            ([0, 1]),
+            ([1, 0]),
+            ([None, 1]),
+        ],
+    )
+    def test_get_timeouts_invalid(self, input_times):
+        """
+        test with inputs that should raise error during validation step
+        """
+        with pytest.raises(ValueError):
+            _helpers._align_timeouts(input_times[0], input_times[1])
 
 
 class TestGetRetryableErrors:

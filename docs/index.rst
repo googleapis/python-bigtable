@@ -2,29 +2,19 @@
 
 .. include:: multiprocessing.rst
 
-Using the API
+Client Types
 -------------
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
-   usage
-   async_data_usage
-
-
-API Reference
--------------
-.. toctree::
-   :maxdepth: 2
-
-   instance-api
-   table-api
-   data-api
+   data_client/data_client_usage
+   classic_client/usage
 
 
 Changelog
 ---------
 
-For a list of all ``google-cloud-datastore`` releases:
+For a list of all ``google-cloud-bigtable`` releases:
 
 .. toctree::
   :maxdepth: 2

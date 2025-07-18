@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,12 +25,16 @@ from google.api_core import gapic_v1
 from google.api_core import retry as retries
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.oauth2 import service_account  # type: ignore
+import google.protobuf
 
 from google.cloud.bigtable_v2.types import bigtable
 
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
+
+if hasattr(DEFAULT_CLIENT_INFO, "protobuf_runtime_version"):  # pragma: NO COVER
+    DEFAULT_CLIENT_INFO.protobuf_runtime_version = google.protobuf.__version__
 
 
 class BigtableTransport(abc.ABC):
@@ -89,6 +93,8 @@ class BigtableTransport(abc.ABC):
 
         # Save the scopes.
         self._scopes = scopes
+        if not hasattr(self, "_ignore_credentials"):
+            self._ignore_credentials: bool = False
 
         # If no credentials are provided, then determine the appropriate
         # defaults.
@@ -101,7 +107,7 @@ class BigtableTransport(abc.ABC):
             credentials, _ = google.auth.load_credentials_from_file(
                 credentials_file, **scopes_kwargs, quota_project_id=quota_project_id
             )
-        elif credentials is None:
+        elif credentials is None and not self._ignore_credentials:
             credentials, _ = google.auth.default(
                 **scopes_kwargs, quota_project_id=quota_project_id
             )
@@ -186,6 +192,26 @@ class BigtableTransport(abc.ABC):
             ),
             self.read_change_stream: gapic_v1.method.wrap_method(
                 self.read_change_stream,
+                default_timeout=43200.0,
+                client_info=client_info,
+            ),
+            self.prepare_query: gapic_v1.method.wrap_method(
+                self.prepare_query,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.execute_query: gapic_v1.method.wrap_method(
+                self.execute_query,
+                default_retry=retries.Retry(
+                    initial=0.01,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.DeadlineExceeded,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=43200.0,
+                ),
                 default_timeout=43200.0,
                 client_info=client_info,
             ),
@@ -292,6 +318,24 @@ class BigtableTransport(abc.ABC):
             bigtable.ReadChangeStreamResponse,
             Awaitable[bigtable.ReadChangeStreamResponse],
         ],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def prepare_query(
+        self,
+    ) -> Callable[
+        [bigtable.PrepareQueryRequest],
+        Union[bigtable.PrepareQueryResponse, Awaitable[bigtable.PrepareQueryResponse]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def execute_query(
+        self,
+    ) -> Callable[
+        [bigtable.ExecuteQueryRequest],
+        Union[bigtable.ExecuteQueryResponse, Awaitable[bigtable.ExecuteQueryResponse]],
     ]:
         raise NotImplementedError()
 

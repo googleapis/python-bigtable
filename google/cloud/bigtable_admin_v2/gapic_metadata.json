@@ -25,6 +25,16 @@
                 "create_instance"
               ]
             },
+            "CreateLogicalView": {
+              "methods": [
+                "create_logical_view"
+              ]
+            },
+            "CreateMaterializedView": {
+              "methods": [
+                "create_materialized_view"
+              ]
+            },
             "DeleteAppProfile": {
               "methods": [
                 "delete_app_profile"
@@ -38,6 +48,16 @@
             "DeleteInstance": {
               "methods": [
                 "delete_instance"
+              ]
+            },
+            "DeleteLogicalView": {
+              "methods": [
+                "delete_logical_view"
+              ]
+            },
+            "DeleteMaterializedView": {
+              "methods": [
+                "delete_materialized_view"
               ]
             },
             "GetAppProfile": {
@@ -60,6 +80,16 @@
                 "get_instance"
               ]
             },
+            "GetLogicalView": {
+              "methods": [
+                "get_logical_view"
+              ]
+            },
+            "GetMaterializedView": {
+              "methods": [
+                "get_materialized_view"
+              ]
+            },
             "ListAppProfiles": {
               "methods": [
                 "list_app_profiles"
@@ -78,6 +108,16 @@
             "ListInstances": {
               "methods": [
                 "list_instances"
+              ]
+            },
+            "ListLogicalViews": {
+              "methods": [
+                "list_logical_views"
+              ]
+            },
+            "ListMaterializedViews": {
+              "methods": [
+                "list_materialized_views"
               ]
             },
             "PartialUpdateCluster": {
@@ -113,6 +153,16 @@
             "UpdateInstance": {
               "methods": [
                 "update_instance"
+              ]
+            },
+            "UpdateLogicalView": {
+              "methods": [
+                "update_logical_view"
+              ]
+            },
+            "UpdateMaterializedView": {
+              "methods": [
+                "update_materialized_view"
               ]
             }
           }
@@ -135,6 +185,16 @@
                 "create_instance"
               ]
             },
+            "CreateLogicalView": {
+              "methods": [
+                "create_logical_view"
+              ]
+            },
+            "CreateMaterializedView": {
+              "methods": [
+                "create_materialized_view"
+              ]
+            },
             "DeleteAppProfile": {
               "methods": [
                 "delete_app_profile"
@@ -148,6 +208,16 @@
             "DeleteInstance": {
               "methods": [
                 "delete_instance"
+              ]
+            },
+            "DeleteLogicalView": {
+              "methods": [
+                "delete_logical_view"
+              ]
+            },
+            "DeleteMaterializedView": {
+              "methods": [
+                "delete_materialized_view"
               ]
             },
             "GetAppProfile": {
@@ -170,6 +240,16 @@
                 "get_instance"
               ]
             },
+            "GetLogicalView": {
+              "methods": [
+                "get_logical_view"
+              ]
+            },
+            "GetMaterializedView": {
+              "methods": [
+                "get_materialized_view"
+              ]
+            },
             "ListAppProfiles": {
               "methods": [
                 "list_app_profiles"
@@ -188,6 +268,16 @@
             "ListInstances": {
               "methods": [
                 "list_instances"
+              ]
+            },
+            "ListLogicalViews": {
+              "methods": [
+                "list_logical_views"
+              ]
+            },
+            "ListMaterializedViews": {
+              "methods": [
+                "list_materialized_views"
               ]
             },
             "PartialUpdateCluster": {
@@ -223,6 +313,16 @@
             "UpdateInstance": {
               "methods": [
                 "update_instance"
+              ]
+            },
+            "UpdateLogicalView": {
+              "methods": [
+                "update_logical_view"
+              ]
+            },
+            "UpdateMaterializedView": {
+              "methods": [
+                "update_materialized_view"
               ]
             }
           }
@@ -245,6 +345,16 @@
                 "create_instance"
               ]
             },
+            "CreateLogicalView": {
+              "methods": [
+                "create_logical_view"
+              ]
+            },
+            "CreateMaterializedView": {
+              "methods": [
+                "create_materialized_view"
+              ]
+            },
             "DeleteAppProfile": {
               "methods": [
                 "delete_app_profile"
@@ -258,6 +368,16 @@
             "DeleteInstance": {
               "methods": [
                 "delete_instance"
+              ]
+            },
+            "DeleteLogicalView": {
+              "methods": [
+                "delete_logical_view"
+              ]
+            },
+            "DeleteMaterializedView": {
+              "methods": [
+                "delete_materialized_view"
               ]
             },
             "GetAppProfile": {
@@ -280,6 +400,16 @@
                 "get_instance"
               ]
             },
+            "GetLogicalView": {
+              "methods": [
+                "get_logical_view"
+              ]
+            },
+            "GetMaterializedView": {
+              "methods": [
+                "get_materialized_view"
+              ]
+            },
             "ListAppProfiles": {
               "methods": [
                 "list_app_profiles"
@@ -298,6 +428,16 @@
             "ListInstances": {
               "methods": [
                 "list_instances"
+              ]
+            },
+            "ListLogicalViews": {
+              "methods": [
+                "list_logical_views"
+              ]
+            },
+            "ListMaterializedViews": {
+              "methods": [
+                "list_materialized_views"
               ]
             },
             "PartialUpdateCluster": {
@@ -334,6 +474,16 @@
               "methods": [
                 "update_instance"
               ]
+            },
+            "UpdateLogicalView": {
+              "methods": [
+                "update_logical_view"
+              ]
+            },
+            "UpdateMaterializedView": {
+              "methods": [
+                "update_materialized_view"
+              ]
             }
           }
         }
@@ -354,6 +504,11 @@
                 "copy_backup"
               ]
             },
+            "CreateAuthorizedView": {
+              "methods": [
+                "create_authorized_view"
+              ]
+            },
             "CreateBackup": {
               "methods": [
                 "create_backup"
@@ -367,6 +522,11 @@
             "CreateTableFromSnapshot": {
               "methods": [
                 "create_table_from_snapshot"
+              ]
+            },
+            "DeleteAuthorizedView": {
+              "methods": [
+                "delete_authorized_view"
               ]
             },
             "DeleteBackup": {
@@ -394,6 +554,11 @@
                 "generate_consistency_token"
               ]
             },
+            "GetAuthorizedView": {
+              "methods": [
+                "get_authorized_view"
+              ]
+            },
             "GetBackup": {
               "methods": [
                 "get_backup"
@@ -412,6 +577,11 @@
             "GetTable": {
               "methods": [
                 "get_table"
+              ]
+            },
+            "ListAuthorizedViews": {
+              "methods": [
+                "list_authorized_views"
               ]
             },
             "ListBackups": {
@@ -457,6 +627,11 @@
             "UndeleteTable": {
               "methods": [
                 "undelete_table"
+              ]
+            },
+            "UpdateAuthorizedView": {
+              "methods": [
+                "update_authorized_view"
               ]
             },
             "UpdateBackup": {
@@ -484,6 +659,11 @@
                 "copy_backup"
               ]
             },
+            "CreateAuthorizedView": {
+              "methods": [
+                "create_authorized_view"
+              ]
+            },
             "CreateBackup": {
               "methods": [
                 "create_backup"
@@ -497,6 +677,11 @@
             "CreateTableFromSnapshot": {
               "methods": [
                 "create_table_from_snapshot"
+              ]
+            },
+            "DeleteAuthorizedView": {
+              "methods": [
+                "delete_authorized_view"
               ]
             },
             "DeleteBackup": {
@@ -524,6 +709,11 @@
                 "generate_consistency_token"
               ]
             },
+            "GetAuthorizedView": {
+              "methods": [
+                "get_authorized_view"
+              ]
+            },
             "GetBackup": {
               "methods": [
                 "get_backup"
@@ -542,6 +732,11 @@
             "GetTable": {
               "methods": [
                 "get_table"
+              ]
+            },
+            "ListAuthorizedViews": {
+              "methods": [
+                "list_authorized_views"
               ]
             },
             "ListBackups": {
@@ -587,6 +782,11 @@
             "UndeleteTable": {
               "methods": [
                 "undelete_table"
+              ]
+            },
+            "UpdateAuthorizedView": {
+              "methods": [
+                "update_authorized_view"
               ]
             },
             "UpdateBackup": {
@@ -614,6 +814,11 @@
                 "copy_backup"
               ]
             },
+            "CreateAuthorizedView": {
+              "methods": [
+                "create_authorized_view"
+              ]
+            },
             "CreateBackup": {
               "methods": [
                 "create_backup"
@@ -627,6 +832,11 @@
             "CreateTableFromSnapshot": {
               "methods": [
                 "create_table_from_snapshot"
+              ]
+            },
+            "DeleteAuthorizedView": {
+              "methods": [
+                "delete_authorized_view"
               ]
             },
             "DeleteBackup": {
@@ -654,6 +864,11 @@
                 "generate_consistency_token"
               ]
             },
+            "GetAuthorizedView": {
+              "methods": [
+                "get_authorized_view"
+              ]
+            },
             "GetBackup": {
               "methods": [
                 "get_backup"
@@ -672,6 +887,11 @@
             "GetTable": {
               "methods": [
                 "get_table"
+              ]
+            },
+            "ListAuthorizedViews": {
+              "methods": [
+                "list_authorized_views"
               ]
             },
             "ListBackups": {
@@ -717,6 +937,11 @@
             "UndeleteTable": {
               "methods": [
                 "undelete_table"
+              ]
+            },
+            "UpdateAuthorizedView": {
+              "methods": [
+                "update_authorized_view"
               ]
             },
             "UpdateBackup": {

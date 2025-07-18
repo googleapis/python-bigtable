@@ -24,11 +24,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test-version: [ "v0.0.2" ]
+        test-version: [ "v0.0.4" ]
         py-version: [ 3.8 ]
-        client-type: [ "Async v3", "Legacy" ]
+        client-type: [ "async", "sync"]
+        # None of the clients currently support reverse scans, execute query plan refresh, retry info, or routing cookie
+        include:
+          - client-type: "async"
+            test_args: "-skip \"PlanRefresh|_Reverse|_WithRetryInfo|_WithRoutingCookie\""
+          - client-type: "sync"
+            test_args: "-skip \"PlanRefresh|_Reverse|_WithRetryInfo|_WithRoutingCookie|_Generic_MultiStream\""
       fail-fast: false
-    name: "${{ matrix.client-type }} Client / Python ${{ matrix.py-version }} / Test Tag ${{ matrix.test-version }}"
+    name: "${{ matrix.client-type }} client / python ${{ matrix.py-version }} / test tag ${{ matrix.test-version }}"
     steps:
     - uses: actions/checkout@v4
       name: "Checkout python-bigtable"
@@ -53,4 +59,6 @@ jobs:
       env:
         CLIENT_TYPE: ${{ matrix.client-type }}
         PYTHONUNBUFFERED: 1
+        TEST_ARGS: ${{ matrix.test_args }}
+        PROXY_PORT: 9999
 

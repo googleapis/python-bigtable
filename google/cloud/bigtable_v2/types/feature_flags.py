@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,6 +67,15 @@ class FeatureFlags(proto.Message):
             Notify the server that the client supports
             using retry info back off durations to retry
             requests with.
+        client_side_metrics_enabled (bool):
+            Notify the server that the client has client
+            side metrics enabled.
+        traffic_director_enabled (bool):
+            Notify the server that the client using
+            Traffic Director endpoint.
+        direct_access_requested (bool):
+            Notify the server that the client explicitly
+            opted in for Direct Access.
     """
 
     reverse_scans: bool = proto.Field(
@@ -92,6 +101,18 @@ class FeatureFlags(proto.Message):
     retry_info: bool = proto.Field(
         proto.BOOL,
         number=7,
+    )
+    client_side_metrics_enabled: bool = proto.Field(
+        proto.BOOL,
+        number=8,
+    )
+    traffic_director_enabled: bool = proto.Field(
+        proto.BOOL,
+        number=9,
+    )
+    direct_access_requested: bool = proto.Field(
+        proto.BOOL,
+        number=10,
     )
 
 
