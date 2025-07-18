@@ -98,7 +98,6 @@ class TestSystemAsync:
         async with client.get_table(instance_id, table_id) as table:
             yield table
 
-
     @pytest.fixture(scope="session")
     def column_family_config(self):
         """
