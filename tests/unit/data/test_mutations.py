@@ -720,13 +720,17 @@ class TestAddToCell:
     @pytest.mark.parametrize("input_val", [2**64, -(2**64)])
     def test_ctor_large_int(self, input_val):
         with pytest.raises(ValueError) as e:
-            self._make_one(family="f", qualifier=b"b", value=input_val, timestamp_micros=123)
+            self._make_one(
+                family="f", qualifier=b"b", value=input_val, timestamp_micros=123
+            )
         assert "int values must be between" in str(e.value)
 
     @pytest.mark.parametrize("input_val", ["", "a", "abc", "hello world!"])
     def test_ctor_str_value(self, input_val):
         with pytest.raises(TypeError) as e:
-            self._make_one(family="f", qualifier=b"b", value=input_val, timestamp_micros=123)
+            self._make_one(
+                family="f", qualifier=b"b", value=input_val, timestamp_micros=123
+            )
         assert "value must be int" in str(e.value)
 
     def test_ctor(self):
