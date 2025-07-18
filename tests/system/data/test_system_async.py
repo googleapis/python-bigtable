@@ -98,14 +98,6 @@ class TestSystemAsync:
         async with client.get_table(instance_id, table_id) as table:
             yield table
 
-    @CrossSync.drop
-    @pytest.fixture(scope="session")
-    def event_loop(self):
-        loop = asyncio.get_event_loop()
-        yield loop
-        loop.stop()
-        loop.close()
-
     @pytest.fixture(scope="session")
     def column_family_config(self):
         """
