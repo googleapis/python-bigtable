@@ -31,15 +31,15 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud import bigtable_admin_v2
 
 
 async def sample_copy_backup():
     # Create a client
-    client = admin_v2.BigtableTableAdminAsyncClient()
+    client = bigtable_admin_v2.BigtableTableAdminAsyncClient()
 
     # Initialize request argument(s)
-    request = admin_v2.CopyBackupRequest(
+    request = bigtable_admin_v2.CopyBackupRequest(
         parent="parent_value",
         backup_id="backup_id_value",
         source_backup="source_backup_value",

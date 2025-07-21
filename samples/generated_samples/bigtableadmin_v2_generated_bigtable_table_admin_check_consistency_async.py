@@ -31,15 +31,15 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud import bigtable_admin_v2
 
 
 async def sample_check_consistency():
     # Create a client
-    client = admin_v2.BigtableTableAdminAsyncClient()
+    client = bigtable_admin_v2.BigtableTableAdminAsyncClient()
 
     # Initialize request argument(s)
-    request = admin_v2.CheckConsistencyRequest(
+    request = bigtable_admin_v2.CheckConsistencyRequest(
         name="name_value",
         consistency_token="consistency_token_value",
     )

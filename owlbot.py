@@ -77,12 +77,12 @@ for library in get_staging_dirs(bigtable_default_version, "bigtable"):
     s.move(library / "scripts")
 
 for library in get_staging_dirs(bigtable_admin_default_version, "bigtable_admin"):
-    s.move(library / "google/cloud/bigtable/admin", excludes=["**/gapic_version.py"])
-    s.move(library / "google/cloud/bigtable/admin_v2", excludes=["**/gapic_version.py"])
+    s.move(library / "google/cloud/bigtable_admin", excludes=["**/gapic_version.py"])
+    s.move(library / "google/cloud/bigtable_admin_v2", excludes=["**/gapic_version.py"])
     s.move(library / "tests")
     s.move(library / "samples")
     s.move(library / "scripts")
-    s.move(library / "docs/admin_v2", destination="docs/admin_client")
+    s.move(library / "docs/bigtable_admin_v2", destination="docs/admin_client")
 
 s.remove_staging_dirs()
 
@@ -130,18 +130,18 @@ def add_overlay_to_init_py(init_py_location, import_statements):
     )
 
 add_overlay_to_init_py(
-    "google/cloud/bigtable/admin_v2/__init__.py",
+    "google/cloud/bigtable_admin_v2/__init__.py",
     """from .overlay import *  # noqa: F403
 __all__ += overlay.__all__  # noqa: F405
 """
 )
 
 add_overlay_to_init_py(
-    "google/cloud/bigtable/admin/__init__.py",
-    """import google.cloud.bigtable.admin_v2.overlay  # noqa: F401
-from google.cloud.bigtable.admin_v2.overlay import *  # noqa: F401, F403
+    "google/cloud/bigtable_admin/__init__.py",
+    """import google.cloud.bigtable_admin_v2.overlay  # noqa: F401
+from google.cloud.bigtable_admin_v2.overlay import *  # noqa: F401, F403
 
-__all__ += google.cloud.bigtable.admin_v2.overlay.__all__
+__all__ += google.cloud.bigtable_admin_v2.overlay.__all__
 """
 )
 
@@ -149,17 +149,17 @@ __all__ += google.cloud.bigtable.admin_v2.overlay.__all__
 # in samples and docstrings with BigtableTableAdminClient/BigtableTableAdminAsyncClient
 s.replace(
     [
-        "google/cloud/bigtable/admin_v2/services/*/client.py",
-        "google/cloud/bigtable/admin_v2/services/*/async_client.py",
+        "google/cloud/bigtable_admin_v2/services/*/client.py",
+        "google/cloud/bigtable_admin_v2/services/*/async_client.py",
         "samples/generated_samples/bigtableadmin_v2_*.py"
     ],
-    r"client = admin_v2\.Base(BigtableTableAdmin(Async)?Client\(\))",
-    r"client = admin_v2.\1"
+    r"client = bigtable_admin_v2\.Base(BigtableTableAdmin(Async)?Client\(\))",
+    r"client = bigtable_admin_v2.\1"
 )
 
 # Fix an improperly formatted table that breaks nox -s docs.
 s.replace(
-    "google/cloud/bigtable/admin_v2/types/table.py",
+    "google/cloud/bigtable_admin_v2/types/table.py",
     """            For example, if \\\\_key =
             "some_id#2024-04-30#\\\\x00\\\\x13\\\\x00\\\\xf3" with the following
             schema: \\{ fields \\{ field_name: "id" type \\{ string \\{
@@ -220,20 +220,20 @@ two columns:
 # from service to overlay.service.
 s.replace(
     "docs/admin_client/bigtable_table_admin.rst",
-    r"^\.\. automodule:: google\.cloud\.bigtable\.admin_v2\.services\.bigtable_table_admin$",
-    ".. automodule:: google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin"
+    r"^\.\. automodule:: google\.cloud\.bigtable_admin_v2\.services\.bigtable_table_admin$",
+    ".. automodule:: google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin"
 )
 
 # Add overlay types to types documentation
 s.replace(
     "docs/admin_client/types_.rst",
-    r"""(\.\. automodule:: google\.cloud\.bigtable\.admin_v2\.types
+    r"""(\.\. automodule:: google\.cloud\.bigtable_admin_v2\.types
     :members:
     :show-inheritance:)
 """,
     r"""\1
 
-.. automodule:: google.cloud.bigtable.admin_v2.overlay.types
+.. automodule:: google.cloud.bigtable_admin_v2.overlay.types
     :members:
     :show-inheritance:
 """
@@ -249,21 +249,21 @@ _tracked_paths.add(gapic_templates.dir)
 gapic_templated_files = gapic_templates.render()
 s.move(
     gapic_templated_files,
-    destination="google/cloud/bigtable",
+    destination="google/cloud",
     excludes=["README.rst"],
 )
 
 # Add the oneof_message import into table.py for GcRule
 s.replace(
-    "google/cloud/bigtable/admin_v2/types/table.py",
-    r"^(from google\.cloud\.bigtable\.admin_v2\.types import .+)$",
+    "google/cloud/bigtable_admin_v2/types/table.py",
+    r"^(from google\.cloud\.bigtable_admin_v2\.types import .+)$",
     r"""\1
-from google.cloud.bigtable.admin_v2.types import oneof_message""",
+from google.cloud.bigtable_admin_v2.types import oneof_message""",
 )
 
 # Re-subclass GcRule in table.py
 s.replace(
-    "google/cloud/bigtable/admin_v2/types/table.py",
+    "google/cloud/bigtable_admin_v2/types/table.py",
     r"class GcRule\(proto\.Message\)\:",
     "class GcRule(oneof_message.OneofMessage):",
 )

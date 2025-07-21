@@ -31,13 +31,13 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud import bigtable_admin_v2
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 
 
 async def sample_test_iam_permissions():
     # Create a client
-    client = admin_v2.BigtableTableAdminAsyncClient()
+    client = bigtable_admin_v2.BigtableTableAdminAsyncClient()
 
     # Initialize request argument(s)
     request = iam_policy_pb2.TestIamPermissionsRequest(
