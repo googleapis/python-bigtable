@@ -241,7 +241,8 @@ class Value(proto.Message):
             This field is a member of `oneof`_ ``kind``.
         float_value (float):
             Represents a typed value transported as a
-            floating point number.
+            floating point number. Does not support NaN or
+            infinities.
 
             This field is a member of `oneof`_ ``kind``.
         timestamp_value (google.protobuf.timestamp_pb2.Timestamp):
