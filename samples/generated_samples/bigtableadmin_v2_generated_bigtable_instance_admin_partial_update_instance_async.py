@@ -31,18 +31,18 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud import bigtable_admin_v2
 
 
 async def sample_partial_update_instance():
     # Create a client
-    client = admin_v2.BigtableInstanceAdminAsyncClient()
+    client = bigtable_admin_v2.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
-    instance = admin_v2.Instance()
+    instance = bigtable_admin_v2.Instance()
     instance.display_name = "display_name_value"
 
-    request = admin_v2.PartialUpdateInstanceRequest(
+    request = bigtable_admin_v2.PartialUpdateInstanceRequest(
         instance=instance,
     )
 

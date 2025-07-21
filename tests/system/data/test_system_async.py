@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import pytest
-import asyncio
 import datetime
 import uuid
 import os
@@ -103,7 +102,7 @@ class TestSystemAsync:
         """
         specify column families to create when creating a new test table
         """
-        from google.cloud.bigtable.admin_v2 import types
+        from google.cloud.bigtable_admin_v2 import types
 
         return {TEST_FAMILY: types.ColumnFamily(), TEST_FAMILY_2: types.ColumnFamily()}
 
@@ -119,7 +118,7 @@ class TestSystemAsync:
         """
         Configuration for the clusters to use when creating a new instance
         """
-        from google.cloud.bigtable.admin_v2 import types
+        from google.cloud.bigtable_admin_v2 import types
 
         cluster = {
             "test-cluster": types.Cluster(

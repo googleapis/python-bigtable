@@ -37,7 +37,7 @@ def instance_id(admin_client, project_id, cluster_config):
     """
     Returns BIGTABLE_TEST_INSTANCE if set, otherwise creates a new temporary instance for the test session
     """
-    from google.cloud.bigtable.admin_v2 import types
+    from google.cloud.bigtable_admin_v2 import types
     from google.api_core import exceptions
     from google.cloud.environment_vars import BIGTABLE_EMULATOR
 

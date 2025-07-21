@@ -31,15 +31,15 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud import bigtable_admin_v2
 
 
 def sample_delete_snapshot():
     # Create a client
-    client = admin_v2.BigtableTableAdminClient()
+    client = bigtable_admin_v2.BigtableTableAdminClient()
 
     # Initialize request argument(s)
-    request = admin_v2.DeleteSnapshotRequest(
+    request = bigtable_admin_v2.DeleteSnapshotRequest(
         name="name_value",
     )
 

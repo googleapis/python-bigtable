@@ -14,7 +14,7 @@
 
 from typing import Tuple
 
-from google.cloud.bigtable import admin_v2
+from google.cloud import bigtable_admin_v2 as admin_v2
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from google.cloud.bigtable.data import mutations, read_rows_query
 

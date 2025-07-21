@@ -125,7 +125,7 @@ def test_cluster_kms_key_name_setter():
 
 
 def test_cluster_from_pb_success():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.cluster import Cluster
     from google.cloud.bigtable import enums
 
@@ -161,7 +161,7 @@ def test_cluster_from_pb_success():
 
 
 def test_cluster_from_pb_w_bad_cluster_name():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.cluster import Cluster
 
     bad_cluster_name = "BAD_NAME"
@@ -173,7 +173,7 @@ def test_cluster_from_pb_w_bad_cluster_name():
 
 
 def test_cluster_from_pb_w_instance_id_mistmatch():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.cluster import Cluster
 
     ALT_INSTANCE_ID = "ALT_INSTANCE_ID"
@@ -188,7 +188,7 @@ def test_cluster_from_pb_w_instance_id_mistmatch():
 
 
 def test_cluster_from_pb_w_project_mistmatch():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.cluster import Cluster
 
     ALT_PROJECT = "ALT_PROJECT"
@@ -203,7 +203,7 @@ def test_cluster_from_pb_w_project_mistmatch():
 
 
 def test_cluster_from_pb_w_autoscaling():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.cluster import Cluster
     from google.cloud.bigtable import enums
 
@@ -283,7 +283,7 @@ def test_cluster___ne__():
 
 
 def _make_instance_admin_client():
-    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
 
@@ -291,7 +291,7 @@ def _make_instance_admin_client():
 
 
 def test_cluster_reload():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.enums import StorageType
     from google.cloud.bigtable.enums import Cluster
 
@@ -348,7 +348,7 @@ def test_cluster_reload():
 
 
 def test_cluster_exists_hit():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.instance import Instance
 
     credentials = _make_credentials()
@@ -412,12 +412,12 @@ def test_cluster_create():
     import datetime
     from google.longrunning import operations_pb2
     from google.protobuf.any_pb2 import Any
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud._helpers import _datetime_to_pb_timestamp
     from google.cloud.bigtable.instance import Instance
-    from google.cloud.bigtable.admin_v2.types import instance as instance_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import instance as instance_v2_pb2
     from google.cloud.bigtable.enums import StorageType
 
     NOW = datetime.datetime.utcnow()
@@ -467,12 +467,12 @@ def test_cluster_create_w_cmek():
     import datetime
     from google.longrunning import operations_pb2
     from google.protobuf.any_pb2 import Any
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud._helpers import _datetime_to_pb_timestamp
     from google.cloud.bigtable.instance import Instance
-    from google.cloud.bigtable.admin_v2.types import instance as instance_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import instance as instance_v2_pb2
     from google.cloud.bigtable.enums import StorageType
 
     NOW = datetime.datetime.utcnow()
@@ -527,12 +527,12 @@ def test_cluster_create_w_autoscaling():
     import datetime
     from google.longrunning import operations_pb2
     from google.protobuf.any_pb2 import Any
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud._helpers import _datetime_to_pb_timestamp
     from google.cloud.bigtable.instance import Instance
-    from google.cloud.bigtable.admin_v2.types import instance as instance_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import instance as instance_v2_pb2
     from google.cloud.bigtable.enums import StorageType
 
     NOW = datetime.datetime.utcnow()
@@ -597,7 +597,7 @@ def test_cluster_update():
     from google.protobuf import field_mask_pb2
     from google.protobuf.any_pb2 import Any
     from google.cloud._helpers import _datetime_to_pb_timestamp
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud.bigtable.enums import StorageType
@@ -664,7 +664,7 @@ def test_cluster_update_w_autoscaling():
     from google.protobuf import field_mask_pb2
     from google.protobuf.any_pb2 import Any
     from google.cloud._helpers import _datetime_to_pb_timestamp
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud.bigtable.enums import StorageType
@@ -723,7 +723,7 @@ def test_cluster_update_w_partial_autoscaling_config():
     from google.protobuf import field_mask_pb2
     from google.protobuf.any_pb2 import Any
     from google.cloud._helpers import _datetime_to_pb_timestamp
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud.bigtable.enums import StorageType
@@ -807,7 +807,7 @@ def test_cluster_update_w_both_manual_and_autoscaling():
     from google.protobuf import field_mask_pb2
     from google.protobuf.any_pb2 import Any
     from google.cloud._helpers import _datetime_to_pb_timestamp
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud.bigtable.enums import StorageType
@@ -866,7 +866,7 @@ def test_cluster_disable_autoscaling():
     from google.longrunning import operations_pb2
     from google.protobuf import field_mask_pb2
     from google.protobuf.any_pb2 import Any
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud._helpers import _datetime_to_pb_timestamp

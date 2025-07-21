@@ -22,13 +22,13 @@ except ImportError:  # pragma: NO COVER
 from google.api_core import exceptions
 from google.api_core import gapic_v1
 from google.api_core import retry as retries
-from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import transports
-from google.cloud.bigtable.admin_v2.types import bigtable_table_admin
-from google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.client import (
+from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import transports
+from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
+from google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.client import (
     BigtableTableAdminClient,
     DEFAULT_CLIENT_INFO,
 )
-from google.cloud.bigtable.admin_v2.overlay.types import (
+from google.cloud.bigtable_admin_v2.overlay.types import (
     restore_table,
     wait_for_consistency_request,
 )

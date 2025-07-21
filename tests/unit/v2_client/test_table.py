@@ -345,7 +345,7 @@ def test_table___ne__():
 
 
 def _make_table_api():
-    from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import (
+    from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
         client as bigtable_table_admin,
     )
 
@@ -353,8 +353,8 @@ def _make_table_api():
 
 
 def _create_table_helper(split_keys=[], column_families={}):
-    from google.cloud.bigtable.admin_v2.types import table as table_pb2
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import table as table_pb2
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_table_admin as table_admin_messages_v2_pb2,
     )
     from google.cloud.bigtable.column_family import ColumnFamily
@@ -402,8 +402,8 @@ def test_table_create_with_split_keys():
 
 
 def test_table_exists_hit():
-    from google.cloud.bigtable.admin_v2.types import ListTablesResponse
-    from google.cloud.bigtable.admin_v2.types import Table
+    from google.cloud.bigtable_admin_v2.types import ListTablesResponse
+    from google.cloud.bigtable_admin_v2.types import Table
     from google.cloud.bigtable import enums
 
     credentials = _make_credentials()
@@ -1406,7 +1406,7 @@ def test_table_backup_factory_non_defaults():
 
 
 def _table_list_backups_helper(cluster_id=None, filter_=None, **kwargs):
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         Backup as backup_pb,
         bigtable_table_admin,
     )
@@ -2273,19 +2273,19 @@ def _ReadRowsResponseV2(chunks, last_scanned_row_key=b""):
 
 
 def _TablePB(*args, **kw):
-    from google.cloud.bigtable.admin_v2.types import table as table_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import table as table_v2_pb2
 
     return table_v2_pb2.Table(*args, **kw)
 
 
 def _ColumnFamilyPB(*args, **kw):
-    from google.cloud.bigtable.admin_v2.types import table as table_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import table as table_v2_pb2
 
     return table_v2_pb2.ColumnFamily(*args, **kw)
 
 
 def _ClusterStatePB(replication_state):
-    from google.cloud.bigtable.admin_v2.types import table as table_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import table as table_v2_pb2
 
     return table_v2_pb2.Table.ClusterState(replication_state=replication_state)
 
@@ -2293,7 +2293,7 @@ def _ClusterStatePB(replication_state):
 def _ClusterStateEncryptionInfoPB(
     encryption_type, encryption_status=None, kms_key_version=None
 ):
-    from google.cloud.bigtable.admin_v2.types import table as table_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import table as table_v2_pb2
 
     return table_v2_pb2.Table.ClusterState(
         encryption_info=(

@@ -333,11 +333,11 @@ def test_column_family_to_pb_with_rule():
 
 
 def _create_test_helper(gc_rule=None):
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_table_admin as table_admin_v2_pb2,
     )
     from ._testing import _FakeStub
-    from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import (
+    from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
         BaseBigtableTableAdminClient,
     )
 
@@ -405,10 +405,10 @@ def test_column_family_create_with_gc_rule():
 
 def _update_test_helper(gc_rule=None):
     from ._testing import _FakeStub
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_table_admin as table_admin_v2_pb2,
     )
-    from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import (
+    from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
         BaseBigtableTableAdminClient,
     )
 
@@ -475,11 +475,11 @@ def test_column_family_update_with_gc_rule():
 
 def test_column_family_delete():
     from google.protobuf import empty_pb2
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable_admin_v2.types import (
         bigtable_table_admin as table_admin_v2_pb2,
     )
     from ._testing import _FakeStub
-    from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import (
+    from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
         BaseBigtableTableAdminClient,
     )
 
@@ -615,25 +615,25 @@ def test__gc_rule_from_pb_unknown_field_name():
 
 
 def _GcRulePB(*args, **kw):
-    from google.cloud.bigtable.admin_v2.types import table as table_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import table as table_v2_pb2
 
     return table_v2_pb2.GcRule(*args, **kw)
 
 
 def _GcRuleIntersectionPB(*args, **kw):
-    from google.cloud.bigtable.admin_v2.types import table as table_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import table as table_v2_pb2
 
     return table_v2_pb2.GcRule.Intersection(*args, **kw)
 
 
 def _GcRuleUnionPB(*args, **kw):
-    from google.cloud.bigtable.admin_v2.types import table as table_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import table as table_v2_pb2
 
     return table_v2_pb2.GcRule.Union(*args, **kw)
 
 
 def _ColumnFamilyPB(*args, **kw):
-    from google.cloud.bigtable.admin_v2.types import table as table_v2_pb2
+    from google.cloud.bigtable_admin_v2.types import table as table_v2_pb2
 
     return table_v2_pb2.ColumnFamily(*args, **kw)
 

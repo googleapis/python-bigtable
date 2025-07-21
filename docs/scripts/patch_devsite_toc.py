@@ -252,15 +252,15 @@ if __name__ == "__main__":
         TocSection(dir_name="data_client", index_file_name="data_client_usage.rst"),
         UIDFilteredTocSection(
             toc_file_path=toc_path,
-            section_name="Bigtable",
+            section_name="Bigtable Admin V2",
             title="Admin Client",
-            uid_prefix="google.cloud.bigtable.admin_v2",
+            uid_prefix="google.cloud.bigtable_admin_v2",
         ),
         TocSection(dir_name="classic_client", index_file_name="usage.rst"),
     ]
     add_sections(toc_path, custom_sections)
     # Remove the Bigtable section, since it has duplicated data
-    remove_sections(toc_path, ["Bigtable"])
+    remove_sections(toc_path, ["Bigtable", "Bigtable Admin V2"])
     # run validation to make sure yaml is structured as we expect
     validate_toc(
         toc_file_path=toc_path,

@@ -47,9 +47,9 @@ from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.row_set import RowRange
 from google.cloud.bigtable import enums
 from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
-from google.cloud.bigtable.admin_v2 import BaseBigtableTableAdminClient
-from google.cloud.bigtable.admin_v2.types import table as admin_messages_v2_pb2
-from google.cloud.bigtable.admin_v2.types import (
+from google.cloud.bigtable_admin_v2 import BaseBigtableTableAdminClient
+from google.cloud.bigtable_admin_v2.types import table as admin_messages_v2_pb2
+from google.cloud.bigtable_admin_v2.types import (
     bigtable_table_admin as table_admin_messages_v2_pb2,
 )
 
