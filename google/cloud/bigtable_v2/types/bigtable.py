@@ -443,9 +443,9 @@ class MutateRowRequest(proto.Message):
             later ones. Must contain at least one entry and
             at most 100000.
         idempotency (google.cloud.bigtable_v2.types.Idempotency):
-            Optional parameter for ensuring a MutateRow
-            request is only applied once. Currently
-            applicable only for certain aggregate types.
+            If set consistently across retries, prevents
+            this mutation from being double applied to
+            aggregate column families within a 15m window.
     """
 
     table_name: str = proto.Field(
@@ -523,6 +523,10 @@ class MutateRowsRequest(proto.Message):
                 order, meaning that earlier mutations can be
                 masked by later ones. You must specify at least
                 one mutation.
+            idempotency (google.cloud.bigtable_v2.types.Idempotency):
+                If set consistently across retries, prevents
+                this mutation from being double applied to
+                aggregate column families within a 15m window.
         """
 
         row_key: bytes = proto.Field(
@@ -533,6 +537,11 @@ class MutateRowsRequest(proto.Message):
             proto.MESSAGE,
             number=2,
             message=data.Mutation,
+        )
+        idempotency: data.Idempotency = proto.Field(
+            proto.MESSAGE,
+            number=3,
+            message=data.Idempotency,
         )
 
     table_name: str = proto.Field(
