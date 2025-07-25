@@ -16,7 +16,7 @@ from __future__ import annotations
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
-
+from google.cloud.bigtable.data._metrics.interceptors import AsyncMetadataInterceptor
 
 class BigtableClientSideMetricsController:
     """
@@ -34,6 +34,7 @@ class BigtableClientSideMetricsController:
           - handlers: A list of MetricsHandler objects to subscribe to metrics events.
           - **kwargs: Optional arguments to pass to the metrics handlers.
         """
+        self.interceptor = AsyncMetadataInterceptor()
         self.handlers: list[MetricsHandler] = handlers or []
         if handlers is None:
             # handlers not given. Use default handlers.
@@ -57,4 +58,5 @@ class BigtableClientSideMetricsController:
         """
         handlers = self.handlers + kwargs.pop("handlers", [])
         new_op = ActiveOperationMetric(op_type, **kwargs, handlers=handlers)
+        self.interceptor.register_operation(new_op)
         return new_op

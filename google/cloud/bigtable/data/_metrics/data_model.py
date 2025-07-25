@@ -18,6 +18,7 @@ from typing import Callable, Any, Tuple, cast, TYPE_CHECKING
 import time
 import re
 import logging
+import uuid
 
 from enum import Enum
 from functools import lru_cache
@@ -46,6 +47,8 @@ SERVER_TIMING_METADATA_KEY = "server-timing"
 SERVER_TIMING_REGEX = re.compile(r".*gfet4t7;\s*dur=(\d+\.?\d*).*")
 
 INVALID_STATE_ERROR = "Invalid state for {}: {}"
+
+OPERATION_INTERCEPTOR_METADATA_KEY = 'x-goog-operation-key'
 
 
 class OperationType(Enum):
@@ -98,6 +101,7 @@ class CompletedOperationMetric:
     """
 
     op_type: OperationType
+    uuid: str
     duration_ns: int
     completed_attempts: list[CompletedAttemptMetric]
     final_status: StatusCode
@@ -139,6 +143,7 @@ class ActiveOperationMetric:
     """
 
     op_type: OperationType
+    uuid: str = str(uuid.uuid4())
     backoff_generator: BackoffGenerator | None = None
     # keep monotonic timestamps for active operations
     start_time_ns: int = field(default_factory=time.monotonic_ns)
@@ -151,6 +156,10 @@ class ActiveOperationMetric:
     handlers: list[MetricsHandler] = field(default_factory=list)
     # time waiting on flow control, in nanoseconds
     flow_throttling_time_ns: int = 0
+
+    @property
+    def interceptor_metadata(self) -> tuple[str, str]:
+        return OPERATION_INTERCEPTOR_METADATA_KEY, self.uuid
 
     @property
     def state(self) -> OperationState:
@@ -169,7 +178,7 @@ class ActiveOperationMetric:
         Optionally called to mark the start of the operation. If not called,
         the operation will be started at initialization.
 
-        Assunes operation is in CREATED state.
+        Assumes operation is in CREATED state.
         """
         if self.state != OperationState.CREATED:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
@@ -334,6 +343,7 @@ class ActiveOperationMetric:
         self.was_completed = True
         finalized = CompletedOperationMetric(
             op_type=self.op_type,
+            uuid=self.uuid,
             completed_attempts=self.completed_attempts,
             duration_ns=time.monotonic_ns() - self.start_time_ns,
             final_status=final_status,
@@ -421,7 +431,7 @@ class ActiveOperationMetric:
         is always closed when complete, with the proper status code automaticallty
         detected when an exception is raised.
         """
-        return self._AsyncContextManager(self)
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
@@ -434,62 +444,3 @@ class ActiveOperationMetric:
             self.end_with_success()
         else:
             self.end_with_status(exc_val)
-
-    class _AsyncContextManager:
-        """
-        Inner class for async context manager protocol
-
-        This class provides functions for wrapping unary gapic functions,
-        and automatically tracking the metrics associated with the call
-        """
-
-        def __init__(self, operation: ActiveOperationMetric):
-            self.operation = operation
-
-        def add_response_metadata(self, metadata):
-            """
-            Pass through trailing metadata to the wrapped operation
-            """
-            return self.operation.add_response_metadata(metadata)
-
-        def wrap_attempt_fn(
-            self,
-            fn: Callable[..., Any],
-            *,
-            extract_call_metadata: bool = True,
-        ) -> Callable[..., Any]:
-            """
-            Wraps a function call, tracing metadata along the way
-
-            Typically, the wrapped function will be a gapic rpc call
-
-            Args:
-              - fn: The function to wrap
-              - extract_call_metadata: If True, the call will be treated as a
-                  grpc function, and will automatically extract trailing_metadata
-                  from the Call object on success.
-            """
-
-            async def wrapped_fn(*args, **kwargs):
-                encountered_exc: Exception | None = None
-                call = None
-                self.operation.start_attempt()
-                try:
-                    call = fn(*args, **kwargs)
-                    return await call
-                except Exception as e:
-                    encountered_exc = e
-                    raise
-                finally:
-                    # capture trailing metadata
-                    if extract_call_metadata and call is not None:
-                        metadata = (
-                            await call.trailing_metadata()
-                            + await call.initial_metadata()
-                        )
-                        self.operation.add_response_metadata(metadata)
-                    if encountered_exc is not None:
-                        # end attempt. Let higher levels decide when to end operation
-                        self.operation.end_attempt_with_status(encountered_exc)
-
-            return wrapped_fn
