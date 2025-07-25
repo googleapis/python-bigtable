@@ -15,43 +15,36 @@
 import grpc
 import time
 from typing import Any, Callable
+from functools import wraps
 from google.cloud.bigtable.data._metrics.data_model import OPERATION_INTERCEPTOR_METADATA_KEY
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import OperationState
 
-# class MetadataInterceptor(grpc.UnaryUnaryClientInterceptor):
-#     """
-#     An interceptor to add client metadata and print metadata received from the server.
-#     """
-#     def intercept_unary_unary(
-#         self, continuation: Continuation, client_call_details: grpc.ClientCallDetails, request: Any
-#     ):
-#         """
-#         Intercepts a unary RPC to handle metadata.
-#         """
-#         print("--- Interceptor: Before RPC ---")
-#         print(f"Calling method: {client_call_details.method}")
 
-#         # Proceed with the RPC invocation
-#         response_future = continuation(client_call_details, request)
-
-#         # 2. REGISTER A CALLBACK TO READ METADATA FROM THE SERVER RESPONSE
-#         def log_server_metadata(future: grpc.Future):
-#             print("\n--- Interceptor: After RPC ---")
-#             # Read initial metadata (sent by the server before the response message)
-#             initial_md = future.initial_metadata()
-#             print(f"<- Received initial metadata from server: {initial_md}")
-
-#             # Read trailing metadata (sent by the server after the response message)
-#             trailing_md = future.trailing_metadata()
-#             print(f"<- Received trailing metadata from server: {trailing_md}")
-
-#         response_future.add_done_callback(log_server_metadata)
-
-#         return response_future
+def _with_operation_from_metadata(func):
+    """
+    Decorator for interceptor methods to extract the active operation
+    from metadata and pass it to the decorated function.
+    """
+    @wraps(func)
+    def wrapper(self, continuation, client_call_details, request):
+        key = next((m[1] for m in client_call_details.metadata if m[0] == OPERATION_INTERCEPTOR_METADATA_KEY), None)
+        operation: "ActiveOperationMetric" = self.operation_map.get(key)
+        if operation:
+            # start a new attempt if not started
+            if operation.state != OperationState.ACTIVE_ATTEMPT:
+                operation.start_attempt()
+            # wrap continuation in logic to process the operation
+            return func(self, operation, continuation, client_call_details, request)
+        else:
+            # if operation not found, return unwrapped continuation
+            return continuation(client_call_details, request)
+    return wrapper
 
 
-class AsyncMetadataInterceptor(grpc.aio.UnaryUnaryClientInterceptor, grpc.aio.UnaryStreamClientInterceptor):
+class BigtableMetricsMetadataInterceptor(
+    grpc.aio.UnaryUnaryClientInterceptor, grpc.aio.UnaryStreamClientInterceptor,
+):
     """
     An async gRPC interceptor to add client metadata and print server metadata.
     """
@@ -82,57 +75,29 @@ class AsyncMetadataInterceptor(grpc.aio.UnaryUnaryClientInterceptor, grpc.aio.Un
         pass
 
 
-    async def intercept_unary_unary(self, continuation, client_call_details, request):
-        """
-        Intercepts a unary RPC to handle metadata asynchronously.
-        """
-        print("--- Interceptor: Before RPC ---")
-        print(f"Calling method: {client_call_details.method}")
-
-        # somehow get a reference to the operation
-        key = next((m[1] for m in client_call_details.metadata if m[0] == OPERATION_INTERCEPTOR_METADATA_KEY), None)
-        # update metadata
-        # client_call_details.metadata = [m for m in client_call_details.metadata if m[0] != OPERATION_INTERCEPTOR_METADATA_KEY]
-        operation: "ActiveOperationMetric" = self.operation_map.get(key)
-        if operation:
-            # start a new attempt if not started
-            if operation.state != OperationState.ACTIVE_ATTEMPT:
-                operation.start_attempt()
+    @_with_operation_from_metadata
+    async def intercept_unary_unary(self, operation, continuation, client_call_details, request):
         encountered_exc: Exception | None = None
         call = None
         try:
             call = await continuation(client_call_details, request)
-            print("\n--- Interceptor: After RPC ---")
             return call
         except Exception as e:
             encountered_exc = e
             raise
         finally:
-            if call is not None and operation:
+            if call is not None:
                 metadata = (
                     await call.trailing_metadata()
                     + await call.initial_metadata()
                 )
-                print(f"<- Received metadata: {metadata}")
                 operation.add_response_metadata(metadata)
                 if encountered_exc is not None:
                     # end attempt. If it succeeded, let higher levels decide when to end operation
                     operation.end_attempt_with_status(encountered_exc)
 
-    async def intercept_unary_stream(self, continuation, client_call_details, request):
-        print("--- Interceptor: Before RPC ---")
-        print(f"Calling method: {client_call_details.method}")
-
-        # somehow get a reference to the operation
-        key = next((m[1] for m in client_call_details.metadata if m[0] == OPERATION_INTERCEPTOR_METADATA_KEY), None)
-        # update metadata
-        # client_call_details.metadata = [m for m in client_call_details.metadata if m[0] != OPERATION_INTERCEPTOR_METADATA_KEY]
-        operation: "ActiveOperationMetric" = self.operation_map.get(key)
-        if operation:            
-            # start a new attempt if not started
-            if operation.state != OperationState.ACTIVE_ATTEMPT:
-                operation.start_attempt()
-
+    @_with_operation_from_metadata
+    async def intercept_unary_stream(self, operation, continuation, client_call_details, request):
         async def response_wrapper(call):
             encountered_exc = None
             try:
@@ -143,14 +108,13 @@ class AsyncMetadataInterceptor(grpc.aio.UnaryUnaryClientInterceptor, grpc.aio.Un
                 encountered_exc = e
                 raise
             finally:
-                if operation:
-                    metadata = (
-                        await call.trailing_metadata()
-                        + await call.initial_metadata()
-                    )
-                    operation.add_response_metadata(metadata)
-                    if encountered_exc is not None:
-                        # end attempt. If it succeeded, let higher levels decide when to end operation
-                        operation.end_attempt_with_status(encountered_exc)
+                metadata = (
+                    await call.trailing_metadata()
+                    + await call.initial_metadata()
+                )
+                operation.add_response_metadata(metadata)
+                if encountered_exc is not None:
+                    # end attempt. If it succeeded, let higher levels decide when to end operation
+                    operation.end_attempt_with_status(encountered_exc)
 
         return response_wrapper(await continuation(client_call_details, request))
