@@ -94,12 +94,14 @@ if CrossSync.is_async:
         BigtableGrpcAsyncIOTransport as TransportType,
     )
     from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
+    from google.cloud.bigtable.data._async.metrics_interceptor import AsyncBigtableMetricsInterceptor as MetricInterceptorType
 else:
     from typing import Iterable  # noqa: F401
     from grpc import insecure_channel
     from grpc import intercept_channel
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
+    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import BigtableMetricsInterceptor as MetricInterceptorType
 
 
 if TYPE_CHECKING:
@@ -224,6 +226,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._executor = (
             concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
         )
+        self._interceptor = MetricInterceptorType()
         if self._emulator_host is None:
             # attempt to start background channel refresh tasks
             try:
@@ -378,6 +381,7 @@ class BigtableDataClientAsync(ClientWithProject):
             start_timestamp = time.monotonic()
             # prepare new channel for use
             # TODO: refactor to avoid using internal references: https://github.com/googleapis/python-bigtable/issues/1094
+            # TODO: handle metric interceptors here
             old_channel = self.transport.grpc_channel
             new_channel = self.transport.create_channel()
             if CrossSync.is_async:
@@ -876,11 +880,23 @@ class _DataApiTargetAsync(abc.ABC):
         self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
 
         self._metrics = BigtableClientSideMetricsController(
+            client._interceptor,
             project_id=self.client.project,
             instance_id=instance_id,
             table_id=table_id,
             app_profile_id=app_profile_id,
         )
+        if CrossSync.is_async:
+            client.transport.grpc_channel._unary_unary_interceptors.append(
+                self._metrics.interceptor
+            )
+            client.transport.grpc_channel._unary_stream_interceptors.append(
+                self._metrics.interceptor
+            )
+        else:
+            client.transport.grpc_channel = intercept_channel(
+                self._metrics.interceptor, client.transport.grpc_channel
+            )
 
         self.default_read_rows_retryable_errors = (
             default_read_rows_retryable_errors or ()

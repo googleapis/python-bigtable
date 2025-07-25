@@ -72,6 +72,7 @@ from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
+from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from typing import Iterable
 from grpc import insecure_channel
@@ -80,6 +81,9 @@ from google.cloud.bigtable_v2.services.bigtable.transports import (
     BigtableGrpcTransport as TransportType,
 )
 from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
+from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
+    BigtableMetricsInterceptor as MetricInterceptorType,
+)
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -169,6 +173,7 @@ class BigtableDataClient(ClientWithProject):
             if not CrossSync._Sync_Impl.is_async
             else None
         )
+        self._interceptor = MetricInterceptorType()
         if self._emulator_host is None:
             try:
                 self._start_background_channel_refresh()
@@ -679,6 +684,16 @@ class _DataApiTarget(abc.ABC):
             default_mutate_rows_operation_timeout
         )
         self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
+        self._metrics = BigtableClientSideMetricsController(
+            client._interceptor,
+            project_id=self.client.project,
+            instance_id=instance_id,
+            table_id=table_id,
+            app_profile_id=app_profile_id,
+        )
+        client.transport.grpc_channel = intercept_channel(
+            self._metrics.interceptor, client.transport.grpc_channel
+        )
         self.default_read_rows_retryable_errors = (
             default_read_rows_retryable_errors or ()
         )

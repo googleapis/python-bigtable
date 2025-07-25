@@ -13,10 +13,15 @@
 # limitations under the License.
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
-from google.cloud.bigtable.data._metrics.interceptors import BigtableMetricsMetadataInterceptor
+
+if TYPE_CHECKING:
+  from google.cloud.bigtable.data._async.metrics_interceptor import AsyncBigtableMetricsInterceptor
+  from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import BigtableMetricsInterceptor
 
 class BigtableClientSideMetricsController:
     """
@@ -26,15 +31,20 @@ class BigtableClientSideMetricsController:
     registered with the handlers associated with this controller.
     """
 
-    def __init__(self, handlers: list[MetricsHandler] | None = None, **kwargs):
+    def __init__(self, 
+        interceptor: AsyncBigtableMetricsInterceptor | BigtableMetricsInterceptor, 
+        handlers: list[MetricsHandler] | None = None,
+        **kwargs
+    ):
         """
         Initializes the metrics controller.
 
         Args:
+          - interceptor: A metrics interceptor to use for triggering Operation lifecycle events
           - handlers: A list of MetricsHandler objects to subscribe to metrics events.
           - **kwargs: Optional arguments to pass to the metrics handlers.
         """
-        self.interceptor = BigtableMetricsMetadataInterceptor()
+        self.interceptor = interceptor
         self.handlers: list[MetricsHandler] = handlers or []
         if handlers is None:
             # handlers not given. Use default handlers.
