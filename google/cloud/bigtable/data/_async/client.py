@@ -92,7 +92,11 @@ if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.transports import (
         BigtableGrpcAsyncIOTransport as TransportType,
     )
+    from google.cloud.bigtable_v2.services.bigtable.transports.grpc_asyncio import (
+        _LoggingClientAIOInterceptor
+    )
     from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
+    from google.cloud.bigtable.data._async.replaceable_channel import _AsyncReplaceableChannel
 else:
     from typing import Iterable  # noqa: F401
     from grpc import insecure_channel
@@ -182,7 +186,6 @@ class BigtableDataClientAsync(ClientWithProject):
         client_options = cast(
             Optional[client_options_lib.ClientOptions], client_options
         )
-        custom_channel = None
         self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
         if self._emulator_host is not None:
             warnings.warn(
@@ -191,11 +194,11 @@ class BigtableDataClientAsync(ClientWithProject):
                 stacklevel=2,
             )
             # use insecure channel if emulator is set
-            custom_channel = insecure_channel(self._emulator_host)
             if credentials is None:
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
+
         # initialize client
         ClientWithProject.__init__(
             self,
@@ -208,7 +211,7 @@ class BigtableDataClientAsync(ClientWithProject):
             client_options=client_options,
             client_info=self.client_info,
             transport=lambda *args, **kwargs: TransportType(
-                *args, **kwargs, channel=custom_channel
+                *args, **kwargs, channel=self._build_grpc_channel
             ),
         )
         self._is_closed = CrossSync.Event()
@@ -234,6 +237,23 @@ class BigtableDataClientAsync(ClientWithProject):
                     RuntimeWarning,
                     stacklevel=2,
                 )
+
+    def _build_grpc_channel(self, *args, **kwargs):
+        if self._emulator_host is not None:
+            # emulators use insecure channel
+            return insecure_channel(self._emulator_host)
+        create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
+        # interceptors are handled differently between async and sync, because of differences in the grpc and gapic layers
+        if CrossSync.is_async:
+            # for async, add interceptors to the creation function
+            create_channel_fn = partial(create_channel_fn, interceptors=[_LoggingClientAIOInterceptor()])
+            return _AsyncReplaceableChannel(create_channel_fn)
+        else:
+            # for sync, chain interceptors using grpc.channel.intercept
+            # LoggingClientInterceptor not needed, since it is chained in the gapic layer
+            return TransportType.create_channel(*args, **kwargs)
+
+
 
     @staticmethod
     def _client_version() -> str:
@@ -376,32 +396,11 @@ class BigtableDataClientAsync(ClientWithProject):
                 break
             start_timestamp = time.monotonic()
             # prepare new channel for use
-            # TODO: refactor to avoid using internal references: https://github.com/googleapis/python-bigtable/issues/1094
-            old_channel = self.transport.grpc_channel
-            new_channel = self.transport.create_channel()
-            if CrossSync.is_async:
-                new_channel._unary_unary_interceptors.append(
-                    self.transport._interceptor
-                )
-            else:
-                new_channel = intercept_channel(
-                    new_channel, self.transport._interceptor
-                )
+            new_channel = self.transport.grpc_channel.create_channel()
             await self._ping_and_warm_instances(channel=new_channel)
             # cycle channel out of use, with long grace window before closure
-            self.transport._grpc_channel = new_channel
-            self.transport._logged_channel = new_channel
-            # invalidate caches
-            self.transport._stubs = {}
-            self.transport._prep_wrapped_messages(self.client_info)
-            # give old_channel a chance to complete existing rpcs
-            if CrossSync.is_async:
-                await old_channel.close(grace_period)
-            else:
-                if grace_period:
-                    self._is_closed.wait(grace_period)  # type: ignore
-                old_channel.close()  # type: ignore
-            # subtract thed time spent waiting for the channel to be replaced
+            await self.transport.grpc_channel.replace_channel(new_channel, grace_period)
+            # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
 
