@@ -252,13 +252,14 @@ class TestSystemAsync:
             await CrossSync.yield_to_event_loop()
             async with client.get_table(instance_id, table_id) as table:
                 rows = await table.read_rows({})
-                first_channel = client.transport.grpc_channel
+                channel_wrapper = client.transport.grpc_channel
+                first_channel = client.transport.grpc_channel._channel
                 assert len(rows) == 2
                 await CrossSync.sleep(2)
                 rows_after_refresh = await table.read_rows({})
                 assert len(rows_after_refresh) == 2
-                assert client.transport.grpc_channel is not first_channel
-                print(table)
+                assert client.transport.grpc_channel is channel_wrapper
+                assert client.transport.grpc_channel._channel is not first_channel
         finally:
             await client.close()
 

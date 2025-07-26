@@ -238,19 +238,15 @@ class BigtableDataClientAsync(ClientWithProject):
                     stacklevel=2,
                 )
 
-    def _build_grpc_channel(self, *args, **kwargs):
+    def _build_grpc_channel(self, *args, **kwargs) -> _AsyncReplaceableChannel:
         if self._emulator_host is not None:
             # emulators use insecure channel
-            return insecure_channel(self._emulator_host)
-        create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
-        # interceptors are handled differently between async and sync, because of differences in the grpc and gapic layers
+            create_channel_fn = partial(insecure_channel, self._emulator_host)
+        else:
+            create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
         if CrossSync.is_async:
-            # for async, add interceptors to the creation function
-            create_channel_fn = partial(create_channel_fn, interceptors=[_LoggingClientAIOInterceptor()])
             return _AsyncReplaceableChannel(create_channel_fn)
         else:
-            # for sync, chain interceptors using grpc.channel.intercept
-            # LoggingClientInterceptor not needed, since it is chained in the gapic layer
             return TransportType.create_channel(*args, **kwargs)
 
 
@@ -377,13 +373,18 @@ class BigtableDataClientAsync(ClientWithProject):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
+        channel = self.transport.grpc_channel
+        if not isinstance(self.transport.grpc_channel, _AsyncReplaceableChannel):
+            warnings.warn("Channel does not support auto-refresh.")
+            return
+        channel: _AsyncReplaceableChannel = self.transport.grpc_channel
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
         next_sleep = max(first_refresh - time.monotonic(), 0)
         if next_sleep > 0:
             # warm the current channel immediately
-            await self._ping_and_warm_instances(channel=self.transport.grpc_channel)
+            await self._ping_and_warm_instances(channel=channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while not self._is_closed.is_set():
             await CrossSync.event_wait(
@@ -396,10 +397,10 @@ class BigtableDataClientAsync(ClientWithProject):
                 break
             start_timestamp = time.monotonic()
             # prepare new channel for use
-            new_channel = self.transport.grpc_channel.create_channel()
-            await self._ping_and_warm_instances(channel=new_channel)
+            new_sub_channel = channel.create_channel()
+            await self._ping_and_warm_instances(channel=new_sub_channel)
             # cycle channel out of use, with long grace window before closure
-            await self.transport.grpc_channel.replace_channel(new_channel, grace_period)
+            await channel.replace_wrapped_channel(new_sub_channel, grace_period)
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)

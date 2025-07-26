@@ -62,15 +62,19 @@ class _AsyncReplaceableChannel(aio.Channel):
     async def wait_for_state_change(self, last_observed_state):
         return await self._channel.wait_for_state_change(last_observed_state)
 
-    @property
-    def wrapped_channel(self):
-        return self._channel
-
     def create_channel(self) -> aio.Channel:
         return self._channel_fn()
 
-    async def replace_channel(self, new_channel: aio.Channel, grace_period: float | None) -> aio.Channel:
+    async def replace_wrapped_channel(self, new_channel: aio.Channel, grace_period: float | None, copy_async_interceptors: bool=True) -> aio.Channel:
         old_channel = self._channel
+        if CrossSync.is_async and copy_async_interceptors:
+            # copy over interceptors
+            # this is needed because of how gapic attaches the LoggingClientAIOInterceptor
+            # sync channels add interceptors by wrapping, so this step isn't needed
+            new_channel._unary_unary_interceptors = old_channel._unary_unary_interceptors
+            new_channel._unary_stream_interceptors = old_channel._unary_stream_interceptors
+            new_channel._stream_unary_interceptors = old_channel._stream_unary_interceptors
+            new_channel._stream_stream_interceptors = old_channel._stream_stream_interceptors
         self._channel = new_channel
         # give old_channel a chance to complete existing rpcs
         if CrossSync.is_async:
@@ -81,7 +85,5 @@ class _AsyncReplaceableChannel(aio.Channel):
             old_channel.close()  # type: ignore
         return old_channel
 
-    @property
-    def _unary_unary_interceptors(self):
-        # return empty list for compatibility with gapic layer
-        return []
+    def __getattr__(self, name):
+        return getattr(self._channel, name)
