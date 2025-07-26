@@ -401,6 +401,9 @@ class BigtableDataClientAsync(ClientWithProject):
             await self._ping_and_warm_instances(channel=new_sub_channel)
             # cycle channel out of use, with long grace window before closure
             await channel.replace_wrapped_channel(new_sub_channel, grace_period)
+            # invalidate caches
+            self.transport._stubs = {}
+            self.transport._prep_wrapped_messages(self.client_info)
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
