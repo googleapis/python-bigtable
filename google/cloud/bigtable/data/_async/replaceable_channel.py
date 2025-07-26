@@ -21,27 +21,80 @@ from grpc.experimental import aio  # type: ignore
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
-class _AsyncReplaceableChannel(aio.Channel):
+class _WrappedMultiCallable:
+    """
+    Wrapper class that implements the grpc MultiCallable interface.
+    Allows generic functions that return calls to pass checks for
+    MultiCallable objects.
+    """
+
+    def __init__(self, call_factory: Callable[..., aio.Call]):
+        self._call_factory = call_factory
+
+    def __call__(self, *args, **kwargs) -> aio.Call:
+        return self._call_factory(*args, **kwargs)
+
+
+class WrappedUnaryUnaryMultiCallable(
+    _WrappedMultiCallable, aio.UnaryUnaryMultiCallable
+):
+    pass
+
+
+class WrappedUnaryStreamMultiCallable(
+    _WrappedMultiCallable, aio.UnaryStreamMultiCallable
+):
+    pass
+
+
+class WrappedStreamUnaryMultiCallable(
+    _WrappedMultiCallable, aio.StreamUnaryMultiCallable
+):
+    pass
+
+
+class WrappedStreamStreamMultiCallable(
+    _WrappedMultiCallable, aio.StreamStreamMultiCallable
+):
+    pass
+
+
+class _AsyncWrappedChannel(aio.Channel):
     """
     A wrapper around a gRPC channel. All methods are passed
     through to the underlying channel.
     """
 
-    def __init__(self, channel_fn: Callable[[], aio.Channel]):
-        self._channel_fn = channel_fn
-        self._channel = channel_fn()
+    def __init__(self, channel: aio.Channel):
+        self._channel = channel
 
-    def unary_unary(self, *args, **kwargs):
-        return self._channel.unary_unary(*args, **kwargs)
+    def unary_unary(self, *args, **kwargs) -> grpc.aio.UnaryUnaryMultiCallable:
+        return WrappedUnaryUnaryMultiCallable(
+            lambda *call_args, **call_kwargs: self._channel.unary_unary(
+                *args, **kwargs
+            )(*call_args, **call_kwargs)
+        )
 
-    def unary_stream(self, *args, **kwargs):
-        return self._channel.unary_stream(*args, **kwargs)
+    def unary_stream(self, *args, **kwargs) -> grpc.aio.UnaryStreamMultiCallable:
+        return WrappedUnaryStreamMultiCallable(
+            lambda *call_args, **call_kwargs: self._channel.unary_stream(
+                *args, **kwargs
+            )(*call_args, **call_kwargs)
+        )
 
-    def stream_unary(self, *args, **kwargs):
-        return self._channel.stream_unary(*args, **kwargs)
+    def stream_unary(self, *args, **kwargs) -> grpc.aio.StreamUnaryMultiCallable:
+        return WrappedStreamUnaryMultiCallable(
+            lambda *call_args, **call_kwargs: self._channel.stream_unary(
+                *args, **kwargs
+            )(*call_args, **call_kwargs)
+        )
 
-    def stream_stream(self, *args, **kwargs):
-        return self._channel.stream_stream(*args, **kwargs)
+    def stream_stream(self, *args, **kwargs) -> grpc.aio.StreamStreamMultiCallable:
+        return WrappedStreamStreamMultiCallable(
+            lambda *call_args, **call_kwargs: self._channel.stream_stream(
+                *args, **kwargs
+            )(*call_args, **call_kwargs)
+        )
 
     async def close(self, grace=None):
         return await self._channel.close(grace=grace)
@@ -61,6 +114,16 @@ class _AsyncReplaceableChannel(aio.Channel):
 
     async def wait_for_state_change(self, last_observed_state):
         return await self._channel.wait_for_state_change(last_observed_state)
+
+    def __getattr__(self, name):
+        return getattr(self._channel, name)
+
+
+class _AsyncReplaceableChannel(_AsyncWrappedChannel):
+
+    def __init__(self, channel_fn: Callable[[], aio.Channel]):
+        self._channel_fn = channel_fn
+        self._channel = channel_fn()
 
     def create_channel(self) -> aio.Channel:
         return self._channel_fn()
@@ -84,6 +147,3 @@ class _AsyncReplaceableChannel(aio.Channel):
                 self._is_closed.wait(grace_period)  # type: ignore
             old_channel.close()  # type: ignore
         return old_channel
-
-    def __getattr__(self, name):
-        return getattr(self._channel, name)
