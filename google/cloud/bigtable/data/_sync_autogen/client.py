@@ -179,6 +179,18 @@ class BigtableDataClient(ClientWithProject):
                 )
 
     def _build_grpc_channel(self, *args, **kwargs) -> SwappableChannel:
+        """This method is called by the gapic transport to create a grpc channel.
+
+        The init arguments passed down are captured in a partial used by SwappableChannel
+        to create new channel instances in the future, as part of the channel refresh logic
+
+        Emulators always use an inseucre channel
+
+        Args:
+          - *args: positional arguments passed by the gapic layer to create a new channel with
+          - **kwargs: keyword arguments passed by the gapic layer to create a new channel with
+        Returns:
+          a custom wrapped swappable channel"""
         if self._emulator_host is not None:
             create_channel_fn = partial(insecure_channel, self._emulator_host)
         else:

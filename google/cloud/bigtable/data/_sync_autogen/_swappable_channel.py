@@ -72,15 +72,25 @@ class _WrappedChannel(Channel):
 
 
 class SwappableChannel(_WrappedChannel):
+    """
+    Provides a grpc channel wrapper, that allows the internal channel to be swapped out
+
+    Args:
+      - channel_fn: a nullary function that returns a new channel instance.
+            It should be a partial with all channel configuration arguments built-in
+    """
+
     def __init__(self, channel_fn: Callable[[], Channel]):
         self._channel_fn = channel_fn
         self._channel = channel_fn()
 
     def create_channel(self) -> Channel:
+        """Create a fresh channel using the stored `channel_fn` partial"""
         new_channel = self._channel_fn()
         return new_channel
 
     def swap_channel(self, new_channel: Channel) -> Channel:
+        """Replace the wrapped channel with a new instance. Typically created using `create_channel`"""
         old_channel = self._channel
         self._channel = new_channel
         return old_channel
