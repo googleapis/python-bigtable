@@ -45,8 +45,12 @@ from tests.unit.data.execute_query.sql_helpers import (
     str_val,
 )
 from google.api_core import grpc_helpers
+from google.cloud.bigtable.data._sync_autogen._replaceable_channel import (
+    _ReplaceableChannel,
+)
 
 CrossSync._Sync_Impl.add_mapping("grpc_helpers", grpc_helpers)
+CrossSync._Sync_Impl.add_mapping("ReplaceableChannel", _ReplaceableChannel)
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TestBigtableDataClient")
@@ -176,11 +180,14 @@ class TestBigtableDataClient:
         client.close()
 
     def test__start_background_channel_refresh(self):
-        client = self._make_client(project="project-id", use_emulator=False)
+        client = self._make_client(project="project-id")
         with mock.patch.object(
             client, "_ping_and_warm_instances", CrossSync._Sync_Impl.Mock()
         ) as ping_and_warm:
             client._emulator_host = None
+            client.transport._grpc_channel = CrossSync._Sync_Impl.ReplaceableChannel(
+                mock.Mock
+            )
             client._start_background_channel_refresh()
             assert client._channel_refresh_task is not None
             assert isinstance(client._channel_refresh_task, CrossSync._Sync_Impl.Task)
@@ -282,7 +289,7 @@ class TestBigtableDataClient:
             with mock.patch.object(CrossSync._Sync_Impl, "event_wait") as sleep:
                 sleep.side_effect = asyncio.CancelledError
                 try:
-                    client = self._make_client(project="project-id", use_emulator=False)
+                    client = self._make_client(project="project-id")
                     client._channel_init_time = -wait_time
                     client._manage_channel(refresh_interval, refresh_interval)
                 except asyncio.CancelledError:
@@ -364,7 +371,7 @@ class TestBigtableDataClient:
                 uniform.return_value = 0
                 try:
                     uniform.side_effect = asyncio.CancelledError
-                    client = self._make_client(project="project-id", use_emulator=False)
+                    client = self._make_client(project="project-id")
                 except asyncio.CancelledError:
                     uniform.side_effect = None
                     uniform.reset_mock()
@@ -389,25 +396,28 @@ class TestBigtableDataClient:
         expected_refresh = 0.5
         grpc_lib = grpc.aio if CrossSync._Sync_Impl.is_async else grpc
         new_channel = grpc_lib.insecure_channel("localhost:8080")
+        create_channel_mock = mock.Mock()
+        create_channel_mock.return_value = new_channel
+        refreshable_channel = CrossSync._Sync_Impl.ReplaceableChannel(
+            create_channel_mock
+        )
         with mock.patch.object(CrossSync._Sync_Impl, "event_wait") as sleep:
             sleep.side_effect = [None for i in range(num_cycles)] + [RuntimeError]
-            with mock.patch.object(
-                CrossSync._Sync_Impl.grpc_helpers, "create_channel"
-            ) as create_channel:
-                create_channel.return_value = new_channel
-                client = self._make_client(project="project-id", use_emulator=False)
-                create_channel.reset_mock()
-                try:
-                    client._manage_channel(
-                        refresh_interval_min=expected_refresh,
-                        refresh_interval_max=expected_refresh,
-                        grace_period=0,
-                    )
-                except RuntimeError:
-                    pass
-                assert sleep.call_count == num_cycles + 1
-                assert create_channel.call_count == num_cycles
-            client.close()
+            client = self._make_client(project="project-id")
+            client.transport._grpc_channel = refreshable_channel
+            create_channel_mock.reset_mock()
+            sleep.reset_mock()
+            try:
+                client._manage_channel(
+                    refresh_interval_min=expected_refresh,
+                    refresh_interval_max=expected_refresh,
+                    grace_period=0,
+                )
+            except RuntimeError:
+                pass
+            assert sleep.call_count == num_cycles + 1
+            assert create_channel_mock.call_count == num_cycles
+        client.close()
 
     def test__register_instance(self):
         """test instance registration"""

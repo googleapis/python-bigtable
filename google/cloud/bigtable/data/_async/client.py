@@ -404,7 +404,7 @@ class BigtableDataClientAsync(ClientWithProject):
             else:
                 if grace_period:
                     self._is_closed.wait(grace_period)  # type: ignore
-            old_channel.close()  # type: ignore
+                old_channel.close()  # type: ignore
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
