@@ -16,11 +16,28 @@ from __future__ import annotations
 
 from typing import Callable
 
-import grpc  # type: ignore
-from grpc.experimental import aio  # type: ignore
-
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
+from grpc import ChannelConnectivity
+
+if CrossSync.is_async:
+    from grpc.aio import Call
+    from grpc.aio import Channel
+    from grpc.aio import UnaryUnaryMultiCallable
+    from grpc.aio import UnaryStreamMultiCallable
+    from grpc.aio import StreamUnaryMultiCallable
+    from grpc.aio import StreamStreamMultiCallable
+else:
+    from grpc import Call
+    from grpc import Channel
+    from grpc import UnaryUnaryMultiCallable
+    from grpc import UnaryStreamMultiCallable
+    from grpc import StreamUnaryMultiCallable
+    from grpc import StreamStreamMultiCallable
+
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._replaceable_channel"
+
+@CrossSync.convert_class
 class _WrappedMultiCallable:
     """
     Wrapper class that implements the grpc MultiCallable interface.
@@ -28,68 +45,69 @@ class _WrappedMultiCallable:
     MultiCallable objects.
     """
 
-    def __init__(self, call_factory: Callable[..., aio.Call]):
+    def __init__(self, call_factory: Callable[..., Call]):
         self._call_factory = call_factory
 
-    def __call__(self, *args, **kwargs) -> aio.Call:
+    def __call__(self, *args, **kwargs) -> Call:
         return self._call_factory(*args, **kwargs)
 
 
 class WrappedUnaryUnaryMultiCallable(
-    _WrappedMultiCallable, aio.UnaryUnaryMultiCallable
+    _WrappedMultiCallable, UnaryUnaryMultiCallable
 ):
     pass
 
 
 class WrappedUnaryStreamMultiCallable(
-    _WrappedMultiCallable, aio.UnaryStreamMultiCallable
+    _WrappedMultiCallable, UnaryStreamMultiCallable
 ):
     pass
 
 
 class WrappedStreamUnaryMultiCallable(
-    _WrappedMultiCallable, aio.StreamUnaryMultiCallable
+    _WrappedMultiCallable, StreamUnaryMultiCallable
 ):
     pass
 
 
 class WrappedStreamStreamMultiCallable(
-    _WrappedMultiCallable, aio.StreamStreamMultiCallable
+    _WrappedMultiCallable, StreamStreamMultiCallable
 ):
     pass
 
 
-class _AsyncWrappedChannel(aio.Channel):
+@CrossSync.convert_class(sync_name="_WrappedChannel", rm_aio=True)
+class _AsyncWrappedChannel(Channel):
     """
     A wrapper around a gRPC channel. All methods are passed
     through to the underlying channel.
     """
 
-    def __init__(self, channel: aio.Channel):
+    def __init__(self, channel: Channel):
         self._channel = channel
 
-    def unary_unary(self, *args, **kwargs) -> grpc.aio.UnaryUnaryMultiCallable:
+    def unary_unary(self, *args, **kwargs) -> UnaryUnaryMultiCallable:
         return WrappedUnaryUnaryMultiCallable(
             lambda *call_args, **call_kwargs: self._channel.unary_unary(
                 *args, **kwargs
             )(*call_args, **call_kwargs)
         )
 
-    def unary_stream(self, *args, **kwargs) -> grpc.aio.UnaryStreamMultiCallable:
+    def unary_stream(self, *args, **kwargs) -> UnaryStreamMultiCallable:
         return WrappedUnaryStreamMultiCallable(
             lambda *call_args, **call_kwargs: self._channel.unary_stream(
                 *args, **kwargs
             )(*call_args, **call_kwargs)
         )
 
-    def stream_unary(self, *args, **kwargs) -> grpc.aio.StreamUnaryMultiCallable:
+    def stream_unary(self, *args, **kwargs) -> StreamUnaryMultiCallable:
         return WrappedStreamUnaryMultiCallable(
             lambda *call_args, **call_kwargs: self._channel.stream_unary(
                 *args, **kwargs
             )(*call_args, **call_kwargs)
         )
 
-    def stream_stream(self, *args, **kwargs) -> grpc.aio.StreamStreamMultiCallable:
+    def stream_stream(self, *args, **kwargs) -> StreamStreamMultiCallable:
         return WrappedStreamStreamMultiCallable(
             lambda *call_args, **call_kwargs: self._channel.stream_stream(
                 *args, **kwargs
@@ -102,14 +120,16 @@ class _AsyncWrappedChannel(aio.Channel):
     async def channel_ready(self):
         return await self._channel.channel_ready()
 
+    @CrossSync.convert(sync_name="__enter__", replace_symbols={"__aenter__": "__enter__"})
     async def __aenter__(self):
         await self._channel.__aenter__()
         return self
 
+    @CrossSync.convert(sync_name="__exit__", replace_symbols={"__aexit__": "__exit__"})
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         return await self._channel.__aexit__(exc_type, exc_val, exc_tb)
 
-    def get_state(self, try_to_connect: bool = False) -> grpc.ChannelConnectivity:
+    def get_state(self, try_to_connect: bool = False) -> ChannelConnectivity:
         return self._channel.get_state(try_to_connect=try_to_connect)
 
     async def wait_for_state_change(self, last_observed_state):
@@ -118,32 +138,26 @@ class _AsyncWrappedChannel(aio.Channel):
     def __getattr__(self, name):
         return getattr(self._channel, name)
 
-
+@CrossSync.convert_class(sync_name="_ReplaceableChannel", replace_symbols={"_AsyncWrappedChannel": "_WrappedChannel"})
 class _AsyncReplaceableChannel(_AsyncWrappedChannel):
 
-    def __init__(self, channel_fn: Callable[[], aio.Channel]):
+    def __init__(self, channel_fn: Callable[[], Channel]):
         self._channel_fn = channel_fn
         self._channel = channel_fn()
 
-    def create_channel(self) -> aio.Channel:
-        return self._channel_fn()
-
-    async def replace_wrapped_channel(self, new_channel: aio.Channel, grace_period: float | None, copy_async_interceptors: bool=True) -> aio.Channel:
-        old_channel = self._channel
-        if CrossSync.is_async and copy_async_interceptors:
+    def create_channel(self) -> Channel:
+        new_channel = self._channel_fn()
+        if CrossSync.is_async:
             # copy over interceptors
             # this is needed because of how gapic attaches the LoggingClientAIOInterceptor
             # sync channels add interceptors by wrapping, so this step isn't needed
-            new_channel._unary_unary_interceptors = old_channel._unary_unary_interceptors
-            new_channel._unary_stream_interceptors = old_channel._unary_stream_interceptors
-            new_channel._stream_unary_interceptors = old_channel._stream_unary_interceptors
-            new_channel._stream_stream_interceptors = old_channel._stream_stream_interceptors
+            new_channel._unary_unary_interceptors = self._channel._unary_unary_interceptors
+            new_channel._unary_stream_interceptors = self._channel._unary_stream_interceptors
+            new_channel._stream_unary_interceptors = self._channel._stream_unary_interceptors
+            new_channel._stream_stream_interceptors = self._channel._stream_stream_interceptors
+        return new_channel
+
+    def replace_wrapped_channel(self, new_channel: Channel) -> Channel:
+        old_channel = self._channel
         self._channel = new_channel
-        # give old_channel a chance to complete existing rpcs
-        if CrossSync.is_async:
-            await old_channel.close(grace_period)
-        else:
-            if grace_period:
-                self._is_closed.wait(grace_period)  # type: ignore
-            old_channel.close()  # type: ignore
         return old_channel

@@ -96,13 +96,14 @@ if CrossSync.is_async:
         _LoggingClientAIOInterceptor
     )
     from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
-    from google.cloud.bigtable.data._async.replaceable_channel import _AsyncReplaceableChannel
+    from google.cloud.bigtable.data._async._replaceable_channel import _AsyncReplaceableChannel
 else:
     from typing import Iterable  # noqa: F401
     from grpc import insecure_channel
     from grpc import intercept_channel
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
+    from google.cloud.bigtable.data._async._replaceable_channel import _ReplaceableChannel
 
 
 if TYPE_CHECKING:
@@ -238,17 +239,14 @@ class BigtableDataClientAsync(ClientWithProject):
                     stacklevel=2,
                 )
 
+    @CrossSync.convert(replace_symbols={"_AsyncReplaceableChannel": "_ReplaceableChannel"})
     def _build_grpc_channel(self, *args, **kwargs) -> _AsyncReplaceableChannel:
         if self._emulator_host is not None:
             # emulators use insecure channel
             create_channel_fn = partial(insecure_channel, self._emulator_host)
         else:
             create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
-        if CrossSync.is_async:
-            return _AsyncReplaceableChannel(create_channel_fn)
-        else:
-            return TransportType.create_channel(*args, **kwargs)
-
+        return _AsyncReplaceableChannel(create_channel_fn)
 
 
     @staticmethod
@@ -373,18 +371,17 @@ class BigtableDataClientAsync(ClientWithProject):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
-        channel = self.transport.grpc_channel
         if not isinstance(self.transport.grpc_channel, _AsyncReplaceableChannel):
             warnings.warn("Channel does not support auto-refresh.")
             return
-        channel: _AsyncReplaceableChannel = self.transport.grpc_channel
+        super_channel: _AsyncReplaceableChannel = self.transport.grpc_channel
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
         next_sleep = max(first_refresh - time.monotonic(), 0)
         if next_sleep > 0:
             # warm the current channel immediately
-            await self._ping_and_warm_instances(channel=channel)
+            await self._ping_and_warm_instances(channel=super_channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while not self._is_closed.is_set():
             await CrossSync.event_wait(
@@ -397,10 +394,17 @@ class BigtableDataClientAsync(ClientWithProject):
                 break
             start_timestamp = time.monotonic()
             # prepare new channel for use
-            new_sub_channel = channel.create_channel()
-            await self._ping_and_warm_instances(channel=new_sub_channel)
+            new_channel = super_channel.create_channel()
+            await self._ping_and_warm_instances(channel=new_channel)
             # cycle channel out of use, with long grace window before closure
-            await channel.replace_wrapped_channel(new_sub_channel, grace_period)
+            old_channel = super_channel.replace_wrapped_channel(new_channel, grace_period)
+            # give old_channel a chance to complete existing rpcs
+            if CrossSync.is_async:
+                await old_channel.close(grace_period)
+            else:
+                if grace_period:
+                    self._is_closed.wait(grace_period)  # type: ignore
+            old_channel.close()  # type: ignore
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
