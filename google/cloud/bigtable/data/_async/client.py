@@ -243,9 +243,7 @@ class BigtableDataClientAsync(ClientWithProject):
                     stacklevel=2,
                 )
 
-    @CrossSync.convert(
-        replace_symbols={"AsyncSwappableChannel": "SwappableChannel"}
-    )
+    @CrossSync.convert(replace_symbols={"AsyncSwappableChannel": "SwappableChannel"})
     def _build_grpc_channel(self, *args, **kwargs) -> AsyncSwappableChannel:
         if self._emulator_host is not None:
             # emulators use insecure channel
@@ -356,9 +354,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self.transport._stubs = {}
         self.transport._prep_wrapped_messages(self.client_info)
 
-    @CrossSync.convert(
-        replace_symbols={"AsyncSwappableChannel": "SwappableChannel"}
-    )
+    @CrossSync.convert(replace_symbols={"AsyncSwappableChannel": "SwappableChannel"})
     async def _manage_channel(
         self,
         refresh_interval_min: float = 60 * 35,

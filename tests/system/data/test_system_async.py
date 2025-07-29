@@ -29,6 +29,14 @@ from google.cloud.bigtable.data._cross_sync import CrossSync
 
 from . import TEST_FAMILY, TEST_FAMILY_2
 
+if CrossSync.is_async:
+    from google.cloud.bigtable_v2.services.bigtable.transports.grpc_asyncio import (
+        _LoggingClientAIOInterceptor as GapicInterceptor,
+    )
+else:
+    from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
+        _LoggingClientInterceptor as GapicInterceptor,
+    )
 
 __CROSS_SYNC_OUTPUT__ = "tests.system.data.test_system_autogen"
 
@@ -260,6 +268,16 @@ class TestSystemAsync:
                 assert len(rows_after_refresh) == 2
                 assert client.transport.grpc_channel is channel_wrapper
                 assert client.transport.grpc_channel._channel is not first_channel
+                # ensure gapic's logging interceptor is still active
+                if CrossSync.is_async:
+                    interceptors = (
+                        client.transport.grpc_channel._channel._unary_unary_interceptors
+                    )
+                    assert GapicInterceptor in [type(i) for i in interceptors]
+                else:
+                    assert isinstance(
+                        client.transport._logged_channel._interceptor, GapicInterceptor
+                    )
         finally:
             await client.close()
 
