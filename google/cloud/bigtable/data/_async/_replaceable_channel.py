@@ -27,6 +27,7 @@ else:
 
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._replaceable_channel"
 
+
 @CrossSync.convert_class(sync_name="_WrappedChannel", rm_aio=True)
 class _AsyncWrappedChannel(Channel):
     """
@@ -49,15 +50,12 @@ class _AsyncWrappedChannel(Channel):
     def stream_stream(self, *args, **kwargs):
         return self._channel.stream_stream(*args, **kwargs)
 
-    # grace not supported by sync version
-    @CrossSync.drop
-    async def close(self, grace=None):
-        return await self._channel.close(grace=grace)
-
     async def channel_ready(self):
         return await self._channel.channel_ready()
 
-    @CrossSync.convert(sync_name="__enter__", replace_symbols={"__aenter__": "__enter__"})
+    @CrossSync.convert(
+        sync_name="__enter__", replace_symbols={"__aenter__": "__enter__"}
+    )
     async def __aenter__(self):
         await self._channel.__aenter__()
         return self
@@ -75,7 +73,13 @@ class _AsyncWrappedChannel(Channel):
     def __getattr__(self, name):
         return getattr(self._channel, name)
 
-    if not CrossSync.is_async:
+    if CrossSync.is_async:
+        # grace not supported by sync version
+        async def close(self, grace=None):
+            return await self._channel.close(grace=grace)
+
+    else:
+        # add required sync methods
 
         def close(self):
             return self._channel.close()
@@ -87,9 +91,11 @@ class _AsyncWrappedChannel(Channel):
             return self._channel.unsubscribe(callback)
 
 
-@CrossSync.convert_class(sync_name="_ReplaceableChannel", replace_symbols={"_AsyncWrappedChannel": "_WrappedChannel"})
+@CrossSync.convert_class(
+    sync_name="_ReplaceableChannel",
+    replace_symbols={"_AsyncWrappedChannel": "_WrappedChannel"},
+)
 class _AsyncReplaceableChannel(_AsyncWrappedChannel):
-
     def __init__(self, channel_fn: Callable[[], Channel]):
         self._channel_fn = channel_fn
         self._channel = channel_fn()
@@ -100,10 +106,18 @@ class _AsyncReplaceableChannel(_AsyncWrappedChannel):
             # copy over interceptors
             # this is needed because of how gapic attaches the LoggingClientAIOInterceptor
             # sync channels add interceptors by wrapping, so this step isn't needed
-            new_channel._unary_unary_interceptors = self._channel._unary_unary_interceptors
-            new_channel._unary_stream_interceptors = self._channel._unary_stream_interceptors
-            new_channel._stream_unary_interceptors = self._channel._stream_unary_interceptors
-            new_channel._stream_stream_interceptors = self._channel._stream_stream_interceptors
+            new_channel._unary_unary_interceptors = (
+                self._channel._unary_unary_interceptors
+            )
+            new_channel._unary_stream_interceptors = (
+                self._channel._unary_stream_interceptors
+            )
+            new_channel._stream_unary_interceptors = (
+                self._channel._stream_unary_interceptors
+            )
+            new_channel._stream_stream_interceptors = (
+                self._channel._stream_stream_interceptors
+            )
         return new_channel
 
     def replace_wrapped_channel(self, new_channel: Channel) -> Channel:

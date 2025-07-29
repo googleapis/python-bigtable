@@ -92,18 +92,18 @@ if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.transports import (
         BigtableGrpcAsyncIOTransport as TransportType,
     )
-    from google.cloud.bigtable_v2.services.bigtable.transports.grpc_asyncio import (
-        _LoggingClientAIOInterceptor
-    )
     from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
-    from google.cloud.bigtable.data._async._replaceable_channel import _AsyncReplaceableChannel
+    from google.cloud.bigtable.data._async._replaceable_channel import (
+        _AsyncReplaceableChannel,
+    )
 else:
     from typing import Iterable  # noqa: F401
     from grpc import insecure_channel
-    from grpc import intercept_channel
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
-    from google.cloud.bigtable.data._sync_autogen._replaceable_channel import _ReplaceableChannel
+    from google.cloud.bigtable.data._sync_autogen._replaceable_channel import (  # noqa: F401
+        _ReplaceableChannel,
+    )
 
 
 if TYPE_CHECKING:
@@ -239,7 +239,9 @@ class BigtableDataClientAsync(ClientWithProject):
                     stacklevel=2,
                 )
 
-    @CrossSync.convert(replace_symbols={"_AsyncReplaceableChannel": "_ReplaceableChannel"})
+    @CrossSync.convert(
+        replace_symbols={"_AsyncReplaceableChannel": "_ReplaceableChannel"}
+    )
     def _build_grpc_channel(self, *args, **kwargs) -> _AsyncReplaceableChannel:
         if self._emulator_host is not None:
             # emulators use insecure channel
@@ -247,7 +249,6 @@ class BigtableDataClientAsync(ClientWithProject):
         else:
             create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
         return _AsyncReplaceableChannel(create_channel_fn)
-
 
     @staticmethod
     def _client_version() -> str:
@@ -351,7 +352,9 @@ class BigtableDataClientAsync(ClientWithProject):
         self.transport._stubs = {}
         self.transport._prep_wrapped_messages(self.client_info)
 
-    @CrossSync.convert(replace_symbols={"_AsyncReplaceableChannel": "_ReplaceableChannel"})
+    @CrossSync.convert(
+        replace_symbols={"_AsyncReplaceableChannel": "_ReplaceableChannel"}
+    )
     async def _manage_channel(
         self,
         refresh_interval_min: float = 60 * 35,

@@ -51,14 +51,18 @@ from tests.unit.data.execute_query.sql_helpers import (
 if CrossSync.is_async:
     from google.api_core import grpc_helpers_async
     from google.cloud.bigtable.data._async.client import TableAsync
-    from google.cloud.bigtable.data._async._replaceable_channel import _AsyncReplaceableChannel
+    from google.cloud.bigtable.data._async._replaceable_channel import (
+        _AsyncReplaceableChannel,
+    )
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers_async)
     CrossSync.add_mapping("ReplaceableChannel", _AsyncReplaceableChannel)
 else:
     from google.api_core import grpc_helpers
     from google.cloud.bigtable.data._sync_autogen.client import Table  # noqa: F401
-    from google.cloud.bigtable.data._sync_autogen._replaceable_channel import _ReplaceableChannel
+    from google.cloud.bigtable.data._sync_autogen._replaceable_channel import (
+        _ReplaceableChannel,
+    )
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
     CrossSync.add_mapping("ReplaceableChannel", _ReplaceableChannel)
@@ -388,17 +392,7 @@ class TestBigtableDataClientAsync:
         """
         _manage channel should call ping and warm internally
         """
-        import time
         import threading
-
-        if CrossSync.is_async:
-            from google.cloud.bigtable_v2.services.bigtable.transports.grpc_asyncio import (
-                _LoggingClientAIOInterceptor as Interceptor,
-            )
-        else:
-            from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
-                _LoggingClientInterceptor as Interceptor,
-            )
 
         client = self._make_client(project="project-id", use_emulator=True)
         orig_channel = client.transport.grpc_channel
