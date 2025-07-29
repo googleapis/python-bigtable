@@ -78,6 +78,7 @@ from grpc import insecure_channel
 from google.cloud.bigtable_v2.services.bigtable.transports import (
     BigtableGrpcTransport as TransportType,
 )
+from google.cloud.bigtable_v2.services.bigtable import BigtableClient as GapicClient
 from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._sync_autogen._replaceable_channel import (
     _ReplaceableChannel,
@@ -150,7 +151,7 @@ class BigtableDataClient(ClientWithProject):
             project=project,
             client_options=client_options,
         )
-        self._gapic_client = CrossSync._Sync_Impl.GapicClient(
+        self._gapic_client = GapicClient(
             credentials=credentials,
             client_options=client_options,
             client_info=self.client_info,
@@ -164,7 +165,7 @@ class BigtableDataClient(ClientWithProject):
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
         self._channel_refresh_task: CrossSync._Sync_Impl.Task[None] | None = None
-        self._executor = (
+        self._executor: concurrent.futures.ThreadPoolExecutor | None = (
             concurrent.futures.ThreadPoolExecutor()
             if not CrossSync._Sync_Impl.is_async
             else None
@@ -682,22 +683,30 @@ class _DataApiTarget(abc.ABC):
         self.table_name = self.client._gapic_client.table_path(
             self.client.project, instance_id, table_id
         )
-        self.app_profile_id = app_profile_id
-        self.default_operation_timeout = default_operation_timeout
-        self.default_attempt_timeout = default_attempt_timeout
-        self.default_read_rows_operation_timeout = default_read_rows_operation_timeout
-        self.default_read_rows_attempt_timeout = default_read_rows_attempt_timeout
-        self.default_mutate_rows_operation_timeout = (
+        self.app_profile_id: str | None = app_profile_id
+        self.default_operation_timeout: float = default_operation_timeout
+        self.default_attempt_timeout: float | None = default_attempt_timeout
+        self.default_read_rows_operation_timeout: float = (
+            default_read_rows_operation_timeout
+        )
+        self.default_read_rows_attempt_timeout: float | None = (
+            default_read_rows_attempt_timeout
+        )
+        self.default_mutate_rows_operation_timeout: float = (
             default_mutate_rows_operation_timeout
         )
-        self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
-        self.default_read_rows_retryable_errors = (
+        self.default_mutate_rows_attempt_timeout: float | None = (
+            default_mutate_rows_attempt_timeout
+        )
+        self.default_read_rows_retryable_errors: Sequence[type[Exception]] = (
             default_read_rows_retryable_errors or ()
         )
-        self.default_mutate_rows_retryable_errors = (
+        self.default_mutate_rows_retryable_errors: Sequence[type[Exception]] = (
             default_mutate_rows_retryable_errors or ()
         )
-        self.default_retryable_errors = default_retryable_errors or ()
+        self.default_retryable_errors: Sequence[type[Exception]] = (
+            default_retryable_errors or ()
+        )
         try:
             self._register_instance_future = CrossSync._Sync_Impl.create_task(
                 self.client._register_instance,

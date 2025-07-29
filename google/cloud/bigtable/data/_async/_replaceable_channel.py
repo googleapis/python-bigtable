@@ -73,16 +73,15 @@ class _AsyncWrappedChannel(Channel):
     def __getattr__(self, name):
         return getattr(self._channel, name)
 
-    if CrossSync.is_async:
-        # grace not supported by sync version
-        async def close(self, grace=None):
+    async def close(self, grace=None):
+        if CrossSync.is_async:
             return await self._channel.close(grace=grace)
-
-    else:
-        # add required sync methods
-
-        def close(self):
+        else:
+            # grace not supported by sync version
             return self._channel.close()
+
+    if not CrossSync.is_async:
+        # add required sync methods
 
         def subscribe(self, callback, try_to_connect=False):
             return self._channel.subscribe(callback, try_to_connect)

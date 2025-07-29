@@ -61,7 +61,7 @@ class _WrappedChannel(Channel):
     def __getattr__(self, name):
         return getattr(self._channel, name)
 
-    def close(self):
+    def close(self, grace=None):
         return self._channel.close()
 
     def subscribe(self, callback, try_to_connect=False):
