@@ -84,6 +84,7 @@ from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
+from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -93,12 +94,14 @@ if CrossSync.is_async:
         BigtableGrpcAsyncIOTransport as TransportType,
     )
     from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
+    from google.cloud.bigtable.data._async.metrics_interceptor import AsyncBigtableMetricsInterceptor as MetricInterceptorType
 else:
     from typing import Iterable  # noqa: F401
     from grpc import insecure_channel
     from grpc import intercept_channel
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
+    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import BigtableMetricsInterceptor as MetricInterceptorType
 
 
 if TYPE_CHECKING:
@@ -223,6 +226,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._executor = (
             concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
         )
+        self._interceptor = MetricInterceptorType()
         if self._emulator_host is None:
             # attempt to start background channel refresh tasks
             try:
@@ -881,6 +885,26 @@ class _DataApiTargetAsync(abc.ABC):
             default_mutate_rows_retryable_errors or ()
         )
         self.default_retryable_errors = default_retryable_errors or ()
+
+        self._metrics = BigtableClientSideMetricsController(
+            client._interceptor,
+            project_id=self.client.project,
+            instance_id=instance_id,
+            table_id=table_id,
+            app_profile_id=app_profile_id,
+        )
+        # TODO: simplify interceptors
+        if CrossSync.is_async:
+            client.transport.grpc_channel._unary_unary_interceptors.append(
+                self._metrics.interceptor
+            )
+            client.transport.grpc_channel._unary_stream_interceptors.append(
+                self._metrics.interceptor
+            )
+        else:
+            client.transport.grpc_channel = intercept_channel(
+                self._metrics.interceptor, client.transport.grpc_channel
+            )
 
         try:
             self._register_instance_future = CrossSync.create_task(
