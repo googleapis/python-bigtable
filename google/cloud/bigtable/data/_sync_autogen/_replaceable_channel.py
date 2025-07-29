@@ -18,49 +18,7 @@
 from __future__ import annotations
 from typing import Callable
 from grpc import ChannelConnectivity
-from grpc import Call
 from grpc import Channel
-from grpc import UnaryUnaryMultiCallable
-from grpc import UnaryStreamMultiCallable
-from grpc import StreamUnaryMultiCallable
-from grpc import StreamStreamMultiCallable
-
-
-class _WrappedMultiCallable:
-    """
-    Wrapper class that implements the grpc MultiCallable interface.
-    Allows generic functions that return calls to pass checks for
-    MultiCallable objects.
-    """
-
-    def __init__(self, call_factory: Callable[..., Call]):
-        self._call_factory = call_factory
-
-    def __call__(self, *args, **kwargs) -> Call:
-        return self._call_factory(*args, **kwargs)
-
-
-class WrappedUnaryUnaryMultiCallable(_WrappedMultiCallable, UnaryUnaryMultiCallable):
-    def with_call(self, *args, **kwargs):
-        call = self.__call__(self, *args, **kwargs)
-        return (call(), call)
-
-    def future(self, *args, **kwargs):
-        raise NotImplementedError
-
-
-class WrappedUnaryStreamMultiCallable(_WrappedMultiCallable, UnaryStreamMultiCallable):
-    pass
-
-
-class WrappedStreamUnaryMultiCallable(_WrappedMultiCallable, StreamUnaryMultiCallable):
-    pass
-
-
-class WrappedStreamStreamMultiCallable(
-    _WrappedMultiCallable, StreamStreamMultiCallable
-):
-    pass
 
 
 class _WrappedChannel(Channel):
@@ -72,33 +30,17 @@ class _WrappedChannel(Channel):
     def __init__(self, channel: Channel):
         self._channel = channel
 
-    def unary_unary(self, *args, **kwargs) -> UnaryUnaryMultiCallable:
-        return WrappedUnaryUnaryMultiCallable(
-            lambda *call_args, **call_kwargs: self._channel.unary_unary(
-                *args, **kwargs
-            )(*call_args, **call_kwargs)
-        )
+    def unary_unary(self, *args, **kwargs):
+        return self._channel.unary_unary(*args, **kwargs)
 
-    def unary_stream(self, *args, **kwargs) -> UnaryStreamMultiCallable:
-        return WrappedUnaryStreamMultiCallable(
-            lambda *call_args, **call_kwargs: self._channel.unary_stream(
-                *args, **kwargs
-            )(*call_args, **call_kwargs)
-        )
+    def unary_stream(self, *args, **kwargs):
+        return self._channel.unary_stream(*args, **kwargs)
 
-    def stream_unary(self, *args, **kwargs) -> StreamUnaryMultiCallable:
-        return WrappedStreamUnaryMultiCallable(
-            lambda *call_args, **call_kwargs: self._channel.stream_unary(
-                *args, **kwargs
-            )(*call_args, **call_kwargs)
-        )
+    def stream_unary(self, *args, **kwargs):
+        return self._channel.stream_unary(*args, **kwargs)
 
-    def stream_stream(self, *args, **kwargs) -> StreamStreamMultiCallable:
-        return WrappedStreamStreamMultiCallable(
-            lambda *call_args, **call_kwargs: self._channel.stream_stream(
-                *args, **kwargs
-            )(*call_args, **call_kwargs)
-        )
+    def stream_stream(self, *args, **kwargs):
+        return self._channel.stream_stream(*args, **kwargs)
 
     def channel_ready(self):
         return self._channel.channel_ready()

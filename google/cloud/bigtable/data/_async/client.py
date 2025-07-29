@@ -346,6 +346,11 @@ class BigtableDataClientAsync(ClientWithProject):
         )
         return [r or None for r in result_list]
 
+    def _invalidate_channel_stubs(self):
+        """Helper to reset the cached stubs. Needed when changing out the grpc channel"""
+        self.transport._stubs = {}
+        self.transport._prep_wrapped_messages(self.client_info)
+
     @CrossSync.convert(replace_symbols={"_AsyncReplaceableChannel": "_ReplaceableChannel"})
     async def _manage_channel(
         self,
@@ -398,6 +403,7 @@ class BigtableDataClientAsync(ClientWithProject):
             await self._ping_and_warm_instances(channel=new_channel)
             # cycle channel out of use, with long grace window before closure
             old_channel = super_channel.replace_wrapped_channel(new_channel)
+            self._invalidate_channel_stubs()
             # give old_channel a chance to complete existing rpcs
             if CrossSync.is_async:
                 await old_channel.close(grace_period)

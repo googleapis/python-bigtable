@@ -262,6 +262,11 @@ class BigtableDataClient(ClientWithProject):
         )
         return [r or None for r in result_list]
 
+    def _invalidate_channel_stubs(self):
+        """Helper to reset the cached stubs. Needed when changing out the grpc channel"""
+        self.transport._stubs = {}
+        self.transport._prep_wrapped_messages(self.client_info)
+
     def _manage_channel(
         self,
         refresh_interval_min: float = 60 * 35,
@@ -304,6 +309,7 @@ class BigtableDataClient(ClientWithProject):
             new_channel = super_channel.create_channel()
             self._ping_and_warm_instances(channel=new_channel)
             old_channel = super_channel.replace_wrapped_channel(new_channel)
+            self._invalidate_channel_stubs()
             if grace_period:
                 self._is_closed.wait(grace_period)
             old_channel.close()
