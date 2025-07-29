@@ -41,7 +41,12 @@ class _WrappedMultiCallable:
 
 
 class WrappedUnaryUnaryMultiCallable(_WrappedMultiCallable, UnaryUnaryMultiCallable):
-    pass
+    def with_call(self, *args, **kwargs):
+        call = self.__call__(self, *args, **kwargs)
+        return (call(), call)
+
+    def future(self, *args, **kwargs):
+        raise NotImplementedError
 
 
 class WrappedUnaryStreamMultiCallable(_WrappedMultiCallable, UnaryStreamMultiCallable):
@@ -95,9 +100,6 @@ class _WrappedChannel(Channel):
             )(*call_args, **call_kwargs)
         )
 
-    def close(self, grace=None):
-        return self._channel.close(grace=grace)
-
     def channel_ready(self):
         return self._channel.channel_ready()
 
@@ -116,6 +118,15 @@ class _WrappedChannel(Channel):
 
     def __getattr__(self, name):
         return getattr(self._channel, name)
+
+    def close(self):
+        return self._channel.close()
+
+    def subscribe(self, callback, try_to_connect=False):
+        return self._channel.subscribe(callback, try_to_connect)
+
+    def unsubscribe(self, callback):
+        return self._channel.unsubscribe(callback)
 
 
 class _ReplaceableChannel(_WrappedChannel):

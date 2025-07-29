@@ -55,7 +55,15 @@ class _WrappedMultiCallable:
 class WrappedUnaryUnaryMultiCallable(
     _WrappedMultiCallable, UnaryUnaryMultiCallable
 ):
-    pass
+    if not CrossSync.is_async:
+        # add missing functions for sync unary callable
+        
+        def with_call(self, *args, **kwargs):
+            call = self.__call__(self, *args, **kwargs)
+            return call(), call
+        
+        def future(self, *args, **kwargs):
+            raise NotImplementedError
 
 
 class WrappedUnaryStreamMultiCallable(
@@ -114,6 +122,8 @@ class _AsyncWrappedChannel(Channel):
             )(*call_args, **call_kwargs)
         )
 
+    # grace not supported by sync version
+    @CrossSync.drop
     async def close(self, grace=None):
         return await self._channel.close(grace=grace)
 
@@ -137,6 +147,18 @@ class _AsyncWrappedChannel(Channel):
 
     def __getattr__(self, name):
         return getattr(self._channel, name)
+
+    if not CrossSync.is_async:
+
+        def close(self):
+            return self._channel.close()
+
+        def subscribe(self, callback, try_to_connect=False):
+            return self._channel.subscribe(callback, try_to_connect)
+
+        def unsubscribe(self, callback):
+            return self._channel.unsubscribe(callback)
+
 
 @CrossSync.convert_class(sync_name="_ReplaceableChannel", replace_symbols={"_AsyncWrappedChannel": "_WrappedChannel"})
 class _AsyncReplaceableChannel(_AsyncWrappedChannel):

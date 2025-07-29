@@ -79,7 +79,9 @@ from google.cloud.bigtable_v2.services.bigtable.transports import (
     BigtableGrpcTransport as TransportType,
 )
 from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
-from google.cloud.bigtable.data._async._replaceable_channel import _ReplaceableChannel
+from google.cloud.bigtable.data._sync_autogen._replaceable_channel import (
+    _ReplaceableChannel,
+)
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -282,10 +284,10 @@ class BigtableDataClient(ClientWithProject):
                 between `refresh_interval_min` and `refresh_interval_max`
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds"""
-        if not isinstance(self.transport.grpc_channel, _AsyncReplaceableChannel):
+        if not isinstance(self.transport.grpc_channel, _ReplaceableChannel):
             warnings.warn("Channel does not support auto-refresh.")
             return
-        super_channel: _AsyncReplaceableChannel = self.transport.grpc_channel
+        super_channel: _ReplaceableChannel = self.transport.grpc_channel
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
@@ -301,9 +303,7 @@ class BigtableDataClient(ClientWithProject):
             start_timestamp = time.monotonic()
             new_channel = super_channel.create_channel()
             self._ping_and_warm_instances(channel=new_channel)
-            old_channel = super_channel.replace_wrapped_channel(
-                new_channel, grace_period
-            )
+            old_channel = super_channel.replace_wrapped_channel(new_channel)
             if grace_period:
                 self._is_closed.wait(grace_period)
             old_channel.close()

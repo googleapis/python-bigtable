@@ -103,7 +103,7 @@ else:
     from grpc import intercept_channel
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
-    from google.cloud.bigtable.data._async._replaceable_channel import _ReplaceableChannel
+    from google.cloud.bigtable.data._sync_autogen._replaceable_channel import _ReplaceableChannel
 
 
 if TYPE_CHECKING:
@@ -346,7 +346,7 @@ class BigtableDataClientAsync(ClientWithProject):
         )
         return [r or None for r in result_list]
 
-    @CrossSync.convert
+    @CrossSync.convert(replace_symbols={"_AsyncReplaceableChannel": "_ReplaceableChannel"})
     async def _manage_channel(
         self,
         refresh_interval_min: float = 60 * 35,
@@ -397,7 +397,7 @@ class BigtableDataClientAsync(ClientWithProject):
             new_channel = super_channel.create_channel()
             await self._ping_and_warm_instances(channel=new_channel)
             # cycle channel out of use, with long grace window before closure
-            old_channel = super_channel.replace_wrapped_channel(new_channel, grace_period)
+            old_channel = super_channel.replace_wrapped_channel(new_channel)
             # give old_channel a chance to complete existing rpcs
             if CrossSync.is_async:
                 await old_channel.close(grace_period)
