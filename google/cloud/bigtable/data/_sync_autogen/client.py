@@ -80,9 +80,7 @@ from google.cloud.bigtable_v2.services.bigtable.transports import (
 )
 from google.cloud.bigtable_v2.services.bigtable import BigtableClient as GapicClient
 from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
-from google.cloud.bigtable.data._sync_autogen._replaceable_channel import (
-    _ReplaceableChannel,
-)
+from google.cloud.bigtable.data._sync_autogen._swappable_channel import SwappableChannel
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -180,12 +178,12 @@ class BigtableDataClient(ClientWithProject):
                     stacklevel=2,
                 )
 
-    def _build_grpc_channel(self, *args, **kwargs) -> _ReplaceableChannel:
+    def _build_grpc_channel(self, *args, **kwargs) -> SwappableChannel:
         if self._emulator_host is not None:
             create_channel_fn = partial(insecure_channel, self._emulator_host)
         else:
             create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
-        return _ReplaceableChannel(create_channel_fn)
+        return SwappableChannel(create_channel_fn)
 
     @staticmethod
     def _client_version() -> str:
@@ -290,10 +288,10 @@ class BigtableDataClient(ClientWithProject):
                 between `refresh_interval_min` and `refresh_interval_max`
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds"""
-        if not isinstance(self.transport.grpc_channel, _ReplaceableChannel):
+        if not isinstance(self.transport.grpc_channel, SwappableChannel):
             warnings.warn("Channel does not support auto-refresh.")
             return
-        super_channel: _ReplaceableChannel = self.transport.grpc_channel
+        super_channel: SwappableChannel = self.transport.grpc_channel
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
@@ -309,7 +307,7 @@ class BigtableDataClient(ClientWithProject):
             start_timestamp = time.monotonic()
             new_channel = super_channel.create_channel()
             self._ping_and_warm_instances(channel=new_channel)
-            old_channel = super_channel.replace_wrapped_channel(new_channel)
+            old_channel = super_channel.swap_channel(new_channel)
             self._invalidate_channel_stubs()
             if grace_period:
                 self._is_closed.wait(grace_period)

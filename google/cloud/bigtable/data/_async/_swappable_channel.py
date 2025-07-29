@@ -25,7 +25,7 @@ if CrossSync.is_async:
 else:
     from grpc import Channel
 
-__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._replaceable_channel"
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen._swappable_channel"
 
 
 @CrossSync.convert_class(sync_name="_WrappedChannel", rm_aio=True)
@@ -91,10 +91,10 @@ class _AsyncWrappedChannel(Channel):
 
 
 @CrossSync.convert_class(
-    sync_name="_ReplaceableChannel",
+    sync_name="SwappableChannel",
     replace_symbols={"_AsyncWrappedChannel": "_WrappedChannel"},
 )
-class _AsyncReplaceableChannel(_AsyncWrappedChannel):
+class AsyncSwappableChannel(_AsyncWrappedChannel):
     def __init__(self, channel_fn: Callable[[], Channel]):
         self._channel_fn = channel_fn
         self._channel = channel_fn()
@@ -119,7 +119,7 @@ class _AsyncReplaceableChannel(_AsyncWrappedChannel):
             )
         return new_channel
 
-    def replace_wrapped_channel(self, new_channel: Channel) -> Channel:
+    def swap_channel(self, new_channel: Channel) -> Channel:
         old_channel = self._channel
         self._channel = new_channel
         return old_channel

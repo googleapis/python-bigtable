@@ -71,7 +71,7 @@ class _WrappedChannel(Channel):
         return self._channel.unsubscribe(callback)
 
 
-class _ReplaceableChannel(_WrappedChannel):
+class SwappableChannel(_WrappedChannel):
     def __init__(self, channel_fn: Callable[[], Channel]):
         self._channel_fn = channel_fn
         self._channel = channel_fn()
@@ -80,7 +80,7 @@ class _ReplaceableChannel(_WrappedChannel):
         new_channel = self._channel_fn()
         return new_channel
 
-    def replace_wrapped_channel(self, new_channel: Channel) -> Channel:
+    def swap_channel(self, new_channel: Channel) -> Channel:
         old_channel = self._channel
         self._channel = new_channel
         return old_channel

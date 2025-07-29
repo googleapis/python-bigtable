@@ -96,8 +96,8 @@ if CrossSync.is_async:
         BigtableAsyncClient as GapicClient,
     )
     from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
-    from google.cloud.bigtable.data._async._replaceable_channel import (
-        _AsyncReplaceableChannel,
+    from google.cloud.bigtable.data._async._swappable_channel import (
+        AsyncSwappableChannel,
     )
 else:
     from typing import Iterable  # noqa: F401
@@ -105,8 +105,8 @@ else:
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
     from google.cloud.bigtable_v2.services.bigtable import BigtableClient as GapicClient  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
-    from google.cloud.bigtable.data._sync_autogen._replaceable_channel import (  # noqa: F401
-        _ReplaceableChannel,
+    from google.cloud.bigtable.data._sync_autogen._swappable_channel import (  # noqa: F401
+        SwappableChannel,
     )
 
 
@@ -244,15 +244,15 @@ class BigtableDataClientAsync(ClientWithProject):
                 )
 
     @CrossSync.convert(
-        replace_symbols={"_AsyncReplaceableChannel": "_ReplaceableChannel"}
+        replace_symbols={"AsyncSwappableChannel": "SwappableChannel"}
     )
-    def _build_grpc_channel(self, *args, **kwargs) -> _AsyncReplaceableChannel:
+    def _build_grpc_channel(self, *args, **kwargs) -> AsyncSwappableChannel:
         if self._emulator_host is not None:
             # emulators use insecure channel
             create_channel_fn = partial(insecure_channel, self._emulator_host)
         else:
             create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
-        return _AsyncReplaceableChannel(create_channel_fn)
+        return AsyncSwappableChannel(create_channel_fn)
 
     @staticmethod
     def _client_version() -> str:
@@ -357,7 +357,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self.transport._prep_wrapped_messages(self.client_info)
 
     @CrossSync.convert(
-        replace_symbols={"_AsyncReplaceableChannel": "_ReplaceableChannel"}
+        replace_symbols={"AsyncSwappableChannel": "SwappableChannel"}
     )
     async def _manage_channel(
         self,
@@ -383,10 +383,10 @@ class BigtableDataClientAsync(ClientWithProject):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
-        if not isinstance(self.transport.grpc_channel, _AsyncReplaceableChannel):
+        if not isinstance(self.transport.grpc_channel, AsyncSwappableChannel):
             warnings.warn("Channel does not support auto-refresh.")
             return
-        super_channel: _AsyncReplaceableChannel = self.transport.grpc_channel
+        super_channel: AsyncSwappableChannel = self.transport.grpc_channel
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
@@ -409,7 +409,7 @@ class BigtableDataClientAsync(ClientWithProject):
             new_channel = super_channel.create_channel()
             await self._ping_and_warm_instances(channel=new_channel)
             # cycle channel out of use, with long grace window before closure
-            old_channel = super_channel.replace_wrapped_channel(new_channel)
+            old_channel = super_channel.swap_channel(new_channel)
             self._invalidate_channel_stubs()
             # give old_channel a chance to complete existing rpcs
             if CrossSync.is_async:

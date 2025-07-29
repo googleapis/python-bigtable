@@ -45,12 +45,10 @@ from tests.unit.data.execute_query.sql_helpers import (
     str_val,
 )
 from google.api_core import grpc_helpers
-from google.cloud.bigtable.data._sync_autogen._replaceable_channel import (
-    _ReplaceableChannel,
-)
+from google.cloud.bigtable.data._sync_autogen._swappable_channel import SwappableChannel
 
 CrossSync._Sync_Impl.add_mapping("grpc_helpers", grpc_helpers)
-CrossSync._Sync_Impl.add_mapping("ReplaceableChannel", _ReplaceableChannel)
+CrossSync._Sync_Impl.add_mapping("SwappableChannel", SwappableChannel)
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TestBigtableDataClient")
@@ -185,7 +183,7 @@ class TestBigtableDataClient:
             client, "_ping_and_warm_instances", CrossSync._Sync_Impl.Mock()
         ) as ping_and_warm:
             client._emulator_host = None
-            client.transport._grpc_channel = CrossSync._Sync_Impl.ReplaceableChannel(
+            client.transport._grpc_channel = CrossSync._Sync_Impl.SwappableChannel(
                 mock.Mock
             )
             client._start_background_channel_refresh()
@@ -398,9 +396,7 @@ class TestBigtableDataClient:
         new_channel = grpc_lib.insecure_channel("localhost:8080")
         create_channel_mock = mock.Mock()
         create_channel_mock.return_value = new_channel
-        refreshable_channel = CrossSync._Sync_Impl.ReplaceableChannel(
-            create_channel_mock
-        )
+        refreshable_channel = CrossSync._Sync_Impl.SwappableChannel(create_channel_mock)
         with mock.patch.object(CrossSync._Sync_Impl, "event_wait") as sleep:
             sleep.side_effect = [None for i in range(num_cycles)] + [RuntimeError]
             client = self._make_client(project="project-id")

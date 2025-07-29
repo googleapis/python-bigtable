@@ -51,21 +51,21 @@ from tests.unit.data.execute_query.sql_helpers import (
 if CrossSync.is_async:
     from google.api_core import grpc_helpers_async
     from google.cloud.bigtable.data._async.client import TableAsync
-    from google.cloud.bigtable.data._async._replaceable_channel import (
-        _AsyncReplaceableChannel,
+    from google.cloud.bigtable.data._async._swappable_channel import (
+        AsyncSwappableChannel,
     )
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers_async)
-    CrossSync.add_mapping("ReplaceableChannel", _AsyncReplaceableChannel)
+    CrossSync.add_mapping("SwappableChannel", AsyncSwappableChannel)
 else:
     from google.api_core import grpc_helpers
     from google.cloud.bigtable.data._sync_autogen.client import Table  # noqa: F401
-    from google.cloud.bigtable.data._sync_autogen._replaceable_channel import (
-        _ReplaceableChannel,
+    from google.cloud.bigtable.data._sync_autogen._swappable_channel import (
+        SwappableChannel,
     )
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
-    CrossSync.add_mapping("ReplaceableChannel", _ReplaceableChannel)
+    CrossSync.add_mapping("SwappableChannel", SwappableChannel)
 
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_client"
 
@@ -236,7 +236,7 @@ class TestBigtableDataClientAsync:
             client, "_ping_and_warm_instances", CrossSync.Mock()
         ) as ping_and_warm:
             client._emulator_host = None
-            client.transport._grpc_channel = CrossSync.ReplaceableChannel(mock.Mock)
+            client.transport._grpc_channel = CrossSync.SwappableChannel(mock.Mock)
             client._start_background_channel_refresh()
             assert client._channel_refresh_task is not None
             assert isinstance(client._channel_refresh_task, CrossSync.Task)
@@ -500,7 +500,7 @@ class TestBigtableDataClientAsync:
         new_channel = grpc_lib.insecure_channel("localhost:8080")
         create_channel_mock = mock.Mock()
         create_channel_mock.return_value = new_channel
-        refreshable_channel = CrossSync.ReplaceableChannel(create_channel_mock)
+        refreshable_channel = CrossSync.SwappableChannel(create_channel_mock)
 
         with mock.patch.object(CrossSync, "event_wait") as sleep:
             sleep.side_effect = [None for i in range(num_cycles)] + [RuntimeError]
