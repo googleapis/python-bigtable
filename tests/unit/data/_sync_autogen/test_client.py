@@ -176,7 +176,7 @@ class TestBigtableDataClient:
         client.close()
 
     def test__start_background_channel_refresh(self):
-        client = self._make_client(project="project-id")
+        client = self._make_client(project="project-id", use_emulator=False)
         with mock.patch.object(
             client, "_ping_and_warm_instances", CrossSync._Sync_Impl.Mock()
         ) as ping_and_warm:
@@ -282,7 +282,7 @@ class TestBigtableDataClient:
             with mock.patch.object(CrossSync._Sync_Impl, "event_wait") as sleep:
                 sleep.side_effect = asyncio.CancelledError
                 try:
-                    client = self._make_client(project="project-id")
+                    client = self._make_client(project="project-id", use_emulator=False)
                     client._channel_init_time = -wait_time
                     client._manage_channel(refresh_interval, refresh_interval)
                 except asyncio.CancelledError:
@@ -296,36 +296,29 @@ class TestBigtableDataClient:
 
     def test__manage_channel_ping_and_warm(self):
         """_manage channel should call ping and warm internally"""
-        import time
         import threading
-        from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
-            _LoggingClientInterceptor as Interceptor,
-        )
 
-        client_mock = mock.Mock()
-        client_mock.transport._interceptor = Interceptor()
-        client_mock._is_closed.is_set.return_value = False
-        client_mock._channel_init_time = time.monotonic()
-        orig_channel = client_mock.transport.grpc_channel
+        client = self._make_client(project="project-id", use_emulator=True)
+        orig_channel = client.transport.grpc_channel
         sleep_tuple = (
             (asyncio, "sleep")
             if CrossSync._Sync_Impl.is_async
             else (threading.Event, "wait")
         )
-        with mock.patch.object(*sleep_tuple):
-            orig_channel.close.side_effect = asyncio.CancelledError
+        with mock.patch.object(*sleep_tuple) as sleep_mock:
+            sleep_mock.side_effect = [None, asyncio.CancelledError]
             ping_and_warm = (
-                client_mock._ping_and_warm_instances
+                client._ping_and_warm_instances
             ) = CrossSync._Sync_Impl.Mock()
             try:
-                self._get_target_class()._manage_channel(client_mock, 10)
+                client._manage_channel(10)
             except asyncio.CancelledError:
                 pass
             assert ping_and_warm.call_count == 2
-            assert client_mock.transport._grpc_channel != orig_channel
+            assert client.transport.grpc_channel._channel != orig_channel
             called_with = [call[1]["channel"] for call in ping_and_warm.call_args_list]
             assert orig_channel in called_with
-            assert client_mock.transport.grpc_channel in called_with
+            assert client.transport.grpc_channel._channel in called_with
 
     @pytest.mark.parametrize(
         "refresh_interval, num_cycles, expected_sleep",
@@ -335,8 +328,6 @@ class TestBigtableDataClient:
         import time
         import random
 
-        channel = mock.Mock()
-        channel.close = CrossSync._Sync_Impl.Mock()
         with mock.patch.object(random, "uniform") as uniform:
             uniform.side_effect = lambda min_, max_: min_
             with mock.patch.object(time, "time") as time_mock:
@@ -345,8 +336,7 @@ class TestBigtableDataClient:
                     sleep.side_effect = [None for i in range(num_cycles - 1)] + [
                         asyncio.CancelledError
                     ]
-                    client = self._make_client(project="project-id")
-                    client.transport._grpc_channel = channel
+                    client = self._make_client(project="project-id", use_emulator=True)
                     with mock.patch.object(
                         client.transport, "create_channel", CrossSync._Sync_Impl.Mock
                     ):
@@ -374,7 +364,7 @@ class TestBigtableDataClient:
                 uniform.return_value = 0
                 try:
                     uniform.side_effect = asyncio.CancelledError
-                    client = self._make_client(project="project-id")
+                    client = self._make_client(project="project-id", use_emulator=False)
                 except asyncio.CancelledError:
                     uniform.side_effect = None
                     uniform.reset_mock()
@@ -405,7 +395,7 @@ class TestBigtableDataClient:
                 CrossSync._Sync_Impl.grpc_helpers, "create_channel"
             ) as create_channel:
                 create_channel.return_value = new_channel
-                client = self._make_client(project="project-id")
+                client = self._make_client(project="project-id", use_emulator=False)
                 create_channel.reset_mock()
                 try:
                     client._manage_channel(

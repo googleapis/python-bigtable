@@ -75,11 +75,11 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from typing import Iterable
 from grpc import insecure_channel
-from grpc import intercept_channel
 from google.cloud.bigtable_v2.services.bigtable.transports import (
     BigtableGrpcTransport as TransportType,
 )
 from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
+from google.cloud.bigtable.data._async._replaceable_channel import _ReplaceableChannel
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -131,7 +131,6 @@ class BigtableDataClient(ClientWithProject):
         client_options = cast(
             Optional[client_options_lib.ClientOptions], client_options
         )
-        custom_channel = None
         self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
         if self._emulator_host is not None:
             warnings.warn(
@@ -139,7 +138,6 @@ class BigtableDataClient(ClientWithProject):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            custom_channel = insecure_channel(self._emulator_host)
             if credentials is None:
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
@@ -155,7 +153,7 @@ class BigtableDataClient(ClientWithProject):
             client_options=client_options,
             client_info=self.client_info,
             transport=lambda *args, **kwargs: TransportType(
-                *args, **kwargs, channel=custom_channel
+                *args, **kwargs, channel=self._build_grpc_channel
             ),
         )
         self._is_closed = CrossSync._Sync_Impl.Event()
@@ -178,6 +176,13 @@ class BigtableDataClient(ClientWithProject):
                     RuntimeWarning,
                     stacklevel=2,
                 )
+
+    def _build_grpc_channel(self, *args, **kwargs) -> _ReplaceableChannel:
+        if self._emulator_host is not None:
+            create_channel_fn = partial(insecure_channel, self._emulator_host)
+        else:
+            create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
+        return _ReplaceableChannel(create_channel_fn)
 
     @staticmethod
     def _client_version() -> str:
@@ -277,12 +282,16 @@ class BigtableDataClient(ClientWithProject):
                 between `refresh_interval_min` and `refresh_interval_max`
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds"""
+        if not isinstance(self.transport.grpc_channel, _AsyncReplaceableChannel):
+            warnings.warn("Channel does not support auto-refresh.")
+            return
+        super_channel: _AsyncReplaceableChannel = self.transport.grpc_channel
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
         next_sleep = max(first_refresh - time.monotonic(), 0)
         if next_sleep > 0:
-            self._ping_and_warm_instances(channel=self.transport.grpc_channel)
+            self._ping_and_warm_instances(channel=super_channel)
         while not self._is_closed.is_set():
             CrossSync._Sync_Impl.event_wait(
                 self._is_closed, next_sleep, async_break_early=False
@@ -290,14 +299,11 @@ class BigtableDataClient(ClientWithProject):
             if self._is_closed.is_set():
                 break
             start_timestamp = time.monotonic()
-            old_channel = self.transport.grpc_channel
-            new_channel = self.transport.create_channel()
-            new_channel = intercept_channel(new_channel, self.transport._interceptor)
+            new_channel = super_channel.create_channel()
             self._ping_and_warm_instances(channel=new_channel)
-            self.transport._grpc_channel = new_channel
-            self.transport._logged_channel = new_channel
-            self.transport._stubs = {}
-            self.transport._prep_wrapped_messages(self.client_info)
+            old_channel = super_channel.replace_wrapped_channel(
+                new_channel, grace_period
+            )
             if grace_period:
                 self._is_closed.wait(grace_period)
             old_channel.close()
