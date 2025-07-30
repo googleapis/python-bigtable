@@ -71,18 +71,25 @@ def get_staging_dirs(
 bigtable_default_version = "v2"
 bigtable_admin_default_version = "v2"
 
+is_fresh_admin_copy = False
+is_fresh_admin_v2_copy = False
+is_fresh_admin_docs_copy = False
+
 for library in get_staging_dirs(bigtable_default_version, "bigtable"):
     s.move(library / "google/cloud/bigtable_v2", excludes=["**/gapic_version.py"])
     s.move(library / "tests")
     s.move(library / "scripts")
 
 for library in get_staging_dirs(bigtable_admin_default_version, "bigtable_admin"):
-    s.move(library / "google/cloud/bigtable_admin", excludes=["**/gapic_version.py"])
-    s.move(library / "google/cloud/bigtable_admin_v2", excludes=["**/gapic_version.py"])
+    is_fresh_admin_copy = \
+        s.move(library / "google/cloud/bigtable_admin", excludes=["**/gapic_version.py"])
+    is_fresh_admin_v2_copy = \
+        s.move(library / "google/cloud/bigtable_admin_v2", excludes=["**/gapic_version.py"])
     s.move(library / "tests")
     s.move(library / "samples")
     s.move(library / "scripts")
-    s.move(library / "docs/bigtable_admin_v2", destination="docs/admin_client")
+    is_fresh_admin_docs_copy = \
+        s.move(library / "docs/bigtable_admin_v2", destination="docs/admin_client")
 
 s.remove_staging_dirs()
 
@@ -122,18 +129,20 @@ INSTALL_LIBRARY_FROM_SOURCE = False""")
 
 # Add overlay imports to top level __init__.py files in admin_v2 and admin at the end
 # of each file, after the __all__ definition.
-def add_overlay_to_init_py(init_py_location, import_statements):
-    s.replace(
-        init_py_location,
-        r"(?s)(^__all__ = \(.*\)$)",
-        r"\1\n\n" + import_statements
-    )
+def add_overlay_to_init_py(init_py_location, import_statements, should_add):
+    if should_add:
+        s.replace(
+            init_py_location,
+            r"(?s)(^__all__ = \(.*\)$)",
+            r"\1\n\n" + import_statements
+        )
 
 add_overlay_to_init_py(
     "google/cloud/bigtable_admin_v2/__init__.py",
     """from .overlay import *  # noqa: F403
 __all__ += overlay.__all__  # noqa: F405
-"""
+""",
+    is_fresh_admin_v2_copy,
 )
 
 add_overlay_to_init_py(
@@ -142,7 +151,8 @@ add_overlay_to_init_py(
 from google.cloud.bigtable_admin_v2.overlay import *  # noqa: F401, F403
 
 __all__ += google.cloud.bigtable_admin_v2.overlay.__all__
-"""
+""",
+    is_fresh_admin_copy,
 )
 
 # Replace all instances of BaseBigtableTableAdminClient/BaseBigtableAdminAsyncClient
@@ -225,27 +235,29 @@ s.replace(
 )
 
 # Add overlay types to types documentation
-s.replace(
-    "docs/admin_client/types_.rst",
-    r"""(\.\. automodule:: google\.cloud\.bigtable_admin_v2\.types
-    :members:
-    :show-inheritance:)
-""",
-    r"""\1
+if is_fresh_admin_docs_copy:
+    s.replace(
+        "docs/admin_client/types_.rst",
+        r"""(\.\. automodule:: google\.cloud\.bigtable_admin_v2\.types
+        :members:
+        :show-inheritance:)
+    """,
+        r"""\1
 
-.. automodule:: google.cloud.bigtable_admin_v2.overlay.types
-    :members:
-    :show-inheritance:
-"""
-)
+    .. automodule:: google.cloud.bigtable_admin_v2.overlay.types
+        :members:
+        :show-inheritance:
+    """
+    )
 
 # Add the oneof_message import into table.py for GcRule
-s.replace(
-    "google/cloud/bigtable_admin_v2/types/table.py",
-    r"^(from google\.cloud\.bigtable_admin_v2\.types import .+)$",
-    r"""\1
-from google.cloud.bigtable_admin_v2.utils import oneof_message""",
-)
+if is_fresh_admin_v2_copy:
+    s.replace(
+        "google/cloud/bigtable_admin_v2/types/table.py",
+        r"^(from google\.cloud\.bigtable_admin_v2\.types import .+)$",
+        r"""\1
+    from google.cloud.bigtable_admin_v2.utils import oneof_message""",
+    )
 
 # Re-subclass GcRule in table.py
 s.replace(
