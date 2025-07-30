@@ -13,33 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import proto
+from .client import BaseBigtableTableAdminClient
+from .async_client import BaseBigtableTableAdminAsyncClient
 
-from google.cloud.bigtable_admin_v2.utils import oneof_message
-
-__protobuf__ = proto.module(
-    package="test.oneof.v1",
-    manifest={
-        "MyOneofMessage",
-    },
+__all__ = (
+    "BaseBigtableTableAdminClient",
+    "BaseBigtableTableAdminAsyncClient",
 )
-
-
-# Foo and Bar belong to oneof foobar, and baz is independent.
-class MyOneofMessage(oneof_message.OneofMessage):
-    foo: int = proto.Field(
-        proto.INT32,
-        number=1,
-        oneof="foobar",
-    )
-
-    bar: int = proto.Field(
-        proto.INT32,
-        number=2,
-        oneof="foobar",
-    )
-
-    baz: int = proto.Field(
-        proto.INT32,
-        number=3,
-    )

@@ -275,7 +275,7 @@ class ColumnFamily(object):
         client = self._table._instance._client
         # data it contains are the GC rule and the column family ID already
         # stored on this instance.
-        client.table_admin_client._modify_column_families(
+        client.table_admin_client.modify_column_families(
             request={"name": self._table.name, "modifications": [modification]},
             timeout=DEFAULT,
         )
@@ -303,7 +303,7 @@ class ColumnFamily(object):
         client = self._table._instance._client
         # data it contains are the GC rule and the column family ID already
         # stored on this instance.
-        client.table_admin_client._modify_column_families(
+        client.table_admin_client.modify_column_families(
             request={"name": self._table.name, "modifications": [modification]},
             timeout=DEFAULT,
         )
@@ -326,7 +326,7 @@ class ColumnFamily(object):
         client = self._table._instance._client
         # data it contains are the GC rule and the column family ID already
         # stored on this instance.
-        client.table_admin_client._modify_column_families(
+        client.table_admin_client.modify_column_families(
             request={"name": self._table.name, "modifications": [modification]},
             timeout=DEFAULT,
         )
