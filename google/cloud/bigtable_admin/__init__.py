@@ -473,3 +473,9 @@ import google.cloud.bigtable_admin_v2.overlay  # noqa: F401
 from google.cloud.bigtable_admin_v2.overlay import *  # noqa: F401, F403
 
 __all__ += google.cloud.bigtable_admin_v2.overlay.__all__
+
+
+import google.cloud.bigtable_admin_v2.overlay  # noqa: F401
+from google.cloud.bigtable_admin_v2.overlay import *  # noqa: F401, F403
+
+__all__ += google.cloud.bigtable_admin_v2.overlay.__all__
