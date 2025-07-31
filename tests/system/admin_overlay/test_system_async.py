@@ -17,6 +17,7 @@ from typing import Tuple
 from google.cloud import bigtable_admin_v2 as admin_v2
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from google.cloud.bigtable.data import mutations, read_rows_query
+from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
 from .conftest import (
     INSTANCE_PREFIX,
@@ -37,6 +38,7 @@ from .conftest import (
 from datetime import datetime, timedelta
 
 import pytest
+import os
 
 
 if CrossSync.is_async:
@@ -46,6 +48,12 @@ else:
 
 
 __CROSS_SYNC_OUTPUT__ = "tests.system.admin_overlay.test_system_autogen"
+
+if os.getenv(BIGTABLE_EMULATOR):
+    pytest.skip(
+        allow_module_level=True,
+        reason="Emulator support for admin client tests unsupported.",
+    )
 
 
 @CrossSync.convert

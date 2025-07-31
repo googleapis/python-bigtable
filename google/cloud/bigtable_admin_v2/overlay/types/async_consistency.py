@@ -34,24 +34,24 @@ class _AsyncCheckConsistencyPollingFuture(async_future.AsyncFuture):
 
     **This class should not be instantiated by users** and should only be instantiated by the admin
     client's
-    :meth:`google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.AsyncBigtableTableAdminClient.wait_for_consistency`
+    :meth:`google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.AsyncBigtableTableAdminClient.wait_for_consistency`
     or
-    :meth:`google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.AsyncBigtableTableAdminClient.wait_for_replication`
+    :meth:`google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.AsyncBigtableTableAdminClient.wait_for_replication`
     methods.
 
     Args:
         check_consistency_call(Callable[
             [Optional[google.api_core.retry.Retry],
-            google.cloud.bigtable.admin_v2.types.CheckConsistencyResponse]):
+            google.cloud.bigtable_admin_v2.types.CheckConsistencyResponse]):
             A :meth:`check_consistency
-            <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.AsyncBigtableTableAdminClient.check_consistency>`
+            <google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.AsyncBigtableTableAdminClient.check_consistency>`
             call from the admin client. The call should fix every user parameter except for retry,
             which will be done via :meth:`functools.partial`.
         default_retry(Optional[google.api_core.retry.Retry]): The `retry` parameter passed in to either
             :meth:`wait_for_consistency
-            <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_consistency>`
+            <google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_consistency>`
             or :meth:`wait_for_replication
-            <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_replication>`
+            <google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_replication>`
         retry (google.api_core.retry.AsyncRetry): The retry configuration used
             when polling. This can be used to control how often :meth:`done`
             is polled. Regardless of the retry's ``deadline``, it will be

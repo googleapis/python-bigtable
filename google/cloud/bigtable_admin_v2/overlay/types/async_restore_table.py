@@ -30,7 +30,7 @@ class AsyncRestoreTableOperation(operation_async.AsyncOperation):
 
     **This class should not be instantiated by users** and should only be instantiated by the admin
     client's :meth:`restore_table
-    <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminAsyncClient.restore_table>`
+    <google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminAsyncClient.restore_table>`
     method.
 
     Args:

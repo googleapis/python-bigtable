@@ -30,7 +30,7 @@ class RestoreTableOperation(operation.Operation):
 
     **This class should not be instantiated by users** and should only be instantiated by the admin
     client's :meth:`restore_table
-    <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.restore_table>`
+    <google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.restore_table>`
     method.
 
     Args:
@@ -62,7 +62,7 @@ class RestoreTableOperation(operation.Operation):
         The follow-up operation has
         :attr:`metadata <google.api_core.operation.Operation.metadata>` type
         :class:`OptimizeRestoredTableMetadata
-        <google.cloud.bigtable.admin_v2.types.bigtable_table_admin.OptimizeRestoredTableMetadata>`
+        <google.cloud.bigtable_admin_v2.types.bigtable_table_admin.OptimizeRestoredTableMetadata>`
         and no return value, but can be waited for with `result`.
 
         The current operation might not trigger a follow-up OptimizeRestoredTable operation, in which case, this

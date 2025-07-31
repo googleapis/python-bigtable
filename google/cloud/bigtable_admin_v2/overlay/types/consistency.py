@@ -34,17 +34,17 @@ class _CheckConsistencyPollingFuture(polling.PollingFuture):
 
     **This class should not be instantiated by users** and should only be instantiated by the admin
     client's
-    :meth:`google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_consistency`
+    :meth:`google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_consistency`
     or
-    :meth:`google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_replication`
+    :meth:`google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.wait_for_replication`
     methods.
 
     Args:
         check_consistency_call(Callable[
             [Optional[google.api_core.retry.Retry],
-            google.cloud.bigtable.admin_v2.types.CheckConsistencyResponse]):
+            google.cloud.bigtable_admin_v2.types.CheckConsistencyResponse]):
             A :meth:`check_consistency
-            <google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.check_consistency>`
+            <google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.BigtableTableAdminClient.check_consistency>`
             call from the admin client. The call should fix every user parameter,
             which will be done via :meth:`functools.partial`.
         polling (google.api_core.retry.Retry): The configuration used for polling.

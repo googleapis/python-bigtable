@@ -226,7 +226,7 @@ class Backup(object):
     def state(self):
         """The current state of this Backup.
 
-        :rtype: :class:`~google.cloud.bigtable.admin_v2.types.table.Backup.State`
+        :rtype: :class:`~google.cloud.bigtable_admin_v2.types.table.Backup.State`
         :returns: The current state of this Backup.
         """
         return self._state
@@ -342,7 +342,7 @@ class Backup(object):
         """Retrieves metadata of a pending or completed Backup.
 
         :returns: An instance of
-                 :class:`~google.cloud.bigtable.admin_v2.types.Backup`
+                 :class:`~google.cloud.bigtable_admin_v2.types.Backup`
 
         :raises google.api_core.exceptions.GoogleAPICallError: If the request
                 failed for any reason.
