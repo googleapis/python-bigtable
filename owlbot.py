@@ -71,6 +71,11 @@ def get_staging_dirs(
 bigtable_default_version = "v2"
 bigtable_admin_default_version = "v2"
 
+# These flags are needed because certain post-processing operations
+# append things after a certain line of text, and can infinitely loop
+# in a Github PR. We use these flags to only do those operations
+# on fresh copies of files found in googleapis-gen, and not on user-submitted
+# changes.
 is_fresh_admin_copy = False
 is_fresh_admin_v2_copy = False
 is_fresh_admin_docs_copy = False
@@ -128,7 +133,8 @@ INSTALL_LIBRARY_FROM_SOURCE = False""")
 # --------------------------------------------------------------------------
 
 # Add overlay imports to top level __init__.py files in admin_v2 and admin at the end
-# of each file, after the __all__ definition.
+# of each file, after the __all__ definition. These changes should only be done on fresh
+# copies of the __init__.py files.
 def add_overlay_to_init_py(init_py_location, import_statements, should_add):
     if should_add:
         s.replace(
@@ -226,44 +232,48 @@ two columns:
     ),
 )
 
-# Change the subpackage for clients with overridden internal methods in them
-# from service to overlay.service.
-s.replace(
-    "docs/admin_client/bigtable_table_admin.rst",
-    r"^\.\. automodule:: google\.cloud\.bigtable_admin_v2\.services\.bigtable_table_admin$",
-    ".. automodule:: google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin"
-)
-
-# Add overlay types to types documentation
+# These changes should only be done on fresh copies of the .rst files
+# from googleapis-gen.
 if is_fresh_admin_docs_copy:
+    # Change the subpackage for clients with overridden internal methods in them
+    # from service to overlay.service.
+    s.replace(
+        "docs/admin_client/bigtable_table_admin.rst",
+        r"^\.\. automodule:: google\.cloud\.bigtable_admin_v2\.services\.bigtable_table_admin$",
+        ".. automodule:: google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin"
+    )
+
+    # Add overlay types to types documentation
     s.replace(
         "docs/admin_client/types_.rst",
         r"""(\.\. automodule:: google\.cloud\.bigtable_admin_v2\.types
-        :members:
-        :show-inheritance:)
-    """,
+    :members:
+    :show-inheritance:)
+""",
         r"""\1
 
-    .. automodule:: google.cloud.bigtable_admin_v2.overlay.types
-        :members:
-        :show-inheritance:
-    """
+.. automodule:: google.cloud.bigtable_admin_v2.overlay.types
+    :members:
+    :show-inheritance:
+"""
     )
 
-# Add the oneof_message import into table.py for GcRule
+# These changes should only be done on a fresh copy of table.py
+# from googleapis-gen.
 if is_fresh_admin_v2_copy:
+    # Add the oneof_message import into table.py for GcRule
     s.replace(
         "google/cloud/bigtable_admin_v2/types/table.py",
         r"^(from google\.cloud\.bigtable_admin_v2\.types import .+)$",
         r"""\1
-    from google.cloud.bigtable_admin_v2.utils import oneof_message""",
+from google.cloud.bigtable_admin_v2.utils import oneof_message""",
     )
 
-# Re-subclass GcRule in table.py
-s.replace(
-    "google/cloud/bigtable_admin_v2/types/table.py",
-    r"class GcRule\(proto\.Message\)\:",
-    "class GcRule(oneof_message.OneofMessage):",
-)
+    # Re-subclass GcRule in table.py
+    s.replace(
+        "google/cloud/bigtable_admin_v2/types/table.py",
+        r"class GcRule\(proto\.Message\)\:",
+        "class GcRule(oneof_message.OneofMessage):",
+    )
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
