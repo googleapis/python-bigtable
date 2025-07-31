@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+import pytest
 
-TEST_FAMILY = "test-family"
-TEST_FAMILY_2 = "test-family-2"
-TEST_AGGREGATE_FAMILY = "test-aggregate-family"
+from google.cloud.bigtable.data.execute_query.metadata import (
+    _pb_metadata_to_metadata_types,
+)
+from google.cloud.bigtable_v2.types.data import ResultSetMetadata
+
+
+def test_empty_metadata_fails_parsing():
+    invalid_md_proto = ResultSetMetadata({"proto_schema": {"columns": []}})
+    with pytest.raises(ValueError):
+        _pb_metadata_to_metadata_types(invalid_md_proto)

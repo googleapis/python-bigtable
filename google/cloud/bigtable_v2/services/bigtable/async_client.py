@@ -39,6 +39,7 @@ from google.api_core import gapic_v1
 from google.api_core import retry_async as retries
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.oauth2 import service_account  # type: ignore
+import google.protobuf
 
 
 try:
@@ -386,7 +387,7 @@ class BigtableAsyncClient:
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -510,7 +511,7 @@ class BigtableAsyncClient:
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -655,7 +656,7 @@ class BigtableAsyncClient:
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -794,7 +795,7 @@ class BigtableAsyncClient:
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -974,7 +975,7 @@ class BigtableAsyncClient:
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -1093,7 +1094,7 @@ class BigtableAsyncClient:
         if regex_match and regex_match.group("name"):
             header_params["name"] = regex_match.group("name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:
@@ -1163,7 +1164,9 @@ class BigtableAsyncClient:
                 transformed into writes. Entries are
                 applied in order, meaning that earlier
                 rules will affect the results of later
-                ones.
+                ones. At least one entry must be
+                specified, and there can be at most
+                100000 rules.
 
                 This corresponds to the ``rules`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1235,7 +1238,7 @@ class BigtableAsyncClient:
         if regex_match and regex_match.group("table_name"):
             header_params["table_name"] = regex_match.group("table_name")
 
-        if request.app_profile_id:
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         routing_param_regex = re.compile(
@@ -1280,10 +1283,11 @@ class BigtableAsyncClient:
     ) -> Awaitable[
         AsyncIterable[bigtable.GenerateInitialChangeStreamPartitionsResponse]
     ]:
-        r"""NOTE: This API is intended to be used by Apache Beam BigtableIO.
-        Returns the current list of partitions that make up the table's
+        r"""Returns the current list of partitions that make up the table's
         change stream. The union of partitions will cover the entire
         keyspace. Partitions can be read with ``ReadChangeStream``.
+        NOTE: This API is only intended to be used by Apache Beam
+        BigtableIO.
 
         Args:
             request (Optional[Union[google.cloud.bigtable_v2.types.GenerateInitialChangeStreamPartitionsRequest, dict]]):
@@ -1391,10 +1395,11 @@ class BigtableAsyncClient:
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
     ) -> Awaitable[AsyncIterable[bigtable.ReadChangeStreamResponse]]:
-        r"""NOTE: This API is intended to be used by Apache Beam
-        BigtableIO. Reads changes from a table's change stream.
-        Changes will reflect both user-initiated mutations and
-        mutations that are caused by garbage collection.
+        r"""Reads changes from a table's change stream. Changes
+        will reflect both user-initiated mutations and mutations
+        that are caused by garbage collection.
+        NOTE: This API is only intended to be used by Apache
+        Beam BigtableIO.
 
         Args:
             request (Optional[Union[google.cloud.bigtable_v2.types.ReadChangeStreamRequest, dict]]):
@@ -1584,9 +1589,7 @@ class BigtableAsyncClient:
         if regex_match and regex_match.group("name"):
             header_params["name"] = regex_match.group("name")
 
-        if request.app_profile_id is not None:
-            # prepare_query currently requires app_profile_id header to be set
-            # even when the request param is unpopulated TODO: remove after support is added
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:
@@ -1706,9 +1709,7 @@ class BigtableAsyncClient:
         if regex_match and regex_match.group("name"):
             header_params["name"] = regex_match.group("name")
 
-        if request.app_profile_id is not None:
-            # execute_query currently requires app_profile_id header to be set
-            # even when the request param is unpopulated TODO: remove after support is added
+        if True:  # always attach app_profile_id, even if empty string
             header_params["app_profile_id"] = request.app_profile_id
 
         if header_params:
@@ -1740,6 +1741,9 @@ class BigtableAsyncClient:
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
+
+if hasattr(DEFAULT_CLIENT_INFO, "protobuf_runtime_version"):  # pragma: NO COVER
+    DEFAULT_CLIENT_INFO.protobuf_runtime_version = google.protobuf.__version__
 
 
 __all__ = ("BigtableAsyncClient",)
