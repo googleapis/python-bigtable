@@ -22,8 +22,10 @@ NEW_CELL_VALUE = "World"
 
 @pytest.fixture(scope="session")
 def admin_overlay_project_id():
-    _, default_project = google.auth.default()
-    yield os.getenv("GOOGLE_CLOUD_PROJECT") or default_project
+    project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+    if not project_id:
+        _, project_id = google.auth.default()
+    return project_id
 
 
 def generate_unique_suffix(name):
