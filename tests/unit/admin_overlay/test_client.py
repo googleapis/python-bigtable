@@ -22,6 +22,7 @@ except ImportError:  # pragma: NO COVER
 from google.api_core import exceptions
 from google.api_core import gapic_v1
 from google.api_core import retry as retries
+from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import transports
 from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
 from google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.client import (
@@ -48,6 +49,11 @@ TABLE_NAME = "my_table"
 CONSISTENCY_TOKEN = "abcdefg"
 
 
+def _make_client(**kwargs):
+    kwargs["credentials"] = kwargs.get("credentials", AnonymousCredentials())
+    return BigtableTableAdminClient(**kwargs)
+
+
 @pytest.mark.parametrize(
     "transport_class,transport_name",
     [
@@ -64,7 +70,7 @@ CONSISTENCY_TOKEN = "abcdefg"
 def test_bigtable_table_admin_client_client_version(transport_class, transport_name):
     with mock.patch.object(transport_class, "__init__") as patched:
         patched.return_value = None
-        BigtableTableAdminClient(transport=transport_name)
+        _make_client(transport=transport_name)
 
         # call_args.kwargs is not supported in Python 3.7, so find them from the tuple
         # instead. It's always the last item in the call_args tuple.
@@ -104,7 +110,7 @@ def test_bigtable_table_admin_client_client_version(transport_class, transport_n
     ],
 )
 def test_bigtable_table_admin_client_restore_table(kwargs):
-    client = BigtableTableAdminClient()
+    client = _make_client()
 
     with mock.patch.object(restore_table, "RestoreTableOperation") as future_mock:
         with mock.patch.object(client, "_transport") as transport_mock:
@@ -190,7 +196,7 @@ def test_bigtable_table_admin_client_restore_table(kwargs):
 def test_bigtable_table_admin_client_wait_for_consistency(
     kwargs, check_consistency_request_extras
 ):
-    client = BigtableTableAdminClient()
+    client = _make_client()
     poll_count = 3
     check_mock_side_effect = [FALSE_CONSISTENCY_RESPONSE] * (poll_count - 1)
     check_mock_side_effect.append(TRUE_CONSISTENCY_RESPONSE)
@@ -234,7 +240,7 @@ def test_bigtable_table_admin_client_wait_for_consistency(
 
 
 def test_bigtable_table_admin_client_wait_for_consistency_error_in_call():
-    client = BigtableTableAdminClient()
+    client = _make_client()
     request = wait_for_consistency_request.WaitForConsistencyRequest(
         name=TABLE_NAME,
     )
@@ -262,7 +268,7 @@ def test_bigtable_table_admin_client_wait_for_consistency_error_in_call():
 
 
 def test_bigtable_table_admin_client_wait_for_consistency_user_error():
-    client = BigtableTableAdminClient()
+    client = _make_client()
     with pytest.raises(ValueError):
         client.wait_for_consistency(
             {

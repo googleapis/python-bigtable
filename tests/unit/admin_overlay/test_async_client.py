@@ -23,6 +23,7 @@ except ImportError:  # pragma: NO COVER
 from google.api_core import exceptions
 from google.api_core import gapic_v1
 from google.api_core import retry as retries
+from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import transports
 from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
 from google.cloud.bigtable_admin_v2.overlay.services.bigtable_table_admin.async_client import (
@@ -49,6 +50,11 @@ TABLE_NAME = "my_table"
 CONSISTENCY_TOKEN = "abcdefg"
 
 
+def _make_client(**kwargs):
+    kwargs["credentials"] = kwargs.get("credentials", AnonymousCredentials())
+    return BigtableTableAdminAsyncClient(**kwargs)
+
+
 @pytest.mark.parametrize(
     "transport_class,transport_name",
     [
@@ -63,7 +69,7 @@ def test_bigtable_table_admin_async_client_client_version(
 ):
     with mock.patch.object(transport_class, "__init__") as patched:
         patched.return_value = None
-        BigtableTableAdminAsyncClient(transport=transport_name)
+        _make_client(transport=transport_name)
 
         # call_args.kwargs is not supported in Python 3.7, so find them from the tuple
         # instead. It's always the last item in the call_args tuple.
@@ -104,7 +110,7 @@ def test_bigtable_table_admin_async_client_client_version(
     ],
 )
 async def test_bigtable_table_admin_async_client_restore_table(kwargs):
-    client = BigtableTableAdminAsyncClient()
+    client = _make_client()
 
     with mock.patch.object(
         async_restore_table, "AsyncRestoreTableOperation", new_callable=mock.AsyncMock
@@ -197,7 +203,7 @@ async def test_bigtable_table_admin_async_client_restore_table(kwargs):
 async def test_bigtable_table_admin_async_client_wait_for_consistency(
     kwargs, check_consistency_request_extras
 ):
-    client = BigtableTableAdminAsyncClient()
+    client = _make_client()
     poll_count = 3
     check_mock_side_effect = [FALSE_CONSISTENCY_RESPONSE] * (poll_count - 1)
     check_mock_side_effect.append(TRUE_CONSISTENCY_RESPONSE)
@@ -246,7 +252,7 @@ async def test_bigtable_table_admin_async_client_wait_for_consistency(
 
 @pytest.mark.asyncio
 async def test_bigtable_table_admin_async_client_wait_for_consistency_error_in_call():
-    client = BigtableTableAdminAsyncClient()
+    client = _make_client()
     request = wait_for_consistency_request.WaitForConsistencyRequest(
         name=TABLE_NAME,
     )
@@ -281,7 +287,7 @@ async def test_bigtable_table_admin_async_client_wait_for_consistency_error_in_c
 
 @pytest.mark.asyncio
 async def test_bigtable_table_admin_async_client_wait_for_consistency_user_error():
-    client = BigtableTableAdminAsyncClient()
+    client = _make_client()
     with pytest.raises(ValueError):
         await client.wait_for_consistency(
             {
