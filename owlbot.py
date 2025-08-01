@@ -150,7 +150,7 @@ s.replace(
         assert args[0] == request_msg
 
         expected_headers = {
-            "app_profile_id": ""
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3"
     """
 )
