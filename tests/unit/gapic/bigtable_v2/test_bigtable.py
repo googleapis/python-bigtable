@@ -6894,7 +6894,7 @@ def test_read_rows_routing_parameters_request_3_grpc():
         call.return_value = iter([bigtable.ReadRowsResponse()])
         client.read_rows(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -6903,7 +6903,7 @@ def test_read_rows_routing_parameters_request_3_grpc():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.ReadRowsRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -6911,7 +6911,7 @@ def test_read_rows_routing_parameters_request_3_grpc():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -6984,7 +6984,7 @@ def test_sample_row_keys_routing_parameters_request_3_grpc():
         call.return_value = iter([bigtable.SampleRowKeysResponse()])
         client.sample_row_keys(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -6993,7 +6993,7 @@ def test_sample_row_keys_routing_parameters_request_3_grpc():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.SampleRowKeysRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7001,7 +7001,7 @@ def test_sample_row_keys_routing_parameters_request_3_grpc():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -7074,7 +7074,7 @@ def test_mutate_row_routing_parameters_request_3_grpc():
         call.return_value = bigtable.MutateRowResponse()
         client.mutate_row(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7083,7 +7083,7 @@ def test_mutate_row_routing_parameters_request_3_grpc():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.MutateRowRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7091,7 +7091,7 @@ def test_mutate_row_routing_parameters_request_3_grpc():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -7164,7 +7164,7 @@ def test_mutate_rows_routing_parameters_request_3_grpc():
         call.return_value = iter([bigtable.MutateRowsResponse()])
         client.mutate_rows(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7173,7 +7173,7 @@ def test_mutate_rows_routing_parameters_request_3_grpc():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.MutateRowsRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7181,7 +7181,7 @@ def test_mutate_rows_routing_parameters_request_3_grpc():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -7260,7 +7260,7 @@ def test_check_and_mutate_row_routing_parameters_request_3_grpc():
         call.return_value = bigtable.CheckAndMutateRowResponse()
         client.check_and_mutate_row(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7269,7 +7269,7 @@ def test_check_and_mutate_row_routing_parameters_request_3_grpc():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.CheckAndMutateRowRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7277,7 +7277,7 @@ def test_check_and_mutate_row_routing_parameters_request_3_grpc():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -7411,7 +7411,7 @@ def test_read_modify_write_row_routing_parameters_request_3_grpc():
         call.return_value = bigtable.ReadModifyWriteRowResponse()
         client.read_modify_write_row(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7420,7 +7420,7 @@ def test_read_modify_write_row_routing_parameters_request_3_grpc():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.ReadModifyWriteRowRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7428,7 +7428,7 @@ def test_read_modify_write_row_routing_parameters_request_3_grpc():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -7933,7 +7933,7 @@ async def test_read_rows_routing_parameters_request_3_grpc_asyncio():
         )
         await client.read_rows(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7942,7 +7942,7 @@ async def test_read_rows_routing_parameters_request_3_grpc_asyncio():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.ReadRowsRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -7950,7 +7950,7 @@ async def test_read_rows_routing_parameters_request_3_grpc_asyncio():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -8038,7 +8038,7 @@ async def test_sample_row_keys_routing_parameters_request_3_grpc_asyncio():
         )
         await client.sample_row_keys(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -8047,7 +8047,7 @@ async def test_sample_row_keys_routing_parameters_request_3_grpc_asyncio():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.SampleRowKeysRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -8055,7 +8055,7 @@ async def test_sample_row_keys_routing_parameters_request_3_grpc_asyncio():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -8140,7 +8140,7 @@ async def test_mutate_row_routing_parameters_request_3_grpc_asyncio():
         )
         await client.mutate_row(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -8149,7 +8149,7 @@ async def test_mutate_row_routing_parameters_request_3_grpc_asyncio():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.MutateRowRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -8157,7 +8157,7 @@ async def test_mutate_row_routing_parameters_request_3_grpc_asyncio():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -8245,7 +8245,7 @@ async def test_mutate_rows_routing_parameters_request_3_grpc_asyncio():
         )
         await client.mutate_rows(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -8254,7 +8254,7 @@ async def test_mutate_rows_routing_parameters_request_3_grpc_asyncio():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.MutateRowsRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -8262,7 +8262,7 @@ async def test_mutate_rows_routing_parameters_request_3_grpc_asyncio():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -8359,7 +8359,7 @@ async def test_check_and_mutate_row_routing_parameters_request_3_grpc_asyncio():
         )
         await client.check_and_mutate_row(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -8368,7 +8368,7 @@ async def test_check_and_mutate_row_routing_parameters_request_3_grpc_asyncio():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.CheckAndMutateRowRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -8376,7 +8376,7 @@ async def test_check_and_mutate_row_routing_parameters_request_3_grpc_asyncio():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -8532,7 +8532,7 @@ async def test_read_modify_write_row_routing_parameters_request_3_grpc_asyncio()
         )
         await client.read_modify_write_row(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -8541,7 +8541,7 @@ async def test_read_modify_write_row_routing_parameters_request_3_grpc_asyncio()
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.ReadModifyWriteRowRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -8549,7 +8549,7 @@ async def test_read_modify_write_row_routing_parameters_request_3_grpc_asyncio()
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -10374,7 +10374,7 @@ def test_read_rows_routing_parameters_request_3_rest():
     with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
         client.read_rows(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10383,7 +10383,7 @@ def test_read_rows_routing_parameters_request_3_rest():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.ReadRowsRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10391,7 +10391,7 @@ def test_read_rows_routing_parameters_request_3_rest():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -10461,7 +10461,7 @@ def test_sample_row_keys_routing_parameters_request_3_rest():
     with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
         client.sample_row_keys(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10470,7 +10470,7 @@ def test_sample_row_keys_routing_parameters_request_3_rest():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.SampleRowKeysRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10478,7 +10478,7 @@ def test_sample_row_keys_routing_parameters_request_3_rest():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -10548,7 +10548,7 @@ def test_mutate_row_routing_parameters_request_3_rest():
     with mock.patch.object(type(client.transport.mutate_row), "__call__") as call:
         client.mutate_row(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10557,7 +10557,7 @@ def test_mutate_row_routing_parameters_request_3_rest():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.MutateRowRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10565,7 +10565,7 @@ def test_mutate_row_routing_parameters_request_3_rest():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -10635,7 +10635,7 @@ def test_mutate_rows_routing_parameters_request_3_rest():
     with mock.patch.object(type(client.transport.mutate_rows), "__call__") as call:
         client.mutate_rows(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10644,7 +10644,7 @@ def test_mutate_rows_routing_parameters_request_3_rest():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.MutateRowsRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10652,7 +10652,7 @@ def test_mutate_rows_routing_parameters_request_3_rest():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -10728,7 +10728,7 @@ def test_check_and_mutate_row_routing_parameters_request_3_rest():
     ) as call:
         client.check_and_mutate_row(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10737,7 +10737,7 @@ def test_check_and_mutate_row_routing_parameters_request_3_rest():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.CheckAndMutateRowRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10745,7 +10745,7 @@ def test_check_and_mutate_row_routing_parameters_request_3_rest():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
@@ -10874,7 +10874,7 @@ def test_read_modify_write_row_routing_parameters_request_3_rest():
     ) as call:
         client.read_modify_write_row(
             request={
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10883,7 +10883,7 @@ def test_read_modify_write_row_routing_parameters_request_3_rest():
         _, args, kw = call.mock_calls[0]
         request_msg = bigtable.ReadModifyWriteRowRequest(
             **{
-                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
         )
 
@@ -10891,7 +10891,7 @@ def test_read_modify_write_row_routing_parameters_request_3_rest():
 
         expected_headers = {
             "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
             gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
