@@ -6910,6 +6910,7 @@ def test_read_rows_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -6999,6 +7000,7 @@ def test_sample_row_keys_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -7088,6 +7090,7 @@ def test_mutate_row_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -7177,6 +7180,7 @@ def test_mutate_rows_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -7272,6 +7276,7 @@ def test_check_and_mutate_row_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -7422,6 +7427,7 @@ def test_read_modify_write_row_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -7943,6 +7949,7 @@ async def test_read_rows_routing_parameters_request_3_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -8047,6 +8054,7 @@ async def test_sample_row_keys_routing_parameters_request_3_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -8148,6 +8156,7 @@ async def test_mutate_row_routing_parameters_request_3_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -8252,6 +8261,7 @@ async def test_mutate_rows_routing_parameters_request_3_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -8365,6 +8375,7 @@ async def test_check_and_mutate_row_routing_parameters_request_3_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -8537,6 +8548,7 @@ async def test_read_modify_write_row_routing_parameters_request_3_grpc_asyncio()
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -10378,6 +10390,7 @@ def test_read_rows_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -10464,6 +10477,7 @@ def test_sample_row_keys_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -10550,6 +10564,7 @@ def test_mutate_row_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -10636,6 +10651,7 @@ def test_mutate_rows_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -10728,6 +10744,7 @@ def test_check_and_mutate_row_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
@@ -10873,6 +10890,7 @@ def test_read_modify_write_row_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
+            "app_profile_id": "",
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
         }
         assert (
