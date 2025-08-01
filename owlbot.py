@@ -135,9 +135,9 @@ s.replace(
     """
                 "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
             }
-        )
+        \)
 
-        assert args[0] == request_msg
+        assert args\[0\] == request_msg
 
         expected_headers = {
             "table_name": "projects/sample1/instances/sample2/tables/sample3",
