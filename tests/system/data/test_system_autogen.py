@@ -26,10 +26,10 @@ from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VA
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.type import date_pb2
 from google.cloud.bigtable.data._cross_sync import CrossSync
+from . import TEST_FAMILY, TEST_FAMILY_2, TEST_AGGREGATE_FAMILY
 from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
     _LoggingClientInterceptor as GapicInterceptor,
 )
-from . import TEST_FAMILY, TEST_FAMILY_2, TEST_AGGREGATE_FAMILY
 
 TARGETS = ["table"]
 if not os.environ.get(BIGTABLE_EMULATOR):

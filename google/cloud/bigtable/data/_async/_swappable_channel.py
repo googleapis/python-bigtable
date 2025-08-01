@@ -102,6 +102,7 @@ class AsyncSwappableChannel(_AsyncWrappedChannel):
       - channel_fn: a nullary function that returns a new channel instance.
             It should be a partial with all channel configuration arguments built-in
     """
+
     def __init__(self, channel_fn: Callable[[], Channel]):
         self._channel_fn = channel_fn
         self._channel = channel_fn()
