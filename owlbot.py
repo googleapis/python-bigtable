@@ -133,15 +133,25 @@ s.replace(
 s.replace(
     "tests/unit/gapic/bigtable_v2/test_bigtable.py",
     """
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
+            }
+        )
+
+        assert args[0] == request_msg
+
         expected_headers = {
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
-        }
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
     """,
     """
+                "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/sample4"
+            }
+        )
+
+        assert args[0] == request_msg
+
         expected_headers = {
-            "app_profile_id": "",
-            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
-        }
+            "app_profile_id": ""
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
     """
 )
 s.replace(
