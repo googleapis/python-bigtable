@@ -76,14 +76,15 @@ from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsControl
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from typing import Iterable
 from grpc import insecure_channel
-from grpc import intercept_channel
 from google.cloud.bigtable_v2.services.bigtable.transports import (
     BigtableGrpcTransport as TransportType,
 )
+from google.cloud.bigtable_v2.services.bigtable import BigtableClient as GapicClient
 from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
     BigtableMetricsInterceptor as MetricInterceptorType,
 )
+from google.cloud.bigtable.data._sync_autogen._swappable_channel import SwappableChannel
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -135,7 +136,6 @@ class BigtableDataClient(ClientWithProject):
         client_options = cast(
             Optional[client_options_lib.ClientOptions], client_options
         )
-        custom_channel = None
         self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
         if self._emulator_host is not None:
             warnings.warn(
@@ -143,7 +143,6 @@ class BigtableDataClient(ClientWithProject):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            custom_channel = insecure_channel(self._emulator_host)
             if credentials is None:
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
@@ -154,12 +153,12 @@ class BigtableDataClient(ClientWithProject):
             project=project,
             client_options=client_options,
         )
-        self._gapic_client = CrossSync._Sync_Impl.GapicClient(
+        self._gapic_client = GapicClient(
             credentials=credentials,
             client_options=client_options,
             client_info=self.client_info,
             transport=lambda *args, **kwargs: TransportType(
-                *args, **kwargs, channel=custom_channel
+                *args, **kwargs, channel=self._build_grpc_channel
             ),
         )
         self._is_closed = CrossSync._Sync_Impl.Event()
@@ -168,7 +167,7 @@ class BigtableDataClient(ClientWithProject):
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
         self._channel_refresh_task: CrossSync._Sync_Impl.Task[None] | None = None
-        self._executor = (
+        self._executor: concurrent.futures.ThreadPoolExecutor | None = (
             concurrent.futures.ThreadPoolExecutor()
             if not CrossSync._Sync_Impl.is_async
             else None
@@ -183,6 +182,25 @@ class BigtableDataClient(ClientWithProject):
                     RuntimeWarning,
                     stacklevel=2,
                 )
+
+    def _build_grpc_channel(self, *args, **kwargs) -> SwappableChannel:
+        """This method is called by the gapic transport to create a grpc channel.
+
+        The init arguments passed down are captured in a partial used by SwappableChannel
+        to create new channel instances in the future, as part of the channel refresh logic
+
+        Emulators always use an inseucre channel
+
+        Args:
+          - *args: positional arguments passed by the gapic layer to create a new channel with
+          - **kwargs: keyword arguments passed by the gapic layer to create a new channel with
+        Returns:
+          a custom wrapped swappable channel"""
+        if self._emulator_host is not None:
+            create_channel_fn = partial(insecure_channel, self._emulator_host)
+        else:
+            create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
+        return SwappableChannel(create_channel_fn)
 
     @staticmethod
     def _client_version() -> str:
@@ -260,6 +278,11 @@ class BigtableDataClient(ClientWithProject):
         )
         return [r or None for r in result_list]
 
+    def _invalidate_channel_stubs(self):
+        """Helper to reset the cached stubs. Needed when changing out the grpc channel"""
+        self.transport._stubs = {}
+        self.transport._prep_wrapped_messages(self.client_info)
+
     def _manage_channel(
         self,
         refresh_interval_min: float = 60 * 35,
@@ -282,12 +305,16 @@ class BigtableDataClient(ClientWithProject):
                 between `refresh_interval_min` and `refresh_interval_max`
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds"""
+        if not isinstance(self.transport.grpc_channel, SwappableChannel):
+            warnings.warn("Channel does not support auto-refresh.")
+            return
+        super_channel: SwappableChannel = self.transport.grpc_channel
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
         next_sleep = max(first_refresh - time.monotonic(), 0)
         if next_sleep > 0:
-            self._ping_and_warm_instances(channel=self.transport.grpc_channel)
+            self._ping_and_warm_instances(channel=super_channel)
         while not self._is_closed.is_set():
             CrossSync._Sync_Impl.event_wait(
                 self._is_closed, next_sleep, async_break_early=False
@@ -295,14 +322,10 @@ class BigtableDataClient(ClientWithProject):
             if self._is_closed.is_set():
                 break
             start_timestamp = time.monotonic()
-            old_channel = self.transport.grpc_channel
-            new_channel = self.transport.create_channel()
-            new_channel = intercept_channel(new_channel, self.transport._interceptor)
+            new_channel = super_channel.create_channel()
             self._ping_and_warm_instances(channel=new_channel)
-            self.transport._grpc_channel = new_channel
-            self.transport._logged_channel = new_channel
-            self.transport._stubs = {}
-            self.transport._prep_wrapped_messages(self.client_info)
+            old_channel = super_channel.swap_channel(new_channel)
+            self._invalidate_channel_stubs()
             if grace_period:
                 self._is_closed.wait(grace_period)
             old_channel.close()
@@ -675,22 +698,30 @@ class _DataApiTarget(abc.ABC):
         self.table_name = self.client._gapic_client.table_path(
             self.client.project, instance_id, table_id
         )
-        self.app_profile_id = app_profile_id
-        self.default_operation_timeout = default_operation_timeout
-        self.default_attempt_timeout = default_attempt_timeout
-        self.default_read_rows_operation_timeout = default_read_rows_operation_timeout
-        self.default_read_rows_attempt_timeout = default_read_rows_attempt_timeout
-        self.default_mutate_rows_operation_timeout = (
+        self.app_profile_id: str | None = app_profile_id
+        self.default_operation_timeout: float = default_operation_timeout
+        self.default_attempt_timeout: float | None = default_attempt_timeout
+        self.default_read_rows_operation_timeout: float = (
+            default_read_rows_operation_timeout
+        )
+        self.default_read_rows_attempt_timeout: float | None = (
+            default_read_rows_attempt_timeout
+        )
+        self.default_mutate_rows_operation_timeout: float = (
             default_mutate_rows_operation_timeout
         )
-        self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
-        self.default_read_rows_retryable_errors = (
+        self.default_mutate_rows_attempt_timeout: float | None = (
+            default_mutate_rows_attempt_timeout
+        )
+        self.default_read_rows_retryable_errors: Sequence[type[Exception]] = (
             default_read_rows_retryable_errors or ()
         )
-        self.default_mutate_rows_retryable_errors = (
+        self.default_mutate_rows_retryable_errors: Sequence[type[Exception]] = (
             default_mutate_rows_retryable_errors or ()
         )
-        self.default_retryable_errors = default_retryable_errors or ()
+        self.default_retryable_errors: Sequence[type[Exception]] = (
+            default_retryable_errors or ()
+        )
         self._metrics = BigtableClientSideMetricsController(
             client._interceptor,
             project_id=self.client.project,

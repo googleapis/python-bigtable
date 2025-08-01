@@ -27,6 +27,9 @@ from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.type import date_pb2
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from . import TEST_FAMILY, TEST_FAMILY_2, TEST_AGGREGATE_FAMILY
+from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
+    _LoggingClientInterceptor as GapicInterceptor,
+)
 
 TARGETS = ["table"]
 if not os.environ.get(BIGTABLE_EMULATOR):
@@ -231,13 +234,17 @@ class TestSystem:
             CrossSync._Sync_Impl.yield_to_event_loop()
             with client.get_table(instance_id, table_id) as table:
                 rows = table.read_rows({})
-                first_channel = client.transport.grpc_channel
+                channel_wrapper = client.transport.grpc_channel
+                first_channel = client.transport.grpc_channel._channel
                 assert len(rows) == 2
                 CrossSync._Sync_Impl.sleep(2)
                 rows_after_refresh = table.read_rows({})
                 assert len(rows_after_refresh) == 2
-                assert client.transport.grpc_channel is not first_channel
-                print(table)
+                assert client.transport.grpc_channel is channel_wrapper
+                assert client.transport.grpc_channel._channel is not first_channel
+                assert isinstance(
+                    client.transport._logged_channel._interceptor, GapicInterceptor
+                )
         finally:
             client.close()
 
