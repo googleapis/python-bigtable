@@ -302,15 +302,11 @@ class TestSystemAsync:
                 assert channel_wrapper._channel is not first_channel
                 # ensure interceptors are kept (gapic's logging interceptor, and metric interceptor)
                 if CrossSync.is_async:
-                    unary_interceptors = (
-                        updated_channel._unary_unary_interceptors
-                    )
+                    unary_interceptors = updated_channel._unary_unary_interceptors
                     assert len(unary_interceptors) == 2
                     assert GapicInterceptor in [type(i) for i in unary_interceptors]
                     assert client._metrics_interceptor in unary_interceptors
-                    stream_interceptors = (
-                        updated_channel._unary_stream_interceptors
-                    )
+                    stream_interceptors = updated_channel._unary_stream_interceptors
                     assert len(stream_interceptors) == 1
                     assert client._metrics_interceptor in stream_interceptors
                 else:

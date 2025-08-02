@@ -20,8 +20,13 @@ from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
 
 if TYPE_CHECKING:
-  from google.cloud.bigtable.data._async.metrics_interceptor import AsyncBigtableMetricsInterceptor
-  from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import BigtableMetricsInterceptor
+    from google.cloud.bigtable.data._async.metrics_interceptor import (
+        AsyncBigtableMetricsInterceptor,
+    )
+    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
+        BigtableMetricsInterceptor,
+    )
+
 
 class BigtableClientSideMetricsController:
     """
@@ -31,10 +36,11 @@ class BigtableClientSideMetricsController:
     registered with the handlers associated with this controller.
     """
 
-    def __init__(self, 
-        interceptor: AsyncBigtableMetricsInterceptor | BigtableMetricsInterceptor, 
+    def __init__(
+        self,
+        interceptor: AsyncBigtableMetricsInterceptor | BigtableMetricsInterceptor,
         handlers: list[MetricsHandler] | None = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initializes the metrics controller.

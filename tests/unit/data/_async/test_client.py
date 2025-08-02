@@ -54,7 +54,9 @@ if CrossSync.is_async:
     from google.cloud.bigtable.data._async._swappable_channel import (
         AsyncSwappableChannel,
     )
-    from google.cloud.bigtable.data._async.metrics_interceptor import AsyncBigtableMetricsInterceptor
+    from google.cloud.bigtable.data._async.metrics_interceptor import (
+        AsyncBigtableMetricsInterceptor,
+    )
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers_async)
     CrossSync.add_mapping("SwappableChannel", AsyncSwappableChannel)
@@ -65,7 +67,9 @@ else:
     from google.cloud.bigtable.data._sync_autogen._swappable_channel import (
         SwappableChannel,
     )
-    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import BigtableMetricsInterceptor
+    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
+        BigtableMetricsInterceptor,
+    )
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
     CrossSync.add_mapping("SwappableChannel", SwappableChannel)

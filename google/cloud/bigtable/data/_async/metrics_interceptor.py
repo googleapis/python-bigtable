@@ -13,10 +13,10 @@
 # limitations under the License
 from __future__ import annotations
 
-import time
-from typing import Any, Callable
 from functools import wraps
-from google.cloud.bigtable.data._metrics.data_model import OPERATION_INTERCEPTOR_METADATA_KEY
+from google.cloud.bigtable.data._metrics.data_model import (
+    OPERATION_INTERCEPTOR_METADATA_KEY,
+)
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import OperationState
 
@@ -38,9 +38,17 @@ def _with_operation_from_metadata(func):
     Decorator for interceptor methods to extract the active operation
     from metadata and pass it to the decorated function.
     """
+
     @wraps(func)
     def wrapper(self, continuation, client_call_details, request):
-        key = next((m[1] for m in client_call_details.metadata if m[0] == OPERATION_INTERCEPTOR_METADATA_KEY), None)
+        key = next(
+            (
+                m[1]
+                for m in client_call_details.metadata
+                if m[0] == OPERATION_INTERCEPTOR_METADATA_KEY
+            ),
+            None,
+        )
         operation: "ActiveOperationMetric" = self.operation_map.get(key)
         if operation:
             # start a new attempt if not started
@@ -51,13 +59,14 @@ def _with_operation_from_metadata(func):
         else:
             # if operation not found, return unwrapped continuation
             return continuation(client_call_details, request)
+
     return wrapper
 
 
-@CrossSync.convert_class(
-    sync_name="BigtableMetricsInterceptor"
-)
-class AsyncBigtableMetricsInterceptor(UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor):
+@CrossSync.convert_class(sync_name="BigtableMetricsInterceptor")
+class AsyncBigtableMetricsInterceptor(
+    UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor
+):
     """
     An async gRPC interceptor to add client metadata and print server metadata.
     """
@@ -89,7 +98,9 @@ class AsyncBigtableMetricsInterceptor(UnaryUnaryClientInterceptor, UnaryStreamCl
 
     @CrossSync.convert
     @_with_operation_from_metadata
-    async def intercept_unary_unary(self, operation, continuation, client_call_details, request):
+    async def intercept_unary_unary(
+        self, operation, continuation, client_call_details, request
+    ):
         encountered_exc: Exception | None = None
         call = None
         try:
@@ -101,8 +112,7 @@ class AsyncBigtableMetricsInterceptor(UnaryUnaryClientInterceptor, UnaryStreamCl
         finally:
             if call is not None:
                 metadata = (
-                    await call.trailing_metadata()
-                    + await call.initial_metadata()
+                    await call.trailing_metadata() + await call.initial_metadata()
                 )
                 operation.add_response_metadata(metadata)
                 if encountered_exc is not None:
@@ -111,7 +121,9 @@ class AsyncBigtableMetricsInterceptor(UnaryUnaryClientInterceptor, UnaryStreamCl
 
     @CrossSync.convert
     @_with_operation_from_metadata
-    async def intercept_unary_stream(self, operation, continuation, client_call_details, request):
+    async def intercept_unary_stream(
+        self, operation, continuation, client_call_details, request
+    ):
         async def response_wrapper(call):
             encountered_exc = None
             try:
@@ -123,8 +135,7 @@ class AsyncBigtableMetricsInterceptor(UnaryUnaryClientInterceptor, UnaryStreamCl
                 raise
             finally:
                 metadata = (
-                    await call.trailing_metadata()
-                    + await call.initial_metadata()
+                    await call.trailing_metadata() + await call.initial_metadata()
                 )
                 operation.add_response_metadata(metadata)
                 if encountered_exc is not None:

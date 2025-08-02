@@ -201,9 +201,13 @@ class BigtableDataClient(ClientWithProject):
         if self._emulator_host is not None:
             create_channel_fn = partial(insecure_channel, self._emulator_host)
         else:
-            create_channel_fn = lambda: intercept_channel(
-                TransportType.create_channel(*args, **kwargs), self._metrics_interceptor
-            )
+
+            def create_channel_fn():
+                return intercept_channel(
+                    TransportType.create_channel(*args, **kwargs),
+                    self._metrics_interceptor,
+                )
+
         new_channel = SwappableChannel(create_channel_fn)
         return new_channel
 

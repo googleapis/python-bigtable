@@ -98,7 +98,9 @@ if CrossSync.is_async:
         BigtableAsyncClient as GapicClient,
     )
     from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
-    from google.cloud.bigtable.data._async.metrics_interceptor import AsyncBigtableMetricsInterceptor as MetricInterceptorType
+    from google.cloud.bigtable.data._async.metrics_interceptor import (
+        AsyncBigtableMetricsInterceptor as MetricInterceptorType,
+    )
     from google.cloud.bigtable.data._async._swappable_channel import (
         AsyncSwappableChannel,
     )
@@ -109,7 +111,9 @@ else:
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
     from google.cloud.bigtable_v2.services.bigtable import BigtableClient as GapicClient  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
-    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import BigtableMetricsInterceptor as MetricInterceptorType
+    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
+        BigtableMetricsInterceptor as MetricInterceptorType,
+    )
     from google.cloud.bigtable.data._sync_autogen._swappable_channel import (  # noqa: F401
         SwappableChannel,
     )
@@ -272,9 +276,12 @@ class BigtableDataClientAsync(ClientWithProject):
             create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
         else:
             # attach sync interceptors in create_channel_fn
-            create_channel_fn = lambda: intercept_channel(
-                TransportType.create_channel(*args, **kwargs), self._metrics_interceptor
-            )
+            def create_channel_fn():
+                return intercept_channel(
+                    TransportType.create_channel(*args, **kwargs),
+                    self._metrics_interceptor,
+                )
+
         new_channel = AsyncSwappableChannel(create_channel_fn)
         if CrossSync.is_async:
             # attach async interceptors

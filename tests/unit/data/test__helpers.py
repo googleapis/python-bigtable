@@ -269,12 +269,13 @@ class TestGetRetryableErrors:
 
 
 class TestTrackedBackoffGenerator:
-
     def test_tracked_backoff_generator_history(self):
         """
         Should be able to retrieve historical results from backoff generator
         """
-        generator = _helpers.TrackedBackoffGenerator(initial=0, multiplier=2, maximum=10)
+        generator = _helpers.TrackedBackoffGenerator(
+            initial=0, multiplier=2, maximum=10
+        )
         got_list = [next(generator) for _ in range(20)]
 
         # check all values are correct

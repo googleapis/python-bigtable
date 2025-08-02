@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable, Any, Tuple, cast, TYPE_CHECKING
+from typing import Callable, Tuple, cast, TYPE_CHECKING
 
 import time
 import re
@@ -48,7 +48,7 @@ SERVER_TIMING_REGEX = re.compile(r".*gfet4t7;\s*dur=(\d+\.?\d*).*")
 
 INVALID_STATE_ERROR = "Invalid state for {}: {}"
 
-OPERATION_INTERCEPTOR_METADATA_KEY = 'x-goog-operation-key'
+OPERATION_INTERCEPTOR_METADATA_KEY = "x-goog-operation-key"
 
 
 class OperationType(Enum):
