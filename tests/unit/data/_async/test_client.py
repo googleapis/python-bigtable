@@ -54,18 +54,22 @@ if CrossSync.is_async:
     from google.cloud.bigtable.data._async._swappable_channel import (
         AsyncSwappableChannel,
     )
+    from google.cloud.bigtable.data._async.metrics_interceptor import AsyncBigtableMetricsInterceptor
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers_async)
     CrossSync.add_mapping("SwappableChannel", AsyncSwappableChannel)
+    CrossSync.add_mapping("MetricsInterceptor", AsyncBigtableMetricsInterceptor)
 else:
     from google.api_core import grpc_helpers
     from google.cloud.bigtable.data._sync_autogen.client import Table  # noqa: F401
     from google.cloud.bigtable.data._sync_autogen._swappable_channel import (
         SwappableChannel,
     )
+    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import BigtableMetricsInterceptor
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
     CrossSync.add_mapping("SwappableChannel", SwappableChannel)
+    CrossSync.add_mapping("MetricsInterceptor", BigtableMetricsInterceptor)
 
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_client"
 
@@ -113,6 +117,7 @@ class TestBigtableDataClientAsync:
         assert not client._active_instances
         assert client._channel_refresh_task is not None
         assert client.transport._credentials == expected_credentials
+        assert isinstance(client._metrics_interceptor, CrossSync.MetricsInterceptor)
         await client.close()
 
     @CrossSync.pytest

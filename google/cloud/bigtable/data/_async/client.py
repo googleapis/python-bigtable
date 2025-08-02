@@ -19,6 +19,7 @@ from typing import (
     cast,
     Any,
     AsyncIterable,
+    Callable,
     Optional,
     Set,
     Sequence,
@@ -104,6 +105,7 @@ if CrossSync.is_async:
 else:
     from typing import Iterable  # noqa: F401
     from grpc import insecure_channel
+    from grpc import intercept_channel
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
     from google.cloud.bigtable_v2.services.bigtable import BigtableClient as GapicClient  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
@@ -206,7 +208,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
-
+        self._metrics_interceptor = MetricInterceptorType()
         # initialize client
         ClientWithProject.__init__(
             self,
@@ -234,7 +236,6 @@ class BigtableDataClientAsync(ClientWithProject):
         self._executor: concurrent.futures.ThreadPoolExecutor | None = (
             concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
         )
-        self._interceptor = MetricInterceptorType()
         if self._emulator_host is None:
             # attempt to start background channel refresh tasks
             try:
@@ -263,12 +264,23 @@ class BigtableDataClientAsync(ClientWithProject):
         Returns:
           a custom wrapped swappable channel
         """
+        create_channel_fn: Callable[[], Channel]
         if self._emulator_host is not None:
             # emulators use insecure channel
             create_channel_fn = partial(insecure_channel, self._emulator_host)
-        else:
+        elif CrossSync.is_async:
             create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
-        return AsyncSwappableChannel(create_channel_fn)
+        else:
+            # attach sync interceptors in create_channel_fn
+            create_channel_fn = lambda: intercept_channel(
+                TransportType.create_channel(*args, **kwargs), self._metrics_interceptor
+            )
+        new_channel = AsyncSwappableChannel(create_channel_fn)
+        if CrossSync.is_async:
+            # attach async interceptors
+            new_channel._unary_unary_interceptors.append(self._metrics_interceptor)
+            new_channel._unary_stream_interceptors.append(self._metrics_interceptor)
+        return new_channel
 
     @staticmethod
     def _client_version() -> str:
@@ -922,24 +934,12 @@ class _DataApiTargetAsync(abc.ABC):
         )
 
         self._metrics = BigtableClientSideMetricsController(
-            client._interceptor,
+            client._metrics_interceptor,
             project_id=self.client.project,
             instance_id=instance_id,
             table_id=table_id,
             app_profile_id=app_profile_id,
         )
-        # TODO: simplify interceptors
-        if CrossSync.is_async:
-            client.transport.grpc_channel._unary_unary_interceptors.append(
-                self._metrics.interceptor
-            )
-            client.transport.grpc_channel._unary_stream_interceptors.append(
-                self._metrics.interceptor
-            )
-        else:
-            client.transport.grpc_channel = intercept_channel(
-                self._metrics.interceptor, client.transport.grpc_channel
-            )
 
         try:
             self._register_instance_future = CrossSync.create_task(

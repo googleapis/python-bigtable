@@ -46,9 +46,13 @@ from tests.unit.data.execute_query.sql_helpers import (
 )
 from google.api_core import grpc_helpers
 from google.cloud.bigtable.data._sync_autogen._swappable_channel import SwappableChannel
+from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
+    BigtableMetricsInterceptor,
+)
 
 CrossSync._Sync_Impl.add_mapping("grpc_helpers", grpc_helpers)
 CrossSync._Sync_Impl.add_mapping("SwappableChannel", SwappableChannel)
+CrossSync._Sync_Impl.add_mapping("MetricsInterceptor", BigtableMetricsInterceptor)
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TestBigtableDataClient")
@@ -84,6 +88,9 @@ class TestBigtableDataClient:
         assert not client._active_instances
         assert client._channel_refresh_task is not None
         assert client.transport._credentials == expected_credentials
+        assert isinstance(
+            client._metrics_interceptor, CrossSync._Sync_Impl.MetricsInterceptor
+        )
         client.close()
 
     def test_ctor_super_inits(self):
