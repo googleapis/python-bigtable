@@ -213,9 +213,9 @@ class TestActiveOperationMetric:
         If operation has a backoff generator, it should be used to attach backoff
         times to attempts
         """
-        from google.cloud.bigtable.data._helpers import BackoffGenerator
+        from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 
-        generator = BackoffGenerator()
+        generator = TrackedBackoffGenerator()
         # pre-seed generator with exepcted values
         generator.history = list(range(10))
         metric = self._make_one(mock.Mock(), backoff_generator=generator)
