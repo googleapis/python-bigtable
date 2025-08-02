@@ -32,7 +32,7 @@ from google.protobuf.message import DecodeError
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
-    from google.cloud.bigtable.data._helpers import BackoffGenerator
+    from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 
 
 LOGGER = logging.getLogger(__name__)
@@ -144,7 +144,7 @@ class ActiveOperationMetric:
 
     op_type: OperationType
     uuid: str = str(uuid.uuid4())
-    backoff_generator: BackoffGenerator | None = None
+    backoff_generator: TrackedBackoffGenerator | None = None
     # keep monotonic timestamps for active operations
     start_time_ns: int = field(default_factory=time.monotonic_ns)
     active_attempt: ActiveAttemptMetric | None = None
