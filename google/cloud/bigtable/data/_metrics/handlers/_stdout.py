@@ -38,11 +38,11 @@ class _StdoutMetricsHandler(MetricsHandler):
         print("Bigtable Metrics:")
         for ops_type, ops_list in self._completed_ops.items():
             count = len(ops_list)
-            total_latency = sum([op.duration_ns for op in ops_list])
+            total_latency = sum([op.duration_ns // 1_000_000 for op in ops_list])
             total_attempts = sum([len(op.completed_attempts) for op in ops_list])
             avg_latency = total_latency / count
             avg_attempts = total_attempts / count
             print(
-                f"{ops_type}: count: {count}, avg latency: {avg_latency:.2f}, avg attempts: {avg_attempts:.1f}"
+                f"{ops_type}: count: {count}, avg latency: {avg_latency:.2f} ms, avg attempts: {avg_attempts:.1f}"
             )
         print()

@@ -1648,20 +1648,24 @@ class _DataApiTargetAsync(abc.ABC):
             rules = [rules]
         if not rules:
             raise ValueError("rules must contain at least one item")
-        result = await self.client._gapic_client.read_modify_write_row(
-            request=ReadModifyWriteRowRequest(
-                rules=[rule._to_pb() for rule in rules],
-                row_key=row_key.encode("utf-8")
-                if isinstance(row_key, str)
-                else row_key,
-                app_profile_id=self.app_profile_id,
-                **self._request_path,
-            ),
-            timeout=operation_timeout,
-            retry=None,
-        )
-        # construct Row from result
-        return Row._from_pb(result.row)
+
+        async with self._metrics.create_operation(
+            OperationType.READ_MODIFY_WRITE
+        ):
+            result = await self.client._gapic_client.read_modify_write_row(
+                request=ReadModifyWriteRowRequest(
+                    rules=[rule._to_pb() for rule in rules],
+                    row_key=row_key.encode("utf-8")
+                    if isinstance(row_key, str)
+                    else row_key,
+                    app_profile_id=self.app_profile_id,
+                    **self._request_path,
+                ),
+                timeout=operation_timeout,
+                retry=None,
+            )
+            # construct Row from result
+            return Row._from_pb(result.row)
 
     @CrossSync.convert
     async def close(self):
