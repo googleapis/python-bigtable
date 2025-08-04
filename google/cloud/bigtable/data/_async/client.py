@@ -86,6 +86,7 @@ from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+from google.cloud.bigtable.data._metrics import OperationType
 from google.cloud.bigtable.data._metrics.handlers._stdout import _StdoutMetricsHandler
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -1589,21 +1590,25 @@ class _DataApiTargetAsync(abc.ABC):
         ):
             false_case_mutations = [false_case_mutations]
         false_case_list = [m._to_pb() for m in false_case_mutations or []]
-        result = await self.client._gapic_client.check_and_mutate_row(
-            request=CheckAndMutateRowRequest(
-                true_mutations=true_case_list,
-                false_mutations=false_case_list,
-                predicate_filter=predicate._to_pb() if predicate is not None else None,
-                row_key=row_key.encode("utf-8")
-                if isinstance(row_key, str)
-                else row_key,
-                app_profile_id=self.app_profile_id,
-                **self._request_path,
-            ),
-            timeout=operation_timeout,
-            retry=None,
-        )
-        return result.predicate_matched
+
+        async with self._metrics.create_operation(
+            OperationType.CHECK_AND_MUTATE
+        ):
+            result = await self.client._gapic_client.check_and_mutate_row(
+                request=CheckAndMutateRowRequest(
+                    true_mutations=true_case_list,
+                    false_mutations=false_case_list,
+                    predicate_filter=predicate._to_pb() if predicate is not None else None,
+                    row_key=row_key.encode("utf-8")
+                    if isinstance(row_key, str)
+                    else row_key,
+                    app_profile_id=self.app_profile_id,
+                    **self._request_path,
+                ),
+                timeout=operation_timeout,
+                retry=None,
+            )
+            return result.predicate_matched
 
     @CrossSync.convert
     async def read_modify_write_row(
