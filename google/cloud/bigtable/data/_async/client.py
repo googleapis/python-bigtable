@@ -1462,28 +1462,30 @@ class _DataApiTargetAsync(abc.ABC):
             # mutations should not be retried
             predicate = retries.if_exception_type()
 
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-
-        target = partial(
-            self.client._gapic_client.mutate_row,
-            request=MutateRowRequest(
-                row_key=row_key.encode("utf-8")
-                if isinstance(row_key, str)
-                else row_key,
-                mutations=[mutation._to_pb() for mutation in mutations_list],
-                app_profile_id=self.app_profile_id,
-                **self._request_path,
-            ),
-            timeout=attempt_timeout,
-            retry=None,
-        )
-        return await CrossSync.retry_target(
-            target,
-            predicate,
-            sleep_generator,
-            operation_timeout,
-            exception_factory=_retry_exception_factory,
-        )
+        sleep_generator = TrackedBackoffGenerator(0.01, 2, 60)
+        async with self._metrics.create_operation(
+            OperationType.MUTATE_ROW, backoff_generator=sleep_generator
+        ):
+            target = partial(
+                self.client._gapic_client.mutate_row,
+                request=MutateRowRequest(
+                    row_key=row_key.encode("utf-8")
+                    if isinstance(row_key, str)
+                    else row_key,
+                    mutations=[mutation._to_pb() for mutation in mutations_list],
+                    app_profile_id=self.app_profile_id,
+                    **self._request_path,
+                ),
+                timeout=attempt_timeout,
+                retry=None,
+            )
+            return await CrossSync.retry_target(
+                target,
+                predicate,
+                sleep_generator,
+                operation_timeout,
+                exception_factory=_retry_exception_factory,
+            )
 
     @CrossSync.convert
     async def bulk_mutate_rows(
