@@ -78,6 +78,7 @@ from google.cloud.bigtable.data._helpers import _get_error_type
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
+from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
 
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
@@ -1328,26 +1329,29 @@ class _DataApiTargetAsync(abc.ABC):
         retryable_excs = _get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
 
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
+        sleep_generator = TrackedBackoffGenerator(0.01, 2, 60)
 
-        @CrossSync.convert
-        async def execute_rpc():
-            results = await self.client._gapic_client.sample_row_keys(
-                request=SampleRowKeysRequest(
-                    app_profile_id=self.app_profile_id, **self._request_path
-                ),
-                timeout=next(attempt_timeout_gen),
-                retry=None,
+        async with self._metrics.create_operation(
+            OperationType.SAMPLE_ROW_KEYS, backoff_generator=sleep_generator
+        ):
+            @CrossSync.convert
+            async def execute_rpc():
+                results = await self.client._gapic_client.sample_row_keys(
+                    request=SampleRowKeysRequest(
+                        app_profile_id=self.app_profile_id, **self._request_path
+                    ),
+                    timeout=next(attempt_timeout_gen),
+                    retry=None,
+                )
+                return [(s.row_key, s.offset_bytes) async for s in results]
+
+            return await CrossSync.retry_target(
+                execute_rpc,
+                predicate,
+                sleep_generator,
+                operation_timeout,
+                exception_factory=_retry_exception_factory,
             )
-            return [(s.row_key, s.offset_bytes) async for s in results]
-
-        return await CrossSync.retry_target(
-            execute_rpc,
-            predicate,
-            sleep_generator,
-            operation_timeout,
-            exception_factory=_retry_exception_factory,
-        )
 
     @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
     def mutations_batcher(
