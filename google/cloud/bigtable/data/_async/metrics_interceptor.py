@@ -19,6 +19,7 @@ from google.cloud.bigtable.data._metrics.data_model import (
 )
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import OperationState
+from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -65,7 +66,7 @@ def _with_operation_from_metadata(func):
 
 @CrossSync.convert_class(sync_name="BigtableMetricsInterceptor")
 class AsyncBigtableMetricsInterceptor(
-    UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor
+    UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor, MetricsHandler
 ):
     """
     An async gRPC interceptor to add client metadata and print server metadata.
@@ -93,8 +94,8 @@ class AsyncBigtableMetricsInterceptor(
     def on_operation_complete(self, op):
         del self.operation_map[op.uuid]
 
-    def on_attempt_complete(self, attempt, operation):
-        pass
+    def on_operation_cancelled(self, op):
+        self.on_operation_complete(op)
 
     @CrossSync.convert
     @_with_operation_from_metadata
