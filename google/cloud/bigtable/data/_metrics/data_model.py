@@ -143,7 +143,7 @@ class ActiveOperationMetric:
     """
 
     op_type: OperationType
-    uuid: str = str(uuid.uuid4())
+    uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     backoff_generator: TrackedBackoffGenerator | None = None
     # keep monotonic timestamps for active operations
     start_time_ns: int = field(default_factory=time.monotonic_ns)

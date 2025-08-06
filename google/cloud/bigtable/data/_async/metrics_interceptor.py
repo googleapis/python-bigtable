@@ -92,7 +92,8 @@ class AsyncBigtableMetricsInterceptor(
         operation.handlers.append(self)
 
     def on_operation_complete(self, op):
-        del self.operation_map[op.uuid]
+        if op.uuid in self.operation_map:
+            del self.operation_map[op.uuid]
 
     def on_operation_cancelled(self, op):
         self.on_operation_complete(op)
