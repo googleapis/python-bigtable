@@ -29,6 +29,9 @@ class MetricsHandler:
     def on_operation_complete(self, op: CompletedOperationMetric) -> None:
         pass
 
+    def on_operation_canceled(self, op: ActiveOperationMetric) -> None:
+        pass
+
     def on_attempt_complete(
         self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric
     ) -> None:

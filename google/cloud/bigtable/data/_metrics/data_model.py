@@ -365,27 +365,12 @@ class ActiveOperationMetric:
         """
         return self.end_with_status(StatusCode.OK)
 
-    def build_wrapped_predicate(
-        self, inner_predicate: Callable[[Exception], bool]
-    ) -> Callable[[Exception], bool]:
+    def cancel(self):
         """
-        Wrapps a predicate to include metrics tracking. Any call to the resulting predicate
-        is assumed to be an rpc failure, and will either mark the end of the active attempt
-        or the end of the operation.
-
-        Args:
-          - predicate: The predicate to wrap.
+        Called to cancel an operation without processing emitting it.
         """
-
-        def wrapped_predicate(exc: Exception) -> bool:
-            inner_result = inner_predicate(exc)
-            if inner_result:
-                self.end_attempt_with_status(exc)
-            else:
-                self.end_with_status(exc)
-            return inner_result
-
-        return wrapped_predicate
+        for handler in self.handlers:
+            handler.on_operation_canceled(self)
 
     @staticmethod
     def _exc_to_status(exc: Exception) -> StatusCode:
