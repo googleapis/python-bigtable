@@ -370,7 +370,7 @@ class ActiveOperationMetric:
         Called to cancel an operation without processing emitting it.
         """
         for handler in self.handlers:
-            handler.on_operation_canceled(self)
+            handler.on_operation_cancelled(self)
 
     @staticmethod
     def _exc_to_status(exc: Exception) -> StatusCode:

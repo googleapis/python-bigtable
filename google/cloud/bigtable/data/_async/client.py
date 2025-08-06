@@ -1539,7 +1539,7 @@ class _DataApiTargetAsync(abc.ABC):
             mutation_entries,
             operation_timeout,
             attempt_timeout,
-            operation=self._metrics.create_operation(OperationType.BULK_MUTATE_ROWS),
+            metric=self._metrics.create_operation(OperationType.BULK_MUTATE_ROWS),
             retryable_exceptions=retryable_excs,
         )
         await operation.start()
