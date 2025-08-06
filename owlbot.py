@@ -127,13 +127,11 @@ for file in ["async_client.py", "client.py"]:
 # fix tests
 s.replace(
     "tests/unit/gapic/bigtable_v2/test_bigtable.py",
-    'gapic_v1\.routing_header\.to_grpc_metadata\(expected_headers\) in kw["metadata"]',
+    'assert \(\n\s*gapic_v1\.routing_header\.to_grpc_metadata\(expected_headers\) in kw\["metadata"\]\n.*',
     """
-    # assert the expected headers are present, in any order
-    routing_string =  next(iter([m[1] for m in kw["metadata"] if m[0] == 'x-goog-request-params']))
-    assert all(
-        [f"{k}={v}" for k,v in expected_headers.items() in routing_string]
-    )
+        # assert the expected headers are present, in any order
+        routing_string =  next(iter([m[1] for m in kw["metadata"] if m[0] == 'x-goog-request-params']))
+        assert all([f"{k}={v}" in routing_string for k,v in expected_headers.items()])
     """
 )
 s.replace(
