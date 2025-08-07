@@ -409,9 +409,9 @@ class ActiveOperationMetric:
         full_message = f"Error in Bigtable Metrics: {message}"
         LOGGER.warning(full_message)
 
-    async def __aenter__(self):
+    def __aenter__(self):
         """
-        Implements the async context manager protocol for wrapping unary calls
+        Implements the async manager protocol
 
         Using the operation's context manager provides assurances that the operation
         is always closed when complete, with the proper status code automaticallty
@@ -419,9 +419,9 @@ class ActiveOperationMetric:
         """
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    def __aexit__(self, exc_type, exc_val, exc_tb):
         """
-        Implements the async context manager protocol for wrapping unary calls
+        Implements the context manager protocol
 
         The operation is automatically ended on exit, with the status determined
         by the exception type and value.
