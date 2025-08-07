@@ -1345,11 +1345,9 @@ class _DataApiTargetAsync(abc.ABC):
         retryable_excs = _get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
 
-        sleep_generator = TrackedBackoffGenerator(0.01, 2, 60)
-
         async with self._metrics.create_operation(
-            OperationType.SAMPLE_ROW_KEYS, backoff_generator=sleep_generator
-        ):
+            OperationType.SAMPLE_ROW_KEYS
+        ) as operation_metric:
 
             @CrossSync.convert
             async def execute_rpc():
@@ -1365,7 +1363,7 @@ class _DataApiTargetAsync(abc.ABC):
             return await CrossSync.retry_target(
                 execute_rpc,
                 predicate,
-                sleep_generator,
+                operation_metric.backoff_generator,
                 operation_timeout,
                 exception_factory=_retry_exception_factory,
             )
@@ -1479,10 +1477,9 @@ class _DataApiTargetAsync(abc.ABC):
             # mutations should not be retried
             predicate = retries.if_exception_type()
 
-        sleep_generator = TrackedBackoffGenerator(0.01, 2, 60)
         async with self._metrics.create_operation(
-            OperationType.MUTATE_ROW, backoff_generator=sleep_generator
-        ):
+            OperationType.MUTATE_ROW
+        ) as operation_metric:
             target = partial(
                 self.client._gapic_client.mutate_row,
                 request=MutateRowRequest(
@@ -1499,7 +1496,7 @@ class _DataApiTargetAsync(abc.ABC):
             return await CrossSync.retry_target(
                 target,
                 predicate,
-                sleep_generator,
+                operation_metric.backoff_generator,
                 operation_timeout,
                 exception_factory=_retry_exception_factory,
             )

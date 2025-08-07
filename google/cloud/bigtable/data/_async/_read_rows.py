@@ -118,9 +118,6 @@ class _ReadRowsOperationAsync:
         Yields:
             Row: The next row in the stream
         """
-        self._operation_metric.backoff_generator = TrackedBackoffGenerator(
-            0.01, 60, multiplier=2
-        )
         return CrossSync.retry_target_stream(
             self._read_rows_attempt,
             self._predicate,

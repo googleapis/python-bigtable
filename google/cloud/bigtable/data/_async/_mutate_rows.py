@@ -102,11 +102,10 @@ class _MutateRowsOperationAsync:
             # Entry level errors
             bt_exceptions._MutateRowsIncomplete,
         )
-        sleep_generator = TrackedBackoffGenerator(0.01, 2, 60)
         self._operation = lambda: CrossSync.retry_target(
             self._run_attempt,
             self.is_retryable,
-            sleep_generator,
+            metric.backoff_generator,
             operation_timeout,
             exception_factory=_retry_exception_factory,
         )
@@ -118,7 +117,6 @@ class _MutateRowsOperationAsync:
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
         # set up metrics
-        metric.backoff_generator = sleep_generator
         self._operation_metric = metric
 
     @CrossSync.convert
