@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable, Tuple, cast, TYPE_CHECKING
+from typing import Tuple, cast, TYPE_CHECKING
 
 import time
 import re
@@ -184,7 +184,7 @@ class ActiveOperationMetric:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
         self.start_time_ns = time.monotonic_ns()
 
-    def start_attempt(self) -> None:
+    def start_attempt(self) -> ActiveAttemptMetric:
         """
         Called to initiate a new attempt for the operation.
 
@@ -210,6 +210,7 @@ class ActiveOperationMetric:
             backoff_ns = 0
 
         self.active_attempt = ActiveAttemptMetric(backoff_before_attempt_ns=backoff_ns)
+        return self.active_attempt
 
     def add_response_metadata(self, metadata: dict[str, bytes | str]) -> None:
         """

@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 from typing import Sequence, TYPE_CHECKING
+import time
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
@@ -29,11 +30,13 @@ from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import _ResetRow
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
+from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 from google.api_core import retry as retries
-from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
+    from google.cloud.bigtable.data._metrics import ActiveAttemptMetric
+    from google.cloud.bigtable.data._metrics import ActiveOperationMetric
     from google.cloud.bigtable.data._sync_autogen.client import (
         _DataApiTarget as TargetType,
     )
@@ -56,6 +59,7 @@ class _ReadRowsOperation:
         target: The table or view to send the request to
         operation_timeout: The total time to allow for the operation, in seconds
         attempt_timeout: The time to allow for each individual attempt, in seconds
+        metric: the metric object representing the active operation
         retryable_exceptions: A list of exceptions that should trigger a retry
     """
 
@@ -67,6 +71,7 @@ class _ReadRowsOperation:
         "_predicate",
         "_last_yielded_row_key",
         "_remaining_count",
+        "_operation_metric",
     )
 
     def __init__(
@@ -75,6 +80,7 @@ class _ReadRowsOperation:
         target: TargetType,
         operation_timeout: float,
         attempt_timeout: float,
+        metric: ActiveOperationMetric,
         retryable_exceptions: Sequence[type[Exception]] = (),
     ):
         self.attempt_timeout_gen = _attempt_timeout_generator(
@@ -91,16 +97,20 @@ class _ReadRowsOperation:
         self._predicate = retries.if_exception_type(*retryable_exceptions)
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
+        self._operation_metric = metric
 
     def start_operation(self) -> CrossSync._Sync_Impl.Iterable[Row]:
         """Start the read_rows operation, retrying on retryable errors.
 
         Yields:
             Row: The next row in the stream"""
+        self._operation_metric.backoff_generator = TrackedBackoffGenerator(
+            0.01, 60, multiplier=2
+        )
         return CrossSync._Sync_Impl.retry_target_stream(
             self._read_rows_attempt,
             self._predicate,
-            exponential_sleep_generator(0.01, 60, multiplier=2),
+            self._operation_metric.backoff_generator,
             self.operation_timeout,
             exception_factory=_retry_exception_factory,
         )
@@ -113,6 +123,7 @@ class _ReadRowsOperation:
 
         Yields:
             Row: The next row in the stream"""
+        attempt_metric = self._operation_metric.start_attempt()
         if self._last_yielded_row_key is not None:
             try:
                 self.request.rows = self._revise_request_rowset(
@@ -120,16 +131,16 @@ class _ReadRowsOperation:
                     last_seen_row_key=self._last_yielded_row_key,
                 )
             except _RowSetComplete:
-                return self.merge_rows(None)
+                return self.merge_rows(None, attempt_metric)
         if self._remaining_count is not None:
             self.request.rows_limit = self._remaining_count
             if self._remaining_count == 0:
-                return self.merge_rows(None)
+                return self.merge_rows(None, attempt_metric)
         gapic_stream = self.target.client._gapic_client.read_rows(
             self.request, timeout=next(self.attempt_timeout_gen), retry=None
         )
         chunked_stream = self.chunk_stream(gapic_stream)
-        return self.merge_rows(chunked_stream)
+        return self.merge_rows(chunked_stream, attempt_metric)
 
     def chunk_stream(
         self,
@@ -177,6 +188,7 @@ class _ReadRowsOperation:
     @staticmethod
     def merge_rows(
         chunks: CrossSync._Sync_Impl.Iterable[ReadRowsResponsePB.CellChunk] | None,
+        attempt_metric: ActiveAttemptMetric,
     ) -> CrossSync._Sync_Impl.Iterable[Row]:
         """Merge chunks into rows
 
@@ -187,6 +199,7 @@ class _ReadRowsOperation:
         if chunks is None:
             return
         it = chunks.__iter__()
+        is_first_row = True
         while True:
             try:
                 c = it.__next__()
@@ -255,7 +268,14 @@ class _ReadRowsOperation:
                         Cell(value, row_key, family, qualifier, ts, list(labels))
                     )
                     if c.commit_row:
+                        if is_first_row:
+                            is_first_row = False
+                            attempt_metric.attempt_first_response()
+                        block_time = time.monotonic_ns()
                         yield Row(row_key, cells)
+                        attempt_metric.active_attempt.application_blocking_time_ns += (
+                            time.monotonic_ns() - block_time
+                        ) * 1000
                         break
                     c = it.__next__()
             except _ResetRow as e:

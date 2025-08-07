@@ -34,11 +34,11 @@ from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 
 from google.api_core import retry as retries
-from google.api_core.retry import exponential_sleep_generator
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
+    from google.cloud.bigtable.data._metrics import ActiveAttemptMetric
     from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 
     if CrossSync.is_async:
@@ -139,7 +139,7 @@ class _ReadRowsOperationAsync:
         Yields:
             Row: The next row in the stream
         """
-        self._operation_metric.start_attempt()
+        attempt_metric = self._operation_metric.start_attempt()
         # revise request keys and ranges between attempts
         if self._last_yielded_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
@@ -150,12 +150,12 @@ class _ReadRowsOperationAsync:
                 )
             except _RowSetComplete:
                 # if we've already seen all the rows, we're done
-                return self.merge_rows(None, self._operation_metric)
+                return self.merge_rows(None, attempt_metric)
         # revise the limit based on number of rows already yielded
         if self._remaining_count is not None:
             self.request.rows_limit = self._remaining_count
             if self._remaining_count == 0:
-                return self.merge_rows(None, self._operation_metric)
+                return self.merge_rows(None, attempt_metric)
         # create and return a new row merger
         gapic_stream = self.target.client._gapic_client.read_rows(
             self.request,
@@ -163,7 +163,7 @@ class _ReadRowsOperationAsync:
             retry=None,
         )
         chunked_stream = self.chunk_stream(gapic_stream)
-        return self.merge_rows(chunked_stream, self._operation_metric)
+        return self.merge_rows(chunked_stream, attempt_metric)
 
     @CrossSync.convert()
     async def chunk_stream(
@@ -223,7 +223,7 @@ class _ReadRowsOperationAsync:
     )
     async def merge_rows(
         chunks: CrossSync.Iterable[ReadRowsResponsePB.CellChunk] | None,
-        operation_metric: ActiveOperationMetric,
+        attempt_metric: ActiveAttemptMetric,
     ) -> CrossSync.Iterable[Row]:
         """
         Merge chunks into rows
@@ -322,13 +322,13 @@ class _ReadRowsOperationAsync:
                         if is_first_row:
                             # record first row latency in metrics
                             is_first_row = False
-                            operation_metric.attempt_first_response()
-                        block_time = time.monotonic()
+                            attempt_metric.attempt_first_response()
+                        block_time = time.monotonic_ns()
                         yield Row(row_key, cells)
                         # most metric operations use setters, but this one updates
                         # the value directly to avoid extra overhead
-                        operation_metric.active_attempt.application_blocking_time_ms += (  # type: ignore
-                            time.monotonic() - block_time
+                        attempt_metric.active_attempt.application_blocking_time_ns += (  # type: ignore
+                            time.monotonic_ns() - block_time
                         ) * 1000
                         break
                     c = await it.__anext__()

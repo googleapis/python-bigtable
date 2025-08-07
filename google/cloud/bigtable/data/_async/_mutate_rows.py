@@ -169,7 +169,7 @@ class _MutateRowsOperationAsync:
                 retry after the attempt is complete
             GoogleAPICallError: if the gapic rpc fails
         """
-         # register attempt start
+        # register attempt start
         self._operation_metric.start_attempt()
         request_entries = [self.mutations[idx].proto for idx in self.remaining_indices]
         # track mutations in this request that have not been finalized yet

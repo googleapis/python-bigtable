@@ -125,7 +125,6 @@ else:
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
-    from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.mutations_batcher import (
@@ -1021,7 +1020,7 @@ class _DataApiTargetAsync(abc.ABC):
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
-        with self._metrics.create_operation(
+        async with self._metrics.create_operation(
             OperationType.READ_ROWS, streaming=True
         ) as operation_metric:
             row_merger = CrossSync._ReadRowsOperation(
@@ -1130,7 +1129,7 @@ class _DataApiTargetAsync(abc.ABC):
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
-        with self._metrics.create_operation(
+        async with self._metrics.create_operation(
             OperationType.READ_ROWS, streaming=False
         ) as operation_metric:
             row_merger = CrossSync._ReadRowsOperation(
