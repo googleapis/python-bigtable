@@ -1020,18 +1020,17 @@ class _DataApiTargetAsync(abc.ABC):
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
-        with self._metrics.create_operation(
-            OperationType.READ_ROWS, streaming=True
-        ) as operation_metric:
-            row_merger = CrossSync._ReadRowsOperation(
-                query,
-                self,
-                operation_timeout=operation_timeout,
-                attempt_timeout=attempt_timeout,
-                metric=operation_metric,
-                retryable_exceptions=retryable_excs,
-            )
-            return row_merger.start_operation()
+        row_merger = CrossSync._ReadRowsOperation(
+            query,
+            self,
+            operation_timeout=operation_timeout,
+            attempt_timeout=attempt_timeout,
+            metric=self._metrics.create_operation(
+                OperationType.READ_ROWS, streaming=True
+            ),
+            retryable_exceptions=retryable_excs,
+        )
+        return row_merger.start_operation()
 
     @CrossSync.convert
     async def read_rows(
@@ -1129,22 +1128,21 @@ class _DataApiTargetAsync(abc.ABC):
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
-        with self._metrics.create_operation(
-            OperationType.READ_ROWS, streaming=False
-        ) as operation_metric:
-            row_merger = CrossSync._ReadRowsOperation(
-                query,
-                self,
-                operation_timeout=operation_timeout,
-                attempt_timeout=attempt_timeout,
-                metric=operation_metric,
-                retryable_exceptions=retryable_excs,
-            )
-            results_generator = row_merger.start_operation()
-            try:
-                return results_generator.__anext__()
-            except StopAsyncIteration:
-                return None
+        row_merger = CrossSync._ReadRowsOperation(
+            query,
+            self,
+            operation_timeout=operation_timeout,
+            attempt_timeout=attempt_timeout,
+            metric=self._metrics.create_operation(
+                OperationType.READ_ROWS, streaming=False
+            ),
+            retryable_exceptions=retryable_excs,
+        )
+        results_generator = row_merger.start_operation()
+        try:
+            return results_generator.__anext__()
+        except StopAsyncIteration:
+            return None
 
     @CrossSync.convert
     async def read_rows_sharded(

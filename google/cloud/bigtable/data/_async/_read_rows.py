@@ -118,13 +118,14 @@ class _ReadRowsOperationAsync:
         Yields:
             Row: The next row in the stream
         """
-        return CrossSync.retry_target_stream(
-            self._read_rows_attempt,
-            self._predicate,
-            self._operation_metric.backoff_generator,
-            self.operation_timeout,
-            exception_factory=_retry_exception_factory,
-        )
+        with self._operation_metric:
+            return CrossSync.retry_target_stream(
+                self._read_rows_attempt,
+                self._predicate,
+                self._operation_metric.backoff_generator,
+                self.operation_timeout,
+                exception_factory=_retry_exception_factory,
+            )
 
     def _read_rows_attempt(self) -> CrossSync.Iterable[Row]:
         """
