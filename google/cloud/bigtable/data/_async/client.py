@@ -78,7 +78,6 @@ from google.cloud.bigtable.data._helpers import _get_error_type
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
 
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule

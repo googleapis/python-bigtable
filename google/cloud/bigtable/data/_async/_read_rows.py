@@ -31,7 +31,6 @@ from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import _ResetRow
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
-from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 
 from google.api_core import retry as retries
 
