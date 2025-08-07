@@ -189,7 +189,7 @@ class ActiveOperationMetric:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
         self.start_time_ns = time.monotonic_ns()
 
-    def start_attempt(self) -> ActiveAttemptMetric:
+    def start_attempt(self) -> ActiveAttemptMetric | None:
         """
         Called to initiate a new attempt for the operation.
 
@@ -413,7 +413,7 @@ class ActiveOperationMetric:
         full_message = f"Error in Bigtable Metrics: {message}"
         LOGGER.warning(full_message)
 
-    def __aenter__(self):
+    def __enter__(self):
         """
         Implements the async manager protocol
 
@@ -423,7 +423,7 @@ class ActiveOperationMetric:
         """
         return self
 
-    def __aexit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         """
         Implements the context manager protocol
 
