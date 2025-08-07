@@ -1020,7 +1020,7 @@ class _DataApiTargetAsync(abc.ABC):
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
-        async with self._metrics.create_operation(
+        with self._metrics.create_operation(
             OperationType.READ_ROWS, streaming=True
         ) as operation_metric:
             row_merger = CrossSync._ReadRowsOperation(
@@ -1129,7 +1129,7 @@ class _DataApiTargetAsync(abc.ABC):
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
-        async with self._metrics.create_operation(
+        with self._metrics.create_operation(
             OperationType.READ_ROWS, streaming=False
         ) as operation_metric:
             row_merger = CrossSync._ReadRowsOperation(
@@ -1345,7 +1345,7 @@ class _DataApiTargetAsync(abc.ABC):
         retryable_excs = _get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
 
-        async with self._metrics.create_operation(
+        with self._metrics.create_operation(
             OperationType.SAMPLE_ROW_KEYS
         ) as operation_metric:
 
@@ -1477,7 +1477,7 @@ class _DataApiTargetAsync(abc.ABC):
             # mutations should not be retried
             predicate = retries.if_exception_type()
 
-        async with self._metrics.create_operation(
+        with self._metrics.create_operation(
             OperationType.MUTATE_ROW
         ) as operation_metric:
             target = partial(
@@ -1612,7 +1612,7 @@ class _DataApiTargetAsync(abc.ABC):
             false_case_mutations = [false_case_mutations]
         false_case_list = [m._to_pb() for m in false_case_mutations or []]
 
-        async with self._metrics.create_operation(OperationType.CHECK_AND_MUTATE):
+        with self._metrics.create_operation(OperationType.CHECK_AND_MUTATE):
             result = await self.client._gapic_client.check_and_mutate_row(
                 request=CheckAndMutateRowRequest(
                     true_mutations=true_case_list,
@@ -1670,7 +1670,7 @@ class _DataApiTargetAsync(abc.ABC):
         if not rules:
             raise ValueError("rules must contain at least one item")
 
-        async with self._metrics.create_operation(OperationType.READ_MODIFY_WRITE):
+        with self._metrics.create_operation(OperationType.READ_MODIFY_WRITE):
             result = await self.client._gapic_client.read_modify_write_row(
                 request=ReadModifyWriteRowRequest(
                     rules=[rule._to_pb() for rule in rules],

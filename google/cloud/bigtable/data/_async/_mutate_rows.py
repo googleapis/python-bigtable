@@ -127,7 +127,7 @@ class _MutateRowsOperationAsync:
         Raises:
             MutationsExceptionGroup: if any mutations failed
         """
-        async with self._operation_metric:
+        with self._operation_metric:
             try:
                 # trigger mutate_rows
                 await self._operation()
