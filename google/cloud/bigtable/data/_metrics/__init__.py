@@ -17,9 +17,15 @@ from google.cloud.bigtable.data._metrics.metrics_controller import (
 
 from google.cloud.bigtable.data._metrics.data_model import OperationType
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
+from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
+from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
+from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetric
 
 __all__ = (
     "BigtableClientSideMetricsController",
     "OperationType",
     "ActiveOperationMetric",
+    "ActiveAttemptMetric",
+    "CompletedOperationMetric",
+    "CompletedAttemptMetric",
 )
