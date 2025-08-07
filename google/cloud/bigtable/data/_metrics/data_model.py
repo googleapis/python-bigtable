@@ -144,7 +144,10 @@ class ActiveOperationMetric:
 
     op_type: OperationType
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
-    backoff_generator: TrackedBackoffGenerator | None = None
+    # create a default backoff generator, initialized with standard default backoff values
+    backoff_generator: TrackedBackoffGenerator | None = field(
+        default_factory=lambda: TrackedBackoffGenerator(initial=0.01, maximum=60, multiplier=2)
+    )
     # keep monotonic timestamps for active operations
     start_time_ns: int = field(default_factory=time.monotonic_ns)
     active_attempt: ActiveAttemptMetric | None = None
