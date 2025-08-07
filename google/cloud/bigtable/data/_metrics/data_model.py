@@ -145,7 +145,7 @@ class ActiveOperationMetric:
     op_type: OperationType
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     # create a default backoff generator, initialized with standard default backoff values
-    backoff_generator: TrackedBackoffGenerator | None = field(
+    backoff_generator: TrackedBackoffGenerator = field(
         default_factory=lambda: TrackedBackoffGenerator(initial=0.01, maximum=60, multiplier=2)
     )
     # keep monotonic timestamps for active operations
@@ -201,15 +201,16 @@ class ActiveOperationMetric:
                 INVALID_STATE_ERROR.format("start_attempt", self.state)
             )
 
-        # find backoff value
-        if self.backoff_generator and len(self.completed_attempts) > 0:
-            # find the attempt's backoff by sending attempt number to generator
-            # generator will return the backoff time in seconds, so convert to nanoseconds
+        try:
+            # find backoff value before this attempt
+            prev_attempt_idx = len(self.completed_attempts) - 1
             backoff = self.backoff_generator.get_attempt_backoff(
-                len(self.completed_attempts) - 1
+                prev_attempt_idx
             )
+            # generator will return the backoff time in seconds, so convert to nanoseconds
             backoff_ns = int(backoff * 1e9)
-        else:
+        except IndexError:
+            # backoff value not found
             backoff_ns = 0
 
         self.active_attempt = ActiveAttemptMetric(backoff_before_attempt_ns=backoff_ns)
