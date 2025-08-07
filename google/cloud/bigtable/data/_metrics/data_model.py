@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable, Tuple, cast, TYPE_CHECKING
+from typing import Tuple, cast, TYPE_CHECKING
 
 import time
 import re
@@ -146,7 +146,9 @@ class ActiveOperationMetric:
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     # create a default backoff generator, initialized with standard default backoff values
     backoff_generator: TrackedBackoffGenerator = field(
-        default_factory=lambda: TrackedBackoffGenerator(initial=0.01, maximum=60, multiplier=2)
+        default_factory=lambda: TrackedBackoffGenerator(
+            initial=0.01, maximum=60, multiplier=2
+        )
     )
     # keep monotonic timestamps for active operations
     start_time_ns: int = field(default_factory=time.monotonic_ns)
@@ -187,7 +189,7 @@ class ActiveOperationMetric:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
         self.start_time_ns = time.monotonic_ns()
 
-    def start_attempt(self) -> ActiveAttemptMetric:
+    def start_attempt(self) -> ActiveAttemptMetric | None:
         """
         Called to initiate a new attempt for the operation.
 
@@ -204,9 +206,7 @@ class ActiveOperationMetric:
         try:
             # find backoff value before this attempt
             prev_attempt_idx = len(self.completed_attempts) - 1
-            backoff = self.backoff_generator.get_attempt_backoff(
-                prev_attempt_idx
-            )
+            backoff = self.backoff_generator.get_attempt_backoff(prev_attempt_idx)
             # generator will return the backoff time in seconds, so convert to nanoseconds
             backoff_ns = int(backoff * 1e9)
         except IndexError:
@@ -413,7 +413,7 @@ class ActiveOperationMetric:
         full_message = f"Error in Bigtable Metrics: {message}"
         LOGGER.warning(full_message)
 
-    def __aenter__(self):
+    def __enter__(self):
         """
         Implements the async manager protocol
 
@@ -423,7 +423,7 @@ class ActiveOperationMetric:
         """
         return self
 
-    def __aexit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         """
         Implements the context manager protocol
 
