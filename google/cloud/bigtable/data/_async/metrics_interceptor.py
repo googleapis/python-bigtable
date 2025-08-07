@@ -13,6 +13,7 @@
 # limitations under the License
 from __future__ import annotations
 
+import time
 from functools import wraps
 from google.cloud.bigtable.data._metrics.data_model import (
     OPERATION_INTERCEPTOR_METADATA_KEY,
@@ -126,10 +127,18 @@ class AsyncBigtableMetricsInterceptor(
     async def intercept_unary_stream(
         self, operation, continuation, client_call_details, request
     ):
+        # TODO: benchmark
         async def response_wrapper(call):
+            has_first_response = operation.first_response_latency is not None
             encountered_exc = None
             try:
                 async for response in call:
+                    # record time to first response. Currently only used for READ_ROWs
+                    if not has_first_response:
+                        operation.first_response_latency_ns = (
+                            time.monotonic_ns() - operation.start_time_ns
+                        )
+                        has_first_response = True
                     yield response
 
             except Exception as e:
