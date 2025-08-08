@@ -810,7 +810,7 @@ class _DataApiTarget(abc.ABC):
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
             metric=self._metrics.create_operation(
-                OperationType.READ_ROWS, streaming=True
+                OperationType.READ_ROWS, is_streaming=True
             ),
             retryable_exceptions=retryable_excs,
         )
@@ -910,7 +910,7 @@ class _DataApiTarget(abc.ABC):
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
             metric=self._metrics.create_operation(
-                OperationType.READ_ROWS, streaming=False
+                OperationType.READ_ROWS, is_streaming=False
             ),
             retryable_exceptions=retryable_excs,
         )

@@ -28,11 +28,11 @@ from grpc import StatusCode
 
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
+from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 from google.protobuf.message import DecodeError
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
-    from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 
 
 LOGGER = logging.getLogger(__name__)
