@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Sequence, TYPE_CHECKING
+from typing import Sequence, TYPE_CHECKING
 
 import time
 
@@ -145,12 +145,12 @@ class _ReadRowsOperationAsync:
                 )
             except _RowSetComplete:
                 # if we've already seen all the rows, we're done
-                return self.merge_rows(None, self._operation_metric, self._predicate)
+                return self.merge_rows(None)
         # revise the limit based on number of rows already yielded
         if self._remaining_count is not None:
             self.request.rows_limit = self._remaining_count
             if self._remaining_count == 0:
-                return self.merge_rows(None, self._operation_metric, self._predicate)
+                return self.merge_rows(None)
         # create and return a new row merger
         gapic_stream = self.target.client._gapic_client.read_rows(
             self.request,
@@ -158,7 +158,7 @@ class _ReadRowsOperationAsync:
             retry=None,
         )
         chunked_stream = self.chunk_stream(gapic_stream)
-        return self.merge_rows(chunked_stream, self._operation_metric, self._predicate)
+        return self.merge_rows(chunked_stream)
 
     @CrossSync.convert()
     async def chunk_stream(
@@ -217,9 +217,7 @@ class _ReadRowsOperationAsync:
         replace_symbols={"__aiter__": "__iter__", "__anext__": "__next__"},
     )
     async def merge_rows(
-        chunks: CrossSync.Iterable[ReadRowsResponsePB.CellChunk] | None,
-        operation_metric: ActiveOperationMetric,
-        retryable_predicate: Callable[[Exception], bool],
+        self, chunks: CrossSync.Iterable[ReadRowsResponsePB.CellChunk] | None
     ) -> CrossSync.Iterable[Row]:
         """
         Merge chunks into rows
@@ -231,7 +229,7 @@ class _ReadRowsOperationAsync:
         """
         try:
             if chunks is None:
-                operation_metric.end_with_success()
+                self._operation_metric.end_with_success()
                 return
             it = chunks.__aiter__()
             # For each row
@@ -240,7 +238,7 @@ class _ReadRowsOperationAsync:
                     c = await it.__anext__()
                 except CrossSync.StopIteration:
                     # stream complete
-                    operation_metric.end_with_success()
+                    self._operation_metric.end_with_success()
                     return
                 row_key = c.row_key
 
@@ -321,8 +319,8 @@ class _ReadRowsOperationAsync:
                             yield Row(row_key, cells)
                             # most metric operations use setters, but this one updates
                             # the value directly to avoid extra overhead
-                            if operation_metric.active_attempt is not None:
-                                operation_metric.active_attempt.application_blocking_time_ns += (  # type: ignore
+                            if self._operation_metric.active_attempt is not None:
+                                self._operation_metric.active_attempt.application_blocking_time_ns += (  # type: ignore
                                     time.monotonic_ns() - block_time
                                 ) * 1000
                             break
@@ -342,11 +340,11 @@ class _ReadRowsOperationAsync:
                 except CrossSync.StopIteration:
                     raise InvalidChunk("premature end of stream")
         except Exception as generic_exception:
-            if not retryable_predicate(generic_exception):
-                operation_metric.end_attempt_with_status(generic_exception)
+            if not self._predicate(generic_exception):
+                self._operation_metric.end_attempt_with_status(generic_exception)
             raise generic_exception
         else:
-            operation_metric.end_with_success()
+            self._operation_metric.end_with_success()
 
     @staticmethod
     def _revise_request_rowset(

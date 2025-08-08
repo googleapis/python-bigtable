@@ -396,7 +396,6 @@ class ActiveOperationMetric:
         """
         full_message = f"Error in Bigtable Metrics: {message}"
         LOGGER.warning(full_message)
-        raise RuntimeError(full_message)
 
     def __enter__(self):
         """

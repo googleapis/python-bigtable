@@ -74,7 +74,6 @@ from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
 from google.cloud.bigtable.data._metrics import OperationType
-from google.cloud.bigtable.data._metrics.handlers._stdout import _StdoutMetricsHandler
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from typing import Iterable
 from grpc import insecure_channel
@@ -735,7 +734,7 @@ class _DataApiTarget(abc.ABC):
         )
         self._metrics = BigtableClientSideMetricsController(
             client._metrics_interceptor,
-            handlers=[_StdoutMetricsHandler()],
+            handlers=[],
             project_id=self.client.project,
             instance_id=instance_id,
             table_id=table_id,
