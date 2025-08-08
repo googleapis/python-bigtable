@@ -37,7 +37,6 @@ from google.api_core import retry as retries
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._metrics import ActiveAttemptMetric
     from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 
     if CrossSync.is_async:
@@ -348,7 +347,6 @@ class _ReadRowsOperationAsync:
             raise generic_exception
         else:
             operation_metric.end_with_success()
-
 
     @staticmethod
     def _revise_request_rowset(
