@@ -83,7 +83,6 @@ class CompletedAttemptMetric:
 
     duration_ns: int
     end_status: StatusCode
-    first_response_latency_ns: int | None = None
     gfe_latency_ns: int | None = None
     application_blocking_time_ns: int = 0
     backoff_before_attempt_ns: int = 0
@@ -108,6 +107,7 @@ class CompletedOperationMetric:
     cluster_id: str
     zone: str
     is_streaming: bool
+    first_response_latency_ns: int | None = None
     flow_throttling_time_ns: int = 0
 
 
@@ -120,9 +120,6 @@ class ActiveAttemptMetric:
 
     # keep monotonic timestamps for active attempts
     start_time_ns: int = field(default_factory=time.monotonic_ns)
-    # the time it takes to recieve the first response from the server, in nanoseconds
-    # currently only tracked for ReadRows
-    first_response_latency_ns: int | None = None
     # the time taken by the backend, in nanoseconds. Taken from response header
     gfe_latency_ns: int | None = None
     # time waiting on user to process the response, in nanoseconds
@@ -159,6 +156,10 @@ class ActiveOperationMetric:
     is_streaming: bool = False  # only True for read_rows operations
     was_completed: bool = False
     handlers: list[MetricsHandler] = field(default_factory=list)
+    # the time it takes to recieve the first response from the server, in nanoseconds
+    # attached by interceptor
+    # currently only tracked for ReadRows
+    first_response_latency_ns: int | None = None
     # time waiting on flow control, in nanoseconds
     flow_throttling_time_ns: int = 0
 
@@ -274,23 +275,6 @@ class ActiveOperationMetric:
             # failed to parse metadata
             return None
 
-    def attempt_first_response(self) -> None:
-        """
-        Called to mark the timestamp of the first completed response for the
-        active attempt.
-
-        Assumes operation is in ACTIVE_ATTEMPT state.
-        """
-        if self.state != OperationState.ACTIVE_ATTEMPT or self.active_attempt is None:
-            return self._handle_error(
-                INVALID_STATE_ERROR.format("attempt_first_response", self.state)
-            )
-        if self.active_attempt.first_response_latency_ns is not None:
-            return self._handle_error("Attempt already received first response")
-        self.active_attempt.first_response_latency_ns = (
-            time.monotonic_ns() - self.active_attempt.start_time_ns
-        )
-
     def end_attempt_with_status(self, status: StatusCode | Exception) -> None:
         """
         Called to mark the end of an attempt for the operation.
@@ -311,7 +295,6 @@ class ActiveOperationMetric:
         if isinstance(status, Exception):
             status = self._exc_to_status(status)
         complete_attempt = CompletedAttemptMetric(
-            first_response_latency_ns=self.active_attempt.first_response_latency_ns,
             duration_ns=time.monotonic_ns() - self.active_attempt.start_time_ns,
             end_status=status,
             gfe_latency_ns=self.active_attempt.gfe_latency_ns,
@@ -355,6 +338,7 @@ class ActiveOperationMetric:
             cluster_id=self.cluster_id or DEFAULT_CLUSTER_ID,
             zone=self.zone or DEFAULT_ZONE,
             is_streaming=self.is_streaming,
+            first_response_latency_ns=self.first_response_latency_ns,
             flow_throttling_time_ns=self.flow_throttling_time_ns,
         )
         for handler in self.handlers:
