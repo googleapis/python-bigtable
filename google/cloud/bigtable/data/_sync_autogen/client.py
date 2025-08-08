@@ -66,7 +66,6 @@ from google.cloud.bigtable.data._helpers import _get_error_type
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.data.row_filters import RowFilter
@@ -805,18 +804,17 @@ class _DataApiTarget(abc.ABC):
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
-        with self._metrics.create_operation(
-            OperationType.READ_ROWS, streaming=True
-        ) as operation_metric:
-            row_merger = CrossSync._Sync_Impl._ReadRowsOperation(
-                query,
-                self,
-                operation_timeout=operation_timeout,
-                attempt_timeout=attempt_timeout,
-                metric=operation_metric,
-                retryable_exceptions=retryable_excs,
-            )
-            return row_merger.start_operation()
+        row_merger = CrossSync._Sync_Impl._ReadRowsOperation(
+            query,
+            self,
+            operation_timeout=operation_timeout,
+            attempt_timeout=attempt_timeout,
+            metric=self._metrics.create_operation(
+                OperationType.READ_ROWS, streaming=True
+            ),
+            retryable_exceptions=retryable_excs,
+        )
+        return row_merger.start_operation()
 
     def read_rows(
         self,
@@ -906,22 +904,21 @@ class _DataApiTarget(abc.ABC):
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
-        with self._metrics.create_operation(
-            OperationType.READ_ROWS, streaming=False
-        ) as operation_metric:
-            row_merger = CrossSync._Sync_Impl._ReadRowsOperation(
-                query,
-                self,
-                operation_timeout=operation_timeout,
-                attempt_timeout=attempt_timeout,
-                metric=operation_metric,
-                retryable_exceptions=retryable_excs,
-            )
-            results_generator = row_merger.start_operation()
-            try:
-                return results_generator.__next__()
-            except StopIteration:
-                return None
+        row_merger = CrossSync._Sync_Impl._ReadRowsOperation(
+            query,
+            self,
+            operation_timeout=operation_timeout,
+            attempt_timeout=attempt_timeout,
+            metric=self._metrics.create_operation(
+                OperationType.READ_ROWS, streaming=False
+            ),
+            retryable_exceptions=retryable_excs,
+        )
+        results_generator = row_merger.start_operation()
+        try:
+            return results_generator.__next__()
+        except StopIteration:
+            return None
 
     def read_rows_sharded(
         self,
@@ -1101,10 +1098,9 @@ class _DataApiTarget(abc.ABC):
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
-        sleep_generator = TrackedBackoffGenerator(0.01, 2, 60)
         with self._metrics.create_operation(
-            OperationType.SAMPLE_ROW_KEYS, backoff_generator=sleep_generator
-        ):
+            OperationType.SAMPLE_ROW_KEYS
+        ) as operation_metric:
 
             def execute_rpc():
                 results = self.client._gapic_client.sample_row_keys(
@@ -1119,7 +1115,7 @@ class _DataApiTarget(abc.ABC):
             return CrossSync._Sync_Impl.retry_target(
                 execute_rpc,
                 predicate,
-                sleep_generator,
+                operation_metric.backoff_generator,
                 operation_timeout,
                 exception_factory=_retry_exception_factory,
             )
@@ -1223,10 +1219,9 @@ class _DataApiTarget(abc.ABC):
             )
         else:
             predicate = retries.if_exception_type()
-        sleep_generator = TrackedBackoffGenerator(0.01, 2, 60)
         with self._metrics.create_operation(
-            OperationType.MUTATE_ROW, backoff_generator=sleep_generator
-        ):
+            OperationType.MUTATE_ROW
+        ) as operation_metric:
             target = partial(
                 self.client._gapic_client.mutate_row,
                 request=MutateRowRequest(
@@ -1243,7 +1238,7 @@ class _DataApiTarget(abc.ABC):
             return CrossSync._Sync_Impl.retry_target(
                 target,
                 predicate,
-                sleep_generator,
+                operation_metric.backoff_generator,
                 operation_timeout,
                 exception_factory=_retry_exception_factory,
             )

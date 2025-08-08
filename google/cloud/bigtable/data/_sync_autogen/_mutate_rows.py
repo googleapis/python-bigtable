@@ -23,7 +23,6 @@ import google.cloud.bigtable_v2.types.bigtable as types_pb
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
-from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 from google.cloud.bigtable.data.mutations import _EntryWithProto
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -80,11 +79,10 @@ class _MutateRowsOperation:
         self.is_retryable = retries.if_exception_type(
             *retryable_exceptions, bt_exceptions._MutateRowsIncomplete
         )
-        sleep_generator = TrackedBackoffGenerator(0.01, 2, 60)
         self._operation = lambda: CrossSync._Sync_Impl.retry_target(
             self._run_attempt,
             self.is_retryable,
-            sleep_generator,
+            metric.backoff_generator,
             operation_timeout,
             exception_factory=_retry_exception_factory,
         )
@@ -94,7 +92,6 @@ class _MutateRowsOperation:
         self.mutations = [_EntryWithProto(m, m._to_pb()) for m in mutation_entries]
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
-        metric.backoff_generator = sleep_generator
         self._operation_metric = metric
 
     def start(self):

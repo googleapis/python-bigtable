@@ -30,7 +30,6 @@ from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import _ResetRow
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
-from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 from google.api_core import retry as retries
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -104,16 +103,14 @@ class _ReadRowsOperation:
 
         Yields:
             Row: The next row in the stream"""
-        self._operation_metric.backoff_generator = TrackedBackoffGenerator(
-            0.01, 60, multiplier=2
-        )
-        return CrossSync._Sync_Impl.retry_target_stream(
-            self._read_rows_attempt,
-            self._predicate,
-            self._operation_metric.backoff_generator,
-            self.operation_timeout,
-            exception_factory=_retry_exception_factory,
-        )
+        with self._operation_metric:
+            return CrossSync._Sync_Impl.retry_target_stream(
+                self._read_rows_attempt,
+                self._predicate,
+                self._operation_metric.backoff_generator,
+                self.operation_timeout,
+                exception_factory=_retry_exception_factory,
+            )
 
     def _read_rows_attempt(self) -> CrossSync._Sync_Impl.Iterable[Row]:
         """Attempt a single read_rows rpc call.
@@ -188,7 +185,7 @@ class _ReadRowsOperation:
     @staticmethod
     def merge_rows(
         chunks: CrossSync._Sync_Impl.Iterable[ReadRowsResponsePB.CellChunk] | None,
-        attempt_metric: ActiveAttemptMetric,
+        attempt_metric: ActiveAttemptMetric | None,
     ) -> CrossSync._Sync_Impl.Iterable[Row]:
         """Merge chunks into rows
 
@@ -199,7 +196,6 @@ class _ReadRowsOperation:
         if chunks is None:
             return
         it = chunks.__iter__()
-        is_first_row = True
         while True:
             try:
                 c = it.__next__()
@@ -268,14 +264,12 @@ class _ReadRowsOperation:
                         Cell(value, row_key, family, qualifier, ts, list(labels))
                     )
                     if c.commit_row:
-                        if is_first_row:
-                            is_first_row = False
-                            attempt_metric.attempt_first_response()
                         block_time = time.monotonic_ns()
                         yield Row(row_key, cells)
-                        attempt_metric.active_attempt.application_blocking_time_ns += (
-                            time.monotonic_ns() - block_time
-                        ) * 1000
+                        if attempt_metric is not None:
+                            attempt_metric.application_blocking_time_ns += (
+                                time.monotonic_ns() - block_time
+                            ) * 1000
                         break
                     c = it.__next__()
             except _ResetRow as e:

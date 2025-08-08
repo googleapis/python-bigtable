@@ -220,7 +220,7 @@ class _ReadRowsOperationAsync:
     )
     async def merge_rows(
         chunks: CrossSync.Iterable[ReadRowsResponsePB.CellChunk] | None,
-        attempt_metric: ActiveAttemptMetric,
+        attempt_metric: ActiveAttemptMetric | None,
     ) -> CrossSync.Iterable[Row]:
         """
         Merge chunks into rows
@@ -233,7 +233,6 @@ class _ReadRowsOperationAsync:
         if chunks is None:
             return
         it = chunks.__aiter__()
-        is_first_row = True
         # For each row
         while True:
             try:
@@ -316,17 +315,14 @@ class _ReadRowsOperationAsync:
                         Cell(value, row_key, family, qualifier, ts, list(labels))
                     )
                     if c.commit_row:
-                        if is_first_row:
-                            # record first row latency in metrics
-                            is_first_row = False
-                            attempt_metric.attempt_first_response()
                         block_time = time.monotonic_ns()
                         yield Row(row_key, cells)
                         # most metric operations use setters, but this one updates
                         # the value directly to avoid extra overhead
-                        attempt_metric.active_attempt.application_blocking_time_ns += (  # type: ignore
-                            time.monotonic_ns() - block_time
-                        ) * 1000
+                        if attempt_metric is not None:
+                            attempt_metric.application_blocking_time_ns += (  # type: ignore
+                                time.monotonic_ns() - block_time
+                            ) * 1000
                         break
                     c = await it.__anext__()
             except _ResetRow as e:
