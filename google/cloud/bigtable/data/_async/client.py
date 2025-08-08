@@ -86,6 +86,8 @@ from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import BigtableMetricsExporter
+from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import GoogleCloudMetricsHandler
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -212,6 +214,12 @@ class BigtableDataClientAsync(ClientWithProject):
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
+        # create a metrics exporter using the same client configuration
+        self._gcp_metrics_exporter = BigtableMetricsExporter(
+            credentials=credentials,
+            project=project,
+            client_options=client_options,
+        )
         self._metrics_interceptor = MetricInterceptorType()
         # initialize client
         ClientWithProject.__init__(
@@ -939,13 +947,17 @@ class _DataApiTargetAsync(abc.ABC):
         self.default_retryable_errors: Sequence[type[Exception]] = (
             default_retryable_errors or ()
         )
-
         self._metrics = BigtableClientSideMetricsController(
-            client._metrics_interceptor,
-            project_id=self.client.project,
-            instance_id=instance_id,
-            table_id=table_id,
-            app_profile_id=app_profile_id,
+            interceptor=client._metrics_interceptor,
+            handlers=[
+                GoogleCloudMetricsHandler(
+                    exporter=client._gcp_metrics_exporter,
+                    project_id=self.client.project,
+                    instance_id=instance_id,
+                    table_id=table_id,
+                    app_profile_id=app_profile_id
+                )
+            ]
         )
 
         try:

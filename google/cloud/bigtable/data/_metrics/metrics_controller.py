@@ -40,7 +40,6 @@ class BigtableClientSideMetricsController:
         self,
         interceptor: AsyncBigtableMetricsInterceptor | BigtableMetricsInterceptor,
         handlers: list[MetricsHandler] | None = None,
-        **kwargs,
     ):
         """
         Initializes the metrics controller.
@@ -52,10 +51,6 @@ class BigtableClientSideMetricsController:
         """
         self.interceptor = interceptor
         self.handlers: list[MetricsHandler] = handlers or []
-        if handlers is None:
-            # handlers not given. Use default handlers.
-            # TODO: add default handlers
-            pass
 
     def add_handler(self, handler: MetricsHandler) -> None:
         """

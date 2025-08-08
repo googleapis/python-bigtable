@@ -99,13 +99,14 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
       - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
 
     Args:
-      - project_id: The Google Cloud project ID for the associated Bigtable Table
+      - exporter: The exporter object used to write metrics to Cloud Montitoring. 
+            Should correspond 1:1 with a bigtable client, and share auth configuration
       - export_interval: The interval (in seconds) at which to export metrics to Cloud Monitoring.
+      - *args: configuration positional arguments passed down to super class
+      - *kwargs: configuration keyword arguments passed down to super class
     """
 
-    def __init__(self, *args, project_id: str, export_interval=60, **kwargs):
-        # internal exporter to write metrics to Cloud Monitoring
-        exporter = _BigtableMetricsExporter(project_id=project_id)
+    def __init__(self, exporter, *args, export_interval=60, **kwargs):
         # periodically executes exporter
         gcp_reader = PeriodicExportingMetricReader(
             exporter, export_interval_millis=export_interval * 1000
@@ -113,10 +114,10 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
         # use private meter provider to store instruments and views
         meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)
         otel = _OpenTelemetryInstruments(meter_provider=meter_provider)
-        super().__init__(*args, instruments=otel, project_id=project_id, **kwargs)
+        super().__init__(*args, instruments=otel, project_id=exporter.roject_id, **kwargs)
 
 
-class _BigtableMetricsExporter(MetricExporter):
+class BigtableMetricsExporter(MetricExporter):
     """
     OpenTelemetry Exporter implementation for sending metrics to Google Cloud Monitoring.
 
@@ -130,11 +131,12 @@ class _BigtableMetricsExporter(MetricExporter):
       - project_id: GCP project id to associate metrics with
     """
 
-    def __init__(self, project_id: str):
+    def __init__(self, *client_args, **client_kwargs):
         super().__init__()
-        self.client = MetricServiceClient()
+        self.client = MetricServiceClient(*client_args, **client_kwargs)
         self.prefix = "bigtable.googleapis.com/internal/client"
-        self.project_name = self.client.common_project_path(project_id)
+        self.project_id = self.client.project
+        self.project_name = self.client.common_project_path(self.project_id)
 
     def export(
         self, metrics_data: MetricsData, timeout_millis: float = 10_000, **kwargs
