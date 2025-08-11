@@ -215,7 +215,7 @@ def test_optimize_restored_table(
     second_instance_storage_type,
     expect_optimize_operation,
 ):
-    instance_with_backup, table_to_backup = create_instance(
+    (instance_with_backup, table_to_backup) = create_instance(
         instance_admin_client,
         table_admin_client,
         data_client,
@@ -223,7 +223,7 @@ def test_optimize_restored_table(
         instances_to_delete,
         admin_v2.StorageType.HDD,
     )
-    instance_to_restore, _ = create_instance(
+    (instance_to_restore, _) = create_instance(
         instance_admin_client,
         table_admin_client,
         data_client,
@@ -273,7 +273,7 @@ def test_wait_for_consistency(
     instances_to_delete,
     admin_overlay_project_id,
 ):
-    instance, table = create_instance(
+    (instance, table) = create_instance(
         instance_admin_client,
         table_admin_client,
         data_client,
