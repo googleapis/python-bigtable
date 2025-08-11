@@ -206,6 +206,10 @@ def assert_table_cell_value_equal_to(
         assert latest_cell.value.decode("utf-8") == value
 
 
+@pytest.mark.skipif(
+    os.getenv(BIGTABLE_EMULATOR),
+    reason="Backups are not supported in the Bigtable emulator",
+)
 @pytest.mark.parametrize(
     "second_instance_storage_type,expect_optimize_operation",
     [(admin_v2.StorageType.HDD, False), (admin_v2.StorageType.SSD, True)],
@@ -220,8 +224,6 @@ def test_optimize_restored_table(
     second_instance_storage_type,
     expect_optimize_operation,
 ):
-    if os.getenv(BIGTABLE_EMULATOR):
-        pytest.skip(reason="Backups are not supported in the Bigtable emulator")
     (instance_with_backup, table_to_backup) = create_instance(
         instance_admin_client,
         table_admin_client,

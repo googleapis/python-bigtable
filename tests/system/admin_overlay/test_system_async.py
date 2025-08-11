@@ -279,6 +279,10 @@ async def assert_table_cell_value_equal_to(
     }
 )
 @CrossSync.pytest
+@pytest.mark.skipif(
+    os.getenv(BIGTABLE_EMULATOR),
+    reason="Backups are not supported in the Bigtable emulator",
+)
 @pytest.mark.parametrize(
     "second_instance_storage_type,expect_optimize_operation",
     [
@@ -296,11 +300,6 @@ async def test_optimize_restored_table(
     second_instance_storage_type,
     expect_optimize_operation,
 ):
-    if os.getenv(BIGTABLE_EMULATOR):
-        pytest.skip(
-            reason="Backups are not supported in the Bigtable emulator",
-        )
-
     # Create two instances. We backup a table from the first instance to a new table in the
     # second instance. This is to test whether or not different scenarios trigger an
     # optimize_restored_table operation
