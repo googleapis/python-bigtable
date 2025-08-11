@@ -228,6 +228,20 @@ class BigtableDataClientAsync(ClientWithProject):
                 *args, **kwargs, channel=self._build_grpc_channel
             ),
         )
+        if (
+            credentials
+            and credentials.universe_domain != self.universe_domain
+            and self._emulator_host is None
+        ):
+            # validate that the universe domain of the credentials matches the
+            # universe domain configured in client_options
+            raise ValueError(
+                f"The configured universe domain ({self.universe_domain}) does "
+                "not match the universe domain found in the credentials "
+                f"({self._credentials.universe_domain}). If you haven't "
+                "configured the universe domain explicitly, `googleapis.com` "
+                "is the default."
+            )
         self._is_closed = CrossSync.Event()
         self.transport = cast(TransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh
@@ -288,6 +302,24 @@ class BigtableDataClientAsync(ClientWithProject):
             new_channel._unary_unary_interceptors.append(self._metrics_interceptor)
             new_channel._unary_stream_interceptors.append(self._metrics_interceptor)
         return new_channel
+
+    @property
+    def universe_domain(self) -> str:
+        """Return the universe domain used by the client instance.
+
+        Returns:
+            str: The universe domain used by the client instance.
+        """
+        return self._gapic_client.universe_domain
+
+    @property
+    def api_endpoint(self) -> str:
+        """Return the API endpoint used by the client instance.
+
+        Returns:
+            str: The API endpoint used by the client instance.
+        """
+        return self._gapic_client.api_endpoint
 
     @staticmethod
     def _client_version() -> str:
