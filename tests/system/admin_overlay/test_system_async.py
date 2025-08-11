@@ -145,7 +145,6 @@ async def create_instance(
 
     # Instance and cluster creation are currently unsupported in the Bigtable emulator
     if os.getenv(BIGTABLE_EMULATOR):
-
         # All we need for system tests so far is the instance name.
         instance = admin_v2.Instance(
             name=instance_admin_client.instance_path(project_id, instance_id),
