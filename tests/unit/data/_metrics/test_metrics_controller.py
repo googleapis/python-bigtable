@@ -21,15 +21,19 @@ class TestBigtableClientSideMetricsController:
             BigtableClientSideMetricsController,
         )
 
+        # add mock interceptor if called with no arguments
+        if not args and "interceptor" not in kwargs:
+            args = [mock.Mock()]
+
         return BigtableClientSideMetricsController(*args, **kwargs)
 
     def test_ctor_defaults(self):
         """
         should create instance with GCP Exporter handler by default
         """
-        instance = self._make_one(
-            project_id="p", instance_id="i", table_id="t", app_profile_id="a"
-        )
+        expected_interceptor = object()
+        instance = self._make_one(expected_interceptor)
+        assert instance.interceptor == expected_interceptor
         assert len(instance.handlers) == 0
 
     def ctor_custom_handlers(self):
@@ -37,7 +41,9 @@ class TestBigtableClientSideMetricsController:
         if handlers are passed to init, use those instead
         """
         custom_handler = object()
-        controller = self._make_one(handlers=[custom_handler])
+        custom_interceptor = object()
+        controller = self._make_one(custom_interceptor, handlers=[custom_handler])
+        assert controller.interceptor == custom_interceptor
         assert len(controller.handlers) == 1
         assert controller.handlers[0] is custom_handler
 
@@ -88,11 +94,20 @@ class TestBigtableClientSideMetricsController:
         assert len(op.handlers) == 1
         assert op.handlers[0] is handler
 
-    def test_create_operation_multiple_handlers(self):
-        orig_handler = object()
-        new_handler = object()
-        controller = self._make_one(handlers=[orig_handler])
-        op = controller.create_operation(object(), handlers=[new_handler])
-        assert len(op.handlers) == 2
-        assert orig_handler in op.handlers
-        assert new_handler in op.handlers
+    def test_create_operation_registers_interceptor(self):
+        """
+        creating an operation should link the operation with the controller's interceptor,
+        and add the interceptor as a handler to the operation
+        """
+        from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
+            BigtableMetricsInterceptor,
+        )
+
+        custom_handler = object()
+        controller = self._make_one(
+            BigtableMetricsInterceptor(), handlers=[custom_handler]
+        )
+        op = controller.create_operation(object())
+        assert custom_handler in op.handlers
+        assert op.uuid in controller.interceptor.operation_map
+        assert controller.interceptor.operation_map[op.uuid] == op

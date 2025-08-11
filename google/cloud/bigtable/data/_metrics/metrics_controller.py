@@ -72,7 +72,6 @@ class BigtableClientSideMetricsController:
         """
         Creates a new operation and registers it with the subscribed handlers.
         """
-        handlers = self.handlers + kwargs.pop("handlers", [])
-        new_op = ActiveOperationMetric(op_type, **kwargs, handlers=handlers)
+        new_op = ActiveOperationMetric(op_type, **kwargs, handlers=self.handlers)
         self.interceptor.register_operation(new_op)
         return new_op

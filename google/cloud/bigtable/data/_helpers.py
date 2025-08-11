@@ -277,4 +277,6 @@ class TrackedBackoffGenerator:
         """
         returns the backoff time for a specific attempt index, starting at 0.
         """
+        if attempt_idx < 0:
+            raise IndexError("received negative attempt number")
         return self.history[attempt_idx]
