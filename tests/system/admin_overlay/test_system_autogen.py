@@ -113,15 +113,20 @@ def create_instance(
             location=instance_admin_client.common_location_path(project_id, location),
             default_storage_type=storage_type,
         )
-    create_instance_request = admin_v2.CreateInstanceRequest(
-        parent=instance_admin_client.common_project_path(project_id),
-        instance_id=instance_id,
-        instance=admin_v2.Instance(display_name=instance_id[:30]),
-        clusters=clusters,
-    )
-    operation = instance_admin_client.create_instance(create_instance_request)
-    instance = operation.result()
-    instances_to_delete.append(instance)
+    if os.getenv(BIGTABLE_EMULATOR):
+        instance = admin_v2.Instance(
+            name=instance_admin_client.instance_path(project_id, instance_id)
+        )
+    else:
+        create_instance_request = admin_v2.CreateInstanceRequest(
+            parent=instance_admin_client.common_project_path(project_id),
+            instance_id=instance_id,
+            instance=admin_v2.Instance(display_name=instance_id[:30]),
+            clusters=clusters,
+        )
+        operation = instance_admin_client.create_instance(create_instance_request)
+        instance = operation.result()
+        instances_to_delete.append(instance)
     create_table_request = admin_v2.CreateTableRequest(
         parent=instance_admin_client.instance_path(project_id, instance_id),
         table_id=TEST_TABLE_NAME,
@@ -215,6 +220,8 @@ def test_optimize_restored_table(
     second_instance_storage_type,
     expect_optimize_operation,
 ):
+    if os.getenv(BIGTABLE_EMULATOR):
+        pytest.skip(reason="Backups are not supported in the Bigtable emulator")
     (instance_with_backup, table_to_backup) = create_instance(
         instance_admin_client,
         table_admin_client,
