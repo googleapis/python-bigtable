@@ -317,3 +317,47 @@ class TestTrackedBackoffGenerator:
             generator.get_attempt_backoff(2)
         with pytest.raises(IndexError):
             generator.get_attempt_backoff(-3)
+
+    def test_set_next_full_set(self):
+        """
+        try always using set_next to populate generator
+        """
+        generator = _helpers.TrackedBackoffGenerator()
+        for idx, val in enumerate(range(100, 0, -1)):
+            generator.set_next(val)
+            got = next(generator)
+            assert got == val
+            assert generator.get_attempt_backoff(idx) == val
+
+    def test_set_next_negative_value(self):
+        generator = _helpers.TrackedBackoffGenerator()
+        with pytest.raises(ValueError):
+            generator.set_next(-1)
+
+    @mock.patch("random.uniform", side_effect=lambda a, b: b)
+    def test_interleaved_set_next(self, mock_uniform):
+        import itertools
+
+        generator = _helpers.TrackedBackoffGenerator(
+            initial=1, multiplier=2, maximum=128
+        )
+        # values we expect generator to create
+        expected_values = [2**i for i in range(8)]
+        # values we will insert
+        inserted_values = [9, 61, 0, 4, 33, 12, 18, 2]
+        for idx in range(8):
+            assert next(generator) == expected_values[idx]
+            generator.set_next(inserted_values[idx])
+            assert next(generator) == inserted_values[idx]
+        # check to make sure history is as we expect
+        generator.history = itertools.chain.from_iterable(
+            zip(expected_values, inserted_values)
+        )
+
+    @mock.patch("random.uniform", side_effect=lambda a, b: b)
+    def test_set_next_replacement(self, mock_uniform):
+        generator = _helpers.TrackedBackoffGenerator(initial=1)
+        generator.set_next(99)
+        generator.set_next(88)
+        assert next(generator) == 88
+        assert next(generator) == 1
