@@ -1160,6 +1160,7 @@ class TestTableAsync:
     @CrossSync.pytest
     async def test_ctor(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
+        from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -1201,6 +1202,8 @@ class TestTableAsync:
         instance_key = _WarmedInstanceKey(table.instance_name, table.app_profile_id)
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(table)}
+        assert isinstance(table._metrics, BigtableClientSideMetricsController)
+        assert table._metrics.interceptor == client._metrics_interceptor
         assert table.default_operation_timeout == expected_operation_timeout
         assert table.default_attempt_timeout == expected_attempt_timeout
         assert (
@@ -1490,6 +1493,7 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
     @CrossSync.pytest
     async def test_ctor(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
+        from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -1538,6 +1542,8 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
         instance_key = _WarmedInstanceKey(view.instance_name, view.app_profile_id)
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(view)}
+        assert isinstance(view._metrics, BigtableClientSideMetricsController)
+        assert view._metrics.interceptor == client._metrics_interceptor
         assert view.default_operation_timeout == expected_operation_timeout
         assert view.default_attempt_timeout == expected_attempt_timeout
         assert (
