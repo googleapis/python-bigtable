@@ -6851,14 +6851,11 @@ def test_read_rows_routing_parameters_request_1_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_read_rows_routing_parameters_request_2_grpc():
@@ -6880,12 +6877,9 @@ def test_read_rows_routing_parameters_request_2_grpc():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_read_rows_routing_parameters_request_3_grpc():
@@ -6915,14 +6909,41 @@ def test_read_rows_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
+
+
+def test_read_rows_routing_parameters_request_4_grpc():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Mock the actual call, and fake the request.
+    with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
+        call.return_value = iter([bigtable.ReadRowsResponse()])
+        client.read_rows(
+            request={
+                "materialized_view_name": "projects/sample1/instances/sample2/sample3"
+            }
+        )
+
+        # Establish that the underlying stub method was called.
+        call.assert_called()
+        _, args, kw = call.mock_calls[0]
+        request_msg = bigtable.ReadRowsRequest(
+            **{"materialized_view_name": "projects/sample1/instances/sample2/sample3"}
+        )
+
+        assert args[0] == request_msg
+
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
+        )
 
 
 def test_sample_row_keys_routing_parameters_request_1_grpc():
@@ -6948,14 +6969,11 @@ def test_sample_row_keys_routing_parameters_request_1_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_sample_row_keys_routing_parameters_request_2_grpc():
@@ -6977,12 +6995,9 @@ def test_sample_row_keys_routing_parameters_request_2_grpc():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_sample_row_keys_routing_parameters_request_3_grpc():
@@ -7012,14 +7027,41 @@ def test_sample_row_keys_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
+
+
+def test_sample_row_keys_routing_parameters_request_4_grpc():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Mock the actual call, and fake the request.
+    with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
+        call.return_value = iter([bigtable.SampleRowKeysResponse()])
+        client.sample_row_keys(
+            request={
+                "materialized_view_name": "projects/sample1/instances/sample2/sample3"
+            }
+        )
+
+        # Establish that the underlying stub method was called.
+        call.assert_called()
+        _, args, kw = call.mock_calls[0]
+        request_msg = bigtable.SampleRowKeysRequest(
+            **{"materialized_view_name": "projects/sample1/instances/sample2/sample3"}
+        )
+
+        assert args[0] == request_msg
+
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
+        )
 
 
 def test_mutate_row_routing_parameters_request_1_grpc():
@@ -7045,14 +7087,11 @@ def test_mutate_row_routing_parameters_request_1_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_mutate_row_routing_parameters_request_2_grpc():
@@ -7074,12 +7113,9 @@ def test_mutate_row_routing_parameters_request_2_grpc():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_mutate_row_routing_parameters_request_3_grpc():
@@ -7109,14 +7145,11 @@ def test_mutate_row_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_mutate_rows_routing_parameters_request_1_grpc():
@@ -7142,14 +7175,11 @@ def test_mutate_rows_routing_parameters_request_1_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_mutate_rows_routing_parameters_request_2_grpc():
@@ -7171,12 +7201,9 @@ def test_mutate_rows_routing_parameters_request_2_grpc():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_mutate_rows_routing_parameters_request_3_grpc():
@@ -7206,14 +7233,11 @@ def test_mutate_rows_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_check_and_mutate_row_routing_parameters_request_1_grpc():
@@ -7241,14 +7265,11 @@ def test_check_and_mutate_row_routing_parameters_request_1_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_check_and_mutate_row_routing_parameters_request_2_grpc():
@@ -7272,12 +7293,9 @@ def test_check_and_mutate_row_routing_parameters_request_2_grpc():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_check_and_mutate_row_routing_parameters_request_3_grpc():
@@ -7309,14 +7327,11 @@ def test_check_and_mutate_row_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_ping_and_warm_routing_parameters_request_1_grpc():
@@ -7339,15 +7354,10 @@ def test_ping_and_warm_routing_parameters_request_1_grpc():
 
         assert args[0] == request_msg
 
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-        }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_ping_and_warm_routing_parameters_request_2_grpc():
@@ -7369,12 +7379,9 @@ def test_ping_and_warm_routing_parameters_request_2_grpc():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_read_modify_write_row_routing_parameters_request_1_grpc():
@@ -7402,14 +7409,11 @@ def test_read_modify_write_row_routing_parameters_request_1_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_read_modify_write_row_routing_parameters_request_2_grpc():
@@ -7435,12 +7439,9 @@ def test_read_modify_write_row_routing_parameters_request_2_grpc():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_read_modify_write_row_routing_parameters_request_3_grpc():
@@ -7472,14 +7473,11 @@ def test_read_modify_write_row_routing_parameters_request_3_grpc():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_prepare_query_routing_parameters_request_1_grpc():
@@ -7504,15 +7502,10 @@ def test_prepare_query_routing_parameters_request_1_grpc():
 
         assert args[0] == request_msg
 
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-        }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_prepare_query_routing_parameters_request_2_grpc():
@@ -7534,12 +7527,9 @@ def test_prepare_query_routing_parameters_request_2_grpc():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_execute_query_routing_parameters_request_1_grpc():
@@ -7564,15 +7554,10 @@ def test_execute_query_routing_parameters_request_1_grpc():
 
         assert args[0] == request_msg
 
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-        }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_execute_query_routing_parameters_request_2_grpc():
@@ -7594,12 +7579,9 @@ def test_execute_query_routing_parameters_request_2_grpc():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_transport_kind_grpc_asyncio():
@@ -7937,14 +7919,11 @@ async def test_read_rows_routing_parameters_request_1_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -7971,12 +7950,9 @@ async def test_read_rows_routing_parameters_request_2_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8011,14 +7987,46 @@ async def test_read_rows_routing_parameters_request_3_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
+
+
+@pytest.mark.asyncio
+async def test_read_rows_routing_parameters_request_4_grpc_asyncio():
+    client = BigtableAsyncClient(
+        credentials=async_anonymous_credentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call, and fake the request.
+    with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.ReadRowsResponse()]
+        )
+        await client.read_rows(
+            request={
+                "materialized_view_name": "projects/sample1/instances/sample2/sample3"
+            }
+        )
+
+        # Establish that the underlying stub method was called.
+        call.assert_called()
+        _, args, kw = call.mock_calls[0]
+        request_msg = bigtable.ReadRowsRequest(
+            **{"materialized_view_name": "projects/sample1/instances/sample2/sample3"}
+        )
+
+        assert args[0] == request_msg
+
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
+        )
 
 
 @pytest.mark.asyncio
@@ -8049,14 +8057,11 @@ async def test_sample_row_keys_routing_parameters_request_1_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8083,12 +8088,9 @@ async def test_sample_row_keys_routing_parameters_request_2_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8123,14 +8125,46 @@ async def test_sample_row_keys_routing_parameters_request_3_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
+
+
+@pytest.mark.asyncio
+async def test_sample_row_keys_routing_parameters_request_4_grpc_asyncio():
+    client = BigtableAsyncClient(
+        credentials=async_anonymous_credentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call, and fake the request.
+    with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.SampleRowKeysResponse()]
+        )
+        await client.sample_row_keys(
+            request={
+                "materialized_view_name": "projects/sample1/instances/sample2/sample3"
+            }
+        )
+
+        # Establish that the underlying stub method was called.
+        call.assert_called()
+        _, args, kw = call.mock_calls[0]
+        request_msg = bigtable.SampleRowKeysRequest(
+            **{"materialized_view_name": "projects/sample1/instances/sample2/sample3"}
+        )
+
+        assert args[0] == request_msg
+
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
+        )
 
 
 @pytest.mark.asyncio
@@ -8160,14 +8194,11 @@ async def test_mutate_row_routing_parameters_request_1_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8193,12 +8224,9 @@ async def test_mutate_row_routing_parameters_request_2_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8232,14 +8260,11 @@ async def test_mutate_row_routing_parameters_request_3_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8270,14 +8295,11 @@ async def test_mutate_rows_routing_parameters_request_1_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8304,12 +8326,9 @@ async def test_mutate_rows_routing_parameters_request_2_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8344,14 +8363,11 @@ async def test_mutate_rows_routing_parameters_request_3_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8385,14 +8401,11 @@ async def test_check_and_mutate_row_routing_parameters_request_1_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8422,12 +8435,9 @@ async def test_check_and_mutate_row_routing_parameters_request_2_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8465,14 +8475,11 @@ async def test_check_and_mutate_row_routing_parameters_request_3_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8501,15 +8508,10 @@ async def test_ping_and_warm_routing_parameters_request_1_grpc_asyncio():
 
         assert args[0] == request_msg
 
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-        }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8535,12 +8537,9 @@ async def test_ping_and_warm_routing_parameters_request_2_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8572,14 +8571,11 @@ async def test_read_modify_write_row_routing_parameters_request_1_grpc_asyncio()
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8609,12 +8605,9 @@ async def test_read_modify_write_row_routing_parameters_request_2_grpc_asyncio()
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8650,14 +8643,11 @@ async def test_read_modify_write_row_routing_parameters_request_3_grpc_asyncio()
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8688,15 +8678,10 @@ async def test_prepare_query_routing_parameters_request_1_grpc_asyncio():
 
         assert args[0] == request_msg
 
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-        }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8724,12 +8709,9 @@ async def test_prepare_query_routing_parameters_request_2_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8759,15 +8741,10 @@ async def test_execute_query_routing_parameters_request_1_grpc_asyncio():
 
         assert args[0] == request_msg
 
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-        }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 @pytest.mark.asyncio
@@ -8794,12 +8771,9 @@ async def test_execute_query_routing_parameters_request_2_grpc_asyncio():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_transport_kind_rest():
@@ -10447,14 +10421,11 @@ def test_read_rows_routing_parameters_request_1_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_read_rows_routing_parameters_request_2_rest():
@@ -10475,12 +10446,9 @@ def test_read_rows_routing_parameters_request_2_rest():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_read_rows_routing_parameters_request_3_rest():
@@ -10509,14 +10477,40 @@ def test_read_rows_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
+
+
+def test_read_rows_routing_parameters_request_4_rest():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the actual call, and fake the request.
+    with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
+        client.read_rows(
+            request={
+                "materialized_view_name": "projects/sample1/instances/sample2/sample3"
+            }
+        )
+
+        # Establish that the underlying stub method was called.
+        call.assert_called()
+        _, args, kw = call.mock_calls[0]
+        request_msg = bigtable.ReadRowsRequest(
+            **{"materialized_view_name": "projects/sample1/instances/sample2/sample3"}
+        )
+
+        assert args[0] == request_msg
+
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
+        )
 
 
 def test_sample_row_keys_routing_parameters_request_1_rest():
@@ -10541,14 +10535,11 @@ def test_sample_row_keys_routing_parameters_request_1_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_sample_row_keys_routing_parameters_request_2_rest():
@@ -10569,12 +10560,9 @@ def test_sample_row_keys_routing_parameters_request_2_rest():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_sample_row_keys_routing_parameters_request_3_rest():
@@ -10603,14 +10591,40 @@ def test_sample_row_keys_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
+
+
+def test_sample_row_keys_routing_parameters_request_4_rest():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the actual call, and fake the request.
+    with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
+        client.sample_row_keys(
+            request={
+                "materialized_view_name": "projects/sample1/instances/sample2/sample3"
+            }
+        )
+
+        # Establish that the underlying stub method was called.
+        call.assert_called()
+        _, args, kw = call.mock_calls[0]
+        request_msg = bigtable.SampleRowKeysRequest(
+            **{"materialized_view_name": "projects/sample1/instances/sample2/sample3"}
+        )
+
+        assert args[0] == request_msg
+
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
+        )
 
 
 def test_mutate_row_routing_parameters_request_1_rest():
@@ -10635,14 +10649,11 @@ def test_mutate_row_routing_parameters_request_1_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_mutate_row_routing_parameters_request_2_rest():
@@ -10663,12 +10674,9 @@ def test_mutate_row_routing_parameters_request_2_rest():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_mutate_row_routing_parameters_request_3_rest():
@@ -10697,14 +10705,11 @@ def test_mutate_row_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_mutate_rows_routing_parameters_request_1_rest():
@@ -10729,14 +10734,11 @@ def test_mutate_rows_routing_parameters_request_1_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_mutate_rows_routing_parameters_request_2_rest():
@@ -10757,12 +10759,9 @@ def test_mutate_rows_routing_parameters_request_2_rest():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_mutate_rows_routing_parameters_request_3_rest():
@@ -10791,14 +10790,11 @@ def test_mutate_rows_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_check_and_mutate_row_routing_parameters_request_1_rest():
@@ -10825,14 +10821,11 @@ def test_check_and_mutate_row_routing_parameters_request_1_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_check_and_mutate_row_routing_parameters_request_2_rest():
@@ -10855,12 +10848,9 @@ def test_check_and_mutate_row_routing_parameters_request_2_rest():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_check_and_mutate_row_routing_parameters_request_3_rest():
@@ -10891,14 +10881,11 @@ def test_check_and_mutate_row_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_ping_and_warm_routing_parameters_request_1_rest():
@@ -10920,15 +10907,10 @@ def test_ping_and_warm_routing_parameters_request_1_rest():
 
         assert args[0] == request_msg
 
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-        }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_ping_and_warm_routing_parameters_request_2_rest():
@@ -10949,12 +10931,9 @@ def test_ping_and_warm_routing_parameters_request_2_rest():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_read_modify_write_row_routing_parameters_request_1_rest():
@@ -10981,14 +10960,11 @@ def test_read_modify_write_row_routing_parameters_request_1_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_read_modify_write_row_routing_parameters_request_2_rest():
@@ -11013,12 +10989,9 @@ def test_read_modify_write_row_routing_parameters_request_2_rest():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_read_modify_write_row_routing_parameters_request_3_rest():
@@ -11049,14 +11022,11 @@ def test_read_modify_write_row_routing_parameters_request_3_rest():
         assert args[0] == request_msg
 
         expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
         }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_prepare_query_routing_parameters_request_1_rest():
@@ -11080,15 +11050,10 @@ def test_prepare_query_routing_parameters_request_1_rest():
 
         assert args[0] == request_msg
 
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-        }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_prepare_query_routing_parameters_request_2_rest():
@@ -11109,12 +11074,9 @@ def test_prepare_query_routing_parameters_request_2_rest():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_execute_query_routing_parameters_request_1_rest():
@@ -11138,15 +11100,10 @@ def test_execute_query_routing_parameters_request_1_rest():
 
         assert args[0] == request_msg
 
-        expected_headers = {
-            "name": "projects/sample1/instances/sample2",
-        }
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        expected_headers = {"name": "projects/sample1/instances/sample2"}
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_execute_query_routing_parameters_request_2_rest():
@@ -11167,12 +11124,9 @@ def test_execute_query_routing_parameters_request_2_rest():
         assert args[0] == request_msg
 
         expected_headers = {"app_profile_id": "sample1"}
-
-        # assert the expected headers are present, in any order
-        routing_string = next(
-            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        assert (
+            gapic_v1.routing_header.to_grpc_metadata(expected_headers) in kw["metadata"]
         )
-        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])
 
 
 def test_transport_grpc_default():
