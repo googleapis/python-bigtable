@@ -1,4 +1,4 @@
-# Copyright 2015 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -10,16 +10,43 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
+# limitations under the License
 
-"""Google Cloud Bigtable API package."""
+import importlib
+import sys
 
-from google.cloud.bigtable.client import Client
+_CLASSIC_CLIENT_MODULE_NAMES = {
+     "app_profile",
+    "backup",
+    "batcher",
+    "client",
+    "cluster",
+    "column_family",
+    "encryption_info",
+    "enums",
+    "error",
+    "helpers",
+    "instance",
+    "policy",
+    "row_data",
+    "row_filters",
+    "row_merger",
+    "row_set",
+    "row",
+    "table",
+}
 
-from google.cloud.bigtable import gapic_version as package_version
+# update sys.modules to add an alias from old path to new
+for module_name in _CLASSIC_CLIENT_MODULE_NAMES:
+    old_path = f"google.cloud.bigtable.{module_name}"
+    new_path = f".classic.{module_name}"
 
-__version__: str
+    module = importlib.import_module(new_path, __name__)
+    sys.modules[old_path] = module
+    # Attach the module as an attribute to the current package
+    setattr(sys.modules[__name__], module_name, module)
 
-__version__ = package_version.__version__
-
-__all__ = ["__version__", "Client"]
+# previously exported classes
+from google.cloud.bigtable.classic.client import Client
+from . import gapic_version
+__version__ = gapic_version.__version__
