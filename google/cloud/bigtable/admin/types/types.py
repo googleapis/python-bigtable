@@ -65,51 +65,51 @@ class Type(proto.Message):
     .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
     Attributes:
-        bytes_type (google.cloud.bigtable_admin_v2.types.Type.Bytes):
+        bytes_type (google.cloud.bigtable.admin.types.Type.Bytes):
             Bytes
 
             This field is a member of `oneof`_ ``kind``.
-        string_type (google.cloud.bigtable_admin_v2.types.Type.String):
+        string_type (google.cloud.bigtable.admin.types.Type.String):
             String
 
             This field is a member of `oneof`_ ``kind``.
-        int64_type (google.cloud.bigtable_admin_v2.types.Type.Int64):
+        int64_type (google.cloud.bigtable.admin.types.Type.Int64):
             Int64
 
             This field is a member of `oneof`_ ``kind``.
-        float32_type (google.cloud.bigtable_admin_v2.types.Type.Float32):
+        float32_type (google.cloud.bigtable.admin.types.Type.Float32):
             Float32
 
             This field is a member of `oneof`_ ``kind``.
-        float64_type (google.cloud.bigtable_admin_v2.types.Type.Float64):
+        float64_type (google.cloud.bigtable.admin.types.Type.Float64):
             Float64
 
             This field is a member of `oneof`_ ``kind``.
-        bool_type (google.cloud.bigtable_admin_v2.types.Type.Bool):
+        bool_type (google.cloud.bigtable.admin.types.Type.Bool):
             Bool
 
             This field is a member of `oneof`_ ``kind``.
-        timestamp_type (google.cloud.bigtable_admin_v2.types.Type.Timestamp):
+        timestamp_type (google.cloud.bigtable.admin.types.Type.Timestamp):
             Timestamp
 
             This field is a member of `oneof`_ ``kind``.
-        date_type (google.cloud.bigtable_admin_v2.types.Type.Date):
+        date_type (google.cloud.bigtable.admin.types.Type.Date):
             Date
 
             This field is a member of `oneof`_ ``kind``.
-        aggregate_type (google.cloud.bigtable_admin_v2.types.Type.Aggregate):
+        aggregate_type (google.cloud.bigtable.admin.types.Type.Aggregate):
             Aggregate
 
             This field is a member of `oneof`_ ``kind``.
-        struct_type (google.cloud.bigtable_admin_v2.types.Type.Struct):
+        struct_type (google.cloud.bigtable.admin.types.Type.Struct):
             Struct
 
             This field is a member of `oneof`_ ``kind``.
-        array_type (google.cloud.bigtable_admin_v2.types.Type.Array):
+        array_type (google.cloud.bigtable.admin.types.Type.Array):
             Array
 
             This field is a member of `oneof`_ ``kind``.
-        map_type (google.cloud.bigtable_admin_v2.types.Type.Map):
+        map_type (google.cloud.bigtable.admin.types.Type.Map):
             Map
 
             This field is a member of `oneof`_ ``kind``.
@@ -119,7 +119,7 @@ class Type(proto.Message):
         r"""Bytes Values of type ``Bytes`` are stored in ``Value.bytes_value``.
 
         Attributes:
-            encoding (google.cloud.bigtable_admin_v2.types.Type.Bytes.Encoding):
+            encoding (google.cloud.bigtable.admin.types.Type.Bytes.Encoding):
                 The encoding to use when converting to or
                 from lower level types.
         """
@@ -130,7 +130,7 @@ class Type(proto.Message):
             .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
             Attributes:
-                raw (google.cloud.bigtable_admin_v2.types.Type.Bytes.Encoding.Raw):
+                raw (google.cloud.bigtable.admin.types.Type.Bytes.Encoding.Raw):
                     Use ``Raw`` encoding.
 
                     This field is a member of `oneof`_ ``encoding``.
@@ -163,7 +163,7 @@ class Type(proto.Message):
         ``Value.string_value``.
 
         Attributes:
-            encoding (google.cloud.bigtable_admin_v2.types.Type.String.Encoding):
+            encoding (google.cloud.bigtable.admin.types.Type.String.Encoding):
                 The encoding to use when converting to or
                 from lower level types.
         """
@@ -179,11 +179,11 @@ class Type(proto.Message):
             .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
             Attributes:
-                utf8_raw (google.cloud.bigtable_admin_v2.types.Type.String.Encoding.Utf8Raw):
+                utf8_raw (google.cloud.bigtable.admin.types.Type.String.Encoding.Utf8Raw):
                     Deprecated: if set, converts to an empty ``utf8_bytes``.
 
                     This field is a member of `oneof`_ ``encoding``.
-                utf8_bytes (google.cloud.bigtable_admin_v2.types.Type.String.Encoding.Utf8Bytes):
+                utf8_bytes (google.cloud.bigtable.admin.types.Type.String.Encoding.Utf8Bytes):
                     Use ``Utf8Bytes`` encoding.
 
                     This field is a member of `oneof`_ ``encoding``.
@@ -233,7 +233,7 @@ class Type(proto.Message):
         r"""Int64 Values of type ``Int64`` are stored in ``Value.int_value``.
 
         Attributes:
-            encoding (google.cloud.bigtable_admin_v2.types.Type.Int64.Encoding):
+            encoding (google.cloud.bigtable.admin.types.Type.Int64.Encoding):
                 The encoding to use when converting to or
                 from lower level types.
         """
@@ -249,11 +249,11 @@ class Type(proto.Message):
             .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
             Attributes:
-                big_endian_bytes (google.cloud.bigtable_admin_v2.types.Type.Int64.Encoding.BigEndianBytes):
+                big_endian_bytes (google.cloud.bigtable.admin.types.Type.Int64.Encoding.BigEndianBytes):
                     Use ``BigEndianBytes`` encoding.
 
                     This field is a member of `oneof`_ ``encoding``.
-                ordered_code_bytes (google.cloud.bigtable_admin_v2.types.Type.Int64.Encoding.OrderedCodeBytes):
+                ordered_code_bytes (google.cloud.bigtable.admin.types.Type.Int64.Encoding.OrderedCodeBytes):
                     Use ``OrderedCodeBytes`` encoding.
 
                     This field is a member of `oneof`_ ``encoding``.
@@ -273,7 +273,7 @@ class Type(proto.Message):
                 -  Java ``ByteBuffer.putLong()`` with ``ByteOrder.BIG_ENDIAN``
 
                 Attributes:
-                    bytes_type (google.cloud.bigtable_admin_v2.types.Type.Bytes):
+                    bytes_type (google.cloud.bigtable.admin.types.Type.Bytes):
                         Deprecated: ignored if set.
                 """
 
@@ -332,7 +332,7 @@ class Type(proto.Message):
         ``Value.timestamp_value``.
 
         Attributes:
-            encoding (google.cloud.bigtable_admin_v2.types.Type.Timestamp.Encoding):
+            encoding (google.cloud.bigtable.admin.types.Type.Timestamp.Encoding):
                 The encoding to use when converting to or
                 from lower level types.
         """
@@ -343,7 +343,7 @@ class Type(proto.Message):
             .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
             Attributes:
-                unix_micros_int64 (google.cloud.bigtable_admin_v2.types.Type.Int64.Encoding):
+                unix_micros_int64 (google.cloud.bigtable.admin.types.Type.Int64.Encoding):
                     Encodes the number of microseconds since the Unix epoch
                     using the given ``Int64`` encoding. Values must be
                     microsecond-aligned.
@@ -378,10 +378,10 @@ class Type(proto.Message):
         as ``field_types``.
 
         Attributes:
-            fields (MutableSequence[google.cloud.bigtable_admin_v2.types.Type.Struct.Field]):
+            fields (MutableSequence[google.cloud.bigtable.admin.types.Type.Struct.Field]):
                 The names and types of the fields in this
                 struct.
-            encoding (google.cloud.bigtable_admin_v2.types.Type.Struct.Encoding):
+            encoding (google.cloud.bigtable.admin.types.Type.Struct.Encoding):
                 The encoding to use when converting to or
                 from lower level types.
         """
@@ -393,7 +393,7 @@ class Type(proto.Message):
                 field_name (str):
                     The field name (optional). Fields without a ``field_name``
                     are considered anonymous and cannot be referenced by name.
-                type_ (google.cloud.bigtable_admin_v2.types.Type):
+                type_ (google.cloud.bigtable.admin.types.Type):
                     The type of values in this field.
             """
 
@@ -418,15 +418,15 @@ class Type(proto.Message):
             .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
             Attributes:
-                singleton (google.cloud.bigtable_admin_v2.types.Type.Struct.Encoding.Singleton):
+                singleton (google.cloud.bigtable.admin.types.Type.Struct.Encoding.Singleton):
                     Use ``Singleton`` encoding.
 
                     This field is a member of `oneof`_ ``encoding``.
-                delimited_bytes (google.cloud.bigtable_admin_v2.types.Type.Struct.Encoding.DelimitedBytes):
+                delimited_bytes (google.cloud.bigtable.admin.types.Type.Struct.Encoding.DelimitedBytes):
                     Use ``DelimitedBytes`` encoding.
 
                     This field is a member of `oneof`_ ``encoding``.
-                ordered_code_bytes (google.cloud.bigtable_admin_v2.types.Type.Struct.Encoding.OrderedCodeBytes):
+                ordered_code_bytes (google.cloud.bigtable.admin.types.Type.Struct.Encoding.OrderedCodeBytes):
                     User ``OrderedCodeBytes`` encoding.
 
                     This field is a member of `oneof`_ ``encoding``.
@@ -553,7 +553,7 @@ class Type(proto.Message):
         ``Array`` are stored in ``Value.array_value``.
 
         Attributes:
-            element_type (google.cloud.bigtable_admin_v2.types.Type):
+            element_type (google.cloud.bigtable.admin.types.Type):
                 The type of the elements in the array. This must not be
                 ``Array``.
         """
@@ -574,10 +574,10 @@ class Type(proto.Message):
         precedence.
 
         Attributes:
-            key_type (google.cloud.bigtable_admin_v2.types.Type):
+            key_type (google.cloud.bigtable.admin.types.Type):
                 The type of a map key. Only ``Bytes``, ``String``, and
                 ``Int64`` are allowed as key types.
-            value_type (google.cloud.bigtable_admin_v2.types.Type):
+            value_type (google.cloud.bigtable.admin.types.Type):
                 The type of the values in a map.
         """
 
@@ -607,28 +607,28 @@ class Type(proto.Message):
         .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
         Attributes:
-            input_type (google.cloud.bigtable_admin_v2.types.Type):
+            input_type (google.cloud.bigtable.admin.types.Type):
                 Type of the inputs that are accumulated by this
                 ``Aggregate``, which must specify a full encoding. Use
                 ``AddInput`` mutations to accumulate new inputs.
-            state_type (google.cloud.bigtable_admin_v2.types.Type):
+            state_type (google.cloud.bigtable.admin.types.Type):
                 Output only. Type that holds the internal accumulator state
                 for the ``Aggregate``. This is a function of the
                 ``input_type`` and ``aggregator`` chosen, and will always
                 specify a full encoding.
-            sum (google.cloud.bigtable_admin_v2.types.Type.Aggregate.Sum):
+            sum (google.cloud.bigtable.admin.types.Type.Aggregate.Sum):
                 Sum aggregator.
 
                 This field is a member of `oneof`_ ``aggregator``.
-            hllpp_unique_count (google.cloud.bigtable_admin_v2.types.Type.Aggregate.HyperLogLogPlusPlusUniqueCount):
+            hllpp_unique_count (google.cloud.bigtable.admin.types.Type.Aggregate.HyperLogLogPlusPlusUniqueCount):
                 HyperLogLogPlusPlusUniqueCount aggregator.
 
                 This field is a member of `oneof`_ ``aggregator``.
-            max_ (google.cloud.bigtable_admin_v2.types.Type.Aggregate.Max):
+            max_ (google.cloud.bigtable.admin.types.Type.Aggregate.Max):
                 Max aggregator.
 
                 This field is a member of `oneof`_ ``aggregator``.
-            min_ (google.cloud.bigtable_admin_v2.types.Type.Aggregate.Min):
+            min_ (google.cloud.bigtable.admin.types.Type.Aggregate.Min):
                 Min aggregator.
 
                 This field is a member of `oneof`_ ``aggregator``.

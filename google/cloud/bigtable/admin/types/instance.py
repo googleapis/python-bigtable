@@ -19,7 +19,7 @@ from typing import MutableMapping, MutableSequence
 
 import proto  # type: ignore
 
-from google.cloud.bigtable_admin_v2.types import common
+from google.cloud.bigtable.admin.types import common
 from google.protobuf import timestamp_pb2  # type: ignore
 
 
@@ -56,10 +56,10 @@ class Instance(proto.Message):
             instance as it appears in UIs. Can be changed at
             any time, but should be kept globally unique to
             avoid confusion.
-        state (google.cloud.bigtable_admin_v2.types.Instance.State):
+        state (google.cloud.bigtable.admin.types.Instance.State):
             Output only. The current state of the
             instance.
-        type_ (google.cloud.bigtable_admin_v2.types.Instance.Type):
+        type_ (google.cloud.bigtable.admin.types.Instance.Type):
             The type of the instance. Defaults to ``PRODUCTION``.
         labels (MutableMapping[str, str]):
             Labels are a flexible and lightweight mechanism for
@@ -242,7 +242,7 @@ class Cluster(proto.Message):
             located as close as possible to this cluster. Currently only
             zones are supported, so values should be of the form
             ``projects/{project}/locations/{zone}``.
-        state (google.cloud.bigtable_admin_v2.types.Cluster.State):
+        state (google.cloud.bigtable.admin.types.Cluster.State):
             Output only. The current state of the
             cluster.
         serve_nodes (int):
@@ -250,18 +250,18 @@ class Cluster(proto.Message):
             value is set, Cloud Bigtable automatically
             allocates nodes based on your data footprint and
             optimized for 50% storage utilization.
-        node_scaling_factor (google.cloud.bigtable_admin_v2.types.Cluster.NodeScalingFactor):
+        node_scaling_factor (google.cloud.bigtable.admin.types.Cluster.NodeScalingFactor):
             Immutable. The node scaling factor of this
             cluster.
-        cluster_config (google.cloud.bigtable_admin_v2.types.Cluster.ClusterConfig):
+        cluster_config (google.cloud.bigtable.admin.types.Cluster.ClusterConfig):
             Configuration for this cluster.
 
             This field is a member of `oneof`_ ``config``.
-        default_storage_type (google.cloud.bigtable_admin_v2.types.StorageType):
+        default_storage_type (google.cloud.bigtable.admin.types.StorageType):
             Immutable. The type of storage used by this
             cluster to serve its parent instance's tables,
             unless explicitly overridden.
-        encryption_config (google.cloud.bigtable_admin_v2.types.Cluster.EncryptionConfig):
+        encryption_config (google.cloud.bigtable.admin.types.Cluster.EncryptionConfig):
             Immutable. The encryption configuration for
             CMEK-protected clusters.
     """
@@ -326,10 +326,10 @@ class Cluster(proto.Message):
         r"""Autoscaling config for a cluster.
 
         Attributes:
-            autoscaling_limits (google.cloud.bigtable_admin_v2.types.AutoscalingLimits):
+            autoscaling_limits (google.cloud.bigtable.admin.types.AutoscalingLimits):
                 Required. Autoscaling limits for this
                 cluster.
-            autoscaling_targets (google.cloud.bigtable_admin_v2.types.AutoscalingTargets):
+            autoscaling_targets (google.cloud.bigtable.admin.types.AutoscalingTargets):
                 Required. Autoscaling targets for this
                 cluster.
         """
@@ -349,7 +349,7 @@ class Cluster(proto.Message):
         r"""Configuration for a cluster.
 
         Attributes:
-            cluster_autoscaling_config (google.cloud.bigtable_admin_v2.types.Cluster.ClusterAutoscalingConfig):
+            cluster_autoscaling_config (google.cloud.bigtable.admin.types.Cluster.ClusterAutoscalingConfig):
                 Autoscaling configuration for this cluster.
         """
 
@@ -453,15 +453,15 @@ class AppProfile(proto.Message):
         description (str):
             Long form description of the use case for
             this AppProfile.
-        multi_cluster_routing_use_any (google.cloud.bigtable_admin_v2.types.AppProfile.MultiClusterRoutingUseAny):
+        multi_cluster_routing_use_any (google.cloud.bigtable.admin.types.AppProfile.MultiClusterRoutingUseAny):
             Use a multi-cluster routing policy.
 
             This field is a member of `oneof`_ ``routing_policy``.
-        single_cluster_routing (google.cloud.bigtable_admin_v2.types.AppProfile.SingleClusterRouting):
+        single_cluster_routing (google.cloud.bigtable.admin.types.AppProfile.SingleClusterRouting):
             Use a single-cluster routing policy.
 
             This field is a member of `oneof`_ ``routing_policy``.
-        priority (google.cloud.bigtable_admin_v2.types.AppProfile.Priority):
+        priority (google.cloud.bigtable.admin.types.AppProfile.Priority):
             This field has been deprecated in favor of
             ``standard_isolation.priority``. If you set this field,
             ``standard_isolation.priority`` will be set instead.
@@ -469,12 +469,12 @@ class AppProfile(proto.Message):
             The priority of requests sent using this app profile.
 
             This field is a member of `oneof`_ ``isolation``.
-        standard_isolation (google.cloud.bigtable_admin_v2.types.AppProfile.StandardIsolation):
+        standard_isolation (google.cloud.bigtable.admin.types.AppProfile.StandardIsolation):
             The standard options used for isolating this
             app profile's traffic from other use cases.
 
             This field is a member of `oneof`_ ``isolation``.
-        data_boost_isolation_read_only (google.cloud.bigtable_admin_v2.types.AppProfile.DataBoostIsolationReadOnly):
+        data_boost_isolation_read_only (google.cloud.bigtable.admin.types.AppProfile.DataBoostIsolationReadOnly):
             Specifies that this app profile is intended
             for read-only usage via the Data Boost feature.
 
@@ -519,7 +519,7 @@ class AppProfile(proto.Message):
                 ignored; clusters will be tried in order of
                 distance. If left empty, all clusters are
                 eligible.
-            row_affinity (google.cloud.bigtable_admin_v2.types.AppProfile.MultiClusterRoutingUseAny.RowAffinity):
+            row_affinity (google.cloud.bigtable.admin.types.AppProfile.MultiClusterRoutingUseAny.RowAffinity):
                 Row affinity sticky routing based on the row
                 key of the request. Requests that span multiple
                 rows are routed non-deterministically.
@@ -582,7 +582,7 @@ class AppProfile(proto.Message):
         from other use cases.
 
         Attributes:
-            priority (google.cloud.bigtable_admin_v2.types.AppProfile.Priority):
+            priority (google.cloud.bigtable.admin.types.AppProfile.Priority):
                 The priority of requests sent using this app
                 profile.
         """
@@ -604,7 +604,7 @@ class AppProfile(proto.Message):
         .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
         Attributes:
-            compute_billing_owner (google.cloud.bigtable_admin_v2.types.AppProfile.DataBoostIsolationReadOnly.ComputeBillingOwner):
+            compute_billing_owner (google.cloud.bigtable.admin.types.AppProfile.DataBoostIsolationReadOnly.ComputeBillingOwner):
                 The Compute Billing Owner for this Data Boost
                 App Profile.
 

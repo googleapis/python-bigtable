@@ -19,7 +19,7 @@ from typing import MutableMapping, MutableSequence
 
 import proto  # type: ignore
 
-from google.cloud.bigtable_admin_v2.types import types
+from google.cloud.bigtable.admin.types import types
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
 from google.rpc import status_pb2  # type: ignore
@@ -63,9 +63,9 @@ class RestoreInfo(proto.Message):
     .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
     Attributes:
-        source_type (google.cloud.bigtable_admin_v2.types.RestoreSourceType):
+        source_type (google.cloud.bigtable.admin.types.RestoreSourceType):
             The type of the restore source.
-        backup_info (google.cloud.bigtable_admin_v2.types.BackupInfo):
+        backup_info (google.cloud.bigtable.admin.types.BackupInfo):
             Information about the backup used to restore
             the table. The backup may no longer exist.
 
@@ -120,29 +120,29 @@ class Table(proto.Message):
             ``projects/{project}/instances/{instance}/tables/[_a-zA-Z0-9][-_.a-zA-Z0-9]*``.
             Views: ``NAME_ONLY``, ``SCHEMA_VIEW``, ``REPLICATION_VIEW``,
             ``FULL``
-        cluster_states (MutableMapping[str, google.cloud.bigtable_admin_v2.types.Table.ClusterState]):
+        cluster_states (MutableMapping[str, google.cloud.bigtable.admin.types.Table.ClusterState]):
             Output only. Map from cluster ID to per-cluster table state.
             If it could not be determined whether or not the table has
             data in a particular cluster (for example, if its zone is
             unavailable), then there will be an entry for the cluster
             with UNKNOWN ``replication_status``. Views:
             ``REPLICATION_VIEW``, ``ENCRYPTION_VIEW``, ``FULL``
-        column_families (MutableMapping[str, google.cloud.bigtable_admin_v2.types.ColumnFamily]):
+        column_families (MutableMapping[str, google.cloud.bigtable.admin.types.ColumnFamily]):
             The column families configured for this table, mapped by
             column family ID. Views: ``SCHEMA_VIEW``, ``STATS_VIEW``,
             ``FULL``
-        granularity (google.cloud.bigtable_admin_v2.types.Table.TimestampGranularity):
+        granularity (google.cloud.bigtable.admin.types.Table.TimestampGranularity):
             Immutable. The granularity (i.e. ``MILLIS``) at which
             timestamps are stored in this table. Timestamps not matching
             the granularity will be rejected. If unspecified at creation
             time, the value will be set to ``MILLIS``. Views:
             ``SCHEMA_VIEW``, ``FULL``.
-        restore_info (google.cloud.bigtable_admin_v2.types.RestoreInfo):
+        restore_info (google.cloud.bigtable.admin.types.RestoreInfo):
             Output only. If this table was restored from
             another data source (e.g. a backup), this field
             will be populated with information about the
             restore.
-        change_stream_config (google.cloud.bigtable_admin_v2.types.ChangeStreamConfig):
+        change_stream_config (google.cloud.bigtable.admin.types.ChangeStreamConfig):
             If specified, enable the change stream on
             this table. Otherwise, the change stream is
             disabled and the change stream is not retained.
@@ -157,13 +157,13 @@ class Table(proto.Message):
 
             Note one can still delete the data stored in the table
             through Data APIs.
-        automated_backup_policy (google.cloud.bigtable_admin_v2.types.Table.AutomatedBackupPolicy):
+        automated_backup_policy (google.cloud.bigtable.admin.types.Table.AutomatedBackupPolicy):
             If specified, automated backups are enabled
             for this table. Otherwise, automated backups are
             disabled.
 
             This field is a member of `oneof`_ ``automated_backup_config``.
-        row_key_schema (google.cloud.bigtable_admin_v2.types.Type.Struct):
+        row_key_schema (google.cloud.bigtable.admin.types.Type.Struct):
             The row key schema for this table. The schema is used to
             decode the raw row key bytes into a structured format. The
             order of field declarations in this schema is important, as
@@ -266,10 +266,10 @@ class Table(proto.Message):
         r"""The state of a table's data in a particular cluster.
 
         Attributes:
-            replication_state (google.cloud.bigtable_admin_v2.types.Table.ClusterState.ReplicationState):
+            replication_state (google.cloud.bigtable.admin.types.Table.ClusterState.ReplicationState):
                 Output only. The state of replication for the
                 table in this cluster.
-            encryption_info (MutableSequence[google.cloud.bigtable_admin_v2.types.EncryptionInfo]):
+            encryption_info (MutableSequence[google.cloud.bigtable.admin.types.EncryptionInfo]):
                 Output only. The encryption information for
                 the table in this cluster. If the encryption key
                 protecting this resource is customer managed,
@@ -417,7 +417,7 @@ class AuthorizedView(proto.Message):
             Identifier. The name of this AuthorizedView. Values are of
             the form
             ``projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}``
-        subset_view (google.cloud.bigtable_admin_v2.types.AuthorizedView.SubsetView):
+        subset_view (google.cloud.bigtable.admin.types.AuthorizedView.SubsetView):
             An AuthorizedView permitting access to an
             explicit subset of a Table.
 
@@ -489,7 +489,7 @@ class AuthorizedView(proto.Message):
                 Row prefixes to be included in the
                 AuthorizedView. To provide access to all rows,
                 include the empty string as a prefix ("").
-            family_subsets (MutableMapping[str, google.cloud.bigtable_admin_v2.types.AuthorizedView.FamilySubsets]):
+            family_subsets (MutableMapping[str, google.cloud.bigtable.admin.types.AuthorizedView.FamilySubsets]):
                 Map from column family name to the columns in
                 this family to be included in the
                 AuthorizedView.
@@ -533,7 +533,7 @@ class ColumnFamily(proto.Message):
     configuration.
 
     Attributes:
-        gc_rule (google.cloud.bigtable_admin_v2.types.GcRule):
+        gc_rule (google.cloud.bigtable.admin.types.GcRule):
             Garbage collection rule specified as a
             protobuf. Must serialize to at most 500 bytes.
 
@@ -541,7 +541,7 @@ class ColumnFamily(proto.Message):
             opportunistically in the background, and so it's
             possible for reads to return a cell even if it
             matches the active GC expression for its family.
-        value_type (google.cloud.bigtable_admin_v2.types.Type):
+        value_type (google.cloud.bigtable.admin.types.Type):
             The type of data stored in each of this family's cell
             values, including its full encoding. If omitted, the family
             only serves raw untyped bytes.
@@ -593,12 +593,12 @@ class GcRule(proto.Message):
             granularity.
 
             This field is a member of `oneof`_ ``rule``.
-        intersection (google.cloud.bigtable_admin_v2.types.GcRule.Intersection):
+        intersection (google.cloud.bigtable.admin.types.GcRule.Intersection):
             Delete cells that would be deleted by every
             nested rule.
 
             This field is a member of `oneof`_ ``rule``.
-        union (google.cloud.bigtable_admin_v2.types.GcRule.Union):
+        union (google.cloud.bigtable.admin.types.GcRule.Union):
             Delete cells that would be deleted by any
             nested rule.
 
@@ -609,7 +609,7 @@ class GcRule(proto.Message):
         r"""A GcRule which deletes cells matching all of the given rules.
 
         Attributes:
-            rules (MutableSequence[google.cloud.bigtable_admin_v2.types.GcRule]):
+            rules (MutableSequence[google.cloud.bigtable.admin.types.GcRule]):
                 Only delete cells which would be deleted by every element of
                 ``rules``.
         """
@@ -624,7 +624,7 @@ class GcRule(proto.Message):
         r"""A GcRule which deletes cells matching any of the given rules.
 
         Attributes:
-            rules (MutableSequence[google.cloud.bigtable_admin_v2.types.GcRule]):
+            rules (MutableSequence[google.cloud.bigtable.admin.types.GcRule]):
                 Delete cells which would be deleted by any element of
                 ``rules``.
         """
@@ -667,7 +667,7 @@ class EncryptionInfo(proto.Message):
     is specified along with its status.
 
     Attributes:
-        encryption_type (google.cloud.bigtable_admin_v2.types.EncryptionInfo.EncryptionType):
+        encryption_type (google.cloud.bigtable.admin.types.EncryptionInfo.EncryptionType):
             Output only. The type of encryption used to
             protect this resource.
         encryption_status (google.rpc.status_pb2.Status):
@@ -737,7 +737,7 @@ class Snapshot(proto.Message):
         name (str):
             The unique name of the snapshot. Values are of the form
             ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}``.
-        source_table (google.cloud.bigtable_admin_v2.types.Table):
+        source_table (google.cloud.bigtable.admin.types.Table):
             Output only. The source table at the time the
             snapshot was taken.
         data_size_bytes (int):
@@ -754,7 +754,7 @@ class Snapshot(proto.Message):
             The maximum amount of time a snapshot can stay
             active is 365 days. If 'ttl' is not specified,
             the default maximum of 365 days will be used.
-        state (google.cloud.bigtable_admin_v2.types.Snapshot.State):
+        state (google.cloud.bigtable.admin.types.Snapshot.State):
             Output only. The current state of the
             snapshot.
         description (str):
@@ -863,12 +863,12 @@ class Backup(proto.Message):
             this timestamp.
         size_bytes (int):
             Output only. Size of the backup in bytes.
-        state (google.cloud.bigtable_admin_v2.types.Backup.State):
+        state (google.cloud.bigtable.admin.types.Backup.State):
             Output only. The current state of the backup.
-        encryption_info (google.cloud.bigtable_admin_v2.types.EncryptionInfo):
+        encryption_info (google.cloud.bigtable.admin.types.EncryptionInfo):
             Output only. The encryption information for
             the backup.
-        backup_type (google.cloud.bigtable_admin_v2.types.Backup.BackupType):
+        backup_type (google.cloud.bigtable.admin.types.Backup.BackupType):
             Indicates the backup type of the backup.
         hot_to_standard_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the hot backup will be converted to a

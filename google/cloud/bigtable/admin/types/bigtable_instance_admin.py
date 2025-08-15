@@ -19,7 +19,7 @@ from typing import MutableMapping, MutableSequence
 
 import proto  # type: ignore
 
-from google.cloud.bigtable_admin_v2.types import instance as gba_instance
+from google.cloud.bigtable.admin.types import instance as gba_instance
 from google.protobuf import field_mask_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
 
@@ -85,10 +85,10 @@ class CreateInstanceRequest(proto.Message):
             Required. The ID to be used when referring to the new
             instance within its project, e.g., just ``myinstance``
             rather than ``projects/myproject/instances/myinstance``.
-        instance (google.cloud.bigtable_admin_v2.types.Instance):
+        instance (google.cloud.bigtable.admin.types.Instance):
             Required. The instance to create. Fields marked
             ``OutputOnly`` must be left blank.
-        clusters (MutableMapping[str, google.cloud.bigtable_admin_v2.types.Cluster]):
+        clusters (MutableMapping[str, google.cloud.bigtable.admin.types.Cluster]):
             Required. The clusters to be created within the instance,
             mapped by desired cluster ID, e.g., just ``mycluster``
             rather than
@@ -158,7 +158,7 @@ class ListInstancesResponse(proto.Message):
     r"""Response message for BigtableInstanceAdmin.ListInstances.
 
     Attributes:
-        instances (MutableSequence[google.cloud.bigtable_admin_v2.types.Instance]):
+        instances (MutableSequence[google.cloud.bigtable.admin.types.Instance]):
             The list of requested instances.
         failed_locations (MutableSequence[str]):
             Locations from which Instance information could not be
@@ -196,7 +196,7 @@ class PartialUpdateInstanceRequest(proto.Message):
     BigtableInstanceAdmin.PartialUpdateInstance.
 
     Attributes:
-        instance (google.cloud.bigtable_admin_v2.types.Instance):
+        instance (google.cloud.bigtable.admin.types.Instance):
             Required. The Instance which will (partially)
             replace the current value.
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
@@ -245,7 +245,7 @@ class CreateClusterRequest(proto.Message):
             cluster within its instance, e.g., just ``mycluster`` rather
             than
             ``projects/myproject/instances/myinstance/clusters/mycluster``.
-        cluster (google.cloud.bigtable_admin_v2.types.Cluster):
+        cluster (google.cloud.bigtable.admin.types.Cluster):
             Required. The cluster to be created. Fields marked
             ``OutputOnly`` must be left blank.
     """
@@ -309,7 +309,7 @@ class ListClustersResponse(proto.Message):
     r"""Response message for BigtableInstanceAdmin.ListClusters.
 
     Attributes:
-        clusters (MutableSequence[google.cloud.bigtable_admin_v2.types.Cluster]):
+        clusters (MutableSequence[google.cloud.bigtable.admin.types.Cluster]):
             The list of requested clusters.
         failed_locations (MutableSequence[str]):
             Locations from which Cluster information could not be
@@ -361,7 +361,7 @@ class CreateInstanceMetadata(proto.Message):
     r"""The metadata for the Operation returned by CreateInstance.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.CreateInstanceRequest):
+        original_request (google.cloud.bigtable.admin.types.CreateInstanceRequest):
             The request that prompted the initiation of
             this CreateInstance operation.
         request_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -393,7 +393,7 @@ class UpdateInstanceMetadata(proto.Message):
     r"""The metadata for the Operation returned by UpdateInstance.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest):
+        original_request (google.cloud.bigtable.admin.types.PartialUpdateInstanceRequest):
             The request that prompted the initiation of
             this UpdateInstance operation.
         request_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -425,7 +425,7 @@ class CreateClusterMetadata(proto.Message):
     r"""The metadata for the Operation returned by CreateCluster.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.CreateClusterRequest):
+        original_request (google.cloud.bigtable.admin.types.CreateClusterRequest):
             The request that prompted the initiation of
             this CreateCluster operation.
         request_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -434,7 +434,7 @@ class CreateClusterMetadata(proto.Message):
         finish_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the operation failed or was
             completed successfully.
-        tables (MutableMapping[str, google.cloud.bigtable_admin_v2.types.CreateClusterMetadata.TableProgress]):
+        tables (MutableMapping[str, google.cloud.bigtable.admin.types.CreateClusterMetadata.TableProgress]):
             Keys: the full ``name`` of each table that existed in the
             instance when CreateCluster was first called, i.e.
             ``projects/<project>/instances/<instance>/tables/<table>``.
@@ -456,7 +456,7 @@ class CreateClusterMetadata(proto.Message):
                 Estimate of the number of bytes copied so far for this
                 table. This will eventually reach 'estimated_size_bytes'
                 unless the table copy is CANCELLED.
-            state (google.cloud.bigtable_admin_v2.types.CreateClusterMetadata.TableProgress.State):
+            state (google.cloud.bigtable.admin.types.CreateClusterMetadata.TableProgress.State):
 
         """
 
@@ -528,7 +528,7 @@ class UpdateClusterMetadata(proto.Message):
     r"""The metadata for the Operation returned by UpdateCluster.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.Cluster):
+        original_request (google.cloud.bigtable.admin.types.Cluster):
             The request that prompted the initiation of
             this UpdateCluster operation.
         request_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -567,7 +567,7 @@ class PartialUpdateClusterMetadata(proto.Message):
         finish_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the operation failed or was
             completed successfully.
-        original_request (google.cloud.bigtable_admin_v2.types.PartialUpdateClusterRequest):
+        original_request (google.cloud.bigtable.admin.types.PartialUpdateClusterRequest):
             The original request for
             PartialUpdateCluster.
     """
@@ -594,7 +594,7 @@ class PartialUpdateClusterRequest(proto.Message):
     BigtableInstanceAdmin.PartialUpdateCluster.
 
     Attributes:
-        cluster (google.cloud.bigtable_admin_v2.types.Cluster):
+        cluster (google.cloud.bigtable.admin.types.Cluster):
             Required. The Cluster which contains the partial updates to
             be applied, subject to the update_mask.
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
@@ -627,7 +627,7 @@ class CreateAppProfileRequest(proto.Message):
             profile within its instance, e.g., just ``myprofile`` rather
             than
             ``projects/myproject/instances/myinstance/appProfiles/myprofile``.
-        app_profile (google.cloud.bigtable_admin_v2.types.AppProfile):
+        app_profile (google.cloud.bigtable.admin.types.AppProfile):
             Required. The app profile to be created. Fields marked
             ``OutputOnly`` will be ignored.
         ignore_warnings (bool):
@@ -715,7 +715,7 @@ class ListAppProfilesResponse(proto.Message):
     r"""Response message for BigtableInstanceAdmin.ListAppProfiles.
 
     Attributes:
-        app_profiles (MutableSequence[google.cloud.bigtable_admin_v2.types.AppProfile]):
+        app_profiles (MutableSequence[google.cloud.bigtable.admin.types.AppProfile]):
             The list of requested app profiles.
         next_page_token (str):
             Set if not all app profiles could be returned in a single
@@ -752,7 +752,7 @@ class UpdateAppProfileRequest(proto.Message):
     r"""Request message for BigtableInstanceAdmin.UpdateAppProfile.
 
     Attributes:
-        app_profile (google.cloud.bigtable_admin_v2.types.AppProfile):
+        app_profile (google.cloud.bigtable.admin.types.AppProfile):
             Required. The app profile which will
             (partially) replace the current value.
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
@@ -873,7 +873,7 @@ class ListHotTabletsResponse(proto.Message):
     r"""Response message for BigtableInstanceAdmin.ListHotTablets.
 
     Attributes:
-        hot_tablets (MutableSequence[google.cloud.bigtable_admin_v2.types.HotTablet]):
+        hot_tablets (MutableSequence[google.cloud.bigtable.admin.types.HotTablet]):
             List of hot tablets in the tables of the
             requested cluster that fall within the requested
             time range. Hot tablets are ordered by node cpu
@@ -915,7 +915,7 @@ class CreateLogicalViewRequest(proto.Message):
             Required. The ID to use for the logical view,
             which will become the final component of the
             logical view's resource name.
-        logical_view (google.cloud.bigtable_admin_v2.types.LogicalView):
+        logical_view (google.cloud.bigtable.admin.types.LogicalView):
             Required. The logical view to create.
     """
 
@@ -938,7 +938,7 @@ class CreateLogicalViewMetadata(proto.Message):
     r"""The metadata for the Operation returned by CreateLogicalView.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.CreateLogicalViewRequest):
+        original_request (google.cloud.bigtable.admin.types.CreateLogicalViewRequest):
             The request that prompted the initiation of
             this CreateLogicalView operation.
         start_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -1021,7 +1021,7 @@ class ListLogicalViewsResponse(proto.Message):
     r"""Response message for BigtableInstanceAdmin.ListLogicalViews.
 
     Attributes:
-        logical_views (MutableSequence[google.cloud.bigtable_admin_v2.types.LogicalView]):
+        logical_views (MutableSequence[google.cloud.bigtable.admin.types.LogicalView]):
             The list of requested logical views.
         next_page_token (str):
             A token, which can be sent as ``page_token`` to retrieve the
@@ -1048,7 +1048,7 @@ class UpdateLogicalViewRequest(proto.Message):
     r"""Request message for BigtableInstanceAdmin.UpdateLogicalView.
 
     Attributes:
-        logical_view (google.cloud.bigtable_admin_v2.types.LogicalView):
+        logical_view (google.cloud.bigtable.admin.types.LogicalView):
             Required. The logical view to update.
 
             The logical view's ``name`` field is used to identify the
@@ -1074,7 +1074,7 @@ class UpdateLogicalViewMetadata(proto.Message):
     r"""The metadata for the Operation returned by UpdateLogicalView.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.UpdateLogicalViewRequest):
+        original_request (google.cloud.bigtable.admin.types.UpdateLogicalViewRequest):
             The request that prompted the initiation of
             this UpdateLogicalView operation.
         start_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -1140,7 +1140,7 @@ class CreateMaterializedViewRequest(proto.Message):
             Required. The ID to use for the materialized
             view, which will become the final component of
             the materialized view's resource name.
-        materialized_view (google.cloud.bigtable_admin_v2.types.MaterializedView):
+        materialized_view (google.cloud.bigtable.admin.types.MaterializedView):
             Required. The materialized view to create.
     """
 
@@ -1164,7 +1164,7 @@ class CreateMaterializedViewMetadata(proto.Message):
     CreateMaterializedView.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.CreateMaterializedViewRequest):
+        original_request (google.cloud.bigtable.admin.types.CreateMaterializedViewRequest):
             The request that prompted the initiation of
             this CreateMaterializedView operation.
         start_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -1250,7 +1250,7 @@ class ListMaterializedViewsResponse(proto.Message):
     BigtableInstanceAdmin.ListMaterializedViews.
 
     Attributes:
-        materialized_views (MutableSequence[google.cloud.bigtable_admin_v2.types.MaterializedView]):
+        materialized_views (MutableSequence[google.cloud.bigtable.admin.types.MaterializedView]):
             The list of requested materialized views.
         next_page_token (str):
             A token, which can be sent as ``page_token`` to retrieve the
@@ -1280,7 +1280,7 @@ class UpdateMaterializedViewRequest(proto.Message):
     BigtableInstanceAdmin.UpdateMaterializedView.
 
     Attributes:
-        materialized_view (google.cloud.bigtable_admin_v2.types.MaterializedView):
+        materialized_view (google.cloud.bigtable.admin.types.MaterializedView):
             Required. The materialized view to update.
 
             The materialized view's ``name`` field is used to identify
@@ -1307,7 +1307,7 @@ class UpdateMaterializedViewMetadata(proto.Message):
     UpdateMaterializedView.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.UpdateMaterializedViewRequest):
+        original_request (google.cloud.bigtable.admin.types.UpdateMaterializedViewRequest):
             The request that prompted the initiation of
             this UpdateMaterializedView operation.
         start_time (google.protobuf.timestamp_pb2.Timestamp):

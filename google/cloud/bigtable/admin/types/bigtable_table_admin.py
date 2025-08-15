@@ -19,8 +19,8 @@ from typing import MutableMapping, MutableSequence
 
 import proto  # type: ignore
 
-from google.cloud.bigtable_admin_v2.types import common
-from google.cloud.bigtable_admin_v2.types import table as gba_table
+from google.cloud.bigtable.admin.types import common
+from google.cloud.bigtable.admin.types import table as gba_table
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import field_mask_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
@@ -129,9 +129,9 @@ class RestoreTableMetadata(proto.Message):
         name (str):
             Name of the table being created and restored
             to.
-        source_type (google.cloud.bigtable_admin_v2.types.RestoreSourceType):
+        source_type (google.cloud.bigtable.admin.types.RestoreSourceType):
             The type of the restore source.
-        backup_info (google.cloud.bigtable_admin_v2.types.BackupInfo):
+        backup_info (google.cloud.bigtable.admin.types.BackupInfo):
 
             This field is a member of `oneof`_ ``source_info``.
         optimize_table_operation_name (str):
@@ -145,7 +145,7 @@ class RestoreTableMetadata(proto.Message):
             after the RestoreTable long-running operation completes
             successfully. This operation may not be created if the table
             is already optimized or the restore was not successful.
-        progress (google.cloud.bigtable_admin_v2.types.OperationProgress):
+        progress (google.cloud.bigtable.admin.types.OperationProgress):
             The progress of the
             [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable]
             operation.
@@ -187,7 +187,7 @@ class OptimizeRestoredTableMetadata(proto.Message):
     Attributes:
         name (str):
             Name of the restored table being optimized.
-        progress (google.cloud.bigtable_admin_v2.types.OperationProgress):
+        progress (google.cloud.bigtable.admin.types.OperationProgress):
             The progress of the post-restore
             optimizations.
     """
@@ -216,9 +216,9 @@ class CreateTableRequest(proto.Message):
             Required. The name by which the new table should be referred
             to within the parent instance, e.g., ``foobar`` rather than
             ``{parent}/tables/foobar``. Maximum 50 characters.
-        table (google.cloud.bigtable_admin_v2.types.Table):
+        table (google.cloud.bigtable.admin.types.Table):
             Required. The Table to create.
-        initial_splits (MutableSequence[google.cloud.bigtable_admin_v2.types.CreateTableRequest.Split]):
+        initial_splits (MutableSequence[google.cloud.bigtable.admin.types.CreateTableRequest.Split]):
             The optional list of row keys that will be used to initially
             split the table into several tablets (tablets are similar to
             HBase regions). Given two split keys, ``s1`` and ``s2``,
@@ -369,7 +369,7 @@ class ListTablesRequest(proto.Message):
             Required. The unique name of the instance for which tables
             should be listed. Values are of the form
             ``projects/{project}/instances/{instance}``.
-        view (google.cloud.bigtable_admin_v2.types.Table.View):
+        view (google.cloud.bigtable.admin.types.Table.View):
             The view to be applied to the returned tables' fields.
             NAME_ONLY view (default) and REPLICATION_VIEW are supported.
         page_size (int):
@@ -413,7 +413,7 @@ class ListTablesResponse(proto.Message):
     [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
 
     Attributes:
-        tables (MutableSequence[google.cloud.bigtable_admin_v2.types.Table]):
+        tables (MutableSequence[google.cloud.bigtable.admin.types.Table]):
             The tables present in the requested instance.
         next_page_token (str):
             Set if not all tables could be returned in a single
@@ -445,7 +445,7 @@ class GetTableRequest(proto.Message):
             Required. The unique name of the requested table. Values are
             of the form
             ``projects/{project}/instances/{instance}/tables/{table}``.
-        view (google.cloud.bigtable_admin_v2.types.Table.View):
+        view (google.cloud.bigtable.admin.types.Table.View):
             The view to be applied to the returned table's fields.
             Defaults to ``SCHEMA_VIEW`` if unspecified.
     """
@@ -466,7 +466,7 @@ class UpdateTableRequest(proto.Message):
     [UpdateTable][google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable].
 
     Attributes:
-        table (google.cloud.bigtable_admin_v2.types.Table):
+        table (google.cloud.bigtable.admin.types.Table):
             Required. The table to update. The table's ``name`` field is
             used to identify the table to update.
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
@@ -608,7 +608,7 @@ class ModifyColumnFamiliesRequest(proto.Message):
             Required. The unique name of the table whose families should
             be modified. Values are of the form
             ``projects/{project}/instances/{instance}/tables/{table}``.
-        modifications (MutableSequence[google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest.Modification]):
+        modifications (MutableSequence[google.cloud.bigtable.admin.types.ModifyColumnFamiliesRequest.Modification]):
             Required. Modifications to be atomically
             applied to the specified table's families.
             Entries are applied in order, meaning that
@@ -633,13 +633,13 @@ class ModifyColumnFamiliesRequest(proto.Message):
         Attributes:
             id (str):
                 The ID of the column family to be modified.
-            create (google.cloud.bigtable_admin_v2.types.ColumnFamily):
+            create (google.cloud.bigtable.admin.types.ColumnFamily):
                 Create a new column family with the specified
                 schema, or fail if one already exists with the
                 given ID.
 
                 This field is a member of `oneof`_ ``mod``.
-            update (google.cloud.bigtable_admin_v2.types.ColumnFamily):
+            update (google.cloud.bigtable.admin.types.ColumnFamily):
                 Update an existing column family to the
                 specified schema, or fail if no column family
                 exists with the given ID.
@@ -750,14 +750,14 @@ class CheckConsistencyRequest(proto.Message):
         consistency_token (str):
             Required. The token created using
             GenerateConsistencyToken for the Table.
-        standard_read_remote_writes (google.cloud.bigtable_admin_v2.types.StandardReadRemoteWrites):
+        standard_read_remote_writes (google.cloud.bigtable.admin.types.StandardReadRemoteWrites):
             Checks that reads using an app profile with
             ``StandardIsolation`` can see all writes committed before
             the token was created, even if the read and write target
             different clusters.
 
             This field is a member of `oneof`_ ``mode``.
-        data_boost_read_local_writes (google.cloud.bigtable_admin_v2.types.DataBoostReadLocalWrites):
+        data_boost_read_local_writes (google.cloud.bigtable.admin.types.DataBoostReadLocalWrites):
             Checks that reads using an app profile with
             ``DataBoostIsolationReadOnly`` can see all writes committed
             before the token was created, but only if the read and write
@@ -951,7 +951,7 @@ class ListSnapshotsResponse(proto.Message):
     any SLA or deprecation policy.
 
     Attributes:
-        snapshots (MutableSequence[google.cloud.bigtable_admin_v2.types.Snapshot]):
+        snapshots (MutableSequence[google.cloud.bigtable.admin.types.Snapshot]):
             The snapshots present in the requested
             cluster.
         next_page_token (str):
@@ -1008,7 +1008,7 @@ class SnapshotTableMetadata(proto.Message):
     use. It is not subject to any SLA or deprecation policy.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.SnapshotTableRequest):
+        original_request (google.cloud.bigtable.admin.types.SnapshotTableRequest):
             The request that prompted the initiation of
             this SnapshotTable operation.
         request_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -1046,7 +1046,7 @@ class CreateTableFromSnapshotMetadata(proto.Message):
     use. It is not subject to any SLA or deprecation policy.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.CreateTableFromSnapshotRequest):
+        original_request (google.cloud.bigtable.admin.types.CreateTableFromSnapshotRequest):
             The request that prompted the initiation of
             this CreateTableFromSnapshot operation.
         request_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -1092,7 +1092,7 @@ class CreateBackupRequest(proto.Message):
             ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup_id}``.
             This string must be between 1 and 50 characters in length
             and match the regex [*a-zA-Z0-9][-*.a-zA-Z0-9]*.
-        backup (google.cloud.bigtable_admin_v2.types.Backup):
+        backup (google.cloud.bigtable.admin.types.Backup):
             Required. The backup to create.
     """
 
@@ -1153,7 +1153,7 @@ class UpdateBackupRequest(proto.Message):
     [UpdateBackup][google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup].
 
     Attributes:
-        backup (google.cloud.bigtable_admin_v2.types.Backup):
+        backup (google.cloud.bigtable.admin.types.Backup):
             Required. The backup to update. ``backup.name``, and the
             fields to be updated as specified by ``update_mask`` are
             required. Other fields are ignored. Update is only supported
@@ -1334,7 +1334,7 @@ class ListBackupsResponse(proto.Message):
     [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
 
     Attributes:
-        backups (MutableSequence[google.cloud.bigtable_admin_v2.types.Backup]):
+        backups (MutableSequence[google.cloud.bigtable.admin.types.Backup]):
             The list of matching backups.
         next_page_token (str):
             ``next_page_token`` can be sent in a subsequent
@@ -1418,10 +1418,10 @@ class CopyBackupMetadata(proto.Message):
             The name of the backup being created through the copy
             operation. Values are of the form
             ``projects/<project>/instances/<instance>/clusters/<cluster>/backups/<backup>``.
-        source_backup_info (google.cloud.bigtable_admin_v2.types.BackupInfo):
+        source_backup_info (google.cloud.bigtable.admin.types.BackupInfo):
             Information about the source backup that is
             being copied from.
-        progress (google.cloud.bigtable_admin_v2.types.OperationProgress):
+        progress (google.cloud.bigtable.admin.types.OperationProgress):
             The progress of the
             [CopyBackup][google.bigtable.admin.v2.BigtableTableAdmin.CopyBackup]
             operation.
@@ -1458,7 +1458,7 @@ class CreateAuthorizedViewRequest(proto.Message):
             ``authorized_view_id`` appended to ``parent`` forms the full
             AuthorizedView name of the form
             ``projects/{project}/instances/{instance}/tables/{table}/authorizedView/{authorized_view}``.
-        authorized_view (google.cloud.bigtable_admin_v2.types.AuthorizedView):
+        authorized_view (google.cloud.bigtable.admin.types.AuthorizedView):
             Required. The AuthorizedView to create.
     """
 
@@ -1482,7 +1482,7 @@ class CreateAuthorizedViewMetadata(proto.Message):
     CreateAuthorizedView.
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.CreateAuthorizedViewRequest):
+        original_request (google.cloud.bigtable.admin.types.CreateAuthorizedViewRequest):
             The request that prompted the initiation of
             this CreateInstance operation.
         request_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -1534,7 +1534,7 @@ class ListAuthorizedViewsRequest(proto.Message):
         page_token (str):
             Optional. The value of ``next_page_token`` returned by a
             previous call.
-        view (google.cloud.bigtable_admin_v2.types.AuthorizedView.ResponseView):
+        view (google.cloud.bigtable.admin.types.AuthorizedView.ResponseView):
             Optional. The resource_view to be applied to the returned
             views' fields. Default to NAME_ONLY.
     """
@@ -1563,7 +1563,7 @@ class ListAuthorizedViewsResponse(proto.Message):
     [google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews][google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews]
 
     Attributes:
-        authorized_views (MutableSequence[google.cloud.bigtable_admin_v2.types.AuthorizedView]):
+        authorized_views (MutableSequence[google.cloud.bigtable.admin.types.AuthorizedView]):
             The AuthorizedViews present in the requested
             table.
         next_page_token (str):
@@ -1596,7 +1596,7 @@ class GetAuthorizedViewRequest(proto.Message):
             Required. The unique name of the requested AuthorizedView.
             Values are of the form
             ``projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}``.
-        view (google.cloud.bigtable_admin_v2.types.AuthorizedView.ResponseView):
+        view (google.cloud.bigtable.admin.types.AuthorizedView.ResponseView):
             Optional. The resource_view to be applied to the returned
             AuthorizedView's fields. Default to BASIC.
     """
@@ -1617,7 +1617,7 @@ class UpdateAuthorizedViewRequest(proto.Message):
     [UpdateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.UpdateAuthorizedView].
 
     Attributes:
-        authorized_view (google.cloud.bigtable_admin_v2.types.AuthorizedView):
+        authorized_view (google.cloud.bigtable.admin.types.AuthorizedView):
             Required. The AuthorizedView to update. The ``name`` in
             ``authorized_view`` is used to identify the AuthorizedView.
             AuthorizedView name must in this format
@@ -1657,7 +1657,7 @@ class UpdateAuthorizedViewMetadata(proto.Message):
     [UpdateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.UpdateAuthorizedView].
 
     Attributes:
-        original_request (google.cloud.bigtable_admin_v2.types.UpdateAuthorizedViewRequest):
+        original_request (google.cloud.bigtable.admin.types.UpdateAuthorizedViewRequest):
             The request that prompted the initiation of
             this UpdateAuthorizedView operation.
         request_time (google.protobuf.timestamp_pb2.Timestamp):

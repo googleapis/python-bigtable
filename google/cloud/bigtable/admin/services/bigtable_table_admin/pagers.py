@@ -37,15 +37,15 @@ except AttributeError:  # pragma: NO COVER
     OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
     OptionalAsyncRetry = Union[retries_async.AsyncRetry, object, None]  # type: ignore
 
-from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
-from google.cloud.bigtable_admin_v2.types import table
+from google.cloud.bigtable.admin.types import bigtable_table_admin
+from google.cloud.bigtable.admin.types import table
 
 
 class ListTablesPager:
     """A pager for iterating through ``list_tables`` requests.
 
     This class thinly wraps an initial
-    :class:`google.cloud.bigtable_admin_v2.types.ListTablesResponse` object, and
+    :class:`google.cloud.bigtable.admin.types.ListTablesResponse` object, and
     provides an ``__iter__`` method to iterate through its
     ``tables`` field.
 
@@ -54,7 +54,7 @@ class ListTablesPager:
     through the ``tables`` field on the
     corresponding responses.
 
-    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListTablesResponse`
+    All the usual :class:`google.cloud.bigtable.admin.types.ListTablesResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -74,9 +74,9 @@ class ListTablesPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (google.cloud.bigtable_admin_v2.types.ListTablesRequest):
+            request (google.cloud.bigtable.admin.types.ListTablesRequest):
                 The initial request object.
-            response (google.cloud.bigtable_admin_v2.types.ListTablesResponse):
+            response (google.cloud.bigtable.admin.types.ListTablesResponse):
                 The initial response object.
             retry (google.api_core.retry.Retry): Designation of what errors,
                 if any, should be retried.
@@ -121,7 +121,7 @@ class ListTablesAsyncPager:
     """A pager for iterating through ``list_tables`` requests.
 
     This class thinly wraps an initial
-    :class:`google.cloud.bigtable_admin_v2.types.ListTablesResponse` object, and
+    :class:`google.cloud.bigtable.admin.types.ListTablesResponse` object, and
     provides an ``__aiter__`` method to iterate through its
     ``tables`` field.
 
@@ -130,7 +130,7 @@ class ListTablesAsyncPager:
     through the ``tables`` field on the
     corresponding responses.
 
-    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListTablesResponse`
+    All the usual :class:`google.cloud.bigtable.admin.types.ListTablesResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -150,9 +150,9 @@ class ListTablesAsyncPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (google.cloud.bigtable_admin_v2.types.ListTablesRequest):
+            request (google.cloud.bigtable.admin.types.ListTablesRequest):
                 The initial request object.
-            response (google.cloud.bigtable_admin_v2.types.ListTablesResponse):
+            response (google.cloud.bigtable.admin.types.ListTablesResponse):
                 The initial response object.
             retry (google.api_core.retry.AsyncRetry): Designation of what errors,
                 if any, should be retried.
@@ -201,7 +201,7 @@ class ListAuthorizedViewsPager:
     """A pager for iterating through ``list_authorized_views`` requests.
 
     This class thinly wraps an initial
-    :class:`google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsResponse` object, and
+    :class:`google.cloud.bigtable.admin.types.ListAuthorizedViewsResponse` object, and
     provides an ``__iter__`` method to iterate through its
     ``authorized_views`` field.
 
@@ -210,7 +210,7 @@ class ListAuthorizedViewsPager:
     through the ``authorized_views`` field on the
     corresponding responses.
 
-    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsResponse`
+    All the usual :class:`google.cloud.bigtable.admin.types.ListAuthorizedViewsResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -230,9 +230,9 @@ class ListAuthorizedViewsPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsRequest):
+            request (google.cloud.bigtable.admin.types.ListAuthorizedViewsRequest):
                 The initial request object.
-            response (google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsResponse):
+            response (google.cloud.bigtable.admin.types.ListAuthorizedViewsResponse):
                 The initial response object.
             retry (google.api_core.retry.Retry): Designation of what errors,
                 if any, should be retried.
@@ -277,7 +277,7 @@ class ListAuthorizedViewsAsyncPager:
     """A pager for iterating through ``list_authorized_views`` requests.
 
     This class thinly wraps an initial
-    :class:`google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsResponse` object, and
+    :class:`google.cloud.bigtable.admin.types.ListAuthorizedViewsResponse` object, and
     provides an ``__aiter__`` method to iterate through its
     ``authorized_views`` field.
 
@@ -286,7 +286,7 @@ class ListAuthorizedViewsAsyncPager:
     through the ``authorized_views`` field on the
     corresponding responses.
 
-    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsResponse`
+    All the usual :class:`google.cloud.bigtable.admin.types.ListAuthorizedViewsResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -308,9 +308,9 @@ class ListAuthorizedViewsAsyncPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsRequest):
+            request (google.cloud.bigtable.admin.types.ListAuthorizedViewsRequest):
                 The initial request object.
-            response (google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsResponse):
+            response (google.cloud.bigtable.admin.types.ListAuthorizedViewsResponse):
                 The initial response object.
             retry (google.api_core.retry.AsyncRetry): Designation of what errors,
                 if any, should be retried.
@@ -361,7 +361,7 @@ class ListSnapshotsPager:
     """A pager for iterating through ``list_snapshots`` requests.
 
     This class thinly wraps an initial
-    :class:`google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse` object, and
+    :class:`google.cloud.bigtable.admin.types.ListSnapshotsResponse` object, and
     provides an ``__iter__`` method to iterate through its
     ``snapshots`` field.
 
@@ -370,7 +370,7 @@ class ListSnapshotsPager:
     through the ``snapshots`` field on the
     corresponding responses.
 
-    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse`
+    All the usual :class:`google.cloud.bigtable.admin.types.ListSnapshotsResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -390,9 +390,9 @@ class ListSnapshotsPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest):
+            request (google.cloud.bigtable.admin.types.ListSnapshotsRequest):
                 The initial request object.
-            response (google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse):
+            response (google.cloud.bigtable.admin.types.ListSnapshotsResponse):
                 The initial response object.
             retry (google.api_core.retry.Retry): Designation of what errors,
                 if any, should be retried.
@@ -437,7 +437,7 @@ class ListSnapshotsAsyncPager:
     """A pager for iterating through ``list_snapshots`` requests.
 
     This class thinly wraps an initial
-    :class:`google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse` object, and
+    :class:`google.cloud.bigtable.admin.types.ListSnapshotsResponse` object, and
     provides an ``__aiter__`` method to iterate through its
     ``snapshots`` field.
 
@@ -446,7 +446,7 @@ class ListSnapshotsAsyncPager:
     through the ``snapshots`` field on the
     corresponding responses.
 
-    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse`
+    All the usual :class:`google.cloud.bigtable.admin.types.ListSnapshotsResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -466,9 +466,9 @@ class ListSnapshotsAsyncPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest):
+            request (google.cloud.bigtable.admin.types.ListSnapshotsRequest):
                 The initial request object.
-            response (google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse):
+            response (google.cloud.bigtable.admin.types.ListSnapshotsResponse):
                 The initial response object.
             retry (google.api_core.retry.AsyncRetry): Designation of what errors,
                 if any, should be retried.
@@ -517,7 +517,7 @@ class ListBackupsPager:
     """A pager for iterating through ``list_backups`` requests.
 
     This class thinly wraps an initial
-    :class:`google.cloud.bigtable_admin_v2.types.ListBackupsResponse` object, and
+    :class:`google.cloud.bigtable.admin.types.ListBackupsResponse` object, and
     provides an ``__iter__`` method to iterate through its
     ``backups`` field.
 
@@ -526,7 +526,7 @@ class ListBackupsPager:
     through the ``backups`` field on the
     corresponding responses.
 
-    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListBackupsResponse`
+    All the usual :class:`google.cloud.bigtable.admin.types.ListBackupsResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -546,9 +546,9 @@ class ListBackupsPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (google.cloud.bigtable_admin_v2.types.ListBackupsRequest):
+            request (google.cloud.bigtable.admin.types.ListBackupsRequest):
                 The initial request object.
-            response (google.cloud.bigtable_admin_v2.types.ListBackupsResponse):
+            response (google.cloud.bigtable.admin.types.ListBackupsResponse):
                 The initial response object.
             retry (google.api_core.retry.Retry): Designation of what errors,
                 if any, should be retried.
@@ -593,7 +593,7 @@ class ListBackupsAsyncPager:
     """A pager for iterating through ``list_backups`` requests.
 
     This class thinly wraps an initial
-    :class:`google.cloud.bigtable_admin_v2.types.ListBackupsResponse` object, and
+    :class:`google.cloud.bigtable.admin.types.ListBackupsResponse` object, and
     provides an ``__aiter__`` method to iterate through its
     ``backups`` field.
 
@@ -602,7 +602,7 @@ class ListBackupsAsyncPager:
     through the ``backups`` field on the
     corresponding responses.
 
-    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListBackupsResponse`
+    All the usual :class:`google.cloud.bigtable.admin.types.ListBackupsResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -622,9 +622,9 @@ class ListBackupsAsyncPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (google.cloud.bigtable_admin_v2.types.ListBackupsRequest):
+            request (google.cloud.bigtable.admin.types.ListBackupsRequest):
                 The initial request object.
-            response (google.cloud.bigtable_admin_v2.types.ListBackupsResponse):
+            response (google.cloud.bigtable.admin.types.ListBackupsResponse):
                 The initial response object.
             retry (google.api_core.retry.AsyncRetry): Designation of what errors,
                 if any, should be retried.

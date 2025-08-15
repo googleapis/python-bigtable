@@ -13,292 +13,149 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from google.cloud.bigtable_admin import gapic_version as package_version
+from google.cloud.bigtable.admin import gapic_version as package_version
 
 __version__ = package_version.__version__
 
 
-from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.client import (
-    BigtableInstanceAdminClient,
-)
-from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.async_client import (
-    BigtableInstanceAdminAsyncClient,
-)
-from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.client import (
-    BigtableTableAdminClient,
-)
-from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.async_client import (
-    BigtableTableAdminAsyncClient,
-)
+from .services.bigtable_instance_admin import BigtableInstanceAdminClient
+from .services.bigtable_instance_admin import BigtableInstanceAdminAsyncClient
+from .services.bigtable_table_admin import BigtableTableAdminClient
+from .services.bigtable_table_admin import BigtableTableAdminAsyncClient
 
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    CreateAppProfileRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    CreateClusterMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    CreateClusterRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    CreateInstanceMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    CreateInstanceRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    CreateLogicalViewMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    CreateLogicalViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    CreateMaterializedViewMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    CreateMaterializedViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    DeleteAppProfileRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    DeleteClusterRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    DeleteInstanceRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    DeleteLogicalViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    DeleteMaterializedViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    GetAppProfileRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    GetClusterRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    GetInstanceRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    GetLogicalViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    GetMaterializedViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListAppProfilesRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListAppProfilesResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListClustersRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListClustersResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListHotTabletsRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListHotTabletsResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListInstancesRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListInstancesResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListLogicalViewsRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListLogicalViewsResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListMaterializedViewsRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    ListMaterializedViewsResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    PartialUpdateClusterMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    PartialUpdateClusterRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    PartialUpdateInstanceRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    UpdateAppProfileMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    UpdateAppProfileRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    UpdateClusterMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    UpdateInstanceMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    UpdateLogicalViewMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    UpdateLogicalViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    UpdateMaterializedViewMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_instance_admin import (
-    UpdateMaterializedViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    CheckConsistencyRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    CheckConsistencyResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import CopyBackupMetadata
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import CopyBackupRequest
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    CreateAuthorizedViewMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    CreateAuthorizedViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    CreateBackupMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    CreateBackupRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    CreateTableFromSnapshotMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    CreateTableFromSnapshotRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import CreateTableRequest
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    DataBoostReadLocalWrites,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    DeleteAuthorizedViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    DeleteBackupRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    DeleteSnapshotRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import DeleteTableRequest
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    DropRowRangeRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    GenerateConsistencyTokenRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    GenerateConsistencyTokenResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    GetAuthorizedViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import GetBackupRequest
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import GetSnapshotRequest
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import GetTableRequest
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    ListAuthorizedViewsRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    ListAuthorizedViewsResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import ListBackupsRequest
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    ListBackupsResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    ListSnapshotsRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    ListSnapshotsResponse,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import ListTablesRequest
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import ListTablesResponse
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    ModifyColumnFamiliesRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    OptimizeRestoredTableMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    RestoreTableMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    RestoreTableRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    SnapshotTableMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    SnapshotTableRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    StandardReadRemoteWrites,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    UndeleteTableMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    UndeleteTableRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    UpdateAuthorizedViewMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    UpdateAuthorizedViewRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    UpdateBackupRequest,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
-    UpdateTableMetadata,
-)
-from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import UpdateTableRequest
-from google.cloud.bigtable_admin_v2.types.common import OperationProgress
-from google.cloud.bigtable_admin_v2.types.common import StorageType
-from google.cloud.bigtable_admin_v2.types.instance import AppProfile
-from google.cloud.bigtable_admin_v2.types.instance import AutoscalingLimits
-from google.cloud.bigtable_admin_v2.types.instance import AutoscalingTargets
-from google.cloud.bigtable_admin_v2.types.instance import Cluster
-from google.cloud.bigtable_admin_v2.types.instance import HotTablet
-from google.cloud.bigtable_admin_v2.types.instance import Instance
-from google.cloud.bigtable_admin_v2.types.instance import LogicalView
-from google.cloud.bigtable_admin_v2.types.instance import MaterializedView
-from google.cloud.bigtable_admin_v2.types.table import AuthorizedView
-from google.cloud.bigtable_admin_v2.types.table import Backup
-from google.cloud.bigtable_admin_v2.types.table import BackupInfo
-from google.cloud.bigtable_admin_v2.types.table import ChangeStreamConfig
-from google.cloud.bigtable_admin_v2.types.table import ColumnFamily
-from google.cloud.bigtable_admin_v2.types.table import EncryptionInfo
-from google.cloud.bigtable_admin_v2.types.table import GcRule
-from google.cloud.bigtable_admin_v2.types.table import RestoreInfo
-from google.cloud.bigtable_admin_v2.types.table import Snapshot
-from google.cloud.bigtable_admin_v2.types.table import Table
-from google.cloud.bigtable_admin_v2.types.table import RestoreSourceType
-from google.cloud.bigtable_admin_v2.types.types import Type
+from .types.bigtable_instance_admin import CreateAppProfileRequest
+from .types.bigtable_instance_admin import CreateClusterMetadata
+from .types.bigtable_instance_admin import CreateClusterRequest
+from .types.bigtable_instance_admin import CreateInstanceMetadata
+from .types.bigtable_instance_admin import CreateInstanceRequest
+from .types.bigtable_instance_admin import CreateLogicalViewMetadata
+from .types.bigtable_instance_admin import CreateLogicalViewRequest
+from .types.bigtable_instance_admin import CreateMaterializedViewMetadata
+from .types.bigtable_instance_admin import CreateMaterializedViewRequest
+from .types.bigtable_instance_admin import DeleteAppProfileRequest
+from .types.bigtable_instance_admin import DeleteClusterRequest
+from .types.bigtable_instance_admin import DeleteInstanceRequest
+from .types.bigtable_instance_admin import DeleteLogicalViewRequest
+from .types.bigtable_instance_admin import DeleteMaterializedViewRequest
+from .types.bigtable_instance_admin import GetAppProfileRequest
+from .types.bigtable_instance_admin import GetClusterRequest
+from .types.bigtable_instance_admin import GetInstanceRequest
+from .types.bigtable_instance_admin import GetLogicalViewRequest
+from .types.bigtable_instance_admin import GetMaterializedViewRequest
+from .types.bigtable_instance_admin import ListAppProfilesRequest
+from .types.bigtable_instance_admin import ListAppProfilesResponse
+from .types.bigtable_instance_admin import ListClustersRequest
+from .types.bigtable_instance_admin import ListClustersResponse
+from .types.bigtable_instance_admin import ListHotTabletsRequest
+from .types.bigtable_instance_admin import ListHotTabletsResponse
+from .types.bigtable_instance_admin import ListInstancesRequest
+from .types.bigtable_instance_admin import ListInstancesResponse
+from .types.bigtable_instance_admin import ListLogicalViewsRequest
+from .types.bigtable_instance_admin import ListLogicalViewsResponse
+from .types.bigtable_instance_admin import ListMaterializedViewsRequest
+from .types.bigtable_instance_admin import ListMaterializedViewsResponse
+from .types.bigtable_instance_admin import PartialUpdateClusterMetadata
+from .types.bigtable_instance_admin import PartialUpdateClusterRequest
+from .types.bigtable_instance_admin import PartialUpdateInstanceRequest
+from .types.bigtable_instance_admin import UpdateAppProfileMetadata
+from .types.bigtable_instance_admin import UpdateAppProfileRequest
+from .types.bigtable_instance_admin import UpdateClusterMetadata
+from .types.bigtable_instance_admin import UpdateInstanceMetadata
+from .types.bigtable_instance_admin import UpdateLogicalViewMetadata
+from .types.bigtable_instance_admin import UpdateLogicalViewRequest
+from .types.bigtable_instance_admin import UpdateMaterializedViewMetadata
+from .types.bigtable_instance_admin import UpdateMaterializedViewRequest
+from .types.bigtable_table_admin import CheckConsistencyRequest
+from .types.bigtable_table_admin import CheckConsistencyResponse
+from .types.bigtable_table_admin import CopyBackupMetadata
+from .types.bigtable_table_admin import CopyBackupRequest
+from .types.bigtable_table_admin import CreateAuthorizedViewMetadata
+from .types.bigtable_table_admin import CreateAuthorizedViewRequest
+from .types.bigtable_table_admin import CreateBackupMetadata
+from .types.bigtable_table_admin import CreateBackupRequest
+from .types.bigtable_table_admin import CreateTableFromSnapshotMetadata
+from .types.bigtable_table_admin import CreateTableFromSnapshotRequest
+from .types.bigtable_table_admin import CreateTableRequest
+from .types.bigtable_table_admin import DataBoostReadLocalWrites
+from .types.bigtable_table_admin import DeleteAuthorizedViewRequest
+from .types.bigtable_table_admin import DeleteBackupRequest
+from .types.bigtable_table_admin import DeleteSnapshotRequest
+from .types.bigtable_table_admin import DeleteTableRequest
+from .types.bigtable_table_admin import DropRowRangeRequest
+from .types.bigtable_table_admin import GenerateConsistencyTokenRequest
+from .types.bigtable_table_admin import GenerateConsistencyTokenResponse
+from .types.bigtable_table_admin import GetAuthorizedViewRequest
+from .types.bigtable_table_admin import GetBackupRequest
+from .types.bigtable_table_admin import GetSnapshotRequest
+from .types.bigtable_table_admin import GetTableRequest
+from .types.bigtable_table_admin import ListAuthorizedViewsRequest
+from .types.bigtable_table_admin import ListAuthorizedViewsResponse
+from .types.bigtable_table_admin import ListBackupsRequest
+from .types.bigtable_table_admin import ListBackupsResponse
+from .types.bigtable_table_admin import ListSnapshotsRequest
+from .types.bigtable_table_admin import ListSnapshotsResponse
+from .types.bigtable_table_admin import ListTablesRequest
+from .types.bigtable_table_admin import ListTablesResponse
+from .types.bigtable_table_admin import ModifyColumnFamiliesRequest
+from .types.bigtable_table_admin import OptimizeRestoredTableMetadata
+from .types.bigtable_table_admin import RestoreTableMetadata
+from .types.bigtable_table_admin import RestoreTableRequest
+from .types.bigtable_table_admin import SnapshotTableMetadata
+from .types.bigtable_table_admin import SnapshotTableRequest
+from .types.bigtable_table_admin import StandardReadRemoteWrites
+from .types.bigtable_table_admin import UndeleteTableMetadata
+from .types.bigtable_table_admin import UndeleteTableRequest
+from .types.bigtable_table_admin import UpdateAuthorizedViewMetadata
+from .types.bigtable_table_admin import UpdateAuthorizedViewRequest
+from .types.bigtable_table_admin import UpdateBackupRequest
+from .types.bigtable_table_admin import UpdateTableMetadata
+from .types.bigtable_table_admin import UpdateTableRequest
+from .types.common import OperationProgress
+from .types.common import StorageType
+from .types.instance import AppProfile
+from .types.instance import AutoscalingLimits
+from .types.instance import AutoscalingTargets
+from .types.instance import Cluster
+from .types.instance import HotTablet
+from .types.instance import Instance
+from .types.instance import LogicalView
+from .types.instance import MaterializedView
+from .types.table import AuthorizedView
+from .types.table import Backup
+from .types.table import BackupInfo
+from .types.table import ChangeStreamConfig
+from .types.table import ColumnFamily
+from .types.table import EncryptionInfo
+from .types.table import GcRule
+from .types.table import RestoreInfo
+from .types.table import Snapshot
+from .types.table import Table
+from .types.table import RestoreSourceType
+from .types.types import Type
 
 __all__ = (
-    "BigtableInstanceAdminClient",
     "BigtableInstanceAdminAsyncClient",
-    "BigtableTableAdminClient",
     "BigtableTableAdminAsyncClient",
+    "AppProfile",
+    "AuthorizedView",
+    "AutoscalingLimits",
+    "AutoscalingTargets",
+    "Backup",
+    "BackupInfo",
+    "BigtableInstanceAdminClient",
+    "BigtableTableAdminClient",
+    "ChangeStreamConfig",
+    "CheckConsistencyRequest",
+    "CheckConsistencyResponse",
+    "Cluster",
+    "ColumnFamily",
+    "CopyBackupMetadata",
+    "CopyBackupRequest",
     "CreateAppProfileRequest",
+    "CreateAuthorizedViewMetadata",
+    "CreateAuthorizedViewRequest",
+    "CreateBackupMetadata",
+    "CreateBackupRequest",
     "CreateClusterMetadata",
     "CreateClusterRequest",
     "CreateInstanceMetadata",
@@ -307,18 +164,41 @@ __all__ = (
     "CreateLogicalViewRequest",
     "CreateMaterializedViewMetadata",
     "CreateMaterializedViewRequest",
+    "CreateTableFromSnapshotMetadata",
+    "CreateTableFromSnapshotRequest",
+    "CreateTableRequest",
+    "DataBoostReadLocalWrites",
     "DeleteAppProfileRequest",
+    "DeleteAuthorizedViewRequest",
+    "DeleteBackupRequest",
     "DeleteClusterRequest",
     "DeleteInstanceRequest",
     "DeleteLogicalViewRequest",
     "DeleteMaterializedViewRequest",
+    "DeleteSnapshotRequest",
+    "DeleteTableRequest",
+    "DropRowRangeRequest",
+    "EncryptionInfo",
+    "GcRule",
+    "GenerateConsistencyTokenRequest",
+    "GenerateConsistencyTokenResponse",
     "GetAppProfileRequest",
+    "GetAuthorizedViewRequest",
+    "GetBackupRequest",
     "GetClusterRequest",
     "GetInstanceRequest",
     "GetLogicalViewRequest",
     "GetMaterializedViewRequest",
+    "GetSnapshotRequest",
+    "GetTableRequest",
+    "HotTablet",
+    "Instance",
     "ListAppProfilesRequest",
     "ListAppProfilesResponse",
+    "ListAuthorizedViewsRequest",
+    "ListAuthorizedViewsResponse",
+    "ListBackupsRequest",
+    "ListBackupsResponse",
     "ListClustersRequest",
     "ListClustersResponse",
     "ListHotTabletsRequest",
@@ -329,82 +209,42 @@ __all__ = (
     "ListLogicalViewsResponse",
     "ListMaterializedViewsRequest",
     "ListMaterializedViewsResponse",
+    "ListSnapshotsRequest",
+    "ListSnapshotsResponse",
+    "ListTablesRequest",
+    "ListTablesResponse",
+    "LogicalView",
+    "MaterializedView",
+    "ModifyColumnFamiliesRequest",
+    "OperationProgress",
+    "OptimizeRestoredTableMetadata",
     "PartialUpdateClusterMetadata",
     "PartialUpdateClusterRequest",
     "PartialUpdateInstanceRequest",
+    "RestoreInfo",
+    "RestoreSourceType",
+    "RestoreTableMetadata",
+    "RestoreTableRequest",
+    "Snapshot",
+    "SnapshotTableMetadata",
+    "SnapshotTableRequest",
+    "StandardReadRemoteWrites",
+    "StorageType",
+    "Table",
+    "Type",
+    "UndeleteTableMetadata",
+    "UndeleteTableRequest",
     "UpdateAppProfileMetadata",
     "UpdateAppProfileRequest",
+    "UpdateAuthorizedViewMetadata",
+    "UpdateAuthorizedViewRequest",
+    "UpdateBackupRequest",
     "UpdateClusterMetadata",
     "UpdateInstanceMetadata",
     "UpdateLogicalViewMetadata",
     "UpdateLogicalViewRequest",
     "UpdateMaterializedViewMetadata",
     "UpdateMaterializedViewRequest",
-    "CheckConsistencyRequest",
-    "CheckConsistencyResponse",
-    "CopyBackupMetadata",
-    "CopyBackupRequest",
-    "CreateAuthorizedViewMetadata",
-    "CreateAuthorizedViewRequest",
-    "CreateBackupMetadata",
-    "CreateBackupRequest",
-    "CreateTableFromSnapshotMetadata",
-    "CreateTableFromSnapshotRequest",
-    "CreateTableRequest",
-    "DataBoostReadLocalWrites",
-    "DeleteAuthorizedViewRequest",
-    "DeleteBackupRequest",
-    "DeleteSnapshotRequest",
-    "DeleteTableRequest",
-    "DropRowRangeRequest",
-    "GenerateConsistencyTokenRequest",
-    "GenerateConsistencyTokenResponse",
-    "GetAuthorizedViewRequest",
-    "GetBackupRequest",
-    "GetSnapshotRequest",
-    "GetTableRequest",
-    "ListAuthorizedViewsRequest",
-    "ListAuthorizedViewsResponse",
-    "ListBackupsRequest",
-    "ListBackupsResponse",
-    "ListSnapshotsRequest",
-    "ListSnapshotsResponse",
-    "ListTablesRequest",
-    "ListTablesResponse",
-    "ModifyColumnFamiliesRequest",
-    "OptimizeRestoredTableMetadata",
-    "RestoreTableMetadata",
-    "RestoreTableRequest",
-    "SnapshotTableMetadata",
-    "SnapshotTableRequest",
-    "StandardReadRemoteWrites",
-    "UndeleteTableMetadata",
-    "UndeleteTableRequest",
-    "UpdateAuthorizedViewMetadata",
-    "UpdateAuthorizedViewRequest",
-    "UpdateBackupRequest",
     "UpdateTableMetadata",
     "UpdateTableRequest",
-    "OperationProgress",
-    "StorageType",
-    "AppProfile",
-    "AutoscalingLimits",
-    "AutoscalingTargets",
-    "Cluster",
-    "HotTablet",
-    "Instance",
-    "LogicalView",
-    "MaterializedView",
-    "AuthorizedView",
-    "Backup",
-    "BackupInfo",
-    "ChangeStreamConfig",
-    "ColumnFamily",
-    "EncryptionInfo",
-    "GcRule",
-    "RestoreInfo",
-    "Snapshot",
-    "Table",
-    "RestoreSourceType",
-    "Type",
 )

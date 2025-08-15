@@ -29,7 +29,7 @@ from typing import (
     Union,
 )
 
-from google.cloud.bigtable_admin_v2 import gapic_version as package_version
+from google.cloud.bigtable.admin import gapic_version as package_version
 
 from google.api_core.client_options import ClientOptions
 from google.api_core import exceptions as core_exceptions
@@ -47,18 +47,18 @@ except AttributeError:  # pragma: NO COVER
 
 from google.api_core import operation  # type: ignore
 from google.api_core import operation_async  # type: ignore
-from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import pagers
-from google.cloud.bigtable_admin_v2.types import bigtable_instance_admin
-from google.cloud.bigtable_admin_v2.types import common
-from google.cloud.bigtable_admin_v2.types import instance
-from google.cloud.bigtable_admin_v2.types import instance as gba_instance
+from google.cloud.bigtable.admin.services.bigtable_table_admin import pagers
+from google.cloud.bigtable.admin.types import bigtable_table_admin
+from google.cloud.bigtable.admin.types import table
+from google.cloud.bigtable.admin.types import table as gba_table
+from google.cloud.bigtable.admin.types import types
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
 from google.protobuf import field_mask_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
-from .transports.base import BigtableInstanceAdminTransport, DEFAULT_CLIENT_INFO
-from .transports.grpc_asyncio import BigtableInstanceAdminGrpcAsyncIOTransport
-from .client import BigtableInstanceAdminClient
+from .transports.base import BigtableTableAdminTransport, DEFAULT_CLIENT_INFO
+from .transports.grpc_asyncio import BigtableTableAdminGrpcAsyncIOTransport
+from .client import BigtableTableAdminClient
 
 try:
     from google.api_core import client_logging  # type: ignore
@@ -70,75 +70,66 @@ except ImportError:  # pragma: NO COVER
 _LOGGER = std_logging.getLogger(__name__)
 
 
-class BigtableInstanceAdminAsyncClient:
+class BigtableTableAdminAsyncClient:
     """Service for creating, configuring, and deleting Cloud
-    Bigtable Instances and Clusters. Provides access to the Instance
-    and Cluster schemas only, not the tables' metadata or data
-    stored in those tables.
+    Bigtable tables.
+
+    Provides access to the table schemas only, not the data stored
+    within the tables.
     """
 
-    _client: BigtableInstanceAdminClient
+    _client: BigtableTableAdminClient
 
     # Copy defaults from the synchronous client for use here.
     # Note: DEFAULT_ENDPOINT is deprecated. Use _DEFAULT_ENDPOINT_TEMPLATE instead.
-    DEFAULT_ENDPOINT = BigtableInstanceAdminClient.DEFAULT_ENDPOINT
-    DEFAULT_MTLS_ENDPOINT = BigtableInstanceAdminClient.DEFAULT_MTLS_ENDPOINT
-    _DEFAULT_ENDPOINT_TEMPLATE = BigtableInstanceAdminClient._DEFAULT_ENDPOINT_TEMPLATE
-    _DEFAULT_UNIVERSE = BigtableInstanceAdminClient._DEFAULT_UNIVERSE
+    DEFAULT_ENDPOINT = BigtableTableAdminClient.DEFAULT_ENDPOINT
+    DEFAULT_MTLS_ENDPOINT = BigtableTableAdminClient.DEFAULT_MTLS_ENDPOINT
+    _DEFAULT_ENDPOINT_TEMPLATE = BigtableTableAdminClient._DEFAULT_ENDPOINT_TEMPLATE
+    _DEFAULT_UNIVERSE = BigtableTableAdminClient._DEFAULT_UNIVERSE
 
-    app_profile_path = staticmethod(BigtableInstanceAdminClient.app_profile_path)
-    parse_app_profile_path = staticmethod(
-        BigtableInstanceAdminClient.parse_app_profile_path
+    authorized_view_path = staticmethod(BigtableTableAdminClient.authorized_view_path)
+    parse_authorized_view_path = staticmethod(
+        BigtableTableAdminClient.parse_authorized_view_path
     )
-    cluster_path = staticmethod(BigtableInstanceAdminClient.cluster_path)
-    parse_cluster_path = staticmethod(BigtableInstanceAdminClient.parse_cluster_path)
-    crypto_key_path = staticmethod(BigtableInstanceAdminClient.crypto_key_path)
-    parse_crypto_key_path = staticmethod(
-        BigtableInstanceAdminClient.parse_crypto_key_path
+    backup_path = staticmethod(BigtableTableAdminClient.backup_path)
+    parse_backup_path = staticmethod(BigtableTableAdminClient.parse_backup_path)
+    cluster_path = staticmethod(BigtableTableAdminClient.cluster_path)
+    parse_cluster_path = staticmethod(BigtableTableAdminClient.parse_cluster_path)
+    crypto_key_version_path = staticmethod(
+        BigtableTableAdminClient.crypto_key_version_path
     )
-    hot_tablet_path = staticmethod(BigtableInstanceAdminClient.hot_tablet_path)
-    parse_hot_tablet_path = staticmethod(
-        BigtableInstanceAdminClient.parse_hot_tablet_path
+    parse_crypto_key_version_path = staticmethod(
+        BigtableTableAdminClient.parse_crypto_key_version_path
     )
-    instance_path = staticmethod(BigtableInstanceAdminClient.instance_path)
-    parse_instance_path = staticmethod(BigtableInstanceAdminClient.parse_instance_path)
-    logical_view_path = staticmethod(BigtableInstanceAdminClient.logical_view_path)
-    parse_logical_view_path = staticmethod(
-        BigtableInstanceAdminClient.parse_logical_view_path
-    )
-    materialized_view_path = staticmethod(
-        BigtableInstanceAdminClient.materialized_view_path
-    )
-    parse_materialized_view_path = staticmethod(
-        BigtableInstanceAdminClient.parse_materialized_view_path
-    )
-    table_path = staticmethod(BigtableInstanceAdminClient.table_path)
-    parse_table_path = staticmethod(BigtableInstanceAdminClient.parse_table_path)
+    instance_path = staticmethod(BigtableTableAdminClient.instance_path)
+    parse_instance_path = staticmethod(BigtableTableAdminClient.parse_instance_path)
+    snapshot_path = staticmethod(BigtableTableAdminClient.snapshot_path)
+    parse_snapshot_path = staticmethod(BigtableTableAdminClient.parse_snapshot_path)
+    table_path = staticmethod(BigtableTableAdminClient.table_path)
+    parse_table_path = staticmethod(BigtableTableAdminClient.parse_table_path)
     common_billing_account_path = staticmethod(
-        BigtableInstanceAdminClient.common_billing_account_path
+        BigtableTableAdminClient.common_billing_account_path
     )
     parse_common_billing_account_path = staticmethod(
-        BigtableInstanceAdminClient.parse_common_billing_account_path
+        BigtableTableAdminClient.parse_common_billing_account_path
     )
-    common_folder_path = staticmethod(BigtableInstanceAdminClient.common_folder_path)
+    common_folder_path = staticmethod(BigtableTableAdminClient.common_folder_path)
     parse_common_folder_path = staticmethod(
-        BigtableInstanceAdminClient.parse_common_folder_path
+        BigtableTableAdminClient.parse_common_folder_path
     )
     common_organization_path = staticmethod(
-        BigtableInstanceAdminClient.common_organization_path
+        BigtableTableAdminClient.common_organization_path
     )
     parse_common_organization_path = staticmethod(
-        BigtableInstanceAdminClient.parse_common_organization_path
+        BigtableTableAdminClient.parse_common_organization_path
     )
-    common_project_path = staticmethod(BigtableInstanceAdminClient.common_project_path)
+    common_project_path = staticmethod(BigtableTableAdminClient.common_project_path)
     parse_common_project_path = staticmethod(
-        BigtableInstanceAdminClient.parse_common_project_path
+        BigtableTableAdminClient.parse_common_project_path
     )
-    common_location_path = staticmethod(
-        BigtableInstanceAdminClient.common_location_path
-    )
+    common_location_path = staticmethod(BigtableTableAdminClient.common_location_path)
     parse_common_location_path = staticmethod(
-        BigtableInstanceAdminClient.parse_common_location_path
+        BigtableTableAdminClient.parse_common_location_path
     )
 
     @classmethod
@@ -152,9 +143,9 @@ class BigtableInstanceAdminAsyncClient:
             kwargs: Additional arguments to pass to the constructor.
 
         Returns:
-            BigtableInstanceAdminAsyncClient: The constructed client.
+            BigtableTableAdminAsyncClient: The constructed client.
         """
-        return BigtableInstanceAdminClient.from_service_account_info.__func__(BigtableInstanceAdminAsyncClient, info, *args, **kwargs)  # type: ignore
+        return BigtableTableAdminClient.from_service_account_info.__func__(BigtableTableAdminAsyncClient, info, *args, **kwargs)  # type: ignore
 
     @classmethod
     def from_service_account_file(cls, filename: str, *args, **kwargs):
@@ -168,9 +159,9 @@ class BigtableInstanceAdminAsyncClient:
             kwargs: Additional arguments to pass to the constructor.
 
         Returns:
-            BigtableInstanceAdminAsyncClient: The constructed client.
+            BigtableTableAdminAsyncClient: The constructed client.
         """
-        return BigtableInstanceAdminClient.from_service_account_file.__func__(BigtableInstanceAdminAsyncClient, filename, *args, **kwargs)  # type: ignore
+        return BigtableTableAdminClient.from_service_account_file.__func__(BigtableTableAdminAsyncClient, filename, *args, **kwargs)  # type: ignore
 
     from_service_account_json = from_service_account_file
 
@@ -208,14 +199,14 @@ class BigtableInstanceAdminAsyncClient:
         Raises:
             google.auth.exceptions.MutualTLSChannelError: If any errors happen.
         """
-        return BigtableInstanceAdminClient.get_mtls_endpoint_and_cert_source(client_options)  # type: ignore
+        return BigtableTableAdminClient.get_mtls_endpoint_and_cert_source(client_options)  # type: ignore
 
     @property
-    def transport(self) -> BigtableInstanceAdminTransport:
+    def transport(self) -> BigtableTableAdminTransport:
         """Returns the transport used by the client instance.
 
         Returns:
-            BigtableInstanceAdminTransport: The transport used by the client instance.
+            BigtableTableAdminTransport: The transport used by the client instance.
         """
         return self._client.transport
 
@@ -238,7 +229,7 @@ class BigtableInstanceAdminAsyncClient:
         """
         return self._client._universe_domain
 
-    get_transport_class = BigtableInstanceAdminClient.get_transport_class
+    get_transport_class = BigtableTableAdminClient.get_transport_class
 
     def __init__(
         self,
@@ -247,14 +238,14 @@ class BigtableInstanceAdminAsyncClient:
         transport: Optional[
             Union[
                 str,
-                BigtableInstanceAdminTransport,
-                Callable[..., BigtableInstanceAdminTransport],
+                BigtableTableAdminTransport,
+                Callable[..., BigtableTableAdminTransport],
             ]
         ] = "grpc_asyncio",
         client_options: Optional[ClientOptions] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
-        """Instantiates the bigtable instance admin async client.
+        """Instantiates the bigtable table admin async client.
 
         Args:
             credentials (Optional[google.auth.credentials.Credentials]): The
@@ -262,10 +253,10 @@ class BigtableInstanceAdminAsyncClient:
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Optional[Union[str,BigtableInstanceAdminTransport,Callable[..., BigtableInstanceAdminTransport]]]):
+            transport (Optional[Union[str,BigtableTableAdminTransport,Callable[..., BigtableTableAdminTransport]]]):
                 The transport to use, or a Callable that constructs and returns a new transport to use.
                 If a Callable is given, it will be called with the same set of initialization
-                arguments as used in the BigtableInstanceAdminTransport constructor.
+                arguments as used in the BigtableTableAdminTransport constructor.
                 If set to None, a transport is chosen automatically.
             client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]):
                 Custom options for the client.
@@ -303,7 +294,7 @@ class BigtableInstanceAdminAsyncClient:
             google.auth.exceptions.MutualTlsChannelError: If mutual TLS transport
                 creation failed for any reason.
         """
-        self._client = BigtableInstanceAdminClient(
+        self._client = BigtableTableAdminClient(
             credentials=credentials,
             transport=transport,
             client_options=client_options,
@@ -314,9 +305,9 @@ class BigtableInstanceAdminAsyncClient:
             std_logging.DEBUG
         ):  # pragma: NO COVER
             _LOGGER.debug(
-                "Created client `google.bigtable.admin_v2.BigtableInstanceAdminAsyncClient`.",
+                "Created client `google.bigtable.admin_v2.BigtableTableAdminAsyncClient`.",
                 extra={
-                    "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                    "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                     "universeDomain": getattr(
                         self._client._transport._credentials, "universe_domain", ""
                     ),
@@ -327,645 +318,50 @@ class BigtableInstanceAdminAsyncClient:
                 }
                 if hasattr(self._client._transport, "_credentials")
                 else {
-                    "serviceName": "google.bigtable.admin.v2.BigtableInstanceAdmin",
+                    "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                     "credentialsType": None,
                 },
             )
 
-    async def create_instance(
+    async def create_table(
         self,
-        request: Optional[
-            Union[bigtable_instance_admin.CreateInstanceRequest, dict]
-        ] = None,
+        request: Optional[Union[bigtable_table_admin.CreateTableRequest, dict]] = None,
         *,
         parent: Optional[str] = None,
-        instance_id: Optional[str] = None,
-        instance: Optional[gba_instance.Instance] = None,
-        clusters: Optional[MutableMapping[str, gba_instance.Cluster]] = None,
+        table_id: Optional[str] = None,
+        table: Optional[gba_table.Table] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
-        r"""Create an instance within a project.
-
-        Note that exactly one of Cluster.serve_nodes and
-        Cluster.cluster_config.cluster_autoscaling_config can be set. If
-        serve_nodes is set to non-zero, then the cluster is manually
-        scaled. If cluster_config.cluster_autoscaling_config is
-        non-empty, then autoscaling is enabled.
+    ) -> gba_table.Table:
+        r"""Creates a new table in the specified instance.
+        The table can be created with a full set of initial
+        column families, specified in the request.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CreateInstanceRequest, dict]]):
+            request (Optional[Union[google.cloud.bigtable.admin.types.CreateTableRequest, dict]]):
                 The request object. Request message for
-                BigtableInstanceAdmin.CreateInstance.
-            parent (:class:`str`):
-                Required. The unique name of the project in which to
-                create the new instance. Values are of the form
-                ``projects/{project}``.
-
-                This corresponds to the ``parent`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            instance_id (:class:`str`):
-                Required. The ID to be used when referring to the new
-                instance within its project, e.g., just ``myinstance``
-                rather than ``projects/myproject/instances/myinstance``.
-
-                This corresponds to the ``instance_id`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            instance (:class:`google.cloud.bigtable_admin_v2.types.Instance`):
-                Required. The instance to create. Fields marked
-                ``OutputOnly`` must be left blank.
-
-                This corresponds to the ``instance`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            clusters (:class:`MutableMapping[str, google.cloud.bigtable_admin_v2.types.Cluster]`):
-                Required. The clusters to be created within the
-                instance, mapped by desired cluster ID, e.g., just
-                ``mycluster`` rather than
-                ``projects/myproject/instances/myinstance/clusters/mycluster``.
-                Fields marked ``OutputOnly`` must be left blank.
-
-                This corresponds to the ``clusters`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.api_core.operation_async.AsyncOperation:
-                An object representing a long-running operation.
-
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Instance` A collection of Bigtable [Tables][google.bigtable.admin.v2.Table] and
-                   the resources that serve them. All tables in an
-                   instance are served from all
-                   [Clusters][google.bigtable.admin.v2.Cluster] in the
-                   instance.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [parent, instance_id, instance, clusters]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.CreateInstanceRequest):
-            request = bigtable_instance_admin.CreateInstanceRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-        if instance_id is not None:
-            request.instance_id = instance_id
-        if instance is not None:
-            request.instance = instance
-
-        if clusters:
-            request.clusters.update(clusters)
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_instance
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
-            response,
-            self._client._transport.operations_client,
-            gba_instance.Instance,
-            metadata_type=bigtable_instance_admin.CreateInstanceMetadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def get_instance(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.GetInstanceRequest, dict]
-        ] = None,
-        *,
-        name: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> instance.Instance:
-        r"""Gets information about an instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.GetInstanceRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.GetInstance.
-            name (:class:`str`):
-                Required. The unique name of the requested instance.
-                Values are of the form
-                ``projects/{project}/instances/{instance}``.
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.types.Instance:
-                A collection of Bigtable [Tables][google.bigtable.admin.v2.Table] and
-                   the resources that serve them. All tables in an
-                   instance are served from all
-                   [Clusters][google.bigtable.admin.v2.Cluster] in the
-                   instance.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [name]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.GetInstanceRequest):
-            request = bigtable_instance_admin.GetInstanceRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_instance
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def list_instances(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.ListInstancesRequest, dict]
-        ] = None,
-        *,
-        parent: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> bigtable_instance_admin.ListInstancesResponse:
-        r"""Lists information about instances in a project.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListInstancesRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.ListInstances.
-            parent (:class:`str`):
-                Required. The unique name of the project for which a
-                list of instances is requested. Values are of the form
-                ``projects/{project}``.
-
-                This corresponds to the ``parent`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.types.ListInstancesResponse:
-                Response message for
-                BigtableInstanceAdmin.ListInstances.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [parent]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.ListInstancesRequest):
-            request = bigtable_instance_admin.ListInstancesRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_instances
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def update_instance(
-        self,
-        request: Optional[Union[instance.Instance, dict]] = None,
-        *,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> instance.Instance:
-        r"""Updates an instance within a project. This method
-        updates only the display name and type for an Instance.
-        To update other Instance properties, such as labels, use
-        PartialUpdateInstance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.Instance, dict]]):
-                The request object. A collection of Bigtable
-                [Tables][google.bigtable.admin.v2.Table] and the
-                resources that serve them. All tables in an instance are
-                served from all
-                [Clusters][google.bigtable.admin.v2.Cluster] in the
-                instance.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.types.Instance:
-                A collection of Bigtable [Tables][google.bigtable.admin.v2.Table] and
-                   the resources that serve them. All tables in an
-                   instance are served from all
-                   [Clusters][google.bigtable.admin.v2.Cluster] in the
-                   instance.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, instance.Instance):
-            request = instance.Instance(request)
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_instance
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def partial_update_instance(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.PartialUpdateInstanceRequest, dict]
-        ] = None,
-        *,
-        instance: Optional[gba_instance.Instance] = None,
-        update_mask: Optional[field_mask_pb2.FieldMask] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
-        r"""Partially updates an instance within a project. This
-        method can modify all fields of an Instance and is the
-        preferred way to update an Instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.PartialUpdateInstance.
-            instance (:class:`google.cloud.bigtable_admin_v2.types.Instance`):
-                Required. The Instance which will
-                (partially) replace the current value.
-
-                This corresponds to the ``instance`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
-                Required. The subset of Instance
-                fields which should be replaced. Must be
-                explicitly set.
-
-                This corresponds to the ``update_mask`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.api_core.operation_async.AsyncOperation:
-                An object representing a long-running operation.
-
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Instance` A collection of Bigtable [Tables][google.bigtable.admin.v2.Table] and
-                   the resources that serve them. All tables in an
-                   instance are served from all
-                   [Clusters][google.bigtable.admin.v2.Cluster] in the
-                   instance.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [instance, update_mask]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(
-            request, bigtable_instance_admin.PartialUpdateInstanceRequest
-        ):
-            request = bigtable_instance_admin.PartialUpdateInstanceRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if instance is not None:
-            request.instance = instance
-        if update_mask is not None:
-            request.update_mask = update_mask
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.partial_update_instance
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("instance.name", request.instance.name),)
-            ),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
-            response,
-            self._client._transport.operations_client,
-            gba_instance.Instance,
-            metadata_type=bigtable_instance_admin.UpdateInstanceMetadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def delete_instance(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.DeleteInstanceRequest, dict]
-        ] = None,
-        *,
-        name: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> None:
-        r"""Delete an instance from a project.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.DeleteInstanceRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.DeleteInstance.
-            name (:class:`str`):
-                Required. The unique name of the instance to be deleted.
-                Values are of the form
-                ``projects/{project}/instances/{instance}``.
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [name]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.DeleteInstanceRequest):
-            request = bigtable_instance_admin.DeleteInstanceRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_instance
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-    async def create_cluster(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.CreateClusterRequest, dict]
-        ] = None,
-        *,
-        parent: Optional[str] = None,
-        cluster_id: Optional[str] = None,
-        cluster: Optional[instance.Cluster] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
-        r"""Creates a cluster within an instance.
-
-        Note that exactly one of Cluster.serve_nodes and
-        Cluster.cluster_config.cluster_autoscaling_config can be set. If
-        serve_nodes is set to non-zero, then the cluster is manually
-        scaled. If cluster_config.cluster_autoscaling_config is
-        non-empty, then autoscaling is enabled.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CreateClusterRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.CreateCluster.
+                [google.bigtable.admin.v2.BigtableTableAdmin.CreateTable][google.bigtable.admin.v2.BigtableTableAdmin.CreateTable]
             parent (:class:`str`):
                 Required. The unique name of the instance in which to
-                create the new cluster. Values are of the form
+                create the table. Values are of the form
                 ``projects/{project}/instances/{instance}``.
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            cluster_id (:class:`str`):
-                Required. The ID to be used when referring to the new
-                cluster within its instance, e.g., just ``mycluster``
-                rather than
-                ``projects/myproject/instances/myinstance/clusters/mycluster``.
+            table_id (:class:`str`):
+                Required. The name by which the new table should be
+                referred to within the parent instance, e.g., ``foobar``
+                rather than ``{parent}/tables/foobar``. Maximum 50
+                characters.
 
-                This corresponds to the ``cluster_id`` field
+                This corresponds to the ``table_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            cluster (:class:`google.cloud.bigtable_admin_v2.types.Cluster`):
-                Required. The cluster to be created. Fields marked
-                ``OutputOnly`` must be left blank.
-
-                This corresponds to the ``cluster`` field
+            table (:class:`google.cloud.bigtable.admin.types.Table`):
+                Required. The Table to create.
+                This corresponds to the ``table`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
@@ -977,19 +373,17 @@ class BigtableInstanceAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.api_core.operation_async.AsyncOperation:
-                An object representing a long-running operation.
-
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Cluster` A resizable group of nodes in a particular cloud location, capable
-                   of serving all
-                   [Tables][google.bigtable.admin.v2.Table] in the
-                   parent [Instance][google.bigtable.admin.v2.Instance].
+            google.cloud.bigtable.admin.types.Table:
+                A collection of user data indexed by
+                row, column, and timestamp. Each table
+                is served using the resources of its
+                parent cluster.
 
         """
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        flattened_params = [parent, cluster_id, cluster]
+        flattened_params = [parent, table_id, table]
         has_flattened_params = (
             len([param for param in flattened_params if param is not None]) > 0
         )
@@ -1001,210 +395,22 @@ class BigtableInstanceAdminAsyncClient:
 
         # - Use the request object if provided (there's no risk of modifying the input as
         #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.CreateClusterRequest):
-            request = bigtable_instance_admin.CreateClusterRequest(request)
+        if not isinstance(request, bigtable_table_admin.CreateTableRequest):
+            request = bigtable_table_admin.CreateTableRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
         if parent is not None:
             request.parent = parent
-        if cluster_id is not None:
-            request.cluster_id = cluster_id
-        if cluster is not None:
-            request.cluster = cluster
+        if table_id is not None:
+            request.table_id = table_id
+        if table is not None:
+            request.table = table
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
         rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_cluster
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
-            response,
-            self._client._transport.operations_client,
-            instance.Cluster,
-            metadata_type=bigtable_instance_admin.CreateClusterMetadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def get_cluster(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.GetClusterRequest, dict]
-        ] = None,
-        *,
-        name: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> instance.Cluster:
-        r"""Gets information about a cluster.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.GetClusterRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.GetCluster.
-            name (:class:`str`):
-                Required. The unique name of the requested cluster.
-                Values are of the form
-                ``projects/{project}/instances/{instance}/clusters/{cluster}``.
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.types.Cluster:
-                A resizable group of nodes in a particular cloud location, capable
-                   of serving all
-                   [Tables][google.bigtable.admin.v2.Table] in the
-                   parent [Instance][google.bigtable.admin.v2.Instance].
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [name]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.GetClusterRequest):
-            request = bigtable_instance_admin.GetClusterRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_cluster
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def list_clusters(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.ListClustersRequest, dict]
-        ] = None,
-        *,
-        parent: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> bigtable_instance_admin.ListClustersResponse:
-        r"""Lists information about clusters in an instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListClustersRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.ListClusters.
-            parent (:class:`str`):
-                Required. The unique name of the instance for which a
-                list of clusters is requested. Values are of the form
-                ``projects/{project}/instances/{instance}``. Use
-                ``{instance} = '-'`` to list Clusters for all Instances
-                in a project, e.g., ``projects/myproject/instances/-``.
-
-                This corresponds to the ``parent`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.types.ListClustersResponse:
-                Response message for
-                BigtableInstanceAdmin.ListClusters.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [parent]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.ListClustersRequest):
-            request = bigtable_instance_admin.ListClustersRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_clusters
+            self._client._transport.create_table
         ]
 
         # Certain fields should be provided within the metadata header;
@@ -1227,328 +433,64 @@ class BigtableInstanceAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def update_cluster(
-        self,
-        request: Optional[Union[instance.Cluster, dict]] = None,
-        *,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
-        r"""Updates a cluster within an instance.
-
-        Note that UpdateCluster does not support updating
-        cluster_config.cluster_autoscaling_config. In order to update
-        it, you must use PartialUpdateCluster.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.Cluster, dict]]):
-                The request object. A resizable group of nodes in a particular cloud
-                location, capable of serving all
-                [Tables][google.bigtable.admin.v2.Table] in the parent
-                [Instance][google.bigtable.admin.v2.Instance].
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.api_core.operation_async.AsyncOperation:
-                An object representing a long-running operation.
-
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Cluster` A resizable group of nodes in a particular cloud location, capable
-                   of serving all
-                   [Tables][google.bigtable.admin.v2.Table] in the
-                   parent [Instance][google.bigtable.admin.v2.Instance].
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, instance.Cluster):
-            request = instance.Cluster(request)
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_cluster
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
-            response,
-            self._client._transport.operations_client,
-            instance.Cluster,
-            metadata_type=bigtable_instance_admin.UpdateClusterMetadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def partial_update_cluster(
+    async def create_table_from_snapshot(
         self,
         request: Optional[
-            Union[bigtable_instance_admin.PartialUpdateClusterRequest, dict]
-        ] = None,
-        *,
-        cluster: Optional[instance.Cluster] = None,
-        update_mask: Optional[field_mask_pb2.FieldMask] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
-        r"""Partially updates a cluster within a project. This method is the
-        preferred way to update a Cluster.
-
-        To enable and update autoscaling, set
-        cluster_config.cluster_autoscaling_config. When autoscaling is
-        enabled, serve_nodes is treated as an OUTPUT_ONLY field, meaning
-        that updates to it are ignored. Note that an update cannot
-        simultaneously set serve_nodes to non-zero and
-        cluster_config.cluster_autoscaling_config to non-empty, and also
-        specify both in the update_mask.
-
-        To disable autoscaling, clear
-        cluster_config.cluster_autoscaling_config, and explicitly set a
-        serve_node count via the update_mask.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.PartialUpdateClusterRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.PartialUpdateCluster.
-            cluster (:class:`google.cloud.bigtable_admin_v2.types.Cluster`):
-                Required. The Cluster which contains the partial updates
-                to be applied, subject to the update_mask.
-
-                This corresponds to the ``cluster`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
-                Required. The subset of Cluster
-                fields which should be replaced.
-
-                This corresponds to the ``update_mask`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.api_core.operation_async.AsyncOperation:
-                An object representing a long-running operation.
-
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Cluster` A resizable group of nodes in a particular cloud location, capable
-                   of serving all
-                   [Tables][google.bigtable.admin.v2.Table] in the
-                   parent [Instance][google.bigtable.admin.v2.Instance].
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [cluster, update_mask]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.PartialUpdateClusterRequest):
-            request = bigtable_instance_admin.PartialUpdateClusterRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if cluster is not None:
-            request.cluster = cluster
-        if update_mask is not None:
-            request.update_mask = update_mask
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.partial_update_cluster
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("cluster.name", request.cluster.name),)
-            ),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
-            response,
-            self._client._transport.operations_client,
-            instance.Cluster,
-            metadata_type=bigtable_instance_admin.PartialUpdateClusterMetadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def delete_cluster(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.DeleteClusterRequest, dict]
-        ] = None,
-        *,
-        name: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> None:
-        r"""Deletes a cluster from an instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.DeleteClusterRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.DeleteCluster.
-            name (:class:`str`):
-                Required. The unique name of the cluster to be deleted.
-                Values are of the form
-                ``projects/{project}/instances/{instance}/clusters/{cluster}``.
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [name]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.DeleteClusterRequest):
-            request = bigtable_instance_admin.DeleteClusterRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_cluster
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-    async def create_app_profile(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.CreateAppProfileRequest, dict]
+            Union[bigtable_table_admin.CreateTableFromSnapshotRequest, dict]
         ] = None,
         *,
         parent: Optional[str] = None,
-        app_profile_id: Optional[str] = None,
-        app_profile: Optional[instance.AppProfile] = None,
+        table_id: Optional[str] = None,
+        source_snapshot: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> instance.AppProfile:
-        r"""Creates an app profile within an instance.
+    ) -> operation_async.AsyncOperation:
+        r"""Creates a new table from the specified snapshot. The
+        target table must not exist. The snapshot and the table
+        must be in the same instance.
+
+        Note: This is a private alpha release of Cloud Bigtable
+        snapshots. This feature is not currently available to
+        most Cloud Bigtable customers. This feature might be
+        changed in backward-incompatible ways and is not
+        recommended for production use. It is not subject to any
+        SLA or deprecation policy.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CreateAppProfileRequest, dict]]):
+            request (Optional[Union[google.cloud.bigtable.admin.types.CreateTableFromSnapshotRequest, dict]]):
                 The request object. Request message for
-                BigtableInstanceAdmin.CreateAppProfile.
+                [google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot]
+
+                Note: This is a private alpha release of Cloud Bigtable
+                snapshots. This feature is not currently available to
+                most Cloud Bigtable customers. This feature might be
+                changed in backward-incompatible ways and is not
+                recommended for production use. It is not subject to any
+                SLA or deprecation policy.
             parent (:class:`str`):
                 Required. The unique name of the instance in which to
-                create the new app profile. Values are of the form
+                create the table. Values are of the form
                 ``projects/{project}/instances/{instance}``.
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            app_profile_id (:class:`str`):
-                Required. The ID to be used when referring to the new
-                app profile within its instance, e.g., just
-                ``myprofile`` rather than
-                ``projects/myproject/instances/myinstance/appProfiles/myprofile``.
+            table_id (:class:`str`):
+                Required. The name by which the new table should be
+                referred to within the parent instance, e.g., ``foobar``
+                rather than ``{parent}/tables/foobar``.
 
-                This corresponds to the ``app_profile_id`` field
+                This corresponds to the ``table_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            app_profile (:class:`google.cloud.bigtable_admin_v2.types.AppProfile`):
-                Required. The app profile to be created. Fields marked
-                ``OutputOnly`` will be ignored.
+            source_snapshot (:class:`str`):
+                Required. The unique name of the snapshot from which to
+                restore the table. The snapshot and the table must be in
+                the same instance. Values are of the form
+                ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}``.
 
-                This corresponds to the ``app_profile`` field
+                This corresponds to the ``source_snapshot`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
@@ -1560,16 +502,18 @@ class BigtableInstanceAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.types.AppProfile:
-                A configuration object describing how
-                Cloud Bigtable should treat traffic from
-                a particular end user application.
+            google.api_core.operation_async.AsyncOperation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.Table` A collection of user data indexed by row, column, and timestamp.
+                   Each table is served using the resources of its
+                   parent cluster.
 
         """
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        flattened_params = [parent, app_profile_id, app_profile]
+        flattened_params = [parent, table_id, source_snapshot]
         has_flattened_params = (
             len([param for param in flattened_params if param is not None]) > 0
         )
@@ -1581,22 +525,22 @@ class BigtableInstanceAdminAsyncClient:
 
         # - Use the request object if provided (there's no risk of modifying the input as
         #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.CreateAppProfileRequest):
-            request = bigtable_instance_admin.CreateAppProfileRequest(request)
+        if not isinstance(request, bigtable_table_admin.CreateTableFromSnapshotRequest):
+            request = bigtable_table_admin.CreateTableFromSnapshotRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
         if parent is not None:
             request.parent = parent
-        if app_profile_id is not None:
-            request.app_profile_id = app_profile_id
-        if app_profile is not None:
-            request.app_profile = app_profile
+        if table_id is not None:
+            request.table_id = table_id
+        if source_snapshot is not None:
+            request.source_snapshot = source_snapshot
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
         rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_app_profile
+            self._client._transport.create_table_from_snapshot
         ]
 
         # Certain fields should be provided within the metadata header;
@@ -1616,122 +560,36 @@ class BigtableInstanceAdminAsyncClient:
             metadata=metadata,
         )
 
-        # Done; return the response.
-        return response
-
-    async def get_app_profile(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.GetAppProfileRequest, dict]
-        ] = None,
-        *,
-        name: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> instance.AppProfile:
-        r"""Gets information about an app profile.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.GetAppProfileRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.GetAppProfile.
-            name (:class:`str`):
-                Required. The unique name of the requested app profile.
-                Values are of the form
-                ``projects/{project}/instances/{instance}/appProfiles/{app_profile}``.
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.types.AppProfile:
-                A configuration object describing how
-                Cloud Bigtable should treat traffic from
-                a particular end user application.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [name]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.GetAppProfileRequest):
-            request = bigtable_instance_admin.GetAppProfileRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_app_profile
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
+        # Wrap the response in an operation future.
+        response = operation_async.from_gapic(
+            response,
+            self._client._transport.operations_client,
+            table.Table,
+            metadata_type=bigtable_table_admin.CreateTableFromSnapshotMetadata,
         )
 
         # Done; return the response.
         return response
 
-    async def list_app_profiles(
+    async def list_tables(
         self,
-        request: Optional[
-            Union[bigtable_instance_admin.ListAppProfilesRequest, dict]
-        ] = None,
+        request: Optional[Union[bigtable_table_admin.ListTablesRequest, dict]] = None,
         *,
         parent: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> pagers.ListAppProfilesAsyncPager:
-        r"""Lists information about app profiles in an instance.
+    ) -> pagers.ListTablesAsyncPager:
+        r"""Lists all tables served from a specified instance.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest, dict]]):
+            request (Optional[Union[google.cloud.bigtable.admin.types.ListTablesRequest, dict]]):
                 The request object. Request message for
-                BigtableInstanceAdmin.ListAppProfiles.
+                [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
             parent (:class:`str`):
-                Required. The unique name of the instance for which a
-                list of app profiles is requested. Values are of the
-                form ``projects/{project}/instances/{instance}``. Use
-                ``{instance} = '-'`` to list AppProfiles for all
-                Instances in a project, e.g.,
-                ``projects/myproject/instances/-``.
+                Required. The unique name of the instance for which
+                tables should be listed. Values are of the form
+                ``projects/{project}/instances/{instance}``.
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1745,12 +603,12 @@ class BigtableInstanceAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListAppProfilesAsyncPager:
+            google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListTablesAsyncPager:
                 Response message for
-                BigtableInstanceAdmin.ListAppProfiles.
-                Iterating over this object will yield
-                results and resolve additional pages
-                automatically.
+                   [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
+
+                Iterating over this object will yield results and
+                resolve additional pages automatically.
 
         """
         # Create or coerce a protobuf request object.
@@ -1768,8 +626,8 @@ class BigtableInstanceAdminAsyncClient:
 
         # - Use the request object if provided (there's no risk of modifying the input as
         #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.ListAppProfilesRequest):
-            request = bigtable_instance_admin.ListAppProfilesRequest(request)
+        if not isinstance(request, bigtable_table_admin.ListTablesRequest):
+            request = bigtable_table_admin.ListTablesRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1779,7 +637,7 @@ class BigtableInstanceAdminAsyncClient:
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
         rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_app_profiles
+            self._client._transport.list_tables
         ]
 
         # Certain fields should be provided within the metadata header;
@@ -1801,7 +659,7 @@ class BigtableInstanceAdminAsyncClient:
 
         # This method is paged; wrap the response in a pager, which provides
         # an `__aiter__` convenience method.
-        response = pagers.ListAppProfilesAsyncPager(
+        response = pagers.ListTablesAsyncPager(
             method=rpc,
             request=request,
             response=response,
@@ -1813,35 +671,133 @@ class BigtableInstanceAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def update_app_profile(
+    async def get_table(
         self,
-        request: Optional[
-            Union[bigtable_instance_admin.UpdateAppProfileRequest, dict]
-        ] = None,
+        request: Optional[Union[bigtable_table_admin.GetTableRequest, dict]] = None,
         *,
-        app_profile: Optional[instance.AppProfile] = None,
+        name: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> table.Table:
+        r"""Gets metadata information about the specified table.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.GetTableRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.GetTable][google.bigtable.admin.v2.BigtableTableAdmin.GetTable]
+            name (:class:`str`):
+                Required. The unique name of the requested table. Values
+                are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.types.Table:
+                A collection of user data indexed by
+                row, column, and timestamp. Each table
+                is served using the resources of its
+                parent cluster.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.GetTableRequest):
+            request = bigtable_table_admin.GetTableRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.get_table
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def update_table(
+        self,
+        request: Optional[Union[bigtable_table_admin.UpdateTableRequest, dict]] = None,
+        *,
+        table: Optional[gba_table.Table] = None,
         update_mask: Optional[field_mask_pb2.FieldMask] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
     ) -> operation_async.AsyncOperation:
-        r"""Updates an app profile within an instance.
+        r"""Updates a specified table.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.UpdateAppProfileRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.UpdateAppProfile.
-            app_profile (:class:`google.cloud.bigtable_admin_v2.types.AppProfile`):
-                Required. The app profile which will
-                (partially) replace the current value.
+            request (Optional[Union[google.cloud.bigtable.admin.types.UpdateTableRequest, dict]]):
+                The request object. The request for
+                [UpdateTable][google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable].
+            table (:class:`google.cloud.bigtable.admin.types.Table`):
+                Required. The table to update. The table's ``name``
+                field is used to identify the table to update.
 
-                This corresponds to the ``app_profile`` field
+                This corresponds to the ``table`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
-                Required. The subset of app profile
-                fields which should be replaced. If
-                unset, all fields will be replaced.
+                Required. The list of fields to update. A mask
+                specifying which fields (e.g. ``change_stream_config``)
+                in the ``table`` field should be updated. This mask is
+                relative to the ``table`` field, not to the request
+                message. The wildcard (*) path is currently not
+                supported. Currently UpdateTable is only supported for
+                the following fields:
+
+                -  ``change_stream_config``
+                -  ``change_stream_config.retention_period``
+                -  ``deletion_protection``
+                -  ``row_key_schema``
+
+                If ``column_families`` is set in ``update_mask``, it
+                will return an UNIMPLEMENTED error.
 
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1858,14 +814,15 @@ class BigtableInstanceAdminAsyncClient:
             google.api_core.operation_async.AsyncOperation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.AppProfile` A configuration object describing how Cloud Bigtable should treat traffic
-                   from a particular end user application.
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.Table` A collection of user data indexed by row, column, and timestamp.
+                   Each table is served using the resources of its
+                   parent cluster.
 
         """
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        flattened_params = [app_profile, update_mask]
+        flattened_params = [table, update_mask]
         has_flattened_params = (
             len([param for param in flattened_params if param is not None]) > 0
         )
@@ -1877,27 +834,27 @@ class BigtableInstanceAdminAsyncClient:
 
         # - Use the request object if provided (there's no risk of modifying the input as
         #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.UpdateAppProfileRequest):
-            request = bigtable_instance_admin.UpdateAppProfileRequest(request)
+        if not isinstance(request, bigtable_table_admin.UpdateTableRequest):
+            request = bigtable_table_admin.UpdateTableRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
-        if app_profile is not None:
-            request.app_profile = app_profile
+        if table is not None:
+            request.table = table
         if update_mask is not None:
             request.update_mask = update_mask
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
         rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_app_profile
+            self._client._transport.update_table
         ]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
             gapic_v1.routing_header.to_grpc_metadata(
-                (("app_profile.name", request.app_profile.name),)
+                (("table.name", request.table.name),)
             ),
         )
 
@@ -1916,44 +873,35 @@ class BigtableInstanceAdminAsyncClient:
         response = operation_async.from_gapic(
             response,
             self._client._transport.operations_client,
-            instance.AppProfile,
-            metadata_type=bigtable_instance_admin.UpdateAppProfileMetadata,
+            gba_table.Table,
+            metadata_type=bigtable_table_admin.UpdateTableMetadata,
         )
 
         # Done; return the response.
         return response
 
-    async def delete_app_profile(
+    async def delete_table(
         self,
-        request: Optional[
-            Union[bigtable_instance_admin.DeleteAppProfileRequest, dict]
-        ] = None,
+        request: Optional[Union[bigtable_table_admin.DeleteTableRequest, dict]] = None,
         *,
         name: Optional[str] = None,
-        ignore_warnings: Optional[bool] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
     ) -> None:
-        r"""Deletes an app profile from an instance.
+        r"""Permanently deletes a specified table and all of its
+        data.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.DeleteAppProfileRequest, dict]]):
+            request (Optional[Union[google.cloud.bigtable.admin.types.DeleteTableRequest, dict]]):
                 The request object. Request message for
-                BigtableInstanceAdmin.DeleteAppProfile.
+                [google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable]
             name (:class:`str`):
-                Required. The unique name of the app profile to be
-                deleted. Values are of the form
-                ``projects/{project}/instances/{instance}/appProfiles/{app_profile}``.
+                Required. The unique name of the table to be deleted.
+                Values are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}``.
 
                 This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            ignore_warnings (:class:`bool`):
-                Required. If true, ignore safety
-                checks when deleting the app profile.
-
-                This corresponds to the ``ignore_warnings`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
@@ -1967,7 +915,7 @@ class BigtableInstanceAdminAsyncClient:
         # Create or coerce a protobuf request object.
         # - Quick check: If we got a request object, we should *not* have
         #   gotten any keyword arguments that map to the request.
-        flattened_params = [name, ignore_warnings]
+        flattened_params = [name]
         has_flattened_params = (
             len([param for param in flattened_params if param is not None]) > 0
         )
@@ -1979,20 +927,18 @@ class BigtableInstanceAdminAsyncClient:
 
         # - Use the request object if provided (there's no risk of modifying the input as
         #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.DeleteAppProfileRequest):
-            request = bigtable_instance_admin.DeleteAppProfileRequest(request)
+        if not isinstance(request, bigtable_table_admin.DeleteTableRequest):
+            request = bigtable_table_admin.DeleteTableRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
         if name is not None:
             request.name = name
-        if ignore_warnings is not None:
-            request.ignore_warnings = ignore_warnings
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
         rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_app_profile
+            self._client._transport.delete_table
         ]
 
         # Certain fields should be provided within the metadata header;
@@ -2012,6 +958,2187 @@ class BigtableInstanceAdminAsyncClient:
             metadata=metadata,
         )
 
+    async def undelete_table(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.UndeleteTableRequest, dict]
+        ] = None,
+        *,
+        name: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> operation_async.AsyncOperation:
+        r"""Restores a specified table which was accidentally
+        deleted.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.UndeleteTableRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable]
+            name (:class:`str`):
+                Required. The unique name of the table to be restored.
+                Values are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.api_core.operation_async.AsyncOperation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.Table` A collection of user data indexed by row, column, and timestamp.
+                   Each table is served using the resources of its
+                   parent cluster.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.UndeleteTableRequest):
+            request = bigtable_table_admin.UndeleteTableRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.undelete_table
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Wrap the response in an operation future.
+        response = operation_async.from_gapic(
+            response,
+            self._client._transport.operations_client,
+            table.Table,
+            metadata_type=bigtable_table_admin.UndeleteTableMetadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def create_authorized_view(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.CreateAuthorizedViewRequest, dict]
+        ] = None,
+        *,
+        parent: Optional[str] = None,
+        authorized_view: Optional[table.AuthorizedView] = None,
+        authorized_view_id: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> operation_async.AsyncOperation:
+        r"""Creates a new AuthorizedView in a table.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.CreateAuthorizedViewRequest, dict]]):
+                The request object. The request for
+                [CreateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.CreateAuthorizedView]
+            parent (:class:`str`):
+                Required. This is the name of the table the
+                AuthorizedView belongs to. Values are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}``.
+
+                This corresponds to the ``parent`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            authorized_view (:class:`google.cloud.bigtable.admin.types.AuthorizedView`):
+                Required. The AuthorizedView to
+                create.
+
+                This corresponds to the ``authorized_view`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            authorized_view_id (:class:`str`):
+                Required. The id of the AuthorizedView to create. This
+                AuthorizedView must not already exist. The
+                ``authorized_view_id`` appended to ``parent`` forms the
+                full AuthorizedView name of the form
+                ``projects/{project}/instances/{instance}/tables/{table}/authorizedView/{authorized_view}``.
+
+                This corresponds to the ``authorized_view_id`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.api_core.operation_async.AsyncOperation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.AuthorizedView` AuthorizedViews represent subsets of a particular Cloud Bigtable table. Users
+                   can configure access to each Authorized View
+                   independently from the table and use the existing
+                   Data APIs to access the subset of data.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [parent, authorized_view, authorized_view_id]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.CreateAuthorizedViewRequest):
+            request = bigtable_table_admin.CreateAuthorizedViewRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if parent is not None:
+            request.parent = parent
+        if authorized_view is not None:
+            request.authorized_view = authorized_view
+        if authorized_view_id is not None:
+            request.authorized_view_id = authorized_view_id
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.create_authorized_view
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Wrap the response in an operation future.
+        response = operation_async.from_gapic(
+            response,
+            self._client._transport.operations_client,
+            table.AuthorizedView,
+            metadata_type=bigtable_table_admin.CreateAuthorizedViewMetadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def list_authorized_views(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.ListAuthorizedViewsRequest, dict]
+        ] = None,
+        *,
+        parent: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> pagers.ListAuthorizedViewsAsyncPager:
+        r"""Lists all AuthorizedViews from a specific table.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.ListAuthorizedViewsRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews][google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews]
+            parent (:class:`str`):
+                Required. The unique name of the table for which
+                AuthorizedViews should be listed. Values are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}``.
+
+                This corresponds to the ``parent`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListAuthorizedViewsAsyncPager:
+                Response message for
+                   [google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews][google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews]
+
+                Iterating over this object will yield results and
+                resolve additional pages automatically.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [parent]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.ListAuthorizedViewsRequest):
+            request = bigtable_table_admin.ListAuthorizedViewsRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if parent is not None:
+            request.parent = parent
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.list_authorized_views
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # This method is paged; wrap the response in a pager, which provides
+        # an `__aiter__` convenience method.
+        response = pagers.ListAuthorizedViewsAsyncPager(
+            method=rpc,
+            request=request,
+            response=response,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def get_authorized_view(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.GetAuthorizedViewRequest, dict]
+        ] = None,
+        *,
+        name: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> table.AuthorizedView:
+        r"""Gets information from a specified AuthorizedView.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.GetAuthorizedViewRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.GetAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.GetAuthorizedView]
+            name (:class:`str`):
+                Required. The unique name of the requested
+                AuthorizedView. Values are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.types.AuthorizedView:
+                AuthorizedViews represent subsets of
+                a particular Cloud Bigtable table. Users
+                can configure access to each Authorized
+                View independently from the table and
+                use the existing Data APIs to access the
+                subset of data.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.GetAuthorizedViewRequest):
+            request = bigtable_table_admin.GetAuthorizedViewRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.get_authorized_view
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def update_authorized_view(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.UpdateAuthorizedViewRequest, dict]
+        ] = None,
+        *,
+        authorized_view: Optional[table.AuthorizedView] = None,
+        update_mask: Optional[field_mask_pb2.FieldMask] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> operation_async.AsyncOperation:
+        r"""Updates an AuthorizedView in a table.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.UpdateAuthorizedViewRequest, dict]]):
+                The request object. The request for
+                [UpdateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.UpdateAuthorizedView].
+            authorized_view (:class:`google.cloud.bigtable.admin.types.AuthorizedView`):
+                Required. The AuthorizedView to update. The ``name`` in
+                ``authorized_view`` is used to identify the
+                AuthorizedView. AuthorizedView name must in this format
+                projects//instances//tables//authorizedViews/<authorized_view>
+
+                This corresponds to the ``authorized_view`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
+                Optional. The list of fields to update. A mask
+                specifying which fields in the AuthorizedView resource
+                should be updated. This mask is relative to the
+                AuthorizedView resource, not to the request message. A
+                field will be overwritten if it is in the mask. If
+                empty, all fields set in the request will be
+                overwritten. A special value ``*`` means to overwrite
+                all fields (including fields not set in the request).
+
+                This corresponds to the ``update_mask`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.api_core.operation_async.AsyncOperation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.AuthorizedView` AuthorizedViews represent subsets of a particular Cloud Bigtable table. Users
+                   can configure access to each Authorized View
+                   independently from the table and use the existing
+                   Data APIs to access the subset of data.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [authorized_view, update_mask]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.UpdateAuthorizedViewRequest):
+            request = bigtable_table_admin.UpdateAuthorizedViewRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if authorized_view is not None:
+            request.authorized_view = authorized_view
+        if update_mask is not None:
+            request.update_mask = update_mask
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.update_authorized_view
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("authorized_view.name", request.authorized_view.name),)
+            ),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Wrap the response in an operation future.
+        response = operation_async.from_gapic(
+            response,
+            self._client._transport.operations_client,
+            table.AuthorizedView,
+            metadata_type=bigtable_table_admin.UpdateAuthorizedViewMetadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def delete_authorized_view(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.DeleteAuthorizedViewRequest, dict]
+        ] = None,
+        *,
+        name: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> None:
+        r"""Permanently deletes a specified AuthorizedView.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.DeleteAuthorizedViewRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.DeleteAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.DeleteAuthorizedView]
+            name (:class:`str`):
+                Required. The unique name of the AuthorizedView to be
+                deleted. Values are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.DeleteAuthorizedViewRequest):
+            request = bigtable_table_admin.DeleteAuthorizedViewRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.delete_authorized_view
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+    async def modify_column_families(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.ModifyColumnFamiliesRequest, dict]
+        ] = None,
+        *,
+        name: Optional[str] = None,
+        modifications: Optional[
+            MutableSequence[
+                bigtable_table_admin.ModifyColumnFamiliesRequest.Modification
+            ]
+        ] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> table.Table:
+        r"""Performs a series of column family modifications on
+        the specified table. Either all or none of the
+        modifications will occur before this method returns, but
+        data requests received prior to that point may see a
+        table where only some modifications have taken effect.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.ModifyColumnFamiliesRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies][google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies]
+            name (:class:`str`):
+                Required. The unique name of the table whose families
+                should be modified. Values are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            modifications (:class:`MutableSequence[google.cloud.bigtable.admin.types.ModifyColumnFamiliesRequest.Modification]`):
+                Required. Modifications to be
+                atomically applied to the specified
+                table's families. Entries are applied in
+                order, meaning that earlier
+                modifications can be masked by later
+                ones (in the case of repeated updates to
+                the same family, for example).
+
+                This corresponds to the ``modifications`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.types.Table:
+                A collection of user data indexed by
+                row, column, and timestamp. Each table
+                is served using the resources of its
+                parent cluster.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name, modifications]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.ModifyColumnFamiliesRequest):
+            request = bigtable_table_admin.ModifyColumnFamiliesRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+        if modifications:
+            request.modifications.extend(modifications)
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.modify_column_families
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def drop_row_range(
+        self,
+        request: Optional[Union[bigtable_table_admin.DropRowRangeRequest, dict]] = None,
+        *,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> None:
+        r"""Permanently drop/delete a row range from a specified
+        table. The request can specify whether to delete all
+        rows in a table, or only those that match a particular
+        prefix.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.DropRowRangeRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange][google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange]
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+        """
+        # Create or coerce a protobuf request object.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.DropRowRangeRequest):
+            request = bigtable_table_admin.DropRowRangeRequest(request)
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.drop_row_range
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+    async def generate_consistency_token(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.GenerateConsistencyTokenRequest, dict]
+        ] = None,
+        *,
+        name: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> bigtable_table_admin.GenerateConsistencyTokenResponse:
+        r"""Generates a consistency token for a Table, which can
+        be used in CheckConsistency to check whether mutations
+        to the table that finished before this call started have
+        been replicated. The tokens will be available for 90
+        days.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.GenerateConsistencyTokenRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
+            name (:class:`str`):
+                Required. The unique name of the Table for which to
+                create a consistency token. Values are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.types.GenerateConsistencyTokenResponse:
+                Response message for
+                   [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(
+            request, bigtable_table_admin.GenerateConsistencyTokenRequest
+        ):
+            request = bigtable_table_admin.GenerateConsistencyTokenRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.generate_consistency_token
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def check_consistency(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.CheckConsistencyRequest, dict]
+        ] = None,
+        *,
+        name: Optional[str] = None,
+        consistency_token: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> bigtable_table_admin.CheckConsistencyResponse:
+        r"""Checks replication consistency based on a consistency
+        token, that is, if replication has caught up based on
+        the conditions specified in the token and the check
+        request.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.CheckConsistencyRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
+            name (:class:`str`):
+                Required. The unique name of the Table for which to
+                check replication consistency. Values are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            consistency_token (:class:`str`):
+                Required. The token created using
+                GenerateConsistencyToken for the Table.
+
+                This corresponds to the ``consistency_token`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.types.CheckConsistencyResponse:
+                Response message for
+                   [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name, consistency_token]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.CheckConsistencyRequest):
+            request = bigtable_table_admin.CheckConsistencyRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+        if consistency_token is not None:
+            request.consistency_token = consistency_token
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.check_consistency
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def snapshot_table(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.SnapshotTableRequest, dict]
+        ] = None,
+        *,
+        name: Optional[str] = None,
+        cluster: Optional[str] = None,
+        snapshot_id: Optional[str] = None,
+        description: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> operation_async.AsyncOperation:
+        r"""Creates a new snapshot in the specified cluster from
+        the specified source table. The cluster and the table
+        must be in the same instance.
+
+        Note: This is a private alpha release of Cloud Bigtable
+        snapshots. This feature is not currently available to
+        most Cloud Bigtable customers. This feature might be
+        changed in backward-incompatible ways and is not
+        recommended for production use. It is not subject to any
+        SLA or deprecation policy.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.SnapshotTableRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable][google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable]
+
+                Note: This is a private alpha release of Cloud Bigtable
+                snapshots. This feature is not currently available to
+                most Cloud Bigtable customers. This feature might be
+                changed in backward-incompatible ways and is not
+                recommended for production use. It is not subject to any
+                SLA or deprecation policy.
+            name (:class:`str`):
+                Required. The unique name of the table to have the
+                snapshot taken. Values are of the form
+                ``projects/{project}/instances/{instance}/tables/{table}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            cluster (:class:`str`):
+                Required. The name of the cluster where the snapshot
+                will be created in. Values are of the form
+                ``projects/{project}/instances/{instance}/clusters/{cluster}``.
+
+                This corresponds to the ``cluster`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            snapshot_id (:class:`str`):
+                Required. The ID by which the new snapshot should be
+                referred to within the parent cluster, e.g.,
+                ``mysnapshot`` of the form:
+                ``[_a-zA-Z0-9][-_.a-zA-Z0-9]*`` rather than
+                ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/mysnapshot``.
+
+                This corresponds to the ``snapshot_id`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            description (:class:`str`):
+                Description of the snapshot.
+                This corresponds to the ``description`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.api_core.operation_async.AsyncOperation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.Snapshot` A snapshot of a table at a particular time. A snapshot can be used as a
+                   checkpoint for data restoration or a data source for
+                   a new table.
+
+                   Note: This is a private alpha release of Cloud
+                   Bigtable snapshots. This feature is not currently
+                   available to most Cloud Bigtable customers. This
+                   feature might be changed in backward-incompatible
+                   ways and is not recommended for production use. It is
+                   not subject to any SLA or deprecation policy.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name, cluster, snapshot_id, description]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.SnapshotTableRequest):
+            request = bigtable_table_admin.SnapshotTableRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+        if cluster is not None:
+            request.cluster = cluster
+        if snapshot_id is not None:
+            request.snapshot_id = snapshot_id
+        if description is not None:
+            request.description = description
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.snapshot_table
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Wrap the response in an operation future.
+        response = operation_async.from_gapic(
+            response,
+            self._client._transport.operations_client,
+            table.Snapshot,
+            metadata_type=bigtable_table_admin.SnapshotTableMetadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def get_snapshot(
+        self,
+        request: Optional[Union[bigtable_table_admin.GetSnapshotRequest, dict]] = None,
+        *,
+        name: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> table.Snapshot:
+        r"""Gets metadata information about the specified
+        snapshot.
+        Note: This is a private alpha release of Cloud Bigtable
+        snapshots. This feature is not currently available to
+        most Cloud Bigtable customers. This feature might be
+        changed in backward-incompatible ways and is not
+        recommended for production use. It is not subject to any
+        SLA or deprecation policy.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.GetSnapshotRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot]
+
+                Note: This is a private alpha release of Cloud Bigtable
+                snapshots. This feature is not currently available to
+                most Cloud Bigtable customers. This feature might be
+                changed in backward-incompatible ways and is not
+                recommended for production use. It is not subject to any
+                SLA or deprecation policy.
+            name (:class:`str`):
+                Required. The unique name of the requested snapshot.
+                Values are of the form
+                ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.types.Snapshot:
+                A snapshot of a table at a particular
+                time. A snapshot can be used as a
+                checkpoint for data restoration or a
+                data source for a new table.
+
+                Note: This is a private alpha release of
+                Cloud Bigtable snapshots. This feature
+                is not currently available to most Cloud
+                Bigtable customers. This feature might
+                be changed in backward-incompatible ways
+                and is not recommended for production
+                use. It is not subject to any SLA or
+                deprecation policy.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.GetSnapshotRequest):
+            request = bigtable_table_admin.GetSnapshotRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.get_snapshot
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def list_snapshots(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.ListSnapshotsRequest, dict]
+        ] = None,
+        *,
+        parent: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> pagers.ListSnapshotsAsyncPager:
+        r"""Lists all snapshots associated with the specified
+        cluster.
+        Note: This is a private alpha release of Cloud Bigtable
+        snapshots. This feature is not currently available to
+        most Cloud Bigtable customers. This feature might be
+        changed in backward-incompatible ways and is not
+        recommended for production use. It is not subject to any
+        SLA or deprecation policy.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.ListSnapshotsRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
+
+                Note: This is a private alpha release of Cloud Bigtable
+                snapshots. This feature is not currently available to
+                most Cloud Bigtable customers. This feature might be
+                changed in backward-incompatible ways and is not
+                recommended for production use. It is not subject to any
+                SLA or deprecation policy.
+            parent (:class:`str`):
+                Required. The unique name of the cluster for which
+                snapshots should be listed. Values are of the form
+                ``projects/{project}/instances/{instance}/clusters/{cluster}``.
+                Use ``{cluster} = '-'`` to list snapshots for all
+                clusters in an instance, e.g.,
+                ``projects/{project}/instances/{instance}/clusters/-``.
+
+                This corresponds to the ``parent`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListSnapshotsAsyncPager:
+                Response message for
+                   [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
+
+                   Note: This is a private alpha release of Cloud
+                   Bigtable snapshots. This feature is not currently
+                   available to most Cloud Bigtable customers. This
+                   feature might be changed in backward-incompatible
+                   ways and is not recommended for production use. It is
+                   not subject to any SLA or deprecation policy.
+
+                Iterating over this object will yield results and
+                resolve additional pages automatically.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [parent]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.ListSnapshotsRequest):
+            request = bigtable_table_admin.ListSnapshotsRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if parent is not None:
+            request.parent = parent
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.list_snapshots
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # This method is paged; wrap the response in a pager, which provides
+        # an `__aiter__` convenience method.
+        response = pagers.ListSnapshotsAsyncPager(
+            method=rpc,
+            request=request,
+            response=response,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def delete_snapshot(
+        self,
+        request: Optional[
+            Union[bigtable_table_admin.DeleteSnapshotRequest, dict]
+        ] = None,
+        *,
+        name: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> None:
+        r"""Permanently deletes the specified snapshot.
+
+        Note: This is a private alpha release of Cloud Bigtable
+        snapshots. This feature is not currently available to
+        most Cloud Bigtable customers. This feature might be
+        changed in backward-incompatible ways and is not
+        recommended for production use. It is not subject to any
+        SLA or deprecation policy.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.DeleteSnapshotRequest, dict]]):
+                The request object. Request message for
+                [google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot]
+
+                Note: This is a private alpha release of Cloud Bigtable
+                snapshots. This feature is not currently available to
+                most Cloud Bigtable customers. This feature might be
+                changed in backward-incompatible ways and is not
+                recommended for production use. It is not subject to any
+                SLA or deprecation policy.
+            name (:class:`str`):
+                Required. The unique name of the snapshot to be deleted.
+                Values are of the form
+                ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.DeleteSnapshotRequest):
+            request = bigtable_table_admin.DeleteSnapshotRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.delete_snapshot
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+    async def create_backup(
+        self,
+        request: Optional[Union[bigtable_table_admin.CreateBackupRequest, dict]] = None,
+        *,
+        parent: Optional[str] = None,
+        backup_id: Optional[str] = None,
+        backup: Optional[table.Backup] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> operation_async.AsyncOperation:
+        r"""Starts creating a new Cloud Bigtable Backup. The returned backup
+        [long-running operation][google.longrunning.Operation] can be
+        used to track creation of the backup. The
+        [metadata][google.longrunning.Operation.metadata] field type is
+        [CreateBackupMetadata][google.bigtable.admin.v2.CreateBackupMetadata].
+        The [response][google.longrunning.Operation.response] field type
+        is [Backup][google.bigtable.admin.v2.Backup], if successful.
+        Cancelling the returned operation will stop the creation and
+        delete the backup.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.CreateBackupRequest, dict]]):
+                The request object. The request for
+                [CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup].
+            parent (:class:`str`):
+                Required. This must be one of the clusters in the
+                instance in which this table is located. The backup will
+                be stored in this cluster. Values are of the form
+                ``projects/{project}/instances/{instance}/clusters/{cluster}``.
+
+                This corresponds to the ``parent`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            backup_id (:class:`str`):
+                Required. The id of the backup to be created. The
+                ``backup_id`` along with the parent ``parent`` are
+                combined as {parent}/backups/{backup_id} to create the
+                full backup name, of the form:
+                ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup_id}``.
+                This string must be between 1 and 50 characters in
+                length and match the regex [*a-zA-Z0-9][-*.a-zA-Z0-9]*.
+
+                This corresponds to the ``backup_id`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            backup (:class:`google.cloud.bigtable.admin.types.Backup`):
+                Required. The backup to create.
+                This corresponds to the ``backup`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.api_core.operation_async.AsyncOperation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be
+                :class:`google.cloud.bigtable.admin.types.Backup` A
+                backup of a Cloud Bigtable table.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [parent, backup_id, backup]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.CreateBackupRequest):
+            request = bigtable_table_admin.CreateBackupRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if parent is not None:
+            request.parent = parent
+        if backup_id is not None:
+            request.backup_id = backup_id
+        if backup is not None:
+            request.backup = backup
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.create_backup
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Wrap the response in an operation future.
+        response = operation_async.from_gapic(
+            response,
+            self._client._transport.operations_client,
+            table.Backup,
+            metadata_type=bigtable_table_admin.CreateBackupMetadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def get_backup(
+        self,
+        request: Optional[Union[bigtable_table_admin.GetBackupRequest, dict]] = None,
+        *,
+        name: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> table.Backup:
+        r"""Gets metadata on a pending or completed Cloud
+        Bigtable Backup.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.GetBackupRequest, dict]]):
+                The request object. The request for
+                [GetBackup][google.bigtable.admin.v2.BigtableTableAdmin.GetBackup].
+            name (:class:`str`):
+                Required. Name of the backup. Values are of the form
+                ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.types.Backup:
+                A backup of a Cloud Bigtable table.
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.GetBackupRequest):
+            request = bigtable_table_admin.GetBackupRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.get_backup
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def update_backup(
+        self,
+        request: Optional[Union[bigtable_table_admin.UpdateBackupRequest, dict]] = None,
+        *,
+        backup: Optional[table.Backup] = None,
+        update_mask: Optional[field_mask_pb2.FieldMask] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> table.Backup:
+        r"""Updates a pending or completed Cloud Bigtable Backup.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.UpdateBackupRequest, dict]]):
+                The request object. The request for
+                [UpdateBackup][google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup].
+            backup (:class:`google.cloud.bigtable.admin.types.Backup`):
+                Required. The backup to update. ``backup.name``, and the
+                fields to be updated as specified by ``update_mask`` are
+                required. Other fields are ignored. Update is only
+                supported for the following fields:
+
+                -  ``backup.expire_time``.
+
+                This corresponds to the ``backup`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
+                Required. A mask specifying which fields (e.g.
+                ``expire_time``) in the Backup resource should be
+                updated. This mask is relative to the Backup resource,
+                not to the request message. The field mask must always
+                be specified; this prevents any future fields from being
+                erased accidentally by clients that do not know about
+                them.
+
+                This corresponds to the ``update_mask`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.types.Backup:
+                A backup of a Cloud Bigtable table.
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [backup, update_mask]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.UpdateBackupRequest):
+            request = bigtable_table_admin.UpdateBackupRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if backup is not None:
+            request.backup = backup
+        if update_mask is not None:
+            request.update_mask = update_mask
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.update_backup
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("backup.name", request.backup.name),)
+            ),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def delete_backup(
+        self,
+        request: Optional[Union[bigtable_table_admin.DeleteBackupRequest, dict]] = None,
+        *,
+        name: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> None:
+        r"""Deletes a pending or completed Cloud Bigtable backup.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.DeleteBackupRequest, dict]]):
+                The request object. The request for
+                [DeleteBackup][google.bigtable.admin.v2.BigtableTableAdmin.DeleteBackup].
+            name (:class:`str`):
+                Required. Name of the backup to delete. Values are of
+                the form
+                ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}``.
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [name]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.DeleteBackupRequest):
+            request = bigtable_table_admin.DeleteBackupRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if name is not None:
+            request.name = name
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.delete_backup
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+    async def list_backups(
+        self,
+        request: Optional[Union[bigtable_table_admin.ListBackupsRequest, dict]] = None,
+        *,
+        parent: Optional[str] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> pagers.ListBackupsAsyncPager:
+        r"""Lists Cloud Bigtable backups. Returns both completed
+        and pending backups.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.ListBackupsRequest, dict]]):
+                The request object. The request for
+                [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
+            parent (:class:`str`):
+                Required. The cluster to list backups from. Values are
+                of the form
+                ``projects/{project}/instances/{instance}/clusters/{cluster}``.
+                Use ``{cluster} = '-'`` to list backups for all clusters
+                in an instance, e.g.,
+                ``projects/{project}/instances/{instance}/clusters/-``.
+
+                This corresponds to the ``parent`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListBackupsAsyncPager:
+                The response for
+                   [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
+
+                Iterating over this object will yield results and
+                resolve additional pages automatically.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [parent]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.ListBackupsRequest):
+            request = bigtable_table_admin.ListBackupsRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if parent is not None:
+            request.parent = parent
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.list_backups
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # This method is paged; wrap the response in a pager, which provides
+        # an `__aiter__` convenience method.
+        response = pagers.ListBackupsAsyncPager(
+            method=rpc,
+            request=request,
+            response=response,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def restore_table(
+        self,
+        request: Optional[Union[bigtable_table_admin.RestoreTableRequest, dict]] = None,
+        *,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> operation_async.AsyncOperation:
+        r"""Create a new table by restoring from a completed backup. The
+        returned table [long-running
+        operation][google.longrunning.Operation] can be used to track
+        the progress of the operation, and to cancel it. The
+        [metadata][google.longrunning.Operation.metadata] field type is
+        [RestoreTableMetadata][google.bigtable.admin.v2.RestoreTableMetadata].
+        The [response][google.longrunning.Operation.response] type is
+        [Table][google.bigtable.admin.v2.Table], if successful.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.RestoreTableRequest, dict]]):
+                The request object. The request for
+                [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.api_core.operation_async.AsyncOperation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.Table` A collection of user data indexed by row, column, and timestamp.
+                   Each table is served using the resources of its
+                   parent cluster.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.RestoreTableRequest):
+            request = bigtable_table_admin.RestoreTableRequest(request)
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.restore_table
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Wrap the response in an operation future.
+        response = operation_async.from_gapic(
+            response,
+            self._client._transport.operations_client,
+            table.Table,
+            metadata_type=bigtable_table_admin.RestoreTableMetadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    async def copy_backup(
+        self,
+        request: Optional[Union[bigtable_table_admin.CopyBackupRequest, dict]] = None,
+        *,
+        parent: Optional[str] = None,
+        backup_id: Optional[str] = None,
+        source_backup: Optional[str] = None,
+        expire_time: Optional[timestamp_pb2.Timestamp] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+    ) -> operation_async.AsyncOperation:
+        r"""Copy a Cloud Bigtable backup to a new backup in the
+        destination cluster located in the destination instance
+        and project.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable.admin.types.CopyBackupRequest, dict]]):
+                The request object. The request for
+                [CopyBackup][google.bigtable.admin.v2.BigtableTableAdmin.CopyBackup].
+            parent (:class:`str`):
+                Required. The name of the destination cluster that will
+                contain the backup copy. The cluster must already exist.
+                Values are of the form:
+                ``projects/{project}/instances/{instance}/clusters/{cluster}``.
+
+                This corresponds to the ``parent`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            backup_id (:class:`str`):
+                Required. The id of the new backup. The ``backup_id``
+                along with ``parent`` are combined as
+                {parent}/backups/{backup_id} to create the full backup
+                name, of the form:
+                ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup_id}``.
+                This string must be between 1 and 50 characters in
+                length and match the regex [*a-zA-Z0-9][-*.a-zA-Z0-9]*.
+
+                This corresponds to the ``backup_id`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            source_backup (:class:`str`):
+                Required. The source backup to be copied from. The
+                source backup needs to be in READY state for it to be
+                copied. Copying a copied backup is not allowed. Once
+                CopyBackup is in progress, the source backup cannot be
+                deleted or cleaned up on expiration until CopyBackup is
+                finished. Values are of the form:
+                ``projects/<project>/instances/<instance>/clusters/<cluster>/backups/<backup>``.
+
+                This corresponds to the ``source_backup`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            expire_time (:class:`google.protobuf.timestamp_pb2.Timestamp`):
+                Required. Required. The expiration time of the copied
+                backup with microsecond granularity that must be at
+                least 6 hours and at most 30 days from the time the
+                request is received. Once the ``expire_time`` has
+                passed, Cloud Bigtable will delete the backup and free
+                the resources used by the backup.
+
+                This corresponds to the ``expire_time`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                sent along with the request as metadata. Normally, each value must be of type `str`,
+                but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                be of type `bytes`.
+
+        Returns:
+            google.api_core.operation_async.AsyncOperation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be
+                :class:`google.cloud.bigtable.admin.types.Backup` A
+                backup of a Cloud Bigtable table.
+
+        """
+        # Create or coerce a protobuf request object.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        flattened_params = [parent, backup_id, source_backup, expire_time]
+        has_flattened_params = (
+            len([param for param in flattened_params if param is not None]) > 0
+        )
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, bigtable_table_admin.CopyBackupRequest):
+            request = bigtable_table_admin.CopyBackupRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if parent is not None:
+            request.parent = parent
+        if backup_id is not None:
+            request.backup_id = backup_id
+        if source_backup is not None:
+            request.source_backup = source_backup
+        if expire_time is not None:
+            request.expire_time = expire_time
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.copy_backup
+        ]
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
+        )
+
+        # Validate the universe domain.
+        self._client._validate_universe_domain()
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Wrap the response in an operation future.
+        response = operation_async.from_gapic(
+            response,
+            self._client._transport.operations_client,
+            table.Backup,
+            metadata_type=bigtable_table_admin.CopyBackupMetadata,
+        )
+
+        # Done; return the response.
+        return response
+
     async def get_iam_policy(
         self,
         request: Optional[Union[iam_policy_pb2.GetIamPolicyRequest, dict]] = None,
@@ -2021,8 +3148,8 @@ class BigtableInstanceAdminAsyncClient:
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
     ) -> policy_pb2.Policy:
-        r"""Gets the access control policy for an instance
-        resource. Returns an empty policy if an instance exists
+        r"""Gets the access control policy for a Table or Backup
+        resource. Returns an empty policy if the resource exists
         but does not have a policy set.
 
         Args:
@@ -2134,7 +3261,7 @@ class BigtableInstanceAdminAsyncClient:
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
     ) -> policy_pb2.Policy:
-        r"""Sets the access control policy on an instance
+        r"""Sets the access control policy on a Table or Backup
         resource. Replaces any existing policy.
 
         Args:
@@ -2248,7 +3375,7 @@ class BigtableInstanceAdminAsyncClient:
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
     ) -> iam_policy_pb2.TestIamPermissionsResponse:
         r"""Returns permissions that the caller has on the
-        specified instance resource.
+        specified Table or Backup resource.
 
         Args:
             request (Optional[Union[google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest, dict]]):
@@ -2331,1127 +3458,7 @@ class BigtableInstanceAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def list_hot_tablets(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.ListHotTabletsRequest, dict]
-        ] = None,
-        *,
-        parent: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> pagers.ListHotTabletsAsyncPager:
-        r"""Lists hot tablets in a cluster, within the time range
-        provided. Hot tablets are ordered based on CPU usage.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListHotTabletsRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.ListHotTablets.
-            parent (:class:`str`):
-                Required. The cluster name to list hot tablets. Value is
-                in the following form:
-                ``projects/{project}/instances/{instance}/clusters/{cluster}``.
-
-                This corresponds to the ``parent`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListHotTabletsAsyncPager:
-                Response message for
-                BigtableInstanceAdmin.ListHotTablets.
-                Iterating over this object will yield
-                results and resolve additional pages
-                automatically.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [parent]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.ListHotTabletsRequest):
-            request = bigtable_instance_admin.ListHotTabletsRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_hot_tablets
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # This method is paged; wrap the response in a pager, which provides
-        # an `__aiter__` convenience method.
-        response = pagers.ListHotTabletsAsyncPager(
-            method=rpc,
-            request=request,
-            response=response,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def create_logical_view(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.CreateLogicalViewRequest, dict]
-        ] = None,
-        *,
-        parent: Optional[str] = None,
-        logical_view: Optional[instance.LogicalView] = None,
-        logical_view_id: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
-        r"""Creates a logical view within an instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CreateLogicalViewRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.CreateLogicalView.
-            parent (:class:`str`):
-                Required. The parent instance where this logical view
-                will be created. Format:
-                ``projects/{project}/instances/{instance}``.
-
-                This corresponds to the ``parent`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            logical_view (:class:`google.cloud.bigtable_admin_v2.types.LogicalView`):
-                Required. The logical view to create.
-                This corresponds to the ``logical_view`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            logical_view_id (:class:`str`):
-                Required. The ID to use for the
-                logical view, which will become the
-                final component of the logical view's
-                resource name.
-
-                This corresponds to the ``logical_view_id`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.api_core.operation_async.AsyncOperation:
-                An object representing a long-running operation.
-
-                The result type for the operation will be
-                :class:`google.cloud.bigtable_admin_v2.types.LogicalView`
-                A SQL logical view object that can be referenced in SQL
-                queries.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [parent, logical_view, logical_view_id]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.CreateLogicalViewRequest):
-            request = bigtable_instance_admin.CreateLogicalViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-        if logical_view is not None:
-            request.logical_view = logical_view
-        if logical_view_id is not None:
-            request.logical_view_id = logical_view_id
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_logical_view
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
-            response,
-            self._client._transport.operations_client,
-            instance.LogicalView,
-            metadata_type=bigtable_instance_admin.CreateLogicalViewMetadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def get_logical_view(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.GetLogicalViewRequest, dict]
-        ] = None,
-        *,
-        name: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> instance.LogicalView:
-        r"""Gets information about a logical view.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.GetLogicalViewRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.GetLogicalView.
-            name (:class:`str`):
-                Required. The unique name of the requested logical view.
-                Values are of the form
-                ``projects/{project}/instances/{instance}/logicalViews/{logical_view}``.
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.types.LogicalView:
-                A SQL logical view object that can be
-                referenced in SQL queries.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [name]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.GetLogicalViewRequest):
-            request = bigtable_instance_admin.GetLogicalViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_logical_view
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def list_logical_views(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.ListLogicalViewsRequest, dict]
-        ] = None,
-        *,
-        parent: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> pagers.ListLogicalViewsAsyncPager:
-        r"""Lists information about logical views in an instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListLogicalViewsRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.ListLogicalViews.
-            parent (:class:`str`):
-                Required. The unique name of the instance for which the
-                list of logical views is requested. Values are of the
-                form ``projects/{project}/instances/{instance}``.
-
-                This corresponds to the ``parent`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListLogicalViewsAsyncPager:
-                Response message for
-                BigtableInstanceAdmin.ListLogicalViews.
-                Iterating over this object will yield
-                results and resolve additional pages
-                automatically.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [parent]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.ListLogicalViewsRequest):
-            request = bigtable_instance_admin.ListLogicalViewsRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_logical_views
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # This method is paged; wrap the response in a pager, which provides
-        # an `__aiter__` convenience method.
-        response = pagers.ListLogicalViewsAsyncPager(
-            method=rpc,
-            request=request,
-            response=response,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def update_logical_view(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.UpdateLogicalViewRequest, dict]
-        ] = None,
-        *,
-        logical_view: Optional[instance.LogicalView] = None,
-        update_mask: Optional[field_mask_pb2.FieldMask] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
-        r"""Updates a logical view within an instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.UpdateLogicalViewRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.UpdateLogicalView.
-            logical_view (:class:`google.cloud.bigtable_admin_v2.types.LogicalView`):
-                Required. The logical view to update.
-
-                The logical view's ``name`` field is used to identify
-                the view to update. Format:
-                ``projects/{project}/instances/{instance}/logicalViews/{logical_view}``.
-
-                This corresponds to the ``logical_view`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
-                Optional. The list of fields to
-                update.
-
-                This corresponds to the ``update_mask`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.api_core.operation_async.AsyncOperation:
-                An object representing a long-running operation.
-
-                The result type for the operation will be
-                :class:`google.cloud.bigtable_admin_v2.types.LogicalView`
-                A SQL logical view object that can be referenced in SQL
-                queries.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [logical_view, update_mask]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.UpdateLogicalViewRequest):
-            request = bigtable_instance_admin.UpdateLogicalViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if logical_view is not None:
-            request.logical_view = logical_view
-        if update_mask is not None:
-            request.update_mask = update_mask
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_logical_view
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("logical_view.name", request.logical_view.name),)
-            ),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
-            response,
-            self._client._transport.operations_client,
-            instance.LogicalView,
-            metadata_type=bigtable_instance_admin.UpdateLogicalViewMetadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def delete_logical_view(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.DeleteLogicalViewRequest, dict]
-        ] = None,
-        *,
-        name: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> None:
-        r"""Deletes a logical view from an instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.DeleteLogicalViewRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.DeleteLogicalView.
-            name (:class:`str`):
-                Required. The unique name of the logical view to be
-                deleted. Format:
-                ``projects/{project}/instances/{instance}/logicalViews/{logical_view}``.
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [name]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.DeleteLogicalViewRequest):
-            request = bigtable_instance_admin.DeleteLogicalViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_logical_view
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-    async def create_materialized_view(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.CreateMaterializedViewRequest, dict]
-        ] = None,
-        *,
-        parent: Optional[str] = None,
-        materialized_view: Optional[instance.MaterializedView] = None,
-        materialized_view_id: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
-        r"""Creates a materialized view within an instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CreateMaterializedViewRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.CreateMaterializedView.
-            parent (:class:`str`):
-                Required. The parent instance where this materialized
-                view will be created. Format:
-                ``projects/{project}/instances/{instance}``.
-
-                This corresponds to the ``parent`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            materialized_view (:class:`google.cloud.bigtable_admin_v2.types.MaterializedView`):
-                Required. The materialized view to
-                create.
-
-                This corresponds to the ``materialized_view`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            materialized_view_id (:class:`str`):
-                Required. The ID to use for the
-                materialized view, which will become the
-                final component of the materialized
-                view's resource name.
-
-                This corresponds to the ``materialized_view_id`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.api_core.operation_async.AsyncOperation:
-                An object representing a long-running operation.
-
-                The result type for the operation will be
-                :class:`google.cloud.bigtable_admin_v2.types.MaterializedView`
-                A materialized view object that can be referenced in SQL
-                queries.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [parent, materialized_view, materialized_view_id]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(
-            request, bigtable_instance_admin.CreateMaterializedViewRequest
-        ):
-            request = bigtable_instance_admin.CreateMaterializedViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-        if materialized_view is not None:
-            request.materialized_view = materialized_view
-        if materialized_view_id is not None:
-            request.materialized_view_id = materialized_view_id
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_materialized_view
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
-            response,
-            self._client._transport.operations_client,
-            instance.MaterializedView,
-            metadata_type=bigtable_instance_admin.CreateMaterializedViewMetadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def get_materialized_view(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.GetMaterializedViewRequest, dict]
-        ] = None,
-        *,
-        name: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> instance.MaterializedView:
-        r"""Gets information about a materialized view.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.GetMaterializedViewRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.GetMaterializedView.
-            name (:class:`str`):
-                Required. The unique name of the requested materialized
-                view. Values are of the form
-                ``projects/{project}/instances/{instance}/materializedViews/{materialized_view}``.
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.types.MaterializedView:
-                A materialized view object that can
-                be referenced in SQL queries.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [name]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_instance_admin.GetMaterializedViewRequest):
-            request = bigtable_instance_admin.GetMaterializedViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_materialized_view
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def list_materialized_views(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.ListMaterializedViewsRequest, dict]
-        ] = None,
-        *,
-        parent: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> pagers.ListMaterializedViewsAsyncPager:
-        r"""Lists information about materialized views in an
-        instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListMaterializedViewsRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.ListMaterializedViews.
-            parent (:class:`str`):
-                Required. The unique name of the instance for which the
-                list of materialized views is requested. Values are of
-                the form ``projects/{project}/instances/{instance}``.
-
-                This corresponds to the ``parent`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListMaterializedViewsAsyncPager:
-                Response message for
-                BigtableInstanceAdmin.ListMaterializedViews.
-                Iterating over this object will yield
-                results and resolve additional pages
-                automatically.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [parent]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(
-            request, bigtable_instance_admin.ListMaterializedViewsRequest
-        ):
-            request = bigtable_instance_admin.ListMaterializedViewsRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_materialized_views
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # This method is paged; wrap the response in a pager, which provides
-        # an `__aiter__` convenience method.
-        response = pagers.ListMaterializedViewsAsyncPager(
-            method=rpc,
-            request=request,
-            response=response,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def update_materialized_view(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.UpdateMaterializedViewRequest, dict]
-        ] = None,
-        *,
-        materialized_view: Optional[instance.MaterializedView] = None,
-        update_mask: Optional[field_mask_pb2.FieldMask] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
-        r"""Updates a materialized view within an instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.UpdateMaterializedViewRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.UpdateMaterializedView.
-            materialized_view (:class:`google.cloud.bigtable_admin_v2.types.MaterializedView`):
-                Required. The materialized view to update.
-
-                The materialized view's ``name`` field is used to
-                identify the view to update. Format:
-                ``projects/{project}/instances/{instance}/materializedViews/{materialized_view}``.
-
-                This corresponds to the ``materialized_view`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
-                Optional. The list of fields to
-                update.
-
-                This corresponds to the ``update_mask`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-
-        Returns:
-            google.api_core.operation_async.AsyncOperation:
-                An object representing a long-running operation.
-
-                The result type for the operation will be
-                :class:`google.cloud.bigtable_admin_v2.types.MaterializedView`
-                A materialized view object that can be referenced in SQL
-                queries.
-
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [materialized_view, update_mask]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(
-            request, bigtable_instance_admin.UpdateMaterializedViewRequest
-        ):
-            request = bigtable_instance_admin.UpdateMaterializedViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if materialized_view is not None:
-            request.materialized_view = materialized_view
-        if update_mask is not None:
-            request.update_mask = update_mask
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_materialized_view
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("materialized_view.name", request.materialized_view.name),)
-            ),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
-            response,
-            self._client._transport.operations_client,
-            instance.MaterializedView,
-            metadata_type=bigtable_instance_admin.UpdateMaterializedViewMetadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    async def delete_materialized_view(
-        self,
-        request: Optional[
-            Union[bigtable_instance_admin.DeleteMaterializedViewRequest, dict]
-        ] = None,
-        *,
-        name: Optional[str] = None,
-        retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-        metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> None:
-        r"""Deletes a materialized view from an instance.
-
-        Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.DeleteMaterializedViewRequest, dict]]):
-                The request object. Request message for
-                BigtableInstanceAdmin.DeleteMaterializedView.
-            name (:class:`str`):
-                Required. The unique name of the materialized view to be
-                deleted. Format:
-                ``projects/{project}/instances/{instance}/materializedViews/{materialized_view}``.
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
-                sent along with the request as metadata. Normally, each value must be of type `str`,
-                but for metadata keys ending with the suffix `-bin`, the corresponding values must
-                be of type `bytes`.
-        """
-        # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
-        flattened_params = [name]
-        has_flattened_params = (
-            len([param for param in flattened_params if param is not None]) > 0
-        )
-        if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
-
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(
-            request, bigtable_instance_admin.DeleteMaterializedViewRequest
-        ):
-            request = bigtable_instance_admin.DeleteMaterializedViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_materialized_view
-        ]
-
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
-        )
-
-        # Validate the universe domain.
-        self._client._validate_universe_domain()
-
-        # Send the request.
-        await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-    async def __aenter__(self) -> "BigtableInstanceAdminAsyncClient":
+    async def __aenter__(self) -> "BigtableTableAdminAsyncClient":
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -3466,4 +3473,4 @@ if hasattr(DEFAULT_CLIENT_INFO, "protobuf_runtime_version"):  # pragma: NO COVER
     DEFAULT_CLIENT_INFO.protobuf_runtime_version = google.protobuf.__version__
 
 
-__all__ = ("BigtableInstanceAdminAsyncClient",)
+__all__ = ("BigtableTableAdminAsyncClient",)

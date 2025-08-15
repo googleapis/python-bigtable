@@ -34,9 +34,9 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import warnings
 
 
-from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
-from google.cloud.bigtable_admin_v2.types import table
-from google.cloud.bigtable_admin_v2.types import table as gba_table
+from google.cloud.bigtable.admin.types import bigtable_table_admin
+from google.cloud.bigtable.admin.types import table
+from google.cloud.bigtable.admin.types import table as gba_table
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
 from google.protobuf import empty_pb2  # type: ignore

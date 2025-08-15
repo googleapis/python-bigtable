@@ -13,8 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import logging as std_logging
 from collections import OrderedDict
+from http import HTTPStatus
+import json
+import logging as std_logging
+import os
 import re
 from typing import (
     Dict,
@@ -27,38 +30,27 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
+import warnings
 
-from google.cloud.bigtable_admin_v2 import gapic_version as package_version
+from google.cloud.bigtable.admin import gapic_version as package_version
 
-from google.api_core.client_options import ClientOptions
+from google.api_core import client_options as client_options_lib
 from google.api_core import exceptions as core_exceptions
 from google.api_core import gapic_v1
-from google.api_core import retry_async as retries
+from google.api_core import retry as retries
 from google.auth import credentials as ga_credentials  # type: ignore
+from google.auth.transport import mtls  # type: ignore
+from google.auth.transport.grpc import SslCredentials  # type: ignore
+from google.auth.exceptions import MutualTLSChannelError  # type: ignore
 from google.oauth2 import service_account  # type: ignore
 import google.protobuf
 
-
 try:
-    OptionalRetry = Union[retries.AsyncRetry, gapic_v1.method._MethodDefault, None]
+    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
 except AttributeError:  # pragma: NO COVER
-    OptionalRetry = Union[retries.AsyncRetry, object, None]  # type: ignore
-
-from google.api_core import operation  # type: ignore
-from google.api_core import operation_async  # type: ignore
-from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import pagers
-from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
-from google.cloud.bigtable_admin_v2.types import table
-from google.cloud.bigtable_admin_v2.types import table as gba_table
-from google.cloud.bigtable_admin_v2.types import types
-from google.iam.v1 import iam_policy_pb2  # type: ignore
-from google.iam.v1 import policy_pb2  # type: ignore
-from google.protobuf import field_mask_pb2  # type: ignore
-from google.protobuf import timestamp_pb2  # type: ignore
-from .transports.base import BigtableTableAdminTransport, DEFAULT_CLIENT_INFO
-from .transports.grpc_asyncio import BigtableTableAdminGrpcAsyncIOTransport
-from .client import BigtableTableAdminClient
+    OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
 try:
     from google.api_core import client_logging  # type: ignore
@@ -69,8 +61,61 @@ except ImportError:  # pragma: NO COVER
 
 _LOGGER = std_logging.getLogger(__name__)
 
+from google.api_core import operation  # type: ignore
+from google.api_core import operation_async  # type: ignore
+from google.cloud.bigtable.admin.services.bigtable_table_admin import pagers
+from google.cloud.bigtable.admin.types import bigtable_table_admin
+from google.cloud.bigtable.admin.types import table
+from google.cloud.bigtable.admin.types import table as gba_table
+from google.cloud.bigtable.admin.types import types
+from google.iam.v1 import iam_policy_pb2  # type: ignore
+from google.iam.v1 import policy_pb2  # type: ignore
+from google.protobuf import field_mask_pb2  # type: ignore
+from google.protobuf import timestamp_pb2  # type: ignore
+from .transports.base import BigtableTableAdminTransport, DEFAULT_CLIENT_INFO
+from .transports.grpc import BigtableTableAdminGrpcTransport
+from .transports.grpc_asyncio import BigtableTableAdminGrpcAsyncIOTransport
+from .transports.rest import BigtableTableAdminRestTransport
 
-class BigtableTableAdminAsyncClient:
+
+class BigtableTableAdminClientMeta(type):
+    """Metaclass for the BigtableTableAdmin client.
+
+    This provides class-level methods for building and retrieving
+    support objects (e.g. transport) without polluting the client instance
+    objects.
+    """
+
+    _transport_registry = (
+        OrderedDict()
+    )  # type: Dict[str, Type[BigtableTableAdminTransport]]
+    _transport_registry["grpc"] = BigtableTableAdminGrpcTransport
+    _transport_registry["grpc_asyncio"] = BigtableTableAdminGrpcAsyncIOTransport
+    _transport_registry["rest"] = BigtableTableAdminRestTransport
+
+    def get_transport_class(
+        cls,
+        label: Optional[str] = None,
+    ) -> Type[BigtableTableAdminTransport]:
+        """Returns an appropriate transport class.
+
+        Args:
+            label: The name of the desired transport. If none is
+                provided, then the first transport in the registry is used.
+
+        Returns:
+            The transport class to use.
+        """
+        # If a specific transport is requested, return that one.
+        if label:
+            return cls._transport_registry[label]
+
+        # No transport is requested; return the default (that is, the first one
+        # in the dictionary).
+        return next(iter(cls._transport_registry.values()))
+
+
+class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
     """Service for creating, configuring, and deleting Cloud
     Bigtable tables.
 
@@ -78,59 +123,44 @@ class BigtableTableAdminAsyncClient:
     within the tables.
     """
 
-    _client: BigtableTableAdminClient
+    @staticmethod
+    def _get_default_mtls_endpoint(api_endpoint):
+        """Converts api endpoint to mTLS endpoint.
 
-    # Copy defaults from the synchronous client for use here.
+        Convert "*.sandbox.googleapis.com" and "*.googleapis.com" to
+        "*.mtls.sandbox.googleapis.com" and "*.mtls.googleapis.com" respectively.
+        Args:
+            api_endpoint (Optional[str]): the api endpoint to convert.
+        Returns:
+            str: converted mTLS api endpoint.
+        """
+        if not api_endpoint:
+            return api_endpoint
+
+        mtls_endpoint_re = re.compile(
+            r"(?P<name>[^.]+)(?P<mtls>\.mtls)?(?P<sandbox>\.sandbox)?(?P<googledomain>\.googleapis\.com)?"
+        )
+
+        m = mtls_endpoint_re.match(api_endpoint)
+        name, mtls, sandbox, googledomain = m.groups()
+        if mtls or not googledomain:
+            return api_endpoint
+
+        if sandbox:
+            return api_endpoint.replace(
+                "sandbox.googleapis.com", "mtls.sandbox.googleapis.com"
+            )
+
+        return api_endpoint.replace(".googleapis.com", ".mtls.googleapis.com")
+
     # Note: DEFAULT_ENDPOINT is deprecated. Use _DEFAULT_ENDPOINT_TEMPLATE instead.
-    DEFAULT_ENDPOINT = BigtableTableAdminClient.DEFAULT_ENDPOINT
-    DEFAULT_MTLS_ENDPOINT = BigtableTableAdminClient.DEFAULT_MTLS_ENDPOINT
-    _DEFAULT_ENDPOINT_TEMPLATE = BigtableTableAdminClient._DEFAULT_ENDPOINT_TEMPLATE
-    _DEFAULT_UNIVERSE = BigtableTableAdminClient._DEFAULT_UNIVERSE
+    DEFAULT_ENDPOINT = "bigtableadmin.googleapis.com"
+    DEFAULT_MTLS_ENDPOINT = _get_default_mtls_endpoint.__func__(  # type: ignore
+        DEFAULT_ENDPOINT
+    )
 
-    authorized_view_path = staticmethod(BigtableTableAdminClient.authorized_view_path)
-    parse_authorized_view_path = staticmethod(
-        BigtableTableAdminClient.parse_authorized_view_path
-    )
-    backup_path = staticmethod(BigtableTableAdminClient.backup_path)
-    parse_backup_path = staticmethod(BigtableTableAdminClient.parse_backup_path)
-    cluster_path = staticmethod(BigtableTableAdminClient.cluster_path)
-    parse_cluster_path = staticmethod(BigtableTableAdminClient.parse_cluster_path)
-    crypto_key_version_path = staticmethod(
-        BigtableTableAdminClient.crypto_key_version_path
-    )
-    parse_crypto_key_version_path = staticmethod(
-        BigtableTableAdminClient.parse_crypto_key_version_path
-    )
-    instance_path = staticmethod(BigtableTableAdminClient.instance_path)
-    parse_instance_path = staticmethod(BigtableTableAdminClient.parse_instance_path)
-    snapshot_path = staticmethod(BigtableTableAdminClient.snapshot_path)
-    parse_snapshot_path = staticmethod(BigtableTableAdminClient.parse_snapshot_path)
-    table_path = staticmethod(BigtableTableAdminClient.table_path)
-    parse_table_path = staticmethod(BigtableTableAdminClient.parse_table_path)
-    common_billing_account_path = staticmethod(
-        BigtableTableAdminClient.common_billing_account_path
-    )
-    parse_common_billing_account_path = staticmethod(
-        BigtableTableAdminClient.parse_common_billing_account_path
-    )
-    common_folder_path = staticmethod(BigtableTableAdminClient.common_folder_path)
-    parse_common_folder_path = staticmethod(
-        BigtableTableAdminClient.parse_common_folder_path
-    )
-    common_organization_path = staticmethod(
-        BigtableTableAdminClient.common_organization_path
-    )
-    parse_common_organization_path = staticmethod(
-        BigtableTableAdminClient.parse_common_organization_path
-    )
-    common_project_path = staticmethod(BigtableTableAdminClient.common_project_path)
-    parse_common_project_path = staticmethod(
-        BigtableTableAdminClient.parse_common_project_path
-    )
-    common_location_path = staticmethod(BigtableTableAdminClient.common_location_path)
-    parse_common_location_path = staticmethod(
-        BigtableTableAdminClient.parse_common_location_path
-    )
+    _DEFAULT_ENDPOINT_TEMPLATE = "bigtableadmin.{UNIVERSE_DOMAIN}"
+    _DEFAULT_UNIVERSE = "googleapis.com"
 
     @classmethod
     def from_service_account_info(cls, info: dict, *args, **kwargs):
@@ -143,9 +173,11 @@ class BigtableTableAdminAsyncClient:
             kwargs: Additional arguments to pass to the constructor.
 
         Returns:
-            BigtableTableAdminAsyncClient: The constructed client.
+            BigtableTableAdminClient: The constructed client.
         """
-        return BigtableTableAdminClient.from_service_account_info.__func__(BigtableTableAdminAsyncClient, info, *args, **kwargs)  # type: ignore
+        credentials = service_account.Credentials.from_service_account_info(info)
+        kwargs["credentials"] = credentials
+        return cls(*args, **kwargs)
 
     @classmethod
     def from_service_account_file(cls, filename: str, *args, **kwargs):
@@ -159,17 +191,265 @@ class BigtableTableAdminAsyncClient:
             kwargs: Additional arguments to pass to the constructor.
 
         Returns:
-            BigtableTableAdminAsyncClient: The constructed client.
+            BigtableTableAdminClient: The constructed client.
         """
-        return BigtableTableAdminClient.from_service_account_file.__func__(BigtableTableAdminAsyncClient, filename, *args, **kwargs)  # type: ignore
+        credentials = service_account.Credentials.from_service_account_file(filename)
+        kwargs["credentials"] = credentials
+        return cls(*args, **kwargs)
 
     from_service_account_json = from_service_account_file
 
+    @property
+    def transport(self) -> BigtableTableAdminTransport:
+        """Returns the transport used by the client instance.
+
+        Returns:
+            BigtableTableAdminTransport: The transport used by the client
+                instance.
+        """
+        return self._transport
+
+    @staticmethod
+    def authorized_view_path(
+        project: str,
+        instance: str,
+        table: str,
+        authorized_view: str,
+    ) -> str:
+        """Returns a fully-qualified authorized_view string."""
+        return "projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}".format(
+            project=project,
+            instance=instance,
+            table=table,
+            authorized_view=authorized_view,
+        )
+
+    @staticmethod
+    def parse_authorized_view_path(path: str) -> Dict[str, str]:
+        """Parses a authorized_view path into its component segments."""
+        m = re.match(
+            r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)/tables/(?P<table>.+?)/authorizedViews/(?P<authorized_view>.+?)$",
+            path,
+        )
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def backup_path(
+        project: str,
+        instance: str,
+        cluster: str,
+        backup: str,
+    ) -> str:
+        """Returns a fully-qualified backup string."""
+        return "projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}".format(
+            project=project,
+            instance=instance,
+            cluster=cluster,
+            backup=backup,
+        )
+
+    @staticmethod
+    def parse_backup_path(path: str) -> Dict[str, str]:
+        """Parses a backup path into its component segments."""
+        m = re.match(
+            r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)/clusters/(?P<cluster>.+?)/backups/(?P<backup>.+?)$",
+            path,
+        )
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def cluster_path(
+        project: str,
+        instance: str,
+        cluster: str,
+    ) -> str:
+        """Returns a fully-qualified cluster string."""
+        return "projects/{project}/instances/{instance}/clusters/{cluster}".format(
+            project=project,
+            instance=instance,
+            cluster=cluster,
+        )
+
+    @staticmethod
+    def parse_cluster_path(path: str) -> Dict[str, str]:
+        """Parses a cluster path into its component segments."""
+        m = re.match(
+            r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)/clusters/(?P<cluster>.+?)$",
+            path,
+        )
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def crypto_key_version_path(
+        project: str,
+        location: str,
+        key_ring: str,
+        crypto_key: str,
+        crypto_key_version: str,
+    ) -> str:
+        """Returns a fully-qualified crypto_key_version string."""
+        return "projects/{project}/locations/{location}/keyRings/{key_ring}/cryptoKeys/{crypto_key}/cryptoKeyVersions/{crypto_key_version}".format(
+            project=project,
+            location=location,
+            key_ring=key_ring,
+            crypto_key=crypto_key,
+            crypto_key_version=crypto_key_version,
+        )
+
+    @staticmethod
+    def parse_crypto_key_version_path(path: str) -> Dict[str, str]:
+        """Parses a crypto_key_version path into its component segments."""
+        m = re.match(
+            r"^projects/(?P<project>.+?)/locations/(?P<location>.+?)/keyRings/(?P<key_ring>.+?)/cryptoKeys/(?P<crypto_key>.+?)/cryptoKeyVersions/(?P<crypto_key_version>.+?)$",
+            path,
+        )
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def instance_path(
+        project: str,
+        instance: str,
+    ) -> str:
+        """Returns a fully-qualified instance string."""
+        return "projects/{project}/instances/{instance}".format(
+            project=project,
+            instance=instance,
+        )
+
+    @staticmethod
+    def parse_instance_path(path: str) -> Dict[str, str]:
+        """Parses a instance path into its component segments."""
+        m = re.match(r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)$", path)
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def snapshot_path(
+        project: str,
+        instance: str,
+        cluster: str,
+        snapshot: str,
+    ) -> str:
+        """Returns a fully-qualified snapshot string."""
+        return "projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}".format(
+            project=project,
+            instance=instance,
+            cluster=cluster,
+            snapshot=snapshot,
+        )
+
+    @staticmethod
+    def parse_snapshot_path(path: str) -> Dict[str, str]:
+        """Parses a snapshot path into its component segments."""
+        m = re.match(
+            r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)/clusters/(?P<cluster>.+?)/snapshots/(?P<snapshot>.+?)$",
+            path,
+        )
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def table_path(
+        project: str,
+        instance: str,
+        table: str,
+    ) -> str:
+        """Returns a fully-qualified table string."""
+        return "projects/{project}/instances/{instance}/tables/{table}".format(
+            project=project,
+            instance=instance,
+            table=table,
+        )
+
+    @staticmethod
+    def parse_table_path(path: str) -> Dict[str, str]:
+        """Parses a table path into its component segments."""
+        m = re.match(
+            r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)/tables/(?P<table>.+?)$",
+            path,
+        )
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def common_billing_account_path(
+        billing_account: str,
+    ) -> str:
+        """Returns a fully-qualified billing_account string."""
+        return "billingAccounts/{billing_account}".format(
+            billing_account=billing_account,
+        )
+
+    @staticmethod
+    def parse_common_billing_account_path(path: str) -> Dict[str, str]:
+        """Parse a billing_account path into its component segments."""
+        m = re.match(r"^billingAccounts/(?P<billing_account>.+?)$", path)
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def common_folder_path(
+        folder: str,
+    ) -> str:
+        """Returns a fully-qualified folder string."""
+        return "folders/{folder}".format(
+            folder=folder,
+        )
+
+    @staticmethod
+    def parse_common_folder_path(path: str) -> Dict[str, str]:
+        """Parse a folder path into its component segments."""
+        m = re.match(r"^folders/(?P<folder>.+?)$", path)
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def common_organization_path(
+        organization: str,
+    ) -> str:
+        """Returns a fully-qualified organization string."""
+        return "organizations/{organization}".format(
+            organization=organization,
+        )
+
+    @staticmethod
+    def parse_common_organization_path(path: str) -> Dict[str, str]:
+        """Parse a organization path into its component segments."""
+        m = re.match(r"^organizations/(?P<organization>.+?)$", path)
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def common_project_path(
+        project: str,
+    ) -> str:
+        """Returns a fully-qualified project string."""
+        return "projects/{project}".format(
+            project=project,
+        )
+
+    @staticmethod
+    def parse_common_project_path(path: str) -> Dict[str, str]:
+        """Parse a project path into its component segments."""
+        m = re.match(r"^projects/(?P<project>.+?)$", path)
+        return m.groupdict() if m else {}
+
+    @staticmethod
+    def common_location_path(
+        project: str,
+        location: str,
+    ) -> str:
+        """Returns a fully-qualified location string."""
+        return "projects/{project}/locations/{location}".format(
+            project=project,
+            location=location,
+        )
+
+    @staticmethod
+    def parse_common_location_path(path: str) -> Dict[str, str]:
+        """Parse a location path into its component segments."""
+        m = re.match(r"^projects/(?P<project>.+?)/locations/(?P<location>.+?)$", path)
+        return m.groupdict() if m else {}
+
     @classmethod
     def get_mtls_endpoint_and_cert_source(
-        cls, client_options: Optional[ClientOptions] = None
+        cls, client_options: Optional[client_options_lib.ClientOptions] = None
     ):
-        """Return the API endpoint and client cert source for mutual TLS.
+        """Deprecated. Return the API endpoint and client cert source for mutual TLS.
 
         The client cert source is determined in the following order:
         (1) if `GOOGLE_API_USE_CLIENT_CERTIFICATE` environment variable is not "true", the
@@ -199,16 +479,190 @@ class BigtableTableAdminAsyncClient:
         Raises:
             google.auth.exceptions.MutualTLSChannelError: If any errors happen.
         """
-        return BigtableTableAdminClient.get_mtls_endpoint_and_cert_source(client_options)  # type: ignore
 
-    @property
-    def transport(self) -> BigtableTableAdminTransport:
-        """Returns the transport used by the client instance.
+        warnings.warn(
+            "get_mtls_endpoint_and_cert_source is deprecated. Use the api_endpoint property instead.",
+            DeprecationWarning,
+        )
+        if client_options is None:
+            client_options = client_options_lib.ClientOptions()
+        use_client_cert = os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE", "false")
+        use_mtls_endpoint = os.getenv("GOOGLE_API_USE_MTLS_ENDPOINT", "auto")
+        if use_client_cert not in ("true", "false"):
+            raise ValueError(
+                "Environment variable `GOOGLE_API_USE_CLIENT_CERTIFICATE` must be either `true` or `false`"
+            )
+        if use_mtls_endpoint not in ("auto", "never", "always"):
+            raise MutualTLSChannelError(
+                "Environment variable `GOOGLE_API_USE_MTLS_ENDPOINT` must be `never`, `auto` or `always`"
+            )
+
+        # Figure out the client cert source to use.
+        client_cert_source = None
+        if use_client_cert == "true":
+            if client_options.client_cert_source:
+                client_cert_source = client_options.client_cert_source
+            elif mtls.has_default_client_cert_source():
+                client_cert_source = mtls.default_client_cert_source()
+
+        # Figure out which api endpoint to use.
+        if client_options.api_endpoint is not None:
+            api_endpoint = client_options.api_endpoint
+        elif use_mtls_endpoint == "always" or (
+            use_mtls_endpoint == "auto" and client_cert_source
+        ):
+            api_endpoint = cls.DEFAULT_MTLS_ENDPOINT
+        else:
+            api_endpoint = cls.DEFAULT_ENDPOINT
+
+        return api_endpoint, client_cert_source
+
+    @staticmethod
+    def _read_environment_variables():
+        """Returns the environment variables used by the client.
 
         Returns:
-            BigtableTableAdminTransport: The transport used by the client instance.
+            Tuple[bool, str, str]: returns the GOOGLE_API_USE_CLIENT_CERTIFICATE,
+            GOOGLE_API_USE_MTLS_ENDPOINT, and GOOGLE_CLOUD_UNIVERSE_DOMAIN environment variables.
+
+        Raises:
+            ValueError: If GOOGLE_API_USE_CLIENT_CERTIFICATE is not
+                any of ["true", "false"].
+            google.auth.exceptions.MutualTLSChannelError: If GOOGLE_API_USE_MTLS_ENDPOINT
+                is not any of ["auto", "never", "always"].
         """
-        return self._client.transport
+        use_client_cert = os.getenv(
+            "GOOGLE_API_USE_CLIENT_CERTIFICATE", "false"
+        ).lower()
+        use_mtls_endpoint = os.getenv("GOOGLE_API_USE_MTLS_ENDPOINT", "auto").lower()
+        universe_domain_env = os.getenv("GOOGLE_CLOUD_UNIVERSE_DOMAIN")
+        if use_client_cert not in ("true", "false"):
+            raise ValueError(
+                "Environment variable `GOOGLE_API_USE_CLIENT_CERTIFICATE` must be either `true` or `false`"
+            )
+        if use_mtls_endpoint not in ("auto", "never", "always"):
+            raise MutualTLSChannelError(
+                "Environment variable `GOOGLE_API_USE_MTLS_ENDPOINT` must be `never`, `auto` or `always`"
+            )
+        return use_client_cert == "true", use_mtls_endpoint, universe_domain_env
+
+    @staticmethod
+    def _get_client_cert_source(provided_cert_source, use_cert_flag):
+        """Return the client cert source to be used by the client.
+
+        Args:
+            provided_cert_source (bytes): The client certificate source provided.
+            use_cert_flag (bool): A flag indicating whether to use the client certificate.
+
+        Returns:
+            bytes or None: The client cert source to be used by the client.
+        """
+        client_cert_source = None
+        if use_cert_flag:
+            if provided_cert_source:
+                client_cert_source = provided_cert_source
+            elif mtls.has_default_client_cert_source():
+                client_cert_source = mtls.default_client_cert_source()
+        return client_cert_source
+
+    @staticmethod
+    def _get_api_endpoint(
+        api_override, client_cert_source, universe_domain, use_mtls_endpoint
+    ):
+        """Return the API endpoint used by the client.
+
+        Args:
+            api_override (str): The API endpoint override. If specified, this is always
+                the return value of this function and the other arguments are not used.
+            client_cert_source (bytes): The client certificate source used by the client.
+            universe_domain (str): The universe domain used by the client.
+            use_mtls_endpoint (str): How to use the mTLS endpoint, which depends also on the other parameters.
+                Possible values are "always", "auto", or "never".
+
+        Returns:
+            str: The API endpoint to be used by the client.
+        """
+        if api_override is not None:
+            api_endpoint = api_override
+        elif use_mtls_endpoint == "always" or (
+            use_mtls_endpoint == "auto" and client_cert_source
+        ):
+            _default_universe = BigtableTableAdminClient._DEFAULT_UNIVERSE
+            if universe_domain != _default_universe:
+                raise MutualTLSChannelError(
+                    f"mTLS is not supported in any universe other than {_default_universe}."
+                )
+            api_endpoint = BigtableTableAdminClient.DEFAULT_MTLS_ENDPOINT
+        else:
+            api_endpoint = BigtableTableAdminClient._DEFAULT_ENDPOINT_TEMPLATE.format(
+                UNIVERSE_DOMAIN=universe_domain
+            )
+        return api_endpoint
+
+    @staticmethod
+    def _get_universe_domain(
+        client_universe_domain: Optional[str], universe_domain_env: Optional[str]
+    ) -> str:
+        """Return the universe domain used by the client.
+
+        Args:
+            client_universe_domain (Optional[str]): The universe domain configured via the client options.
+            universe_domain_env (Optional[str]): The universe domain configured via the "GOOGLE_CLOUD_UNIVERSE_DOMAIN" environment variable.
+
+        Returns:
+            str: The universe domain to be used by the client.
+
+        Raises:
+            ValueError: If the universe domain is an empty string.
+        """
+        universe_domain = BigtableTableAdminClient._DEFAULT_UNIVERSE
+        if client_universe_domain is not None:
+            universe_domain = client_universe_domain
+        elif universe_domain_env is not None:
+            universe_domain = universe_domain_env
+        if len(universe_domain.strip()) == 0:
+            raise ValueError("Universe Domain cannot be an empty string.")
+        return universe_domain
+
+    def _validate_universe_domain(self):
+        """Validates client's and credentials' universe domains are consistent.
+
+        Returns:
+            bool: True iff the configured universe domain is valid.
+
+        Raises:
+            ValueError: If the configured universe domain is not valid.
+        """
+
+        # NOTE (b/349488459): universe validation is disabled until further notice.
+        return True
+
+    def _add_cred_info_for_auth_errors(
+        self, error: core_exceptions.GoogleAPICallError
+    ) -> None:
+        """Adds credential info string to error details for 401/403/404 errors.
+
+        Args:
+            error (google.api_core.exceptions.GoogleAPICallError): The error to add the cred info.
+        """
+        if error.code not in [
+            HTTPStatus.UNAUTHORIZED,
+            HTTPStatus.FORBIDDEN,
+            HTTPStatus.NOT_FOUND,
+        ]:
+            return
+
+        cred = self._transport._credentials
+
+        # get_cred_info is only available in google-auth>=2.35.0
+        if not hasattr(cred, "get_cred_info"):
+            return
+
+        # ignore the type check since pypy test fails when get_cred_info
+        # is not available
+        cred_info = cred.get_cred_info()  # type: ignore
+        if cred_info and hasattr(error._details, "append"):
+            error._details.append(json.dumps(cred_info))
 
     @property
     def api_endpoint(self):
@@ -217,19 +671,16 @@ class BigtableTableAdminAsyncClient:
         Returns:
             str: The API endpoint used by the client instance.
         """
-        return self._client._api_endpoint
+        return self._api_endpoint
 
     @property
     def universe_domain(self) -> str:
         """Return the universe domain used by the client instance.
 
         Returns:
-            str: The universe domain used
-                by the client instance.
+            str: The universe domain used by the client instance.
         """
-        return self._client._universe_domain
-
-    get_transport_class = BigtableTableAdminClient.get_transport_class
+        return self._universe_domain
 
     def __init__(
         self,
@@ -241,11 +692,11 @@ class BigtableTableAdminAsyncClient:
                 BigtableTableAdminTransport,
                 Callable[..., BigtableTableAdminTransport],
             ]
-        ] = "grpc_asyncio",
-        client_options: Optional[ClientOptions] = None,
+        ] = None,
+        client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
-        """Instantiates the bigtable table admin async client.
+        """Instantiates the bigtable table admin client.
 
         Args:
             credentials (Optional[google.auth.credentials.Credentials]): The
@@ -254,7 +705,7 @@ class BigtableTableAdminAsyncClient:
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
             transport (Optional[Union[str,BigtableTableAdminTransport,Callable[..., BigtableTableAdminTransport]]]):
-                The transport to use, or a Callable that constructs and returns a new transport to use.
+                The transport to use, or a Callable that constructs and returns a new transport.
                 If a Callable is given, it will be called with the same set of initialization
                 arguments as used in the BigtableTableAdminTransport constructor.
                 If set to None, a transport is chosen automatically.
@@ -280,7 +731,7 @@ class BigtableTableAdminAsyncClient:
                 set, no client certificate will be used.
 
                 3. The ``universe_domain`` property can be used to override the
-                default "googleapis.com" universe. Note that ``api_endpoint``
+                default "googleapis.com" universe. Note that the ``api_endpoint``
                 property still takes precedence; and ``universe_domain`` is
                 currently not supported for mTLS.
 
@@ -291,39 +742,130 @@ class BigtableTableAdminAsyncClient:
                 your own client library.
 
         Raises:
-            google.auth.exceptions.MutualTlsChannelError: If mutual TLS transport
+            google.auth.exceptions.MutualTLSChannelError: If mutual TLS transport
                 creation failed for any reason.
         """
-        self._client = BigtableTableAdminClient(
-            credentials=credentials,
-            transport=transport,
-            client_options=client_options,
-            client_info=client_info,
+        self._client_options = client_options
+        if isinstance(self._client_options, dict):
+            self._client_options = client_options_lib.from_dict(self._client_options)
+        if self._client_options is None:
+            self._client_options = client_options_lib.ClientOptions()
+        self._client_options = cast(
+            client_options_lib.ClientOptions, self._client_options
         )
 
-        if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
-            std_logging.DEBUG
-        ):  # pragma: NO COVER
-            _LOGGER.debug(
-                "Created client `google.bigtable.admin_v2.BigtableTableAdminAsyncClient`.",
-                extra={
-                    "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
-                    "universeDomain": getattr(
-                        self._client._transport._credentials, "universe_domain", ""
-                    ),
-                    "credentialsType": f"{type(self._client._transport._credentials).__module__}.{type(self._client._transport._credentials).__qualname__}",
-                    "credentialsInfo": getattr(
-                        self.transport._credentials, "get_cred_info", lambda: None
-                    )(),
-                }
-                if hasattr(self._client._transport, "_credentials")
-                else {
-                    "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
-                    "credentialsType": None,
-                },
+        universe_domain_opt = getattr(self._client_options, "universe_domain", None)
+
+        (
+            self._use_client_cert,
+            self._use_mtls_endpoint,
+            self._universe_domain_env,
+        ) = BigtableTableAdminClient._read_environment_variables()
+        self._client_cert_source = BigtableTableAdminClient._get_client_cert_source(
+            self._client_options.client_cert_source, self._use_client_cert
+        )
+        self._universe_domain = BigtableTableAdminClient._get_universe_domain(
+            universe_domain_opt, self._universe_domain_env
+        )
+        self._api_endpoint = None  # updated below, depending on `transport`
+
+        # Initialize the universe domain validation.
+        self._is_universe_domain_valid = False
+
+        if CLIENT_LOGGING_SUPPORTED:  # pragma: NO COVER
+            # Setup logging.
+            client_logging.initialize_logging()
+
+        api_key_value = getattr(self._client_options, "api_key", None)
+        if api_key_value and credentials:
+            raise ValueError(
+                "client_options.api_key and credentials are mutually exclusive"
             )
 
-    async def create_table(
+        # Save or instantiate the transport.
+        # Ordinarily, we provide the transport, but allowing a custom transport
+        # instance provides an extensibility point for unusual situations.
+        transport_provided = isinstance(transport, BigtableTableAdminTransport)
+        if transport_provided:
+            # transport is a BigtableTableAdminTransport instance.
+            if credentials or self._client_options.credentials_file or api_key_value:
+                raise ValueError(
+                    "When providing a transport instance, "
+                    "provide its credentials directly."
+                )
+            if self._client_options.scopes:
+                raise ValueError(
+                    "When providing a transport instance, provide its scopes "
+                    "directly."
+                )
+            self._transport = cast(BigtableTableAdminTransport, transport)
+            self._api_endpoint = self._transport.host
+
+        self._api_endpoint = (
+            self._api_endpoint
+            or BigtableTableAdminClient._get_api_endpoint(
+                self._client_options.api_endpoint,
+                self._client_cert_source,
+                self._universe_domain,
+                self._use_mtls_endpoint,
+            )
+        )
+
+        if not transport_provided:
+            import google.auth._default  # type: ignore
+
+            if api_key_value and hasattr(
+                google.auth._default, "get_api_key_credentials"
+            ):
+                credentials = google.auth._default.get_api_key_credentials(
+                    api_key_value
+                )
+
+            transport_init: Union[
+                Type[BigtableTableAdminTransport],
+                Callable[..., BigtableTableAdminTransport],
+            ] = (
+                BigtableTableAdminClient.get_transport_class(transport)
+                if isinstance(transport, str) or transport is None
+                else cast(Callable[..., BigtableTableAdminTransport], transport)
+            )
+            # initialize with the provided callable or the passed in class
+            self._transport = transport_init(
+                credentials=credentials,
+                credentials_file=self._client_options.credentials_file,
+                host=self._api_endpoint,
+                scopes=self._client_options.scopes,
+                client_cert_source_for_mtls=self._client_cert_source,
+                quota_project_id=self._client_options.quota_project_id,
+                client_info=client_info,
+                always_use_jwt_access=True,
+                api_audience=self._client_options.api_audience,
+            )
+
+        if "async" not in str(self._transport):
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                std_logging.DEBUG
+            ):  # pragma: NO COVER
+                _LOGGER.debug(
+                    "Created client `google.bigtable.admin_v2.BigtableTableAdminClient`.",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "universeDomain": getattr(
+                            self._transport._credentials, "universe_domain", ""
+                        ),
+                        "credentialsType": f"{type(self._transport._credentials).__module__}.{type(self._transport._credentials).__qualname__}",
+                        "credentialsInfo": getattr(
+                            self.transport._credentials, "get_cred_info", lambda: None
+                        )(),
+                    }
+                    if hasattr(self._transport, "_credentials")
+                    else {
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "credentialsType": None,
+                    },
+                )
+
+    def create_table(
         self,
         request: Optional[Union[bigtable_table_admin.CreateTableRequest, dict]] = None,
         *,
@@ -339,10 +881,10 @@ class BigtableTableAdminAsyncClient:
         column families, specified in the request.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CreateTableRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.CreateTableRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.CreateTable][google.bigtable.admin.v2.BigtableTableAdmin.CreateTable]
-            parent (:class:`str`):
+            parent (str):
                 Required. The unique name of the instance in which to
                 create the table. Values are of the form
                 ``projects/{project}/instances/{instance}``.
@@ -350,7 +892,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            table_id (:class:`str`):
+            table_id (str):
                 Required. The name by which the new table should be
                 referred to within the parent instance, e.g., ``foobar``
                 rather than ``{parent}/tables/foobar``. Maximum 50
@@ -359,12 +901,12 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``table_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            table (:class:`google.cloud.bigtable_admin_v2.types.Table`):
+            table (google.cloud.bigtable.admin.types.Table):
                 Required. The Table to create.
                 This corresponds to the ``table`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -373,7 +915,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.types.Table:
+            google.cloud.bigtable.admin.types.Table:
                 A collection of user data indexed by
                 row, column, and timestamp. Each table
                 is served using the resources of its
@@ -397,21 +939,18 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CreateTableRequest):
             request = bigtable_table_admin.CreateTableRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-        if table_id is not None:
-            request.table_id = table_id
-        if table is not None:
-            request.table = table
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if parent is not None:
+                request.parent = parent
+            if table_id is not None:
+                request.table_id = table_id
+            if table is not None:
+                request.table = table
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_table
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.create_table]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -420,10 +959,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -433,7 +972,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def create_table_from_snapshot(
+    def create_table_from_snapshot(
         self,
         request: Optional[
             Union[bigtable_table_admin.CreateTableFromSnapshotRequest, dict]
@@ -445,7 +984,7 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
+    ) -> operation.Operation:
         r"""Creates a new table from the specified snapshot. The
         target table must not exist. The snapshot and the table
         must be in the same instance.
@@ -458,7 +997,7 @@ class BigtableTableAdminAsyncClient:
         SLA or deprecation policy.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CreateTableFromSnapshotRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.CreateTableFromSnapshotRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot]
 
@@ -468,7 +1007,7 @@ class BigtableTableAdminAsyncClient:
                 changed in backward-incompatible ways and is not
                 recommended for production use. It is not subject to any
                 SLA or deprecation policy.
-            parent (:class:`str`):
+            parent (str):
                 Required. The unique name of the instance in which to
                 create the table. Values are of the form
                 ``projects/{project}/instances/{instance}``.
@@ -476,7 +1015,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            table_id (:class:`str`):
+            table_id (str):
                 Required. The name by which the new table should be
                 referred to within the parent instance, e.g., ``foobar``
                 rather than ``{parent}/tables/foobar``.
@@ -484,7 +1023,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``table_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            source_snapshot (:class:`str`):
+            source_snapshot (str):
                 Required. The unique name of the snapshot from which to
                 restore the table. The snapshot and the table must be in
                 the same instance. Values are of the form
@@ -493,7 +1032,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``source_snapshot`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -502,10 +1041,10 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.api_core.operation_async.AsyncOperation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Table` A collection of user data indexed by row, column, and timestamp.
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.Table` A collection of user data indexed by row, column, and timestamp.
                    Each table is served using the resources of its
                    parent cluster.
 
@@ -527,20 +1066,19 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CreateTableFromSnapshotRequest):
             request = bigtable_table_admin.CreateTableFromSnapshotRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-        if table_id is not None:
-            request.table_id = table_id
-        if source_snapshot is not None:
-            request.source_snapshot = source_snapshot
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if parent is not None:
+                request.parent = parent
+            if table_id is not None:
+                request.table_id = table_id
+            if source_snapshot is not None:
+                request.source_snapshot = source_snapshot
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_table_from_snapshot
+        rpc = self._transport._wrapped_methods[
+            self._transport.create_table_from_snapshot
         ]
 
         # Certain fields should be provided within the metadata header;
@@ -550,10 +1088,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -561,9 +1099,9 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
+        response = operation.from_gapic(
             response,
-            self._client._transport.operations_client,
+            self._transport.operations_client,
             table.Table,
             metadata_type=bigtable_table_admin.CreateTableFromSnapshotMetadata,
         )
@@ -571,7 +1109,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def list_tables(
+    def list_tables(
         self,
         request: Optional[Union[bigtable_table_admin.ListTablesRequest, dict]] = None,
         *,
@@ -579,14 +1117,14 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> pagers.ListTablesAsyncPager:
+    ) -> pagers.ListTablesPager:
         r"""Lists all tables served from a specified instance.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListTablesRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.ListTablesRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
-            parent (:class:`str`):
+            parent (str):
                 Required. The unique name of the instance for which
                 tables should be listed. Values are of the form
                 ``projects/{project}/instances/{instance}``.
@@ -594,7 +1132,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -603,7 +1141,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListTablesAsyncPager:
+            google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListTablesPager:
                 Response message for
                    [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
 
@@ -628,17 +1166,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.ListTablesRequest):
             request = bigtable_table_admin.ListTablesRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if parent is not None:
+                request.parent = parent
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_tables
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.list_tables]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -647,10 +1182,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -658,8 +1193,8 @@ class BigtableTableAdminAsyncClient:
         )
 
         # This method is paged; wrap the response in a pager, which provides
-        # an `__aiter__` convenience method.
-        response = pagers.ListTablesAsyncPager(
+        # an `__iter__` convenience method.
+        response = pagers.ListTablesPager(
             method=rpc,
             request=request,
             response=response,
@@ -671,7 +1206,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def get_table(
+    def get_table(
         self,
         request: Optional[Union[bigtable_table_admin.GetTableRequest, dict]] = None,
         *,
@@ -683,10 +1218,10 @@ class BigtableTableAdminAsyncClient:
         r"""Gets metadata information about the specified table.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.GetTableRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.GetTableRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GetTable][google.bigtable.admin.v2.BigtableTableAdmin.GetTable]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the requested table. Values
                 are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
@@ -694,7 +1229,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -703,7 +1238,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.types.Table:
+            google.cloud.bigtable.admin.types.Table:
                 A collection of user data indexed by
                 row, column, and timestamp. Each table
                 is served using the resources of its
@@ -727,17 +1262,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.GetTableRequest):
             request = bigtable_table_admin.GetTableRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_table
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.get_table]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -746,10 +1278,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -759,7 +1291,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def update_table(
+    def update_table(
         self,
         request: Optional[Union[bigtable_table_admin.UpdateTableRequest, dict]] = None,
         *,
@@ -768,21 +1300,21 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
+    ) -> operation.Operation:
         r"""Updates a specified table.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.UpdateTableRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.UpdateTableRequest, dict]):
                 The request object. The request for
                 [UpdateTable][google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable].
-            table (:class:`google.cloud.bigtable_admin_v2.types.Table`):
+            table (google.cloud.bigtable.admin.types.Table):
                 Required. The table to update. The table's ``name``
                 field is used to identify the table to update.
 
                 This corresponds to the ``table`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
+            update_mask (google.protobuf.field_mask_pb2.FieldMask):
                 Required. The list of fields to update. A mask
                 specifying which fields (e.g. ``change_stream_config``)
                 in the ``table`` field should be updated. This mask is
@@ -802,7 +1334,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -811,10 +1343,10 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.api_core.operation_async.AsyncOperation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Table` A collection of user data indexed by row, column, and timestamp.
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.Table` A collection of user data indexed by row, column, and timestamp.
                    Each table is served using the resources of its
                    parent cluster.
 
@@ -836,19 +1368,16 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.UpdateTableRequest):
             request = bigtable_table_admin.UpdateTableRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if table is not None:
-            request.table = table
-        if update_mask is not None:
-            request.update_mask = update_mask
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if table is not None:
+                request.table = table
+            if update_mask is not None:
+                request.update_mask = update_mask
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_table
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.update_table]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -859,10 +1388,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -870,9 +1399,9 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
+        response = operation.from_gapic(
             response,
-            self._client._transport.operations_client,
+            self._transport.operations_client,
             gba_table.Table,
             metadata_type=bigtable_table_admin.UpdateTableMetadata,
         )
@@ -880,7 +1409,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def delete_table(
+    def delete_table(
         self,
         request: Optional[Union[bigtable_table_admin.DeleteTableRequest, dict]] = None,
         *,
@@ -893,10 +1422,10 @@ class BigtableTableAdminAsyncClient:
         data.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.DeleteTableRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.DeleteTableRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the table to be deleted.
                 Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
@@ -904,7 +1433,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -929,17 +1458,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.DeleteTableRequest):
             request = bigtable_table_admin.DeleteTableRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_table
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.delete_table]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -948,17 +1474,17 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        await rpc(
+        rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
 
-    async def undelete_table(
+    def undelete_table(
         self,
         request: Optional[
             Union[bigtable_table_admin.UndeleteTableRequest, dict]
@@ -968,15 +1494,15 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
+    ) -> operation.Operation:
         r"""Restores a specified table which was accidentally
         deleted.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.UndeleteTableRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.UndeleteTableRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the table to be restored.
                 Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
@@ -984,7 +1510,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -993,10 +1519,10 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.api_core.operation_async.AsyncOperation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Table` A collection of user data indexed by row, column, and timestamp.
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.Table` A collection of user data indexed by row, column, and timestamp.
                    Each table is served using the resources of its
                    parent cluster.
 
@@ -1018,17 +1544,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.UndeleteTableRequest):
             request = bigtable_table_admin.UndeleteTableRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.undelete_table
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.undelete_table]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1037,10 +1560,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -1048,9 +1571,9 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
+        response = operation.from_gapic(
             response,
-            self._client._transport.operations_client,
+            self._transport.operations_client,
             table.Table,
             metadata_type=bigtable_table_admin.UndeleteTableMetadata,
         )
@@ -1058,7 +1581,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def create_authorized_view(
+    def create_authorized_view(
         self,
         request: Optional[
             Union[bigtable_table_admin.CreateAuthorizedViewRequest, dict]
@@ -1070,14 +1593,14 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
+    ) -> operation.Operation:
         r"""Creates a new AuthorizedView in a table.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CreateAuthorizedViewRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.CreateAuthorizedViewRequest, dict]):
                 The request object. The request for
                 [CreateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.CreateAuthorizedView]
-            parent (:class:`str`):
+            parent (str):
                 Required. This is the name of the table the
                 AuthorizedView belongs to. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
@@ -1085,14 +1608,14 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            authorized_view (:class:`google.cloud.bigtable_admin_v2.types.AuthorizedView`):
+            authorized_view (google.cloud.bigtable.admin.types.AuthorizedView):
                 Required. The AuthorizedView to
                 create.
 
                 This corresponds to the ``authorized_view`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            authorized_view_id (:class:`str`):
+            authorized_view_id (str):
                 Required. The id of the AuthorizedView to create. This
                 AuthorizedView must not already exist. The
                 ``authorized_view_id`` appended to ``parent`` forms the
@@ -1102,7 +1625,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``authorized_view_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -1111,10 +1634,10 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.api_core.operation_async.AsyncOperation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.AuthorizedView` AuthorizedViews represent subsets of a particular Cloud Bigtable table. Users
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.AuthorizedView` AuthorizedViews represent subsets of a particular Cloud Bigtable table. Users
                    can configure access to each Authorized View
                    independently from the table and use the existing
                    Data APIs to access the subset of data.
@@ -1137,21 +1660,18 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CreateAuthorizedViewRequest):
             request = bigtable_table_admin.CreateAuthorizedViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-        if authorized_view is not None:
-            request.authorized_view = authorized_view
-        if authorized_view_id is not None:
-            request.authorized_view_id = authorized_view_id
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if parent is not None:
+                request.parent = parent
+            if authorized_view is not None:
+                request.authorized_view = authorized_view
+            if authorized_view_id is not None:
+                request.authorized_view_id = authorized_view_id
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_authorized_view
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.create_authorized_view]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1160,10 +1680,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -1171,9 +1691,9 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
+        response = operation.from_gapic(
             response,
-            self._client._transport.operations_client,
+            self._transport.operations_client,
             table.AuthorizedView,
             metadata_type=bigtable_table_admin.CreateAuthorizedViewMetadata,
         )
@@ -1181,7 +1701,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def list_authorized_views(
+    def list_authorized_views(
         self,
         request: Optional[
             Union[bigtable_table_admin.ListAuthorizedViewsRequest, dict]
@@ -1191,14 +1711,14 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> pagers.ListAuthorizedViewsAsyncPager:
+    ) -> pagers.ListAuthorizedViewsPager:
         r"""Lists all AuthorizedViews from a specific table.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.ListAuthorizedViewsRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews][google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews]
-            parent (:class:`str`):
+            parent (str):
                 Required. The unique name of the table for which
                 AuthorizedViews should be listed. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
@@ -1206,7 +1726,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -1215,7 +1735,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListAuthorizedViewsAsyncPager:
+            google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListAuthorizedViewsPager:
                 Response message for
                    [google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews][google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews]
 
@@ -1240,17 +1760,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.ListAuthorizedViewsRequest):
             request = bigtable_table_admin.ListAuthorizedViewsRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if parent is not None:
+                request.parent = parent
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_authorized_views
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.list_authorized_views]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1259,10 +1776,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -1270,8 +1787,8 @@ class BigtableTableAdminAsyncClient:
         )
 
         # This method is paged; wrap the response in a pager, which provides
-        # an `__aiter__` convenience method.
-        response = pagers.ListAuthorizedViewsAsyncPager(
+        # an `__iter__` convenience method.
+        response = pagers.ListAuthorizedViewsPager(
             method=rpc,
             request=request,
             response=response,
@@ -1283,7 +1800,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def get_authorized_view(
+    def get_authorized_view(
         self,
         request: Optional[
             Union[bigtable_table_admin.GetAuthorizedViewRequest, dict]
@@ -1297,10 +1814,10 @@ class BigtableTableAdminAsyncClient:
         r"""Gets information from a specified AuthorizedView.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.GetAuthorizedViewRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.GetAuthorizedViewRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GetAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.GetAuthorizedView]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the requested
                 AuthorizedView. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}``.
@@ -1308,7 +1825,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -1317,7 +1834,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.types.AuthorizedView:
+            google.cloud.bigtable.admin.types.AuthorizedView:
                 AuthorizedViews represent subsets of
                 a particular Cloud Bigtable table. Users
                 can configure access to each Authorized
@@ -1343,17 +1860,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.GetAuthorizedViewRequest):
             request = bigtable_table_admin.GetAuthorizedViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_authorized_view
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.get_authorized_view]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1362,10 +1876,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -1375,7 +1889,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def update_authorized_view(
+    def update_authorized_view(
         self,
         request: Optional[
             Union[bigtable_table_admin.UpdateAuthorizedViewRequest, dict]
@@ -1386,14 +1900,14 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
+    ) -> operation.Operation:
         r"""Updates an AuthorizedView in a table.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.UpdateAuthorizedViewRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.UpdateAuthorizedViewRequest, dict]):
                 The request object. The request for
                 [UpdateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.UpdateAuthorizedView].
-            authorized_view (:class:`google.cloud.bigtable_admin_v2.types.AuthorizedView`):
+            authorized_view (google.cloud.bigtable.admin.types.AuthorizedView):
                 Required. The AuthorizedView to update. The ``name`` in
                 ``authorized_view`` is used to identify the
                 AuthorizedView. AuthorizedView name must in this format
@@ -1402,7 +1916,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``authorized_view`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
+            update_mask (google.protobuf.field_mask_pb2.FieldMask):
                 Optional. The list of fields to update. A mask
                 specifying which fields in the AuthorizedView resource
                 should be updated. This mask is relative to the
@@ -1415,7 +1929,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -1424,10 +1938,10 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.api_core.operation_async.AsyncOperation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.AuthorizedView` AuthorizedViews represent subsets of a particular Cloud Bigtable table. Users
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.AuthorizedView` AuthorizedViews represent subsets of a particular Cloud Bigtable table. Users
                    can configure access to each Authorized View
                    independently from the table and use the existing
                    Data APIs to access the subset of data.
@@ -1450,19 +1964,16 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.UpdateAuthorizedViewRequest):
             request = bigtable_table_admin.UpdateAuthorizedViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if authorized_view is not None:
-            request.authorized_view = authorized_view
-        if update_mask is not None:
-            request.update_mask = update_mask
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if authorized_view is not None:
+                request.authorized_view = authorized_view
+            if update_mask is not None:
+                request.update_mask = update_mask
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_authorized_view
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.update_authorized_view]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1473,10 +1984,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -1484,9 +1995,9 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
+        response = operation.from_gapic(
             response,
-            self._client._transport.operations_client,
+            self._transport.operations_client,
             table.AuthorizedView,
             metadata_type=bigtable_table_admin.UpdateAuthorizedViewMetadata,
         )
@@ -1494,7 +2005,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def delete_authorized_view(
+    def delete_authorized_view(
         self,
         request: Optional[
             Union[bigtable_table_admin.DeleteAuthorizedViewRequest, dict]
@@ -1508,10 +2019,10 @@ class BigtableTableAdminAsyncClient:
         r"""Permanently deletes a specified AuthorizedView.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.DeleteAuthorizedViewRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.DeleteAuthorizedViewRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DeleteAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.DeleteAuthorizedView]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the AuthorizedView to be
                 deleted. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}``.
@@ -1519,7 +2030,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -1544,17 +2055,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.DeleteAuthorizedViewRequest):
             request = bigtable_table_admin.DeleteAuthorizedViewRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_authorized_view
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.delete_authorized_view]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1563,17 +2071,17 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        await rpc(
+        rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
 
-    async def modify_column_families(
+    def modify_column_families(
         self,
         request: Optional[
             Union[bigtable_table_admin.ModifyColumnFamiliesRequest, dict]
@@ -1596,10 +2104,10 @@ class BigtableTableAdminAsyncClient:
         table where only some modifications have taken effect.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.ModifyColumnFamiliesRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies][google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the table whose families
                 should be modified. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
@@ -1607,7 +2115,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            modifications (:class:`MutableSequence[google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest.Modification]`):
+            modifications (MutableSequence[google.cloud.bigtable.admin.types.ModifyColumnFamiliesRequest.Modification]):
                 Required. Modifications to be
                 atomically applied to the specified
                 table's families. Entries are applied in
@@ -1619,7 +2127,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``modifications`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -1628,7 +2136,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.types.Table:
+            google.cloud.bigtable.admin.types.Table:
                 A collection of user data indexed by
                 row, column, and timestamp. Each table
                 is served using the resources of its
@@ -1652,19 +2160,16 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.ModifyColumnFamiliesRequest):
             request = bigtable_table_admin.ModifyColumnFamiliesRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-        if modifications:
-            request.modifications.extend(modifications)
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
+            if modifications is not None:
+                request.modifications = modifications
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.modify_column_families
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.modify_column_families]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1673,10 +2178,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -1686,7 +2191,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def drop_row_range(
+    def drop_row_range(
         self,
         request: Optional[Union[bigtable_table_admin.DropRowRangeRequest, dict]] = None,
         *,
@@ -1700,10 +2205,10 @@ class BigtableTableAdminAsyncClient:
         prefix.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.DropRowRangeRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.DropRowRangeRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange][google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange]
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -1719,9 +2224,7 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.drop_row_range
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.drop_row_range]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1730,17 +2233,17 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        await rpc(
+        rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
 
-    async def generate_consistency_token(
+    def generate_consistency_token(
         self,
         request: Optional[
             Union[bigtable_table_admin.GenerateConsistencyTokenRequest, dict]
@@ -1758,10 +2261,10 @@ class BigtableTableAdminAsyncClient:
         days.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.GenerateConsistencyTokenRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.GenerateConsistencyTokenRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the Table for which to
                 create a consistency token. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
@@ -1769,7 +2272,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -1778,7 +2281,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.types.GenerateConsistencyTokenResponse:
+            google.cloud.bigtable.admin.types.GenerateConsistencyTokenResponse:
                 Response message for
                    [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
 
@@ -1802,16 +2305,15 @@ class BigtableTableAdminAsyncClient:
             request, bigtable_table_admin.GenerateConsistencyTokenRequest
         ):
             request = bigtable_table_admin.GenerateConsistencyTokenRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.generate_consistency_token
+        rpc = self._transport._wrapped_methods[
+            self._transport.generate_consistency_token
         ]
 
         # Certain fields should be provided within the metadata header;
@@ -1821,10 +2323,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -1834,7 +2336,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def check_consistency(
+    def check_consistency(
         self,
         request: Optional[
             Union[bigtable_table_admin.CheckConsistencyRequest, dict]
@@ -1852,10 +2354,10 @@ class BigtableTableAdminAsyncClient:
         request.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CheckConsistencyRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.CheckConsistencyRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the Table for which to
                 check replication consistency. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
@@ -1863,14 +2365,14 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            consistency_token (:class:`str`):
+            consistency_token (str):
                 Required. The token created using
                 GenerateConsistencyToken for the Table.
 
                 This corresponds to the ``consistency_token`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -1879,7 +2381,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.types.CheckConsistencyResponse:
+            google.cloud.bigtable.admin.types.CheckConsistencyResponse:
                 Response message for
                    [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
 
@@ -1901,19 +2403,16 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CheckConsistencyRequest):
             request = bigtable_table_admin.CheckConsistencyRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-        if consistency_token is not None:
-            request.consistency_token = consistency_token
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
+            if consistency_token is not None:
+                request.consistency_token = consistency_token
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.check_consistency
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.check_consistency]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1922,10 +2421,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -1935,7 +2434,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def snapshot_table(
+    def snapshot_table(
         self,
         request: Optional[
             Union[bigtable_table_admin.SnapshotTableRequest, dict]
@@ -1948,7 +2447,7 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
+    ) -> operation.Operation:
         r"""Creates a new snapshot in the specified cluster from
         the specified source table. The cluster and the table
         must be in the same instance.
@@ -1961,7 +2460,7 @@ class BigtableTableAdminAsyncClient:
         SLA or deprecation policy.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.SnapshotTableRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.SnapshotTableRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable][google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable]
 
@@ -1971,7 +2470,7 @@ class BigtableTableAdminAsyncClient:
                 changed in backward-incompatible ways and is not
                 recommended for production use. It is not subject to any
                 SLA or deprecation policy.
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the table to have the
                 snapshot taken. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
@@ -1979,7 +2478,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            cluster (:class:`str`):
+            cluster (str):
                 Required. The name of the cluster where the snapshot
                 will be created in. Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}``.
@@ -1987,7 +2486,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``cluster`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            snapshot_id (:class:`str`):
+            snapshot_id (str):
                 Required. The ID by which the new snapshot should be
                 referred to within the parent cluster, e.g.,
                 ``mysnapshot`` of the form:
@@ -1997,12 +2496,12 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``snapshot_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            description (:class:`str`):
+            description (str):
                 Description of the snapshot.
                 This corresponds to the ``description`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -2011,10 +2510,10 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.api_core.operation_async.AsyncOperation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Snapshot` A snapshot of a table at a particular time. A snapshot can be used as a
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.Snapshot` A snapshot of a table at a particular time. A snapshot can be used as a
                    checkpoint for data restoration or a data source for
                    a new table.
 
@@ -2043,23 +2542,20 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.SnapshotTableRequest):
             request = bigtable_table_admin.SnapshotTableRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
-        if cluster is not None:
-            request.cluster = cluster
-        if snapshot_id is not None:
-            request.snapshot_id = snapshot_id
-        if description is not None:
-            request.description = description
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
+            if cluster is not None:
+                request.cluster = cluster
+            if snapshot_id is not None:
+                request.snapshot_id = snapshot_id
+            if description is not None:
+                request.description = description
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.snapshot_table
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.snapshot_table]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2068,10 +2564,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -2079,9 +2575,9 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
+        response = operation.from_gapic(
             response,
-            self._client._transport.operations_client,
+            self._transport.operations_client,
             table.Snapshot,
             metadata_type=bigtable_table_admin.SnapshotTableMetadata,
         )
@@ -2089,7 +2585,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def get_snapshot(
+    def get_snapshot(
         self,
         request: Optional[Union[bigtable_table_admin.GetSnapshotRequest, dict]] = None,
         *,
@@ -2108,7 +2604,7 @@ class BigtableTableAdminAsyncClient:
         SLA or deprecation policy.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.GetSnapshotRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.GetSnapshotRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot]
 
@@ -2118,7 +2614,7 @@ class BigtableTableAdminAsyncClient:
                 changed in backward-incompatible ways and is not
                 recommended for production use. It is not subject to any
                 SLA or deprecation policy.
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the requested snapshot.
                 Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}``.
@@ -2126,7 +2622,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -2135,7 +2631,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.types.Snapshot:
+            google.cloud.bigtable.admin.types.Snapshot:
                 A snapshot of a table at a particular
                 time. A snapshot can be used as a
                 checkpoint for data restoration or a
@@ -2168,17 +2664,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.GetSnapshotRequest):
             request = bigtable_table_admin.GetSnapshotRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_snapshot
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.get_snapshot]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2187,10 +2680,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -2200,7 +2693,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def list_snapshots(
+    def list_snapshots(
         self,
         request: Optional[
             Union[bigtable_table_admin.ListSnapshotsRequest, dict]
@@ -2210,7 +2703,7 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> pagers.ListSnapshotsAsyncPager:
+    ) -> pagers.ListSnapshotsPager:
         r"""Lists all snapshots associated with the specified
         cluster.
         Note: This is a private alpha release of Cloud Bigtable
@@ -2221,7 +2714,7 @@ class BigtableTableAdminAsyncClient:
         SLA or deprecation policy.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.ListSnapshotsRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
 
@@ -2231,7 +2724,7 @@ class BigtableTableAdminAsyncClient:
                 changed in backward-incompatible ways and is not
                 recommended for production use. It is not subject to any
                 SLA or deprecation policy.
-            parent (:class:`str`):
+            parent (str):
                 Required. The unique name of the cluster for which
                 snapshots should be listed. Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}``.
@@ -2242,7 +2735,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -2251,7 +2744,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListSnapshotsAsyncPager:
+            google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListSnapshotsPager:
                 Response message for
                    [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
 
@@ -2283,17 +2776,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.ListSnapshotsRequest):
             request = bigtable_table_admin.ListSnapshotsRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if parent is not None:
+                request.parent = parent
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_snapshots
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.list_snapshots]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2302,10 +2792,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -2313,8 +2803,8 @@ class BigtableTableAdminAsyncClient:
         )
 
         # This method is paged; wrap the response in a pager, which provides
-        # an `__aiter__` convenience method.
-        response = pagers.ListSnapshotsAsyncPager(
+        # an `__iter__` convenience method.
+        response = pagers.ListSnapshotsPager(
             method=rpc,
             request=request,
             response=response,
@@ -2326,7 +2816,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def delete_snapshot(
+    def delete_snapshot(
         self,
         request: Optional[
             Union[bigtable_table_admin.DeleteSnapshotRequest, dict]
@@ -2347,7 +2837,7 @@ class BigtableTableAdminAsyncClient:
         SLA or deprecation policy.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.DeleteSnapshotRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.DeleteSnapshotRequest, dict]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot]
 
@@ -2357,7 +2847,7 @@ class BigtableTableAdminAsyncClient:
                 changed in backward-incompatible ways and is not
                 recommended for production use. It is not subject to any
                 SLA or deprecation policy.
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the snapshot to be deleted.
                 Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}``.
@@ -2365,7 +2855,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -2390,17 +2880,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.DeleteSnapshotRequest):
             request = bigtable_table_admin.DeleteSnapshotRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_snapshot
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.delete_snapshot]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2409,17 +2896,17 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        await rpc(
+        rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
 
-    async def create_backup(
+    def create_backup(
         self,
         request: Optional[Union[bigtable_table_admin.CreateBackupRequest, dict]] = None,
         *,
@@ -2429,7 +2916,7 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
+    ) -> operation.Operation:
         r"""Starts creating a new Cloud Bigtable Backup. The returned backup
         [long-running operation][google.longrunning.Operation] can be
         used to track creation of the backup. The
@@ -2441,10 +2928,10 @@ class BigtableTableAdminAsyncClient:
         delete the backup.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CreateBackupRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.CreateBackupRequest, dict]):
                 The request object. The request for
                 [CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup].
-            parent (:class:`str`):
+            parent (str):
                 Required. This must be one of the clusters in the
                 instance in which this table is located. The backup will
                 be stored in this cluster. Values are of the form
@@ -2453,7 +2940,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            backup_id (:class:`str`):
+            backup_id (str):
                 Required. The id of the backup to be created. The
                 ``backup_id`` along with the parent ``parent`` are
                 combined as {parent}/backups/{backup_id} to create the
@@ -2465,12 +2952,12 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``backup_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            backup (:class:`google.cloud.bigtable_admin_v2.types.Backup`):
+            backup (google.cloud.bigtable.admin.types.Backup):
                 Required. The backup to create.
                 This corresponds to the ``backup`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -2479,11 +2966,11 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.api_core.operation_async.AsyncOperation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
                 The result type for the operation will be
-                :class:`google.cloud.bigtable_admin_v2.types.Backup` A
+                :class:`google.cloud.bigtable.admin.types.Backup` A
                 backup of a Cloud Bigtable table.
 
         """
@@ -2504,21 +2991,18 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CreateBackupRequest):
             request = bigtable_table_admin.CreateBackupRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-        if backup_id is not None:
-            request.backup_id = backup_id
-        if backup is not None:
-            request.backup = backup
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if parent is not None:
+                request.parent = parent
+            if backup_id is not None:
+                request.backup_id = backup_id
+            if backup is not None:
+                request.backup = backup
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_backup
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.create_backup]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2527,10 +3011,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -2538,9 +3022,9 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
+        response = operation.from_gapic(
             response,
-            self._client._transport.operations_client,
+            self._transport.operations_client,
             table.Backup,
             metadata_type=bigtable_table_admin.CreateBackupMetadata,
         )
@@ -2548,7 +3032,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def get_backup(
+    def get_backup(
         self,
         request: Optional[Union[bigtable_table_admin.GetBackupRequest, dict]] = None,
         *,
@@ -2561,17 +3045,17 @@ class BigtableTableAdminAsyncClient:
         Bigtable Backup.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.GetBackupRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.GetBackupRequest, dict]):
                 The request object. The request for
                 [GetBackup][google.bigtable.admin.v2.BigtableTableAdmin.GetBackup].
-            name (:class:`str`):
+            name (str):
                 Required. Name of the backup. Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}``.
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -2580,7 +3064,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.types.Backup:
+            google.cloud.bigtable.admin.types.Backup:
                 A backup of a Cloud Bigtable table.
         """
         # Create or coerce a protobuf request object.
@@ -2600,17 +3084,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.GetBackupRequest):
             request = bigtable_table_admin.GetBackupRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_backup
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.get_backup]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2619,10 +3100,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -2632,7 +3113,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def update_backup(
+    def update_backup(
         self,
         request: Optional[Union[bigtable_table_admin.UpdateBackupRequest, dict]] = None,
         *,
@@ -2645,10 +3126,10 @@ class BigtableTableAdminAsyncClient:
         r"""Updates a pending or completed Cloud Bigtable Backup.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.UpdateBackupRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.UpdateBackupRequest, dict]):
                 The request object. The request for
                 [UpdateBackup][google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup].
-            backup (:class:`google.cloud.bigtable_admin_v2.types.Backup`):
+            backup (google.cloud.bigtable.admin.types.Backup):
                 Required. The backup to update. ``backup.name``, and the
                 fields to be updated as specified by ``update_mask`` are
                 required. Other fields are ignored. Update is only
@@ -2659,7 +3140,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``backup`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
+            update_mask (google.protobuf.field_mask_pb2.FieldMask):
                 Required. A mask specifying which fields (e.g.
                 ``expire_time``) in the Backup resource should be
                 updated. This mask is relative to the Backup resource,
@@ -2671,7 +3152,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -2680,7 +3161,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.types.Backup:
+            google.cloud.bigtable.admin.types.Backup:
                 A backup of a Cloud Bigtable table.
         """
         # Create or coerce a protobuf request object.
@@ -2700,19 +3181,16 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.UpdateBackupRequest):
             request = bigtable_table_admin.UpdateBackupRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if backup is not None:
-            request.backup = backup
-        if update_mask is not None:
-            request.update_mask = update_mask
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if backup is not None:
+                request.backup = backup
+            if update_mask is not None:
+                request.update_mask = update_mask
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_backup
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.update_backup]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2723,10 +3201,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -2736,7 +3214,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def delete_backup(
+    def delete_backup(
         self,
         request: Optional[Union[bigtable_table_admin.DeleteBackupRequest, dict]] = None,
         *,
@@ -2748,10 +3226,10 @@ class BigtableTableAdminAsyncClient:
         r"""Deletes a pending or completed Cloud Bigtable backup.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.DeleteBackupRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.DeleteBackupRequest, dict]):
                 The request object. The request for
                 [DeleteBackup][google.bigtable.admin.v2.BigtableTableAdmin.DeleteBackup].
-            name (:class:`str`):
+            name (str):
                 Required. Name of the backup to delete. Values are of
                 the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}``.
@@ -2759,7 +3237,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -2784,17 +3262,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.DeleteBackupRequest):
             request = bigtable_table_admin.DeleteBackupRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if name is not None:
-            request.name = name
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_backup
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.delete_backup]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2803,17 +3278,17 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        await rpc(
+        rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
 
-    async def list_backups(
+    def list_backups(
         self,
         request: Optional[Union[bigtable_table_admin.ListBackupsRequest, dict]] = None,
         *,
@@ -2821,15 +3296,15 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> pagers.ListBackupsAsyncPager:
+    ) -> pagers.ListBackupsPager:
         r"""Lists Cloud Bigtable backups. Returns both completed
         and pending backups.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListBackupsRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.ListBackupsRequest, dict]):
                 The request object. The request for
                 [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
-            parent (:class:`str`):
+            parent (str):
                 Required. The cluster to list backups from. Values are
                 of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}``.
@@ -2840,7 +3315,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -2849,7 +3324,7 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListBackupsAsyncPager:
+            google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListBackupsPager:
                 The response for
                    [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
 
@@ -2874,17 +3349,14 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.ListBackupsRequest):
             request = bigtable_table_admin.ListBackupsRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if parent is not None:
+                request.parent = parent
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_backups
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.list_backups]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2893,10 +3365,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -2904,8 +3376,8 @@ class BigtableTableAdminAsyncClient:
         )
 
         # This method is paged; wrap the response in a pager, which provides
-        # an `__aiter__` convenience method.
-        response = pagers.ListBackupsAsyncPager(
+        # an `__iter__` convenience method.
+        response = pagers.ListBackupsPager(
             method=rpc,
             request=request,
             response=response,
@@ -2917,14 +3389,14 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def restore_table(
+    def restore_table(
         self,
         request: Optional[Union[bigtable_table_admin.RestoreTableRequest, dict]] = None,
         *,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
+    ) -> operation.Operation:
         r"""Create a new table by restoring from a completed backup. The
         returned table [long-running
         operation][google.longrunning.Operation] can be used to track
@@ -2935,10 +3407,10 @@ class BigtableTableAdminAsyncClient:
         [Table][google.bigtable.admin.v2.Table], if successful.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.RestoreTableRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.RestoreTableRequest, dict]):
                 The request object. The request for
                 [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -2947,10 +3419,10 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.api_core.operation_async.AsyncOperation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Table` A collection of user data indexed by row, column, and timestamp.
+                The result type for the operation will be :class:`google.cloud.bigtable.admin.types.Table` A collection of user data indexed by row, column, and timestamp.
                    Each table is served using the resources of its
                    parent cluster.
 
@@ -2963,9 +3435,7 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.restore_table
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.restore_table]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2974,10 +3444,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -2985,9 +3455,9 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
+        response = operation.from_gapic(
             response,
-            self._client._transport.operations_client,
+            self._transport.operations_client,
             table.Table,
             metadata_type=bigtable_table_admin.RestoreTableMetadata,
         )
@@ -2995,7 +3465,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def copy_backup(
+    def copy_backup(
         self,
         request: Optional[Union[bigtable_table_admin.CopyBackupRequest, dict]] = None,
         *,
@@ -3006,16 +3476,16 @@ class BigtableTableAdminAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> operation_async.AsyncOperation:
+    ) -> operation.Operation:
         r"""Copy a Cloud Bigtable backup to a new backup in the
         destination cluster located in the destination instance
         and project.
 
         Args:
-            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CopyBackupRequest, dict]]):
+            request (Union[google.cloud.bigtable.admin.types.CopyBackupRequest, dict]):
                 The request object. The request for
                 [CopyBackup][google.bigtable.admin.v2.BigtableTableAdmin.CopyBackup].
-            parent (:class:`str`):
+            parent (str):
                 Required. The name of the destination cluster that will
                 contain the backup copy. The cluster must already exist.
                 Values are of the form:
@@ -3024,7 +3494,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            backup_id (:class:`str`):
+            backup_id (str):
                 Required. The id of the new backup. The ``backup_id``
                 along with ``parent`` are combined as
                 {parent}/backups/{backup_id} to create the full backup
@@ -3036,7 +3506,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``backup_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            source_backup (:class:`str`):
+            source_backup (str):
                 Required. The source backup to be copied from. The
                 source backup needs to be in READY state for it to be
                 copied. Copying a copied backup is not allowed. Once
@@ -3048,7 +3518,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``source_backup`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            expire_time (:class:`google.protobuf.timestamp_pb2.Timestamp`):
+            expire_time (google.protobuf.timestamp_pb2.Timestamp):
                 Required. Required. The expiration time of the copied
                 backup with microsecond granularity that must be at
                 least 6 hours and at most 30 days from the time the
@@ -3059,7 +3529,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``expire_time`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -3068,11 +3538,11 @@ class BigtableTableAdminAsyncClient:
                 be of type `bytes`.
 
         Returns:
-            google.api_core.operation_async.AsyncOperation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
                 The result type for the operation will be
-                :class:`google.cloud.bigtable_admin_v2.types.Backup` A
+                :class:`google.cloud.bigtable.admin.types.Backup` A
                 backup of a Cloud Bigtable table.
 
         """
@@ -3093,23 +3563,20 @@ class BigtableTableAdminAsyncClient:
         #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CopyBackupRequest):
             request = bigtable_table_admin.CopyBackupRequest(request)
-
-        # If we have keyword arguments corresponding to fields on the
-        # request, apply these.
-        if parent is not None:
-            request.parent = parent
-        if backup_id is not None:
-            request.backup_id = backup_id
-        if source_backup is not None:
-            request.source_backup = source_backup
-        if expire_time is not None:
-            request.expire_time = expire_time
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if parent is not None:
+                request.parent = parent
+            if backup_id is not None:
+                request.backup_id = backup_id
+            if source_backup is not None:
+                request.source_backup = source_backup
+            if expire_time is not None:
+                request.expire_time = expire_time
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.copy_backup
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.copy_backup]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -3118,10 +3585,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -3129,9 +3596,9 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Wrap the response in an operation future.
-        response = operation_async.from_gapic(
+        response = operation.from_gapic(
             response,
-            self._client._transport.operations_client,
+            self._transport.operations_client,
             table.Backup,
             metadata_type=bigtable_table_admin.CopyBackupMetadata,
         )
@@ -3139,7 +3606,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def get_iam_policy(
+    def get_iam_policy(
         self,
         request: Optional[Union[iam_policy_pb2.GetIamPolicyRequest, dict]] = None,
         *,
@@ -3153,9 +3620,9 @@ class BigtableTableAdminAsyncClient:
         but does not have a policy set.
 
         Args:
-            request (Optional[Union[google.iam.v1.iam_policy_pb2.GetIamPolicyRequest, dict]]):
+            request (Union[google.iam.v1.iam_policy_pb2.GetIamPolicyRequest, dict]):
                 The request object. Request message for ``GetIamPolicy`` method.
-            resource (:class:`str`):
+            resource (str):
                 REQUIRED: The resource for which the
                 policy is being requested. See the
                 operation documentation for the
@@ -3164,7 +3631,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -3219,18 +3686,19 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - The request isn't a proto-plus wrapped type,
-        #   so it must be constructed via keyword expansion.
         if isinstance(request, dict):
+            # - The request isn't a proto-plus wrapped type,
+            #   so it must be constructed via keyword expansion.
             request = iam_policy_pb2.GetIamPolicyRequest(**request)
         elif not request:
-            request = iam_policy_pb2.GetIamPolicyRequest(resource=resource)
+            # Null request, just make one.
+            request = iam_policy_pb2.GetIamPolicyRequest()
+            if resource is not None:
+                request.resource = resource
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_iam_policy
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.get_iam_policy]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -3239,10 +3707,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -3252,7 +3720,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def set_iam_policy(
+    def set_iam_policy(
         self,
         request: Optional[Union[iam_policy_pb2.SetIamPolicyRequest, dict]] = None,
         *,
@@ -3265,9 +3733,9 @@ class BigtableTableAdminAsyncClient:
         resource. Replaces any existing policy.
 
         Args:
-            request (Optional[Union[google.iam.v1.iam_policy_pb2.SetIamPolicyRequest, dict]]):
+            request (Union[google.iam.v1.iam_policy_pb2.SetIamPolicyRequest, dict]):
                 The request object. Request message for ``SetIamPolicy`` method.
-            resource (:class:`str`):
+            resource (str):
                 REQUIRED: The resource for which the
                 policy is being specified. See the
                 operation documentation for the
@@ -3276,7 +3744,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -3331,18 +3799,19 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - The request isn't a proto-plus wrapped type,
-        #   so it must be constructed via keyword expansion.
         if isinstance(request, dict):
+            # - The request isn't a proto-plus wrapped type,
+            #   so it must be constructed via keyword expansion.
             request = iam_policy_pb2.SetIamPolicyRequest(**request)
         elif not request:
-            request = iam_policy_pb2.SetIamPolicyRequest(resource=resource)
+            # Null request, just make one.
+            request = iam_policy_pb2.SetIamPolicyRequest()
+            if resource is not None:
+                request.resource = resource
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.set_iam_policy
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.set_iam_policy]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -3351,10 +3820,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -3364,7 +3833,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def test_iam_permissions(
+    def test_iam_permissions(
         self,
         request: Optional[Union[iam_policy_pb2.TestIamPermissionsRequest, dict]] = None,
         *,
@@ -3378,9 +3847,9 @@ class BigtableTableAdminAsyncClient:
         specified Table or Backup resource.
 
         Args:
-            request (Optional[Union[google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest, dict]]):
+            request (Union[google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest, dict]):
                 The request object. Request message for ``TestIamPermissions`` method.
-            resource (:class:`str`):
+            resource (str):
                 REQUIRED: The resource for which the
                 policy detail is being requested. See
                 the operation documentation for the
@@ -3389,7 +3858,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            permissions (:class:`MutableSequence[str]`):
+            permissions (MutableSequence[str]):
                 The set of permissions to check for the ``resource``.
                 Permissions with wildcards (such as '*' or 'storage.*')
                 are not allowed. For more information see `IAM
@@ -3398,7 +3867,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``permissions`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
@@ -3423,20 +3892,21 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - The request isn't a proto-plus wrapped type,
-        #   so it must be constructed via keyword expansion.
         if isinstance(request, dict):
+            # - The request isn't a proto-plus wrapped type,
+            #   so it must be constructed via keyword expansion.
             request = iam_policy_pb2.TestIamPermissionsRequest(**request)
         elif not request:
-            request = iam_policy_pb2.TestIamPermissionsRequest(
-                resource=resource, permissions=permissions
-            )
+            # Null request, just make one.
+            request = iam_policy_pb2.TestIamPermissionsRequest()
+            if resource is not None:
+                request.resource = resource
+            if permissions:
+                request.permissions.extend(permissions)
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.test_iam_permissions
-        ]
+        rpc = self._transport._wrapped_methods[self._transport.test_iam_permissions]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -3445,10 +3915,10 @@ class BigtableTableAdminAsyncClient:
         )
 
         # Validate the universe domain.
-        self._client._validate_universe_domain()
+        self._validate_universe_domain()
 
         # Send the request.
-        response = await rpc(
+        response = rpc(
             request,
             retry=retry,
             timeout=timeout,
@@ -3458,11 +3928,18 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def __aenter__(self) -> "BigtableTableAdminAsyncClient":
+    def __enter__(self) -> "BigtableTableAdminClient":
         return self
 
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.transport.close()
+    def __exit__(self, type, value, traceback):
+        """Releases underlying transport's resources.
+
+        .. warning::
+            ONLY use as a context manager if the transport is NOT shared
+            with other clients! Exiting the with block will CLOSE the transport
+            and may cause errors in other clients!
+        """
+        self.transport.close()
 
 
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
@@ -3472,5 +3949,4 @@ DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
 if hasattr(DEFAULT_CLIENT_INFO, "protobuf_runtime_version"):  # pragma: NO COVER
     DEFAULT_CLIENT_INFO.protobuf_runtime_version = google.protobuf.__version__
 
-
-__all__ = ("BigtableTableAdminAsyncClient",)
+__all__ = ("BigtableTableAdminClient",)

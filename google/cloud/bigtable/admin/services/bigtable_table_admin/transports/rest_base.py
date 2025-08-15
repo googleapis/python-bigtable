@@ -18,22 +18,23 @@ from google.api_core import path_template
 from google.api_core import gapic_v1
 
 from google.protobuf import json_format
-from .base import BigtableInstanceAdminTransport, DEFAULT_CLIENT_INFO
+from .base import BigtableTableAdminTransport, DEFAULT_CLIENT_INFO
 
 import re
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 
-from google.cloud.bigtable_admin_v2.types import bigtable_instance_admin
-from google.cloud.bigtable_admin_v2.types import instance
+from google.cloud.bigtable.admin.types import bigtable_table_admin
+from google.cloud.bigtable.admin.types import table
+from google.cloud.bigtable.admin.types import table as gba_table
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 from google.longrunning import operations_pb2  # type: ignore
 
 
-class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
-    """Base REST backend transport for BigtableInstanceAdmin.
+class _BaseBigtableTableAdminRestTransport(BigtableTableAdminTransport):
+    """Base REST backend transport for BigtableTableAdmin.
 
     Note: This class is not meant to be used directly. Use its sync and
     async sub-classes instead.
@@ -94,125 +95,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             api_audience=api_audience,
         )
 
-    class _BaseCreateAppProfile:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
-            "appProfileId": "",
-        }
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{parent=projects/*/instances/*}/appProfiles",
-                    "body": "app_profile",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.CreateAppProfileRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_request_body_json(transcoded_request):
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
-            )
-            return body
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseCreateAppProfile._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseCreateCluster:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
-            "clusterId": "",
-        }
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "post",
-                    "uri": "/v2/{parent=projects/*/instances/*}/clusters",
-                    "body": "cluster",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.CreateClusterRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_request_body_json(transcoded_request):
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
-            )
-            return body
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseCreateCluster._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseCreateInstance:
+    class _BaseCheckConsistency:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -231,7 +114,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "post",
-                    "uri": "/v2/{parent=projects/*}/instances",
+                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:checkConsistency",
                     "body": "*",
                 },
             ]
@@ -239,7 +122,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.CreateInstanceRequest.pb(request)
+            pb_request = bigtable_table_admin.CheckConsistencyRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -261,7 +144,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseCreateInstance._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseCheckConsistency._get_unset_required_fields(
                     query_params
                 )
             )
@@ -269,13 +152,11 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseCreateLogicalView:
+    class _BaseCopyBackup:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
-            "logicalViewId": "",
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -290,15 +171,15 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "post",
-                    "uri": "/v2/{parent=projects/*/instances/*}/logicalViews",
-                    "body": "logical_view",
+                    "uri": "/v2/{parent=projects/*/instances/*/clusters/*}/backups:copy",
+                    "body": "*",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.CreateLogicalViewRequest.pb(request)
+            pb_request = bigtable_table_admin.CopyBackupRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -320,7 +201,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseCreateLogicalView._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseCopyBackup._get_unset_required_fields(
                     query_params
                 )
             )
@@ -328,12 +209,12 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseCreateMaterializedView:
+    class _BaseCreateAuthorizedView:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
         __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
-            "materializedViewId": "",
+            "authorizedViewId": "",
         }
 
         @classmethod
@@ -349,15 +230,490 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "post",
-                    "uri": "/v2/{parent=projects/*/instances/*}/materializedViews",
-                    "body": "materialized_view",
+                    "uri": "/v2/{parent=projects/*/instances/*/tables/*}/authorizedViews",
+                    "body": "authorized_view",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.CreateMaterializedViewRequest.pb(
+            pb_request = bigtable_table_admin.CreateAuthorizedViewRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_request_body_json(transcoded_request):
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request["body"], use_integers_for_enums=True
+            )
+            return body
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseCreateAuthorizedView._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseCreateBackup:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
+            "backupId": "",
+        }
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{parent=projects/*/instances/*/clusters/*}/backups",
+                    "body": "backup",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.CreateBackupRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_request_body_json(transcoded_request):
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request["body"], use_integers_for_enums=True
+            )
+            return body
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseCreateBackup._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseCreateTable:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{parent=projects/*/instances/*}/tables",
+                    "body": "*",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.CreateTableRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_request_body_json(transcoded_request):
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request["body"], use_integers_for_enums=True
+            )
+            return body
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseCreateTable._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseCreateTableFromSnapshot:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{parent=projects/*/instances/*}/tables:createFromSnapshot",
+                    "body": "*",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.CreateTableFromSnapshotRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_request_body_json(transcoded_request):
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request["body"], use_integers_for_enums=True
+            )
+            return body
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseCreateTableFromSnapshot._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseDeleteAuthorizedView:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "delete",
+                    "uri": "/v2/{name=projects/*/instances/*/tables/*/authorizedViews/*}",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.DeleteAuthorizedViewRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseDeleteAuthorizedView._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseDeleteBackup:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "delete",
+                    "uri": "/v2/{name=projects/*/instances/*/clusters/*/backups/*}",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.DeleteBackupRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseDeleteBackup._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseDeleteSnapshot:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "delete",
+                    "uri": "/v2/{name=projects/*/instances/*/clusters/*/snapshots/*}",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.DeleteSnapshotRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseDeleteSnapshot._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseDeleteTable:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "delete",
+                    "uri": "/v2/{name=projects/*/instances/*/tables/*}",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.DeleteTableRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseDeleteTable._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseDropRowRange:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:dropRowRange",
+                    "body": "*",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.DropRowRangeRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_request_body_json(transcoded_request):
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request["body"], use_integers_for_enums=True
+            )
+            return body
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseDropRowRange._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseGenerateConsistencyToken:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:generateConsistencyToken",
+                    "body": "*",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.GenerateConsistencyTokenRequest.pb(
                 request
             )
             transcoded_request = path_template.transcode(http_options, pb_request)
@@ -381,7 +737,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseCreateMaterializedView._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseGenerateConsistencyToken._get_unset_required_fields(
                     query_params
                 )
             )
@@ -389,246 +745,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseDeleteAppProfile:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
-            "ignoreWarnings": False,
-        }
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "delete",
-                    "uri": "/v2/{name=projects/*/instances/*/appProfiles/*}",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.DeleteAppProfileRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseDeleteAppProfile._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseDeleteCluster:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "delete",
-                    "uri": "/v2/{name=projects/*/instances/*/clusters/*}",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.DeleteClusterRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseDeleteCluster._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseDeleteInstance:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "delete",
-                    "uri": "/v2/{name=projects/*/instances/*}",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.DeleteInstanceRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseDeleteInstance._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseDeleteLogicalView:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "delete",
-                    "uri": "/v2/{name=projects/*/instances/*/logicalViews/*}",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.DeleteLogicalViewRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseDeleteLogicalView._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseDeleteMaterializedView:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "delete",
-                    "uri": "/v2/{name=projects/*/instances/*/materializedViews/*}",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.DeleteMaterializedViewRequest.pb(
-                request
-            )
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseDeleteMaterializedView._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseGetAppProfile:
+    class _BaseGetAuthorizedView:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -647,14 +764,14 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "get",
-                    "uri": "/v2/{name=projects/*/instances/*/appProfiles/*}",
+                    "uri": "/v2/{name=projects/*/instances/*/tables/*/authorizedViews/*}",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.GetAppProfileRequest.pb(request)
+            pb_request = bigtable_table_admin.GetAuthorizedViewRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -667,7 +784,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseGetAppProfile._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseGetAuthorizedView._get_unset_required_fields(
                     query_params
                 )
             )
@@ -675,7 +792,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseGetCluster:
+    class _BaseGetBackup:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -694,14 +811,14 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "get",
-                    "uri": "/v2/{name=projects/*/instances/*/clusters/*}",
+                    "uri": "/v2/{name=projects/*/instances/*/clusters/*/backups/*}",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.GetClusterRequest.pb(request)
+            pb_request = bigtable_table_admin.GetBackupRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -714,7 +831,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseGetCluster._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseGetBackup._get_unset_required_fields(
                     query_params
                 )
             )
@@ -741,17 +858,12 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*}:getIamPolicy",
+                    "uri": "/v2/{resource=projects/*/instances/*/tables/*}:getIamPolicy",
                     "body": "*",
                 },
                 {
                     "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/materializedViews/*}:getIamPolicy",
-                    "body": "*",
-                },
-                {
-                    "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/logicalViews/*}:getIamPolicy",
+                    "uri": "/v2/{resource=projects/*/instances/*/clusters/*/backups/*}:getIamPolicy",
                     "body": "*",
                 },
             ]
@@ -781,7 +893,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseGetIamPolicy._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseGetIamPolicy._get_unset_required_fields(
                     query_params
                 )
             )
@@ -789,7 +901,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseGetInstance:
+    class _BaseGetSnapshot:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -808,14 +920,14 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "get",
-                    "uri": "/v2/{name=projects/*/instances/*}",
+                    "uri": "/v2/{name=projects/*/instances/*/clusters/*/snapshots/*}",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.GetInstanceRequest.pb(request)
+            pb_request = bigtable_table_admin.GetSnapshotRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -828,7 +940,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseGetInstance._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseGetSnapshot._get_unset_required_fields(
                     query_params
                 )
             )
@@ -836,7 +948,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseGetLogicalView:
+    class _BaseGetTable:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -855,14 +967,14 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "get",
-                    "uri": "/v2/{name=projects/*/instances/*/logicalViews/*}",
+                    "uri": "/v2/{name=projects/*/instances/*/tables/*}",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.GetLogicalViewRequest.pb(request)
+            pb_request = bigtable_table_admin.GetTableRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -875,7 +987,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseGetLogicalView._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseGetTable._get_unset_required_fields(
                     query_params
                 )
             )
@@ -883,7 +995,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseGetMaterializedView:
+    class _BaseListAuthorizedViews:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -902,14 +1014,14 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "get",
-                    "uri": "/v2/{name=projects/*/instances/*/materializedViews/*}",
+                    "uri": "/v2/{parent=projects/*/instances/*/tables/*}/authorizedViews",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.GetMaterializedViewRequest.pb(request)
+            pb_request = bigtable_table_admin.ListAuthorizedViewsRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -922,7 +1034,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseGetMaterializedView._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseListAuthorizedViews._get_unset_required_fields(
                     query_params
                 )
             )
@@ -930,7 +1042,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseListAppProfiles:
+    class _BaseListBackups:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -949,14 +1061,14 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "get",
-                    "uri": "/v2/{parent=projects/*/instances/*}/appProfiles",
+                    "uri": "/v2/{parent=projects/*/instances/*/clusters/*}/backups",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.ListAppProfilesRequest.pb(request)
+            pb_request = bigtable_table_admin.ListBackupsRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -969,7 +1081,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseListAppProfiles._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseListBackups._get_unset_required_fields(
                     query_params
                 )
             )
@@ -977,7 +1089,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseListClusters:
+    class _BaseListSnapshots:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -996,14 +1108,14 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "get",
-                    "uri": "/v2/{parent=projects/*/instances/*}/clusters",
+                    "uri": "/v2/{parent=projects/*/instances/*/clusters/*}/snapshots",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.ListClustersRequest.pb(request)
+            pb_request = bigtable_table_admin.ListSnapshotsRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -1016,7 +1128,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseListClusters._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseListSnapshots._get_unset_required_fields(
                     query_params
                 )
             )
@@ -1024,7 +1136,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseListHotTablets:
+    class _BaseListTables:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -1043,14 +1155,14 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "get",
-                    "uri": "/v2/{parent=projects/*/instances/*/clusters/*}/hotTablets",
+                    "uri": "/v2/{parent=projects/*/instances/*}/tables",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.ListHotTabletsRequest.pb(request)
+            pb_request = bigtable_table_admin.ListTablesRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -1063,7 +1175,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseListHotTablets._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseListTables._get_unset_required_fields(
                     query_params
                 )
             )
@@ -1071,7 +1183,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseListInstances:
+    class _BaseModifyColumnFamilies:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -1089,161 +1201,16 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def _get_http_options():
             http_options: List[Dict[str, str]] = [
                 {
-                    "method": "get",
-                    "uri": "/v2/{parent=projects/*}/instances",
+                    "method": "post",
+                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:modifyColumnFamilies",
+                    "body": "*",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.ListInstancesRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseListInstances._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseListLogicalViews:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "get",
-                    "uri": "/v2/{parent=projects/*/instances/*}/logicalViews",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.ListLogicalViewsRequest.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseListLogicalViews._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseListMaterializedViews:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "get",
-                    "uri": "/v2/{parent=projects/*/instances/*}/materializedViews",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.ListMaterializedViewsRequest.pb(
-                request
-            )
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseListMaterializedViews._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BasePartialUpdateCluster:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
-            "updateMask": {},
-        }
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "patch",
-                    "uri": "/v2/{cluster.name=projects/*/instances/*/clusters/*}",
-                    "body": "cluster",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.PartialUpdateClusterRequest.pb(request)
+            pb_request = bigtable_table_admin.ModifyColumnFamiliesRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -1265,7 +1232,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BasePartialUpdateCluster._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseModifyColumnFamilies._get_unset_required_fields(
                     query_params
                 )
             )
@@ -1273,13 +1240,11 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BasePartialUpdateInstance:
+    class _BaseRestoreTable:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
-            "updateMask": {},
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1293,18 +1258,16 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def _get_http_options():
             http_options: List[Dict[str, str]] = [
                 {
-                    "method": "patch",
-                    "uri": "/v2/{instance.name=projects/*/instances/*}",
-                    "body": "instance",
+                    "method": "post",
+                    "uri": "/v2/{parent=projects/*/instances/*}/tables:restore",
+                    "body": "*",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.PartialUpdateInstanceRequest.pb(
-                request
-            )
+            pb_request = bigtable_table_admin.RestoreTableRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -1326,7 +1289,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BasePartialUpdateInstance._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseRestoreTable._get_unset_required_fields(
                     query_params
                 )
             )
@@ -1353,17 +1316,12 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*}:setIamPolicy",
+                    "uri": "/v2/{resource=projects/*/instances/*/tables/*}:setIamPolicy",
                     "body": "*",
                 },
                 {
                     "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/materializedViews/*}:setIamPolicy",
-                    "body": "*",
-                },
-                {
-                    "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/logicalViews/*}:setIamPolicy",
+                    "uri": "/v2/{resource=projects/*/instances/*/clusters/*/backups/*}:setIamPolicy",
                     "body": "*",
                 },
             ]
@@ -1393,7 +1351,64 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseSetIamPolicy._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseSetIamPolicy._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseSnapshotTable:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:snapshot",
+                    "body": "*",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.SnapshotTableRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_request_body_json(transcoded_request):
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request["body"], use_integers_for_enums=True
+            )
+            return body
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseSnapshotTable._get_unset_required_fields(
                     query_params
                 )
             )
@@ -1420,17 +1435,12 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*}:testIamPermissions",
+                    "uri": "/v2/{resource=projects/*/instances/*/tables/*}:testIamPermissions",
                     "body": "*",
                 },
                 {
                     "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/materializedViews/*}:testIamPermissions",
-                    "body": "*",
-                },
-                {
-                    "method": "post",
-                    "uri": "/v2/{resource=projects/*/instances/*/logicalViews/*}:testIamPermissions",
+                    "uri": "/v2/{resource=projects/*/instances/*/clusters/*/backups/*}:testIamPermissions",
                     "body": "*",
                 },
             ]
@@ -1460,7 +1470,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseTestIamPermissions._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseTestIamPermissions._get_unset_required_fields(
                     query_params
                 )
             )
@@ -1468,7 +1478,121 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseUpdateAppProfile:
+    class _BaseUndeleteTable:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{name=projects/*/instances/*/tables/*}:undelete",
+                    "body": "*",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.UndeleteTableRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_request_body_json(transcoded_request):
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request["body"], use_integers_for_enums=True
+            )
+            return body
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseUndeleteTable._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseUpdateAuthorizedView:
+        def __hash__(self):  # pragma: NO COVER
+            return NotImplementedError("__hash__ must be implemented.")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
+
+        @staticmethod
+        def _get_http_options():
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "patch",
+                    "uri": "/v2/{authorized_view.name=projects/*/instances/*/tables/*/authorizedViews/*}",
+                    "body": "authorized_view",
+                },
+            ]
+            return http_options
+
+        @staticmethod
+        def _get_transcoded_request(http_options, request):
+            pb_request = bigtable_table_admin.UpdateAuthorizedViewRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+            return transcoded_request
+
+        @staticmethod
+        def _get_request_body_json(transcoded_request):
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request["body"], use_integers_for_enums=True
+            )
+            return body
+
+        @staticmethod
+        def _get_query_params_json(transcoded_request):
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    use_integers_for_enums=True,
+                )
+            )
+            query_params.update(
+                _BaseBigtableTableAdminRestTransport._BaseUpdateAuthorizedView._get_unset_required_fields(
+                    query_params
+                )
+            )
+
+            query_params["$alt"] = "json;enum-encoding=int"
+            return query_params
+
+    class _BaseUpdateBackup:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
@@ -1489,15 +1613,15 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "patch",
-                    "uri": "/v2/{app_profile.name=projects/*/instances/*/appProfiles/*}",
-                    "body": "app_profile",
+                    "uri": "/v2/{backup.name=projects/*/instances/*/clusters/*/backups/*}",
+                    "body": "backup",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.UpdateAppProfileRequest.pb(request)
+            pb_request = bigtable_table_admin.UpdateBackupRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -1519,7 +1643,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseUpdateAppProfile._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseUpdateBackup._get_unset_required_fields(
                     query_params
                 )
             )
@@ -1527,110 +1651,13 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             query_params["$alt"] = "json;enum-encoding=int"
             return query_params
 
-    class _BaseUpdateCluster:
+    class _BaseUpdateTable:
         def __hash__(self):  # pragma: NO COVER
             return NotImplementedError("__hash__ must be implemented.")
 
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "put",
-                    "uri": "/v2/{name=projects/*/instances/*/clusters/*}",
-                    "body": "*",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = instance.Cluster.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_request_body_json(transcoded_request):
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
-            )
-            return body
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseUpdateInstance:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "put",
-                    "uri": "/v2/{name=projects/*/instances/*}",
-                    "body": "*",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = instance.Instance.pb(request)
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_request_body_json(transcoded_request):
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
-            )
-            return body
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseUpdateInstance._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseUpdateLogicalView:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
+            "updateMask": {},
+        }
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1645,15 +1672,15 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             http_options: List[Dict[str, str]] = [
                 {
                     "method": "patch",
-                    "uri": "/v2/{logical_view.name=projects/*/instances/*/logicalViews/*}",
-                    "body": "logical_view",
+                    "uri": "/v2/{table.name=projects/*/instances/*/tables/*}",
+                    "body": "table",
                 },
             ]
             return http_options
 
         @staticmethod
         def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.UpdateLogicalViewRequest.pb(request)
+            pb_request = bigtable_table_admin.UpdateTableRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
             return transcoded_request
 
@@ -1675,66 +1702,7 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                 )
             )
             query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseUpdateLogicalView._get_unset_required_fields(
-                    query_params
-                )
-            )
-
-            query_params["$alt"] = "json;enum-encoding=int"
-            return query_params
-
-    class _BaseUpdateMaterializedView:
-        def __hash__(self):  # pragma: NO COVER
-            return NotImplementedError("__hash__ must be implemented.")
-
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
-
-        @classmethod
-        def _get_unset_required_fields(cls, message_dict):
-            return {
-                k: v
-                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
-                if k not in message_dict
-            }
-
-        @staticmethod
-        def _get_http_options():
-            http_options: List[Dict[str, str]] = [
-                {
-                    "method": "patch",
-                    "uri": "/v2/{materialized_view.name=projects/*/instances/*/materializedViews/*}",
-                    "body": "materialized_view",
-                },
-            ]
-            return http_options
-
-        @staticmethod
-        def _get_transcoded_request(http_options, request):
-            pb_request = bigtable_instance_admin.UpdateMaterializedViewRequest.pb(
-                request
-            )
-            transcoded_request = path_template.transcode(http_options, pb_request)
-            return transcoded_request
-
-        @staticmethod
-        def _get_request_body_json(transcoded_request):
-            # Jsonify the request body
-
-            body = json_format.MessageToJson(
-                transcoded_request["body"], use_integers_for_enums=True
-            )
-            return body
-
-        @staticmethod
-        def _get_query_params_json(transcoded_request):
-            query_params = json.loads(
-                json_format.MessageToJson(
-                    transcoded_request["query_params"],
-                    use_integers_for_enums=True,
-                )
-            )
-            query_params.update(
-                _BaseBigtableInstanceAdminRestTransport._BaseUpdateMaterializedView._get_unset_required_fields(
+                _BaseBigtableTableAdminRestTransport._BaseUpdateTable._get_unset_required_fields(
                     query_params
                 )
             )
@@ -1743,4 +1711,4 @@ class _BaseBigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             return query_params
 
 
-__all__ = ("_BaseBigtableInstanceAdminRestTransport",)
+__all__ = ("_BaseBigtableTableAdminRestTransport",)
