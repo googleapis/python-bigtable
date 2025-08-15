@@ -17,8 +17,8 @@
 import re
 
 from google.cloud._helpers import _datetime_to_pb_timestamp  # type: ignore
-from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
-from google.cloud.bigtable_admin_v2.types import table
+from google.cloud.bigtable.admin import BigtableTableAdminClient
+from google.cloud.bigtable.admin.types import table
 from .encryption_info import EncryptionInfo
 from .policy import Policy
 from google.cloud.exceptions import NotFound  # type: ignore
@@ -226,7 +226,7 @@ class Backup(object):
     def state(self):
         """The current state of this Backup.
 
-        :rtype: :class:`~google.cloud.bigtable_admin_v2.gapic.enums.Backup.State`
+        :rtype: :class:`~google.cloud.bigtable.admin.gapic.enums.Backup.State`
         :returns: The current state of this Backup.
         """
         return self._state
@@ -305,7 +305,7 @@ class Backup(object):
                            created Backup.
 
         :rtype: :class:`~google.api_core.operation.Operation`
-        :returns: :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`
+        :returns: :class:`~google.cloud.bigtable.admin.types._OperationFuture`
                   instance, to be used to poll the status of the 'create' request
         :raises Conflict: if the Backup already exists
         :raises NotFound: if the Instance owning the Backup does not exist
@@ -343,7 +343,7 @@ class Backup(object):
         """Retrieves metadata of a pending or completed Backup.
 
         :returns: An instance of
-                 :class:`~google.cloud.bigtable_admin_v2.types.Backup`
+                 :class:`~google.cloud.bigtable.admin.types.Backup`
 
         :raises google.api_core.exceptions.GoogleAPICallError: If the request
                 failed for any reason.
@@ -412,7 +412,7 @@ class Backup(object):
         :param instance_id: (Optional) The ID of the Instance to restore the
                             backup into, if different from the current one.
 
-        :rtype: :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`
+        :rtype: :class:`~google.cloud.bigtable.admin.types._OperationFuture`
         :returns: A future to be used to poll the status of the 'restore'
                   request.
 

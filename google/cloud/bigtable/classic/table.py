@@ -47,9 +47,9 @@ from .row_set import RowSet
 from .row_set import RowRange
 from . import enums
 from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
-from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
-from google.cloud.bigtable_admin_v2.types import table as admin_messages_v2_pb2
-from google.cloud.bigtable_admin_v2.types import (
+from google.cloud.bigtable.admin import BigtableTableAdminClient
+from google.cloud.bigtable.admin.types import table as admin_messages_v2_pb2
+from google.cloud.bigtable.admin.types import (
     bigtable_table_admin as table_admin_messages_v2_pb2,
 )
 
@@ -1037,7 +1037,7 @@ class Table(object):
                             and `backup_id` parameters even of such specified.
 
         :return: An instance of
-             :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`.
+             :class:`~google.cloud.bigtable.admin.types._OperationFuture`.
 
         :raises: google.api_core.exceptions.AlreadyExists: If the table
                  already exists.
