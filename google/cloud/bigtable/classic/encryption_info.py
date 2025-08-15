@@ -14,7 +14,7 @@
 
 """Class for encryption info for tables and backups."""
 
-from google.cloud.bigtable.error import Status
+from .error import Status
 
 
 class EncryptionInfo:

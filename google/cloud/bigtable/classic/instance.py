@@ -16,9 +16,9 @@
 
 import re
 
-from google.cloud.bigtable.app_profile import AppProfile
-from google.cloud.bigtable.cluster import Cluster
-from google.cloud.bigtable.table import Table
+from .app_profile import AppProfile
+from .cluster import Cluster
+from .table import Table
 
 from google.protobuf import field_mask_pb2
 
@@ -28,7 +28,7 @@ from google.iam.v1 import options_pb2  # type: ignore
 
 from google.api_core.exceptions import NotFound
 
-from google.cloud.bigtable.policy import Policy
+from .policy import Policy
 
 import warnings
 

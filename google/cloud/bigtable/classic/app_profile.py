@@ -17,7 +17,7 @@
 
 import re
 
-from google.cloud.bigtable.enums import RoutingPolicyType
+from .enums import RoutingPolicyType
 from google.cloud.bigtable_admin_v2.types import instance
 from google.protobuf import field_mask_pb2
 from google.api_core.exceptions import NotFound

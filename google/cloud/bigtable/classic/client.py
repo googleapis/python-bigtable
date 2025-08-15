@@ -45,13 +45,13 @@ from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports imp
 )
 
 from google.cloud import bigtable
-from google.cloud.bigtable.instance import Instance
-from google.cloud.bigtable.cluster import Cluster
+from .instance import Instance
+from .cluster import Cluster
 
 from google.cloud.client import ClientWithProject  # type: ignore
 
 from google.cloud.bigtable_admin_v2.types import instance
-from google.cloud.bigtable.cluster import _CLUSTER_NAME_RE
+from .cluster import _CLUSTER_NAME_RE
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 
 
