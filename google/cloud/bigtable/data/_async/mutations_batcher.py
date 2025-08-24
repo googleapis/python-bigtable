@@ -193,7 +193,7 @@ class MutationsBatcherAsync:
     - when batcher is closed or destroyed
 
     Args:
-        target: table or autrhorized_view used to preform rpc calls
+        target: table or authorized_view used to preform rpc calls
         flush_interval: Automatically flush every flush_interval seconds.
             If None, no time-based flushing is performed.
         flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
