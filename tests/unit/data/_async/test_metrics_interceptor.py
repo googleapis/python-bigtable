@@ -34,6 +34,7 @@ else:
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_metrics_interceptor"
 
 
+@CrossSync.drop
 class _AsyncIterator:
     """Helper class to wrap an iterator or async generator in an async iterator"""
 
@@ -271,7 +272,10 @@ class TestMetricsInterceptorAsync:
 
         continuation = CrossSync.Mock()
         call = continuation.return_value
-        call.__aiter__ = mock.Mock(return_value=_AsyncIterator([1, 2]))
+        if CrossSync.is_async:
+            call.__aiter__ = mock.Mock(return_value=_AsyncIterator([1, 2]))
+        else:
+            call.__iter__ = mock.Mock(return_value=iter([1, 2]))
         call.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
         details = mock.Mock()
@@ -303,10 +307,16 @@ class TestMetricsInterceptorAsync:
 
         continuation = CrossSync.Mock()
         call = continuation.return_value
-        async def mock_generator():
-            yield 1
-            raise exc
-        call.__aiter__ = mock.Mock(return_value=_AsyncIterator(mock_generator()))
+        if CrossSync.is_async:
+            async def mock_generator():
+                yield 1
+                raise exc
+            call.__aiter__ = mock.Mock(return_value=_AsyncIterator(mock_generator()))
+        else:
+            def mock_generator():
+                yield 1
+                raise exc
+            call.__iter__ = mock.Mock(return_value=mock_generator())
         call.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
         details = mock.Mock()
@@ -427,6 +437,8 @@ class TestMetricsInterceptorAsync:
         instance.operation_map[op.uuid] = op
         continuation = CrossSync.Mock()
         call = continuation.return_value
+        call.trailing_metadata = CrossSync.Mock(return_value=[])
+        call.initial_metadata = CrossSync.Mock(return_value=[])
         details = mock.Mock()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
@@ -451,7 +463,12 @@ class TestMetricsInterceptorAsync:
 
         continuation = CrossSync.Mock()
         call = continuation.return_value
-        call.__aiter__ = mock.Mock(return_value=_AsyncIterator([1, 2]))
+        if CrossSync.is_async:
+            call.__aiter__ = mock.Mock(return_value=_AsyncIterator([1, 2]))
+        else:
+            call.__iter__ = mock.Mock(return_value=iter([1, 2]))
+        call.trailing_metadata = CrossSync.Mock(return_value=[])
+        call.initial_metadata = CrossSync.Mock(return_value=[])
         details = mock.Mock()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
