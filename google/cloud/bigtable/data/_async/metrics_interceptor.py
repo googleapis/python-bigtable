@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import time
 from functools import wraps
+from grpc import RpcError
 from google.cloud.bigtable.data._metrics.data_model import (
     OPERATION_INTERCEPTOR_METADATA_KEY,
 )
@@ -105,16 +106,24 @@ class AsyncBigtableMetricsInterceptor(
         self, operation, continuation, client_call_details, request
     ):
         encountered_exc: Exception | None = None
-        call = None
+        metadata = None
         try:
             call = await continuation(client_call_details, request)
+            metadata = (await call.trailing_metadata() or []) + (await call.initial_metadata() or [])
             return call
+        except RpcError as rpc_error:
+            # attempt extracting metadata from error
+            try:
+                metadata = (await rpc_error.trailing_metadata() or []) + (await rpc_error.initial_metadata() or [])
+            except Exception:
+                pass
+            encountered_exc = rpc_error
+            raise rpc_error
         except Exception as e:
             encountered_exc = e
             raise
         finally:
-            if call is not None:
-                metadata = (await call.trailing_metadata() or []) + (await call.initial_metadata() or [])
+            if metadata is not None:
                 operation.add_response_metadata(metadata)
             if encountered_exc is not None:
                 # end attempt. If it succeeded, let higher levels decide when to end operation
@@ -138,6 +147,7 @@ class AsyncBigtableMetricsInterceptor(
                         has_first_response = True
                     yield response
 
+
             except Exception as e:
                 encountered_exc = e
                 raise
@@ -149,4 +159,17 @@ class AsyncBigtableMetricsInterceptor(
                         # end attempt. If it succeeded, let higher levels decide when to end operation
                         operation.end_attempt_with_status(encountered_exc)
 
-        return response_wrapper(await continuation(client_call_details, request))
+        try:
+            return response_wrapper(await continuation(client_call_details, request))
+        except RpcError as rpc_error:
+            # attempt extracting metadata from error
+            try:
+                metadata = (await rpc_error.trailing_metadata() or []) + (await rpc_error.initial_metadata() or [])
+                operation.add_response_metadata(metadata)
+            except Exception:
+                pass
+            operation.end_attempt_with_status(rpc_error)
+            raise rpc_error
+        except Exception as e:
+            operation.end_attempt_with_status(e)
+            raise
