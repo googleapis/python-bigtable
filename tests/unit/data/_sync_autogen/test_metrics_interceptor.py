@@ -29,6 +29,20 @@ from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
 )
 
 
+def _make_mock_stream_call(values, exc=None):
+    """Create a mock call object that can be used for streaming calls"""
+    call = CrossSync._Sync_Impl.Mock()
+
+    def gen():
+        for val in values:
+            yield val
+        if exc:
+            raise exc
+
+    call.__iter__ = mock.Mock(return_value=gen())
+    return call
+
+
 class TestMetricsInterceptor:
     @staticmethod
     def _get_target_class():
@@ -224,9 +238,10 @@ class TestMetricsInterceptor:
         op.start_time_ns = 0
         op.first_response_latency = None
         instance.operation_map[op.uuid] = op
-        continuation = CrossSync._Sync_Impl.Mock()
+        continuation = CrossSync._Sync_Impl.Mock(
+            return_value=_make_mock_stream_call([1, 2])
+        )
         call = continuation.return_value
-        call.__iter__ = mock.Mock(return_value=iter([1, 2]))
         call.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[("c", "d")])
         details = mock.Mock()
@@ -254,14 +269,10 @@ class TestMetricsInterceptor:
         op.first_response_latency = None
         instance.operation_map[op.uuid] = op
         exc = ValueError("test")
-        continuation = CrossSync._Sync_Impl.Mock()
+        continuation = CrossSync._Sync_Impl.Mock(
+            return_value=_make_mock_stream_call([1], exc=exc)
+        )
         call = continuation.return_value
-
-        def mock_generator():
-            yield 1
-            raise exc
-
-        call.__iter__ = mock.Mock(return_value=mock_generator())
         call.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[("c", "d")])
         details = mock.Mock()
@@ -397,9 +408,10 @@ class TestMetricsInterceptor:
         op.uuid = "test-uuid"
         op.state = initial_state
         instance.operation_map[op.uuid] = op
-        continuation = CrossSync._Sync_Impl.Mock()
+        continuation = CrossSync._Sync_Impl.Mock(
+            return_value=_make_mock_stream_call([1, 2])
+        )
         call = continuation.return_value
-        call.__iter__ = mock.Mock(return_value=iter([1, 2]))
         call.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[])
         call.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[])
         details = mock.Mock()

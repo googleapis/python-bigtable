@@ -33,8 +33,19 @@ else:
 
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_metrics_interceptor"
 
-
-
+@CrossSync.convert(replace_symbols={"__aiter__": "__iter__"})
+def _make_mock_stream_call(values, exc=None):
+    """
+    Create a mock call object that can be used for streaming calls
+    """
+    call = CrossSync.Mock()
+    async def gen():
+        for val in values:
+            yield val
+        if exc:
+            raise exc
+    call.__aiter__ = mock.Mock(return_value=gen())
+    return call
 
 
 @CrossSync.convert_class(sync_name="TestMetricsInterceptor")
@@ -251,15 +262,8 @@ class TestMetricsInterceptorAsync:
         op.first_response_latency = None
         instance.operation_map[op.uuid] = op
 
-        continuation = CrossSync.Mock()
+        continuation = CrossSync.Mock(return_value=_make_mock_stream_call([1, 2]))
         call = continuation.return_value
-        if CrossSync.is_async:
-            async def gen():
-                yield 1
-                yield 2
-            call.__aiter__ = mock.Mock(return_value=gen())
-        else:
-            call.__iter__ = mock.Mock(return_value=iter([1, 2]))
         call.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
         details = mock.Mock()
@@ -288,19 +292,8 @@ class TestMetricsInterceptorAsync:
         op.first_response_latency = None
         instance.operation_map[op.uuid] = op
         exc = ValueError("test")
-
-        continuation = CrossSync.Mock()
+        continuation = CrossSync.Mock(return_value=_make_mock_stream_call([1], exc=exc))
         call = continuation.return_value
-        if CrossSync.is_async:
-            async def mock_generator():
-                yield 1
-                raise exc
-            call.__aiter__ = mock.Mock(return_value=mock_generator())
-        else:
-            def mock_generator():
-                yield 1
-                raise exc
-            call.__iter__ = mock.Mock(return_value=mock_generator())
         call.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
         details = mock.Mock()
@@ -445,15 +438,8 @@ class TestMetricsInterceptorAsync:
         op.state = initial_state
         instance.operation_map[op.uuid] = op
 
-        continuation = CrossSync.Mock()
+        continuation = CrossSync.Mock(return_value=_make_mock_stream_call([1, 2]))
         call = continuation.return_value
-        if CrossSync.is_async:
-            async def gen():
-                yield 1
-                yield 2
-            call.__aiter__ = mock.Mock(return_value=gen())
-        else:
-            call.__iter__ = mock.Mock(return_value=iter([1, 2]))
         call.trailing_metadata = CrossSync.Mock(return_value=[])
         call.initial_metadata = CrossSync.Mock(return_value=[])
         details = mock.Mock()
