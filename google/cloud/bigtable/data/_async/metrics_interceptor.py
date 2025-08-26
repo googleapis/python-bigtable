@@ -54,7 +54,7 @@ def _with_operation_from_metadata(func):
         operation: "ActiveOperationMetric" = self.operation_map.get(key)
         if operation:
             # start a new attempt if not started
-            if operation.state != OperationState.ACTIVE_ATTEMPT:
+            if operation.state == OperationState.CREATED or operation.state == OperationState.BETWEEN_ATTEMPTS:
                 operation.start_attempt()
             # wrap continuation in logic to process the operation
             return func(self, operation, continuation, client_call_details, request)
@@ -64,6 +64,26 @@ def _with_operation_from_metadata(func):
 
     return wrapper
 
+
+def _end_attempt(operation, exc, metadata):
+    """Helper to add metadata and exception to an operation"""
+    if metadata is not None:
+        operation.add_response_metadata(metadata)
+    if exc is not None:
+        # end attempt. If it succeeded, let higher levels decide when to end operation
+        operation.end_attempt_with_status(exc)
+
+
+@CrossSync.convert
+async def _get_metadata(source):
+    """Helper to extract metadata from a call or RpcError"""
+    try:
+        return (await source.trailing_metadata() or []) + (
+            await source.initial_metadata() or []
+        )
+    except Exception:
+        # ignore errors while fetching metadata
+        return None
 
 @CrossSync.convert_class(sync_name="BigtableMetricsInterceptor")
 class AsyncBigtableMetricsInterceptor(
@@ -105,29 +125,23 @@ class AsyncBigtableMetricsInterceptor(
         self, operation, continuation, client_call_details, request
     ):
         encountered_exc: Exception | None = None
-        call = None
+        metadata = None
         try:
             call = await continuation(client_call_details, request)
+            metadata = await _get_metadata(call)
             return call
-        except Exception as e:
-            encountered_exc = e
-            raise
+        except Exception as rpc_error:
+            metadata = await _get_metadata(rpc_error)
+            encountered_exc = rpc_error
+            raise rpc_error
         finally:
-            if call is not None:
-                metadata = (
-                    await call.trailing_metadata() + await call.initial_metadata()
-                )
-                operation.add_response_metadata(metadata)
-                if encountered_exc is not None:
-                    # end attempt. If it succeeded, let higher levels decide when to end operation
-                    operation.end_attempt_with_status(encountered_exc)
+            _end_attempt(operation, encountered_exc, metadata)
 
     @CrossSync.convert
     @_with_operation_from_metadata
     async def intercept_unary_stream(
         self, operation, continuation, client_call_details, request
     ):
-        # TODO: benchmark
         async def response_wrapper(call):
             has_first_response = operation.first_response_latency is not None
             encountered_exc = None
@@ -140,17 +154,17 @@ class AsyncBigtableMetricsInterceptor(
                         )
                         has_first_response = True
                     yield response
-
             except Exception as e:
+                # handle errors while processing stream
                 encountered_exc = e
                 raise
             finally:
-                metadata = (
-                    await call.trailing_metadata() + await call.initial_metadata()
-                )
-                operation.add_response_metadata(metadata)
-                if encountered_exc is not None:
-                    # end attempt. If it succeeded, let higher levels decide when to end operation
-                    operation.end_attempt_with_status(encountered_exc)
+                if call is not None:
+                    _end_attempt(operation, encountered_exc, await _get_metadata(call))
 
-        return response_wrapper(await continuation(client_call_details, request))
+        try:
+            return response_wrapper(await continuation(client_call_details, request))
+        except Exception as rpc_error:
+            # handle errors while intializing stream
+            _end_attempt(operation, rpc_error, await _get_metadata(rpc_error))
+            raise rpc_error
