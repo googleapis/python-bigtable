@@ -34,26 +34,7 @@ else:
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_metrics_interceptor"
 
 
-@CrossSync.drop
-class _AsyncIterator:
-    """Helper class to wrap an iterator or async generator in an async iterator"""
 
-    def __init__(self, iterable):
-        if hasattr(iterable, "__anext__"):
-            self._iterator = iterable
-        else:
-            self._iterator = iter(iterable)
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        if hasattr(self._iterator, "__anext__"):
-            return await self._iterator.__anext__()
-        try:
-            return next(self._iterator)
-        except StopIteration:
-            raise StopAsyncIteration
 
 
 @CrossSync.convert_class(sync_name="TestMetricsInterceptor")
@@ -273,7 +254,10 @@ class TestMetricsInterceptorAsync:
         continuation = CrossSync.Mock()
         call = continuation.return_value
         if CrossSync.is_async:
-            call.__aiter__ = mock.Mock(return_value=_AsyncIterator([1, 2]))
+            async def gen():
+                yield 1
+                yield 2
+            call.__aiter__ = mock.Mock(return_value=gen())
         else:
             call.__iter__ = mock.Mock(return_value=iter([1, 2]))
         call.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
@@ -311,7 +295,7 @@ class TestMetricsInterceptorAsync:
             async def mock_generator():
                 yield 1
                 raise exc
-            call.__aiter__ = mock.Mock(return_value=_AsyncIterator(mock_generator()))
+            call.__aiter__ = mock.Mock(return_value=mock_generator())
         else:
             def mock_generator():
                 yield 1
@@ -464,7 +448,10 @@ class TestMetricsInterceptorAsync:
         continuation = CrossSync.Mock()
         call = continuation.return_value
         if CrossSync.is_async:
-            call.__aiter__ = mock.Mock(return_value=_AsyncIterator([1, 2]))
+            async def gen():
+                yield 1
+                yield 2
+            call.__aiter__ = mock.Mock(return_value=gen())
         else:
             call.__iter__ = mock.Mock(return_value=iter([1, 2]))
         call.trailing_metadata = CrossSync.Mock(return_value=[])
