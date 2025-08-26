@@ -16,6 +16,7 @@ import pytest
 import asyncio
 from grpc import RpcError
 
+from google.cloud.bigtable.data._metrics.data_model import OperationState
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
 # try/except added for compatibility with python < 3.8
@@ -142,7 +143,7 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
-        op.state = 1  # ACTIVE_ATTEMPT
+        op.state = OperationState.ACTIVE_ATTEMPT
         instance.operation_map[op.uuid] = op
         continuation = CrossSync.Mock()
         call = continuation.return_value
@@ -167,7 +168,7 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
-        op.state = 1  # ACTIVE_ATTEMPT
+        op.state = OperationState.ACTIVE_ATTEMPT
         instance.operation_map[op.uuid] = op
         exc = RpcError("test")
         exc.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
@@ -194,7 +195,7 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
-        op.state = 1  # ACTIVE_ATTEMPT
+        op.state = OperationState.ACTIVE_ATTEMPT
         instance.operation_map[op.uuid] = op
         exc = RpcError("test")
         continuation = CrossSync.Mock(side_effect=exc)
@@ -221,7 +222,7 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
-        op.state = 1  # ACTIVE_ATTEMPT
+        op.state = OperationState.ACTIVE_ATTEMPT
         instance.operation_map[op.uuid] = op
         exc = ValueError("test")
         continuation = CrossSync.Mock(side_effect=exc)
@@ -260,7 +261,7 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
-        op.state = 1  # ACTIVE_ATTEMPT
+        op.state = OperationState.ACTIVE_ATTEMPT
         op.start_time_ns = 0
         op.first_response_latency = None
         instance.operation_map[op.uuid] = op
@@ -291,7 +292,7 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
-        op.state = 1  # ACTIVE_ATTEMPT
+        op.state = OperationState.ACTIVE_ATTEMPT
         op.start_time_ns = 0
         op.first_response_latency = None
         instance.operation_map[op.uuid] = op
@@ -327,7 +328,7 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
-        op.state = 1  # ACTIVE_ATTEMPT
+        op.state = OperationState.ACTIVE_ATTEMPT
         op.start_time_ns = 0
         op.first_response_latency = None
         instance.operation_map[op.uuid] = op
@@ -358,7 +359,7 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
-        op.state = 1  # ACTIVE_ATTEMPT
+        op.state = OperationState.ACTIVE_ATTEMPT
         op.start_time_ns = 0
         op.first_response_latency = None
         instance.operation_map[op.uuid] = op
@@ -387,7 +388,7 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
-        op.state = 1  # ACTIVE_ATTEMPT
+        op.state = OperationState.ACTIVE_ATTEMPT
         op.start_time_ns = 0
         op.first_response_latency = None
         instance.operation_map[op.uuid] = op
@@ -405,3 +406,51 @@ class TestMetricsInterceptorAsync:
         assert op.first_response_latency_ns is not None
         op.add_response_metadata.assert_not_called()
         op.end_attempt_with_status.assert_called_once_with(exc)
+
+    @CrossSync.pytest
+    @pytest.mark.parametrize(
+        "initial_state", [OperationState.CREATED, OperationState.BETWEEN_ATTEMPTS]
+    )
+    async def test_unary_unary_interceptor_start_operation(self, initial_state):
+        """if called with a newly created operation, it should be started"""
+        from google.cloud.bigtable.data._metrics.data_model import (
+            OPERATION_INTERCEPTOR_METADATA_KEY,
+        )
+
+        instance = self._make_one()
+        op = mock.Mock()
+        op.uuid = "test-uuid"
+        op.state = initial_state
+        instance.operation_map[op.uuid] = op
+        continuation = CrossSync.Mock()
+        call = continuation.return_value
+        details = mock.Mock()
+        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
+        request = mock.Mock()
+        await instance.intercept_unary_unary(continuation, details, request)
+        op.start_attempt.assert_called_once()
+
+    @CrossSync.pytest
+    @pytest.mark.parametrize(
+        "initial_state", [OperationState.CREATED, OperationState.BETWEEN_ATTEMPTS]
+    )
+    async def test_unary_stream_interceptor_start_operation(self, initial_state):
+        """if called with a newly created operation, it should be started"""
+        from google.cloud.bigtable.data._metrics.data_model import (
+            OPERATION_INTERCEPTOR_METADATA_KEY,
+        )
+
+        instance = self._make_one()
+        op = mock.Mock()
+        op.uuid = "test-uuid"
+        op.state = initial_state
+        instance.operation_map[op.uuid] = op
+
+        continuation = CrossSync.Mock()
+        call = continuation.return_value
+        call.__aiter__ = mock.Mock(return_value=_AsyncIterator([1, 2]))
+        details = mock.Mock()
+        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
+        request = mock.Mock()
+        await instance.intercept_unary_stream(continuation, details, request)
+        op.start_attempt.assert_called_once()
