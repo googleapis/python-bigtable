@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import time
 from functools import wraps
-from grpc import RpcError
 from google.cloud.bigtable.data._metrics.data_model import (
     OPERATION_INTERCEPTOR_METADATA_KEY,
 )
@@ -66,6 +65,26 @@ def _with_operation_from_metadata(func):
     return wrapper
 
 
+def _end_attempt(operation, exc, metadata):
+    """Helper to add metadata and exception to an operation"""
+    if metadata is not None:
+        operation.add_response_metadata(metadata)
+    if exc is not None:
+        # end attempt. If it succeeded, let higher levels decide when to end operation
+        operation.end_attempt_with_status(exc)
+
+
+@CrossSync.convert
+async def _get_metadata(source):
+    """Helper to extract metadata from a call or RpcError"""
+    try:
+        return (await source.trailing_metadata() or []) + (
+            await source.initial_metadata() or []
+        )
+    except Exception:
+        # ignore errors while fetching metadata
+        return None
+
 @CrossSync.convert_class(sync_name="BigtableMetricsInterceptor")
 class AsyncBigtableMetricsInterceptor(
     UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor, MetricsHandler
@@ -109,25 +128,14 @@ class AsyncBigtableMetricsInterceptor(
         metadata = None
         try:
             call = await continuation(client_call_details, request)
-            metadata = (await call.trailing_metadata() or []) + (await call.initial_metadata() or [])
+            metadata = await _get_metadata(call)
             return call
-        except RpcError as rpc_error:
-            # attempt extracting metadata from error
-            try:
-                metadata = (await rpc_error.trailing_metadata() or []) + (await rpc_error.initial_metadata() or [])
-            except Exception:
-                pass
+        except Exception as rpc_error:
+            metadata = await _get_metadata(rpc_error)
             encountered_exc = rpc_error
             raise rpc_error
-        except Exception as e:
-            encountered_exc = e
-            raise
         finally:
-            if metadata is not None:
-                operation.add_response_metadata(metadata)
-            if encountered_exc is not None:
-                # end attempt. If it succeeded, let higher levels decide when to end operation
-                operation.end_attempt_with_status(encountered_exc)
+            _end_attempt(operation, encountered_exc, metadata)
 
     @CrossSync.convert
     @_with_operation_from_metadata
@@ -146,30 +154,17 @@ class AsyncBigtableMetricsInterceptor(
                         )
                         has_first_response = True
                     yield response
-
-
             except Exception as e:
+                # handle errors while processing stream
                 encountered_exc = e
                 raise
             finally:
                 if call is not None:
-                    metadata = (await call.trailing_metadata() or []) + (await call.initial_metadata() or [])
-                    operation.add_response_metadata(metadata)
-                    if encountered_exc is not None:
-                        # end attempt. If it succeeded, let higher levels decide when to end operation
-                        operation.end_attempt_with_status(encountered_exc)
+                    _end_attempt(operation, encountered_exc, await _get_metadata(call))
 
         try:
             return response_wrapper(await continuation(client_call_details, request))
-        except RpcError as rpc_error:
-            # attempt extracting metadata from error
-            try:
-                metadata = (await rpc_error.trailing_metadata() or []) + (await rpc_error.initial_metadata() or [])
-                operation.add_response_metadata(metadata)
-            except Exception:
-                pass
-            operation.end_attempt_with_status(rpc_error)
+        except Exception as rpc_error:
+            # handle errors while intializing stream
+            _end_attempt(operation, rpc_error, await _get_metadata(rpc_error))
             raise rpc_error
-        except Exception as e:
-            operation.end_attempt_with_status(e)
-            raise

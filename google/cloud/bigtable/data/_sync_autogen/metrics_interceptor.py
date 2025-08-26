@@ -17,7 +17,6 @@
 from __future__ import annotations
 import time
 from functools import wraps
-from grpc import RpcError
 from google.cloud.bigtable.data._metrics.data_model import (
     OPERATION_INTERCEPTOR_METADATA_KEY,
 )
@@ -54,6 +53,22 @@ def _with_operation_from_metadata(func):
             return continuation(client_call_details, request)
 
     return wrapper
+
+
+def _end_attempt(operation, exc, metadata):
+    """Helper to add metadata and exception to an operation"""
+    if metadata is not None:
+        operation.add_response_metadata(metadata)
+    if exc is not None:
+        operation.end_attempt_with_status(exc)
+
+
+def _get_metadata(source):
+    """Helper to extract metadata from a call or RpcError"""
+    try:
+        return (source.trailing_metadata() or []) + (source.initial_metadata() or [])
+    except Exception:
+        return None
 
 
 class BigtableMetricsInterceptor(
@@ -95,27 +110,14 @@ class BigtableMetricsInterceptor(
         metadata = None
         try:
             call = continuation(client_call_details, request)
-            metadata = (call.trailing_metadata() or []) + (
-                call.initial_metadata() or []
-            )
+            metadata = _get_metadata(call)
             return call
-        except RpcError as rpc_error:
-            try:
-                metadata = (rpc_error.trailing_metadata() or []) + (
-                    rpc_error.initial_metadata() or []
-                )
-            except Exception:
-                pass
+        except Exception as rpc_error:
+            metadata = _get_metadata(rpc_error)
             encountered_exc = rpc_error
             raise rpc_error
-        except Exception as e:
-            encountered_exc = e
-            raise
         finally:
-            if metadata is not None:
-                operation.add_response_metadata(metadata)
-            if encountered_exc is not None:
-                operation.end_attempt_with_status(encountered_exc)
+            _end_attempt(operation, encountered_exc, metadata)
 
     @_with_operation_from_metadata
     def intercept_unary_stream(
@@ -137,25 +139,10 @@ class BigtableMetricsInterceptor(
                 raise
             finally:
                 if call is not None:
-                    metadata = (call.trailing_metadata() or []) + (
-                        call.initial_metadata() or []
-                    )
-                    operation.add_response_metadata(metadata)
-                    if encountered_exc is not None:
-                        operation.end_attempt_with_status(encountered_exc)
+                    _end_attempt(operation, encountered_exc, _get_metadata(call))
 
         try:
             return response_wrapper(continuation(client_call_details, request))
-        except RpcError as rpc_error:
-            try:
-                metadata = (rpc_error.trailing_metadata() or []) + (
-                    rpc_error.initial_metadata() or []
-                )
-                operation.add_response_metadata(metadata)
-            except Exception:
-                pass
-            operation.end_attempt_with_status(rpc_error)
+        except Exception as rpc_error:
+            _end_attempt(operation, rpc_error, _get_metadata(rpc_error))
             raise rpc_error
-        except Exception as e:
-            operation.end_attempt_with_status(e)
-            raise
