@@ -152,7 +152,6 @@ class TestMetricsInterceptor:
         exc.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[("a", "b")])
         exc.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[("c", "d")])
         continuation = CrossSync._Sync_Impl.Mock(side_effect=exc)
-        call = continuation.return_value
         details = mock.Mock()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()

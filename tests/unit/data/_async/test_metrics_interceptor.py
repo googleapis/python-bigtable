@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import pytest
-import asyncio
 from grpc import RpcError
 
 from google.cloud.bigtable.data._metrics.data_model import OperationState
@@ -26,12 +25,17 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 if CrossSync.is_async:
-    from google.cloud.bigtable.data._async.metrics_interceptor import AsyncBigtableMetricsInterceptor
+    from google.cloud.bigtable.data._async.metrics_interceptor import (
+        AsyncBigtableMetricsInterceptor,
+    )
 else:
-    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import BigtableMetricsInterceptor
+    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (  # noqa: F401
+        BigtableMetricsInterceptor,
+    )
 
 
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_metrics_interceptor"
+
 
 @CrossSync.convert(replace_symbols={"__aiter__": "__iter__"})
 def _make_mock_stream_call(values, exc=None):
@@ -39,11 +43,13 @@ def _make_mock_stream_call(values, exc=None):
     Create a mock call object that can be used for streaming calls
     """
     call = CrossSync.Mock()
+
     async def gen():
         for val in values:
             yield val
         if exc:
             raise exc
+
     call.__aiter__ = mock.Mock(return_value=gen())
     return call
 
@@ -51,7 +57,11 @@ def _make_mock_stream_call(values, exc=None):
 @CrossSync.convert_class(sync_name="TestMetricsInterceptor")
 class TestMetricsInterceptorAsync:
     @staticmethod
-    @CrossSync.convert(replace_symbols={"AsyncBigtableMetricsInterceptor": "BigtableMetricsInterceptor"})
+    @CrossSync.convert(
+        replace_symbols={
+            "AsyncBigtableMetricsInterceptor": "BigtableMetricsInterceptor"
+        }
+    )
     def _get_target_class():
         return AsyncBigtableMetricsInterceptor
 
@@ -170,7 +180,6 @@ class TestMetricsInterceptorAsync:
         exc.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         exc.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
         continuation = CrossSync.Mock(side_effect=exc)
-        call = continuation.return_value
         details = mock.Mock()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
@@ -234,7 +243,6 @@ class TestMetricsInterceptorAsync:
         continuation.assert_called_once_with(details, request)
         op.add_response_metadata.assert_not_called()
         op.end_attempt_with_status.assert_called_once_with(exc)
-
 
     @CrossSync.pytest
     async def test_unary_stream_interceptor_op_not_found(self):

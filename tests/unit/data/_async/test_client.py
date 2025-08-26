@@ -1160,7 +1160,9 @@ class TestTableAsync:
     @CrossSync.pytest
     async def test_ctor(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
-        from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+        from google.cloud.bigtable.data._metrics import (
+            BigtableClientSideMetricsController,
+        )
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -1493,7 +1495,9 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
     @CrossSync.pytest
     async def test_ctor(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
-        from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+        from google.cloud.bigtable.data._metrics import (
+            BigtableClientSideMetricsController,
+        )
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"

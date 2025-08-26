@@ -54,7 +54,10 @@ def _with_operation_from_metadata(func):
         operation: "ActiveOperationMetric" = self.operation_map.get(key)
         if operation:
             # start a new attempt if not started
-            if operation.state == OperationState.CREATED or operation.state == OperationState.BETWEEN_ATTEMPTS:
+            if (
+                operation.state == OperationState.CREATED
+                or operation.state == OperationState.BETWEEN_ATTEMPTS
+            ):
                 operation.start_attempt()
             # wrap continuation in logic to process the operation
             return func(self, operation, continuation, client_call_details, request)
@@ -84,6 +87,7 @@ async def _get_metadata(source):
     except Exception:
         # ignore errors while fetching metadata
         return None
+
 
 @CrossSync.convert_class(sync_name="BigtableMetricsInterceptor")
 class AsyncBigtableMetricsInterceptor(
