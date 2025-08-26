@@ -119,11 +119,14 @@ class TempRowBuilderAsync:
 
 @CrossSync.convert_class(sync_name="TestSystem")
 class TestSystemAsync:
+    def _make_client(self):
+        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
+        return CrossSync.DataClient(project=project)
+
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
     async def client(self):
-        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        async with CrossSync.DataClient(project=project) as client:
+        async with self._make_client() as client:
             yield client
 
     @CrossSync.convert
@@ -268,8 +271,7 @@ class TestSystemAsync:
         """
         await temp_rows.add_row(b"row_key_1")
         await temp_rows.add_row(b"row_key_2")
-        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        client = CrossSync.DataClient(project=project)
+        client = self._make_client()
         # start custom refresh task
         try:
             client._channel_refresh_task = CrossSync.create_task(
