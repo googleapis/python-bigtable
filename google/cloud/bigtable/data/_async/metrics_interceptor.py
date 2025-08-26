@@ -114,20 +114,17 @@ class AsyncBigtableMetricsInterceptor(
             raise
         finally:
             if call is not None:
-                metadata = (
-                    await call.trailing_metadata() + await call.initial_metadata()
-                )
+                metadata = (await call.trailing_metadata() or []) + (await call.initial_metadata() or [])
                 operation.add_response_metadata(metadata)
-                if encountered_exc is not None:
-                    # end attempt. If it succeeded, let higher levels decide when to end operation
-                    operation.end_attempt_with_status(encountered_exc)
+            if encountered_exc is not None:
+                # end attempt. If it succeeded, let higher levels decide when to end operation
+                operation.end_attempt_with_status(encountered_exc)
 
     @CrossSync.convert
     @_with_operation_from_metadata
     async def intercept_unary_stream(
         self, operation, continuation, client_call_details, request
     ):
-        # TODO: benchmark
         async def response_wrapper(call):
             has_first_response = operation.first_response_latency is not None
             encountered_exc = None
@@ -145,12 +142,11 @@ class AsyncBigtableMetricsInterceptor(
                 encountered_exc = e
                 raise
             finally:
-                metadata = (
-                    await call.trailing_metadata() + await call.initial_metadata()
-                )
-                operation.add_response_metadata(metadata)
-                if encountered_exc is not None:
-                    # end attempt. If it succeeded, let higher levels decide when to end operation
-                    operation.end_attempt_with_status(encountered_exc)
+                if call is not None:
+                    metadata = (await call.trailing_metadata() or []) + (await call.initial_metadata() or [])
+                    operation.add_response_metadata(metadata)
+                    if encountered_exc is not None:
+                        # end attempt. If it succeeded, let higher levels decide when to end operation
+                        operation.end_attempt_with_status(encountered_exc)
 
         return response_wrapper(await continuation(client_call_details, request))
