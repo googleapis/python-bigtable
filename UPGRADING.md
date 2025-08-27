@@ -6,22 +6,36 @@ The v3.0.0 release of `google-cloud-bigtable` deprecates the previous `google.cl
   - `google.cloud.bigtable.data.BigtableDataClientAsync`
 - Admin API: 
   - `google.cloud.bigtable.admin.BigtableInstanceAdminClient`
-  - `google.cloud.bigtable.admin.BigtableInstanceAdminClientAsync`
+  - `google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient`
   - `google.cloud.bigtable.admin.BigtableTableAdminClient`
-  - `google.cloud.bigtable.admin.BigtableTableAdminClientAsync`
+  - `google.cloud.bigtable.admin.BigtableTableAdminAsyncClient`
 
 The deprecated client will remain available as an alternative API surface, which internally delegates calls to the respective new clients. For most users, existing code will continue to work as before. But there may be some breaking changes associated with this update, which are detailed in this document.
 
 ### Admin Client Migration
 
-While we do recommend you instantiate the new admin API clients directly, you can access the new admin API 
-clients via the `google.cloud.bigtable.Client` class:
+We recommend that you instantiate the new admin API clients directly:
+
+```
+from google.cloud.bigtable.admin import (
+  BigtableInstanceAdminClient,
+  BigtableInstanceAdminAsyncClient,
+  BigtableTableAdminClient,
+  BigtableTableAdminAsyncClient,
+)
+
+instance_admin_client = BigtableInstanceAdminClient()
+instance_admin_async_client = BigtableInstanceAdminAsyncClient()
+table_admin_client = BigtableTableAdminClient()
+table_admin_async_client = BigtableTableAdminAsyncClient()
+```
+
+Access to the new admin API sync clients via the `google.cloud.bigtable.Client` class is also supported for backwards compatibility:
 
 ```
 from google.cloud.bigtable import Client
 
 client = Client()
-
 
 # google.cloud.bigtable.admin.BigtableInstanceAdminClient
 instance_admin_client = client.instance_admin_client()
