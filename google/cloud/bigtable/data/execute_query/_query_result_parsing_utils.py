@@ -11,8 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 from typing import Any, Callable, Dict, Type
+
+from google.protobuf.message import Message
+from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 from google.cloud.bigtable.data.execute_query.values import Struct
 from google.cloud.bigtable.data.execute_query.metadata import SqlType
 from google.cloud.bigtable_v2 import Value as PBValue
@@ -30,24 +34,36 @@ _REQUIRED_PROTO_FIELDS = {
     SqlType.Struct: "array_value",
     SqlType.Array: "array_value",
     SqlType.Map: "array_value",
+    SqlType.Proto: "bytes_value",
+    SqlType.Enum: "int_value",
 }
 
 
-def _parse_array_type(value: PBValue, metadata_type: SqlType.Array) -> Any:
+def _parse_array_type(
+    value: PBValue,
+    metadata_type: SqlType.Array,
+    column_name: str | None,
+    column_info: dict[str, Any] | None = None,
+) -> Any:
     """
     used for parsing an array represented as a protobuf to a python list.
     """
     return list(
         map(
             lambda val: _parse_pb_value_to_python_value(
-                val, metadata_type.element_type
+                val, metadata_type.element_type, column_name, column_info
             ),
             value.array_value.values,
         )
     )
 
 
-def _parse_map_type(value: PBValue, metadata_type: SqlType.Map) -> Any:
+def _parse_map_type(
+    value: PBValue,
+    metadata_type: SqlType.Map,
+    column_name: str | None,
+    column_info: dict[str, Any] | None = None,
+) -> Any:
     """
     used for parsing a map represented as a protobuf to a python dict.
 
@@ -64,10 +80,16 @@ def _parse_map_type(value: PBValue, metadata_type: SqlType.Map) -> Any:
             map(
                 lambda map_entry: (
                     _parse_pb_value_to_python_value(
-                        map_entry.array_value.values[0], metadata_type.key_type
+                        map_entry.array_value.values[0],
+                        metadata_type.key_type,
+                        f"{column_name}.key" if column_name is not None else None,
+                        column_info,
                     ),
                     _parse_pb_value_to_python_value(
-                        map_entry.array_value.values[1], metadata_type.value_type
+                        map_entry.array_value.values[1],
+                        metadata_type.value_type,
+                        f"{column_name}.value" if column_name is not None else None,
+                        column_info,
                     ),
                 ),
                 value.array_value.values,
@@ -77,7 +99,12 @@ def _parse_map_type(value: PBValue, metadata_type: SqlType.Map) -> Any:
         raise ValueError("Invalid map entry - less or more than two values.")
 
 
-def _parse_struct_type(value: PBValue, metadata_type: SqlType.Struct) -> Struct:
+def _parse_struct_type(
+    value: PBValue,
+    metadata_type: SqlType.Struct,
+    column_name: str | None,
+    column_info: dict[str, Any] | None = None,
+) -> Struct:
     """
     used for parsing a struct represented as a protobuf to a
     google.cloud.bigtable.data.execute_query.Struct
@@ -88,13 +115,29 @@ def _parse_struct_type(value: PBValue, metadata_type: SqlType.Struct) -> Struct:
     struct = Struct()
     for value, field in zip(value.array_value.values, metadata_type.fields):
         field_name, field_type = field
-        struct.add_field(field_name, _parse_pb_value_to_python_value(value, field_type))
+        nested_column_name: str | None
+        if column_name is None:
+            nested_column_name = None
+        else:
+            # qualify the column name for nested lookups
+            nested_column_name = (
+                f"{column_name}.{field_name}" if field_name else column_name
+            )
+        struct.add_field(
+            field_name,
+            _parse_pb_value_to_python_value(
+                value, field_type, nested_column_name, column_info
+            ),
+        )
 
     return struct
 
 
 def _parse_timestamp_type(
-    value: PBValue, metadata_type: SqlType.Timestamp
+    value: PBValue,
+    metadata_type: SqlType.Timestamp,
+    column_name: str | None,
+    column_info: dict[str, Any] | None = None,
 ) -> DatetimeWithNanoseconds:
     """
     used for parsing a timestamp represented as a protobuf to DatetimeWithNanoseconds
@@ -102,15 +145,66 @@ def _parse_timestamp_type(
     return DatetimeWithNanoseconds.from_timestamp_pb(value.timestamp_value)
 
 
-_TYPE_PARSERS: Dict[Type[SqlType.Type], Callable[[PBValue, Any], Any]] = {
+def _parse_proto_type(
+    value: PBValue,
+    metadata_type: SqlType.Proto,
+    column_name: str | None,
+    column_info: dict[str, Any] | None = None,
+) -> Message | bytes:
+    """
+    Parses a serialized protobuf message into a Message object.
+    """
+    if (
+        column_name is not None
+        and column_info is not None
+        and column_info.get(column_name) is not None
+    ):
+        default_proto_message = column_info.get(column_name)
+        if isinstance(default_proto_message, Message):
+            proto_message = type(default_proto_message)()
+            proto_message.ParseFromString(value.bytes_value)
+            return proto_message
+    return value.bytes_value
+
+
+def _parse_enum_type(
+    value: PBValue,
+    metadata_type: SqlType.Enum,
+    column_name: str | None,
+    column_info: dict[str, Any] | None = None,
+) -> int | Any:
+    """
+    Parses an integer value into a Protobuf enum.
+    """
+    if (
+        column_name is not None
+        and column_info is not None
+        and column_info.get(column_name) is not None
+    ):
+        proto_enum = column_info.get(column_name)
+        if isinstance(proto_enum, EnumTypeWrapper):
+            return proto_enum.Name(value.int_value)
+    return value.int_value
+
+
+_TYPE_PARSERS: Dict[
+    Type[SqlType.Type], Callable[[PBValue, Any, str | None, dict[str, Any] | None], Any]
+] = {
     SqlType.Timestamp: _parse_timestamp_type,
     SqlType.Struct: _parse_struct_type,
     SqlType.Array: _parse_array_type,
     SqlType.Map: _parse_map_type,
+    SqlType.Proto: _parse_proto_type,
+    SqlType.Enum: _parse_enum_type,
 }
 
 
-def _parse_pb_value_to_python_value(value: PBValue, metadata_type: SqlType.Type) -> Any:
+def _parse_pb_value_to_python_value(
+    value: PBValue,
+    metadata_type: SqlType.Type,
+    column_name: str | None,
+    column_info: dict[str, Any] | None = None,
+) -> Any:
     """
     used for converting the value represented as a protobufs to a python object.
     """
@@ -126,7 +220,7 @@ def _parse_pb_value_to_python_value(value: PBValue, metadata_type: SqlType.Type)
 
     if kind in _TYPE_PARSERS:
         parser = _TYPE_PARSERS[kind]
-        return parser(value, metadata_type)
+        return parser(value, metadata_type, column_name, column_info)
     elif kind in _REQUIRED_PROTO_FIELDS:
         field_name = _REQUIRED_PROTO_FIELDS[kind]
         return getattr(value, field_name)

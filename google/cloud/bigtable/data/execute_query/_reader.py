@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 from typing import (
+    Any,
     List,
     TypeVar,
     Generic,
@@ -54,7 +56,10 @@ class _Reader(ABC, Generic[T]):
 
     @abstractmethod
     def consume(
-        self, batches_to_consume: List[bytes], metadata: Metadata
+        self,
+        batches_to_consume: List[bytes],
+        metadata: Metadata,
+        column_info: dict[str, Any] | None = None,
     ) -> Optional[Iterable[T]]:
         """This method receives a list of batches of bytes to be parsed as ProtoRows messages.
         It then uses the metadata to group the values in the parsed messages into rows. Returns
@@ -64,6 +69,8 @@ class _Reader(ABC, Generic[T]):
                 :meth:`google.cloud.bigtable.byte_cursor._ByteCursor.consume`
                 method.
             metadata: metadata used to transform values to rows
+            column_info: (Optional) dict with mappings between column names and additional column information
+                for protobuf deserialization.
 
         Returns:
             Iterable[T] or None: Iterable if gathered values can form one or more instances of T,
@@ -89,7 +96,10 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         return proto_rows.values
 
     def _construct_query_result_row(
-        self, values: Sequence[PBValue], metadata: Metadata
+        self,
+        values: Sequence[PBValue],
+        metadata: Metadata,
+        column_info: dict[str, Any] | None = None,
     ) -> QueryResultRow:
         result = QueryResultRow()
         columns = metadata.columns
@@ -99,12 +109,17 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         ), "This function should be called only when count of values matches count of columns."
 
         for column, value in zip(columns, values):
-            parsed_value = _parse_pb_value_to_python_value(value, column.column_type)
+            parsed_value = _parse_pb_value_to_python_value(
+                value, column.column_type, column.column_name, column_info
+            )
             result.add_field(column.column_name, parsed_value)
         return result
 
     def consume(
-        self, batches_to_consume: List[bytes], metadata: Metadata
+        self,
+        batches_to_consume: List[bytes],
+        metadata: Metadata,
+        column_info: dict[str, Any] | None = None,
     ) -> Optional[Iterable[QueryResultRow]]:
         num_columns = len(metadata.columns)
         rows = []
@@ -112,7 +127,11 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
             values = self._parse_proto_rows(batch_bytes)
             for row_data in batched(values, n=num_columns):
                 if len(row_data) == num_columns:
-                    rows.append(self._construct_query_result_row(row_data, metadata))
+                    rows.append(
+                        self._construct_query_result_row(
+                            row_data, metadata, column_info
+                        )
+                    )
                 else:
                     raise ValueError(
                         "Unexpected error, recieved bad number of values. "

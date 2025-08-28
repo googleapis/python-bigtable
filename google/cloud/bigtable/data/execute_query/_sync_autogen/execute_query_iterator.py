@@ -63,6 +63,7 @@ class ExecuteQueryIterator:
         operation_timeout: float,
         req_metadata: Sequence[Tuple[str, str]] = (),
         retryable_excs: Sequence[type[Exception]] = (),
+        column_info: Dict[str, Any] | None = None,
     ) -> None:
         """Collects responses from ExecuteQuery requests and parses them into QueryResultRows.
 
@@ -82,6 +83,8 @@ class ExecuteQueryIterator:
                 Failed requests will be retried within the budget
             req_metadata: metadata used while sending the gRPC request
             retryable_excs: a list of errors that will be retried if encountered.
+            column_info: dict with mappings between column names and additional column information
+                for protobuf deserialization.
         Raises:
             None
             :class:`ValueError <exceptions.ValueError>` as a safeguard if data is processed in an unexpected state
@@ -110,6 +113,7 @@ class ExecuteQueryIterator:
             exception_factory=_retry_exception_factory,
         )
         self._req_metadata = req_metadata
+        self._column_info = column_info
         try:
             self._register_instance_task = CrossSync._Sync_Impl.create_task(
                 self._client._register_instance,
@@ -164,7 +168,9 @@ class ExecuteQueryIterator:
                     raise ValueError(
                         "Error parsing response before finalizing metadata"
                     )
-                results = self._reader.consume(batches_to_parse, self.metadata)
+                results = self._reader.consume(
+                    batches_to_parse, self.metadata, self._column_info
+                )
                 if results is None:
                     continue
             except ValueError as e:

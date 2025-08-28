@@ -657,6 +657,7 @@ class BigtableDataClientAsync(ClientWithProject):
             DeadlineExceeded,
             ServiceUnavailable,
         ),
+        column_info: dict[str, Any] | None = None,
     ) -> "ExecuteQueryIteratorAsync":
         """
         Executes an SQL query on an instance.
@@ -705,6 +706,13 @@ class BigtableDataClientAsync(ClientWithProject):
                 If None, defaults to prepare_operation_timeout.
             prepare_retryable_errors: a list of errors that will be retried if encountered during prepareQuery.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+            column_info: Dictionary with mappings between column names and additional column information.
+                An object where column names as keys and custom objects as corresponding
+                values for deserialization. It's specifically useful for data types like
+                protobuf where deserialization logic is on user-specific code. When provided,
+                the custom object enables deserialization of backend-received column data.
+                If not provided, data remains serialized as bytes for Proto Messages and
+                integer for Proto Enums.
         Returns:
             ExecuteQueryIteratorAsync: an asynchronous iterator that yields rows returned by the query
         Raises:
@@ -771,6 +779,7 @@ class BigtableDataClientAsync(ClientWithProject):
             attempt_timeout,
             operation_timeout,
             retryable_excs=retryable_excs,
+            column_info=column_info,
         )
 
     @CrossSync.convert(sync_name="__enter__")
