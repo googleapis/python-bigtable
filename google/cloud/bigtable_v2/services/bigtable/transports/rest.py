@@ -1080,6 +1080,22 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp, _ = self._interceptor.post_execute_query_with_metadata(
                 resp, response_metadata
             )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                http_response = {
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable_v2.BigtableClient.execute_query",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "ExecuteQuery",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _GenerateInitialChangeStreamPartitions(
@@ -1228,6 +1244,22 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             ) = self._interceptor.post_generate_initial_change_stream_partitions_with_metadata(
                 resp, response_metadata
             )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                http_response = {
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable_v2.BigtableClient.generate_initial_change_stream_partitions",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "GenerateInitialChangeStreamPartitions",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _MutateRow(_BaseBigtableRestTransport._BaseMutateRow, BigtableRestStub):
@@ -1515,6 +1547,22 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp, _ = self._interceptor.post_mutate_rows_with_metadata(
                 resp, response_metadata
             )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                http_response = {
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable_v2.BigtableClient.mutate_rows",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "MutateRows",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _PingAndWarm(_BaseBigtableRestTransport._BasePingAndWarm, BigtableRestStub):
@@ -1966,6 +2014,22 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp, _ = self._interceptor.post_read_change_stream_with_metadata(
                 resp, response_metadata
             )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                http_response = {
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable_v2.BigtableClient.read_change_stream",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "ReadChangeStream",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _ReadModifyWriteRow(
@@ -2253,6 +2317,22 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp, _ = self._interceptor.post_read_rows_with_metadata(
                 resp, response_metadata
             )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                http_response = {
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable_v2.BigtableClient.read_rows",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "ReadRows",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     class _SampleRowKeys(
@@ -2383,6 +2463,22 @@ class BigtableRestTransport(_BaseBigtableRestTransport):
             resp, _ = self._interceptor.post_sample_row_keys_with_metadata(
                 resp, response_metadata
             )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                http_response = {
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable_v2.BigtableClient.sample_row_keys",
+                    extra={
+                        "serviceName": "google.bigtable.v2.Bigtable",
+                        "rpcName": "SampleRowKeys",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
             return resp
 
     @property

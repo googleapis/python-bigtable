@@ -40,29 +40,29 @@ class Type(proto.Message):
 
     Each encoding also defines the following properties:
 
-    -  Order-preserving: Does the encoded value sort consistently with
-       the original typed value? Note that Bigtable will always sort
-       data based on the raw encoded value, *not* the decoded type.
+    - Order-preserving: Does the encoded value sort consistently with
+      the original typed value? Note that Bigtable will always sort data
+      based on the raw encoded value, *not* the decoded type.
 
-       -  Example: BYTES values sort in the same order as their raw
-          encodings.
-       -  Counterexample: Encoding INT64 as a fixed-width decimal string
-          does *not* preserve sort order when dealing with negative
-          numbers. ``INT64(1) > INT64(-1)``, but
-          ``STRING("-00001") > STRING("00001)``.
+      - Example: BYTES values sort in the same order as their raw
+        encodings.
+      - Counterexample: Encoding INT64 as a fixed-width decimal string
+        does *not* preserve sort order when dealing with negative
+        numbers. ``INT64(1) > INT64(-1)``, but
+        ``STRING("-00001") > STRING("00001)``.
 
-    -  Self-delimiting: If we concatenate two encoded values, can we
-       always tell where the first one ends and the second one begins?
+    - Self-delimiting: If we concatenate two encoded values, can we
+      always tell where the first one ends and the second one begins?
 
-       -  Example: If we encode INT64s to fixed-width STRINGs, the first
-          value will always contain exactly N digits, possibly preceded
-          by a sign.
-       -  Counterexample: If we concatenate two UTF-8 encoded STRINGs,
-          we have no way to tell where the first one ends.
+      - Example: If we encode INT64s to fixed-width STRINGs, the first
+        value will always contain exactly N digits, possibly preceded by
+        a sign.
+      - Counterexample: If we concatenate two UTF-8 encoded STRINGs, we
+        have no way to tell where the first one ends.
 
-    -  Compatibility: Which other systems have matching encoding
-       schemes? For example, does this encoding have a GoogleSQL
-       equivalent? HBase? Java?
+    - Compatibility: Which other systems have matching encoding schemes?
+      For example, does this encoding have a GoogleSQL equivalent?
+      HBase? Java?
 
     This message has `oneof`_ fields (mutually exclusive fields).
     For each oneof, at most one member field can be set at the same time.
@@ -154,9 +154,9 @@ class Type(proto.Message):
             class Raw(proto.Message):
                 r"""Leaves the value "as-is"
 
-                -  Order-preserving? Yes
-                -  Self-delimiting? No
-                -  Compatibility? N/A
+                - Order-preserving? Yes
+                - Self-delimiting? No
+                - Compatibility? N/A
 
                 """
 
@@ -210,13 +210,13 @@ class Type(proto.Message):
             class Utf8Bytes(proto.Message):
                 r"""UTF-8 encoding
 
-                -  Order-preserving? Yes (code point order)
-                -  Self-delimiting? No
-                -  Compatibility?
+                - Order-preserving? Yes (code point order)
+                - Self-delimiting? No
+                - Compatibility?
 
-                   -  BigQuery Federation ``TEXT`` encoding
-                   -  HBase ``Bytes.toBytes``
-                   -  Java ``String#getBytes(StandardCharsets.UTF_8)``
+                  - BigQuery Federation ``TEXT`` encoding
+                  - HBase ``Bytes.toBytes``
+                  - Java ``String#getBytes(StandardCharsets.UTF_8)``
 
                 """
 
@@ -264,13 +264,13 @@ class Type(proto.Message):
                 r"""Encodes the value as an 8-byte big endian twos complement ``Bytes``
                 value.
 
-                -  Order-preserving? No (positive values only)
-                -  Self-delimiting? Yes
-                -  Compatibility?
+                - Order-preserving? No (positive values only)
+                - Self-delimiting? Yes
+                - Compatibility?
 
-                   -  BigQuery Federation ``BINARY`` encoding
-                   -  HBase ``Bytes.toBytes``
-                   -  Java ``ByteBuffer.putLong()`` with ``ByteOrder.BIG_ENDIAN``
+                  - BigQuery Federation ``BINARY`` encoding
+                  - HBase ``Bytes.toBytes``
+                  - Java ``ByteBuffer.putLong()`` with ``ByteOrder.BIG_ENDIAN``
 
                 Attributes:
                     bytes_type (google.cloud.bigtable_v2.types.Type.Bytes):
