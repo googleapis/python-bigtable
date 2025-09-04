@@ -449,7 +449,7 @@ def test_client_table_admin_client_not_initialized_no_admin_flag():
 
 
 def test_client_table_admin_client_not_initialized_w_admin_flag():
-    from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
+    from google.cloud.bigtable.admin_v2 import BigtableTableAdminClient
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -460,7 +460,7 @@ def test_client_table_admin_client_not_initialized_w_admin_flag():
 
 
 def test_client_table_admin_client_not_initialized_w_client_info():
-    from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
+    from google.cloud.bigtable.admin_v2 import BigtableTableAdminClient
 
     credentials = _make_credentials()
     client_info = mock.Mock()
@@ -488,7 +488,7 @@ def test_client_table_admin_client_not_initialized_w_client_options():
     )
 
     client._create_gapic_client_channel = mock.Mock()
-    patch = mock.patch("google.cloud.bigtable_admin_v2.BigtableTableAdminClient")
+    patch = mock.patch("google.cloud.bigtable.admin_v2.BigtableTableAdminClient")
     with patch as mocked:
         table_admin_client = client.table_admin_client
 
@@ -519,7 +519,7 @@ def test_client_instance_admin_client_not_initialized_no_admin_flag():
 
 
 def test_client_instance_admin_client_not_initialized_w_admin_flag():
-    from google.cloud.bigtable_admin_v2 import BigtableInstanceAdminClient
+    from google.cloud.bigtable.admin_v2 import BigtableInstanceAdminClient
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -530,7 +530,7 @@ def test_client_instance_admin_client_not_initialized_w_admin_flag():
 
 
 def test_client_instance_admin_client_not_initialized_w_client_info():
-    from google.cloud.bigtable_admin_v2 import BigtableInstanceAdminClient
+    from google.cloud.bigtable.admin_v2 import BigtableInstanceAdminClient
 
     credentials = _make_credentials()
     client_info = mock.Mock()
@@ -558,7 +558,7 @@ def test_client_instance_admin_client_not_initialized_w_client_options():
     )
 
     client._create_gapic_client_channel = mock.Mock()
-    patch = mock.patch("google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient")
+    patch = mock.patch("google.cloud.bigtable.admin_v2.BigtableInstanceAdminClient")
     with patch as mocked:
         instance_admin_client = client.instance_admin_client
 
@@ -621,11 +621,11 @@ def test_client_instance_factory_non_defaults():
 
 
 def test_client_list_instances():
-    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
-    from google.cloud.bigtable_admin_v2.types import (
+    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
-    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
     from google.cloud.bigtable.instance import Instance
@@ -673,13 +673,13 @@ def test_client_list_instances():
 
 
 def test_client_list_clusters():
-    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
-    from google.cloud.bigtable_admin_v2.types import (
+    from google.cloud.bigtable.admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
-    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.instance import Cluster
 
     instance_api = mock.create_autospec(BigtableInstanceAdminClient)
