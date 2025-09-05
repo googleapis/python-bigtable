@@ -16,16 +16,17 @@ import importlib
 
 import pytest
 
+
 @pytest.mark.parametrize(
-    "module", [
+    "module",
+    [
         # Previous locations of admin API
         "google.cloud.bigtable_admin",
         "google.cloud.bigtable_admin_v2",
-
         # New locations of admin API
         "google.cloud.bigtable.admin",
         "google.cloud.bigtable.admin_v2",
-    ]
+    ],
 )
 def test_admin_overlay_object_imports(module):
     # Simulate from <module> import <class> dynamically using importlib
@@ -67,7 +68,7 @@ def test_admin_overlay_object_imports(module):
             "google.cloud.bigtable_admin_v2.overlay.types.async_consistency",
             "google.cloud.bigtable.admin_v2.overlay.types.async_consistency",
         ),
-    ]
+    ],
 )
 def test_admin_shim_import_aliasing(alias, actual):
     assert importlib.import_module(alias) == importlib.import_module(actual)
@@ -96,9 +97,11 @@ def test_admin_shim_import_aliasing(alias, actual):
             "RestoreTableOperation",
             "google.cloud.bigtable.admin_v2.overlay.types.restore_table",
         ),
-    ]
+    ],
 )
-def test_admin_shim_services_types_subpackage_aliasing(alias, cls_name, subpackage_location):
+def test_admin_shim_services_types_subpackage_aliasing(
+    alias, cls_name, subpackage_location
+):
     # Because of existing aliasing on the types/service subpackages in google.cloud.bigtable.admin_v2,
     # we need to see if this works with google.cloud.bigtable_admin_v2.
 
