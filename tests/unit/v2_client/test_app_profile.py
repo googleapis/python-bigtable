@@ -165,7 +165,7 @@ def test_app_profile___ne__():
 
 
 def test_app_profile_from_pb_success_w_routing_any():
-    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.app_profile import AppProfile
     from google.cloud.bigtable.enums import RoutingPolicyType
 
@@ -194,7 +194,7 @@ def test_app_profile_from_pb_success_w_routing_any():
 
 
 def test_app_profile_from_pb_success_w_routing_any_multi_cluster_ids():
-    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.app_profile import AppProfile
     from google.cloud.bigtable.enums import RoutingPolicyType
 
@@ -225,7 +225,7 @@ def test_app_profile_from_pb_success_w_routing_any_multi_cluster_ids():
 
 
 def test_app_profile_from_pb_success_w_routing_single():
-    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.app_profile import AppProfile
     from google.cloud.bigtable.enums import RoutingPolicyType
 
@@ -258,7 +258,7 @@ def test_app_profile_from_pb_success_w_routing_single():
 
 
 def test_app_profile_from_pb_w_bad_app_profile_name():
-    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.app_profile import AppProfile
 
     bad_app_profile_name = "BAD_NAME"
@@ -270,7 +270,7 @@ def test_app_profile_from_pb_w_bad_app_profile_name():
 
 
 def test_app_profile_from_pb_w_instance_id_mistmatch():
-    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.app_profile import AppProfile
 
     ALT_INSTANCE_ID = "ALT_INSTANCE_ID"
@@ -285,7 +285,7 @@ def test_app_profile_from_pb_w_instance_id_mistmatch():
 
 
 def test_app_profile_from_pb_w_project_mistmatch():
-    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.app_profile import AppProfile
 
     ALT_PROJECT = "ALT_PROJECT"
@@ -300,10 +300,10 @@ def test_app_profile_from_pb_w_project_mistmatch():
 
 
 def test_app_profile_reload_w_routing_any():
-    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
-    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
     from google.cloud.bigtable.enums import RoutingPolicyType
 
     api = mock.create_autospec(BigtableInstanceAdminClient)
@@ -362,10 +362,10 @@ def test_app_profile_reload_w_routing_any():
 
 
 def test_app_profile_exists():
-    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
-    from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
     from google.api_core import exceptions
 
     instance_api = mock.create_autospec(BigtableInstanceAdminClient)
@@ -397,7 +397,7 @@ def test_app_profile_exists():
 
 
 def test_app_profile_create_w_routing_any():
-    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
     from google.cloud.bigtable.app_profile import AppProfile
@@ -458,7 +458,7 @@ def test_app_profile_create_w_routing_any():
 
 
 def test_app_profile_create_w_routing_single():
-    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
     from google.cloud.bigtable.app_profile import AppProfile
@@ -530,11 +530,11 @@ def test_app_profile_create_w_wrong_routing_policy():
 def test_app_profile_update_w_routing_any():
     from google.longrunning import operations_pb2
     from google.protobuf.any_pb2 import Any
-    from google.cloud.bigtable_admin_v2.types import (
+    from google.cloud.bigtable.admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud.bigtable.enums import RoutingPolicyType
-    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
     from google.protobuf import field_mask_pb2
@@ -605,11 +605,11 @@ def test_app_profile_update_w_routing_any():
 def test_app_profile_update_w_routing_any_multi_cluster_ids():
     from google.longrunning import operations_pb2
     from google.protobuf.any_pb2 import Any
-    from google.cloud.bigtable_admin_v2.types import (
+    from google.cloud.bigtable.admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud.bigtable.enums import RoutingPolicyType
-    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
     from google.protobuf import field_mask_pb2
@@ -681,11 +681,11 @@ def test_app_profile_update_w_routing_any_multi_cluster_ids():
 def test_app_profile_update_w_routing_single():
     from google.longrunning import operations_pb2
     from google.protobuf.any_pb2 import Any
-    from google.cloud.bigtable_admin_v2.types import (
+    from google.cloud.bigtable.admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud.bigtable.enums import RoutingPolicyType
-    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
     from google.protobuf import field_mask_pb2
@@ -752,7 +752,7 @@ def test_app_profile_update_w_wrong_routing_policy():
 
 def test_app_profile_delete():
     from google.protobuf import empty_pb2
-    from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
 
