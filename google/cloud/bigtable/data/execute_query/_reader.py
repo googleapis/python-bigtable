@@ -14,15 +14,17 @@
 from __future__ import annotations
 
 from typing import (
-    Any,
     List,
     TypeVar,
     Generic,
     Iterable,
     Optional,
     Sequence,
+    Union,
 )
 from abc import ABC, abstractmethod
+from google.protobuf.message import Message
+from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 
 from google.cloud.bigtable_v2 import ProtoRows, Value as PBValue
 
@@ -59,7 +61,7 @@ class _Reader(ABC, Generic[T]):
         self,
         batches_to_consume: List[bytes],
         metadata: Metadata,
-        column_info: dict[str, Any] | None = None,
+        column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
     ) -> Optional[Iterable[T]]:
         """This method receives a list of batches of bytes to be parsed as ProtoRows messages.
         It then uses the metadata to group the values in the parsed messages into rows. Returns
@@ -99,7 +101,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         self,
         values: Sequence[PBValue],
         metadata: Metadata,
-        column_info: dict[str, Any] | None = None,
+        column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
     ) -> QueryResultRow:
         result = QueryResultRow()
         columns = metadata.columns
@@ -119,7 +121,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         self,
         batches_to_consume: List[bytes],
         metadata: Metadata,
-        column_info: dict[str, Any] | None = None,
+        column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
     ) -> Optional[Iterable[QueryResultRow]]:
         num_columns = len(metadata.columns)
         rows = []

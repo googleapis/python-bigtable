@@ -21,8 +21,11 @@ from typing import (
     Sequence,
     Tuple,
     TYPE_CHECKING,
+    Union,
 )
 from google.api_core import retry as retries
+from google.protobuf.message import Message
+from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 
 from google.cloud.bigtable.data.execute_query._byte_cursor import _ByteCursor
 from google.cloud.bigtable.data._helpers import (
@@ -87,7 +90,7 @@ class ExecuteQueryIteratorAsync:
         operation_timeout: float,
         req_metadata: Sequence[Tuple[str, str]] = (),
         retryable_excs: Sequence[type[Exception]] = (),
-        column_info: Dict[str, Any] | None = None,
+        column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
     ) -> None:
         """
         Collects responses from ExecuteQuery requests and parses them into QueryResultRows.

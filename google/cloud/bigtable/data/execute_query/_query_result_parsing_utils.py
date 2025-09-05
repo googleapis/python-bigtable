@@ -13,7 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Type
+from typing import Any, Callable, Dict, Type, Union, Optional
+from typing_extensions import TypeAlias
 
 from google.protobuf.message import Message
 from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
@@ -43,7 +44,7 @@ def _parse_array_type(
     value: PBValue,
     metadata_type: SqlType.Array,
     column_name: str | None,
-    column_info: dict[str, Any] | None = None,
+    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
 ) -> Any:
     """
     used for parsing an array represented as a protobuf to a python list.
@@ -62,7 +63,7 @@ def _parse_map_type(
     value: PBValue,
     metadata_type: SqlType.Map,
     column_name: str | None,
-    column_info: dict[str, Any] | None = None,
+    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
 ) -> Any:
     """
     used for parsing a map represented as a protobuf to a python dict.
@@ -103,7 +104,7 @@ def _parse_struct_type(
     value: PBValue,
     metadata_type: SqlType.Struct,
     column_name: str | None,
-    column_info: dict[str, Any] | None = None,
+    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
 ) -> Struct:
     """
     used for parsing a struct represented as a protobuf to a
@@ -137,7 +138,7 @@ def _parse_timestamp_type(
     value: PBValue,
     metadata_type: SqlType.Timestamp,
     column_name: str | None,
-    column_info: dict[str, Any] | None = None,
+    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
 ) -> DatetimeWithNanoseconds:
     """
     used for parsing a timestamp represented as a protobuf to DatetimeWithNanoseconds
@@ -149,10 +150,26 @@ def _parse_proto_type(
     value: PBValue,
     metadata_type: SqlType.Proto,
     column_name: str | None,
-    column_info: dict[str, Any] | None = None,
+    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
 ) -> Message | bytes:
     """
-    Parses a serialized protobuf message into a Message object.
+    Parses a serialized protobuf message into a Message object using type information
+    provided in column_info.
+
+    Args:
+        value: The value to parse, expected to have a bytes_value attribute.
+        metadata_type: The expected SQL type (Proto).
+        column_name: The name of the column.
+        column_info: (Optional) A dictionary mapping column names to their
+            corresponding Protobuf Message classes. This information is used
+            to deserialize the raw bytes.
+
+    Returns:
+        A deserialized Protobuf Message object if parsing is successful.
+        If parsing fails for any reason, or if the required type information
+        is not found in column_info, the function returns the original
+        serialized data as bytes (value.bytes_value). This fallback
+        ensures that the raw data is still accessible.
     """
     if (
         column_name is not None
@@ -171,10 +188,27 @@ def _parse_enum_type(
     value: PBValue,
     metadata_type: SqlType.Enum,
     column_name: str | None,
-    column_info: dict[str, Any] | None = None,
-) -> int | Any:
+    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
+) -> int | str:
     """
-    Parses an integer value into a Protobuf enum.
+    Parses an integer value into a Protobuf enum name string using type information
+    provided in column_info.
+
+    Args:
+        value: The value to parse, expected to have an int_value attribute.
+        metadata_type: The expected SQL type (Enum).
+        column_name: The name of the column.
+        column_info: (Optional) A dictionary mapping column names to their
+            corresponding Protobuf EnumTypeWrapper objects. This information
+            is used to convert the integer to an enum name.
+
+    Returns:
+        A string representing the name of the enum value if conversion is successful.
+        If conversion fails for any reason, such as the required EnumTypeWrapper
+        not being found in column_info, or if an error occurs during the name lookup
+        (e.g., the integer is not a valid enum value), the function returns the
+        original integer value (value.int_value). This fallback ensures the
+        raw integer representation is still accessible.
     """
     if (
         column_name is not None
@@ -187,9 +221,12 @@ def _parse_enum_type(
     return value.int_value
 
 
-_TYPE_PARSERS: Dict[
-    Type[SqlType.Type], Callable[[PBValue, Any, str | None, dict[str, Any] | None], Any]
-] = {
+ParserCallable: TypeAlias = Callable[
+    [PBValue, Any, Optional[str], Optional[Dict[str, Union[Message, EnumTypeWrapper]]]],
+    Any,
+]
+
+_TYPE_PARSERS: Dict[Type[SqlType.Type], ParserCallable] = {
     SqlType.Timestamp: _parse_timestamp_type,
     SqlType.Struct: _parse_struct_type,
     SqlType.Array: _parse_array_type,
@@ -203,7 +240,7 @@ def _parse_pb_value_to_python_value(
     value: PBValue,
     metadata_type: SqlType.Type,
     column_name: str | None,
-    column_info: dict[str, Any] | None = None,
+    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
 ) -> Any:
     """
     used for converting the value represented as a protobufs to a python object.
