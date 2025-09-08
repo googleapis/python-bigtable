@@ -13,8 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Type, Union, Optional
-from typing_extensions import TypeAlias
+from typing import Any, Callable, Dict, Type, Optional, Union
 
 from google.protobuf.message import Message
 from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
@@ -44,8 +43,8 @@ def _parse_array_type(
     value: PBValue,
     metadata_type: SqlType.Array,
     column_name: str | None,
-    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
-) -> Any:
+    column_info: dict[str, Message | EnumTypeWrapper] | None = None,
+) -> list[Any]:
     """
     used for parsing an array represented as a protobuf to a python list.
     """
@@ -63,8 +62,8 @@ def _parse_map_type(
     value: PBValue,
     metadata_type: SqlType.Map,
     column_name: str | None,
-    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
-) -> Any:
+    column_info: dict[str, Message | EnumTypeWrapper] | None = None,
+) -> dict[Any, Any]:
     """
     used for parsing a map represented as a protobuf to a python dict.
 
@@ -104,7 +103,7 @@ def _parse_struct_type(
     value: PBValue,
     metadata_type: SqlType.Struct,
     column_name: str | None,
-    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
+    column_info: dict[str, Message | EnumTypeWrapper] | None = None,
 ) -> Struct:
     """
     used for parsing a struct represented as a protobuf to a
@@ -138,7 +137,7 @@ def _parse_timestamp_type(
     value: PBValue,
     metadata_type: SqlType.Timestamp,
     column_name: str | None,
-    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
+    column_info: dict[str, Message | EnumTypeWrapper] | None = None,
 ) -> DatetimeWithNanoseconds:
     """
     used for parsing a timestamp represented as a protobuf to DatetimeWithNanoseconds
@@ -150,7 +149,7 @@ def _parse_proto_type(
     value: PBValue,
     metadata_type: SqlType.Proto,
     column_name: str | None,
-    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
+    column_info: dict[str, Message | EnumTypeWrapper] | None = None,
 ) -> Message | bytes:
     """
     Parses a serialized protobuf message into a Message object using type information
@@ -188,7 +187,7 @@ def _parse_enum_type(
     value: PBValue,
     metadata_type: SqlType.Enum,
     column_name: str | None,
-    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
+    column_info: dict[str, Message | EnumTypeWrapper] | None = None,
 ) -> int | str:
     """
     Parses an integer value into a Protobuf enum name string using type information
@@ -221,7 +220,7 @@ def _parse_enum_type(
     return value.int_value
 
 
-ParserCallable: TypeAlias = Callable[
+ParserCallable = Callable[
     [PBValue, Any, Optional[str], Optional[Dict[str, Union[Message, EnumTypeWrapper]]]],
     Any,
 ]
@@ -240,7 +239,7 @@ def _parse_pb_value_to_python_value(
     value: PBValue,
     metadata_type: SqlType.Type,
     column_name: str | None,
-    column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
+    column_info: dict[str, Message | EnumTypeWrapper] | None = None,
 ) -> Any:
     """
     used for converting the value represented as a protobufs to a python object.

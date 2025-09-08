@@ -20,7 +20,6 @@ from typing import (
     Iterable,
     Optional,
     Sequence,
-    Union,
 )
 from abc import ABC, abstractmethod
 from google.protobuf.message import Message
@@ -61,7 +60,7 @@ class _Reader(ABC, Generic[T]):
         self,
         batches_to_consume: List[bytes],
         metadata: Metadata,
-        column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
+        column_info: dict[str, Message | EnumTypeWrapper] | None = None,
     ) -> Optional[Iterable[T]]:
         """This method receives a list of batches of bytes to be parsed as ProtoRows messages.
         It then uses the metadata to group the values in the parsed messages into rows. Returns
@@ -101,7 +100,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         self,
         values: Sequence[PBValue],
         metadata: Metadata,
-        column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
+        column_info: dict[str, Message | EnumTypeWrapper] | None = None,
     ) -> QueryResultRow:
         result = QueryResultRow()
         columns = metadata.columns
@@ -121,7 +120,7 @@ class _QueryResultRowReader(_Reader[QueryResultRow]):
         self,
         batches_to_consume: List[bytes],
         metadata: Metadata,
-        column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
+        column_info: dict[str, Message | EnumTypeWrapper] | None = None,
     ) -> Optional[Iterable[QueryResultRow]]:
         num_columns = len(metadata.columns)
         rows = []

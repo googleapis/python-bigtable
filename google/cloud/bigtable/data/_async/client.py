@@ -23,7 +23,6 @@ from typing import (
     Set,
     Sequence,
     TYPE_CHECKING,
-    Union,
 )
 
 import abc
@@ -660,7 +659,7 @@ class BigtableDataClientAsync(ClientWithProject):
             DeadlineExceeded,
             ServiceUnavailable,
         ),
-        column_info: dict[str, Union[Message, EnumTypeWrapper]] | None = None,
+        column_info: dict[str, Message | EnumTypeWrapper] | None = None,
     ) -> "ExecuteQueryIteratorAsync":
         """
         Executes an SQL query on an instance.
