@@ -708,18 +708,18 @@ class BigtableDataClientAsync(ClientWithProject):
                 If None, defaults to prepare_operation_timeout.
             prepare_retryable_errors: a list of errors that will be retried if encountered during prepareQuery.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
-            column_info:
-                (Optional) A dictionary mapping column names to Protobuf message classes or EnumTypeWrapper objects.
+            column_info: (Optional) A dictionary mapping column names to Protobuf message classes or EnumTypeWrapper objects.
                 This dictionary provides the necessary type information for deserializing PROTO and
                 ENUM column values from the query results. When an entry is provided
                 for a PROTO or ENUM column, the client library will attempt to deserialize the raw data.
 
-                - For PROTO columns: The value in the dictionary should be the
-                  Protobuf Message class (e.g., `my_pb2.MyMessage`).
-                - For ENUM columns: The value should be the Protobuf EnumTypeWrapper
-                  object (e.g., `my_pb2.MyEnum`).
+                    - For PROTO columns: The value in the dictionary should be the
+                      Protobuf Message class (e.g., ``my_pb2.MyMessage``).
+                    - For ENUM columns: The value should be the Protobuf EnumTypeWrapper
+                      object (e.g., ``my_pb2.MyEnum``).
 
-                Example:
+                Example::
+
                     import my_pb2
 
                     column_info = {
@@ -727,19 +727,23 @@ class BigtableDataClientAsync(ClientWithProject):
                         "my_enum_column": my_pb2.MyEnum
                     }
 
-                If `column_info` is not provided, or if a specific column name is not found
+                If ``column_info`` is not provided, or if a specific column name is not found
                 in the dictionary, or if deserialization fails:
+
                     - PROTO columns will be returned as raw bytes.
                     - ENUM columns will be returned as integers.
 
                 Note for Nested PROTO or ENUM Fields:
+
                     To specify types for PROTO or ENUM fields within STRUCTs or MAPs, use a dot-separated
                     path from the top-level column name.
-                    - For STRUCTs: `struct_column_name.field_name`
-                    - For MAPs: `map_column_name.key` or `map_column_name.value` to specify types
-                      for the map keys or values, respectively.
 
-                    Examples:
+                        - For STRUCTs: ``struct_column_name.field_name``
+                        - For MAPs: ``map_column_name.key`` or ``map_column_name.value`` to specify types
+                          for the map keys or values, respectively.
+
+                    Example::
+
                         import my_pb2
 
                         column_info = {
