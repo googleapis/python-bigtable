@@ -19,6 +19,7 @@ from typing import (
     cast,
     Any,
     AsyncIterable,
+    Callable,
     Optional,
     Set,
     Sequence,
@@ -278,6 +279,7 @@ class BigtableDataClientAsync(ClientWithProject):
         Returns:
           a custom wrapped swappable channel
         """
+        create_channel_fn: Callable[[], Any]
         if self._emulator_host is not None:
             # emulators use insecure channel
             create_channel_fn = partial(insecure_channel, self._emulator_host)

@@ -104,7 +104,6 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         exc = ValueError("test")
         continuation = CrossSync.Mock(side_effect=exc)
-        call = continuation.return_value
         details = mock.Mock()
         request = mock.Mock()
         with pytest.raises(ValueError) as e:
@@ -119,7 +118,6 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
 
         continuation = CrossSync.Mock(return_value=_make_mock_stream_call([1, 2]))
-        call = continuation.return_value
         details = mock.Mock()
         request = mock.Mock()
         wrapper = await instance.intercept_unary_stream(continuation, details, request)
@@ -133,7 +131,6 @@ class TestMetricsInterceptorAsync:
         instance = self._make_one()
         exc = ValueError("test")
         continuation = CrossSync.Mock(return_value=_make_mock_stream_call([1], exc=exc))
-        call = continuation.return_value
         details = mock.Mock()
         request = mock.Mock()
         wrapper = await instance.intercept_unary_stream(continuation, details, request)
