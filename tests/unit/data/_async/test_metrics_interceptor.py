@@ -145,7 +145,10 @@ class TestMetricsInterceptorAsync:
         instance.operation_map[op.uuid] = op
         continuation = CrossSync.Mock()
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid), ("other_key", "other_value")]
+        details.metadata = [
+            (OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid),
+            ("other_key", "other_value"),
+        ]
         await instance.intercept_unary_unary(continuation, details, mock.Mock())
         assert details.metadata == [("other_key", "other_value")]
         assert continuation.call_count == 1

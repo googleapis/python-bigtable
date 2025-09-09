@@ -577,6 +577,7 @@ class TestActiveOperationMetric:
             called_with = h.on_operation_complete.call_args[0][0]
             assert called_with.cluster_id == DEFAULT_CLUSTER_ID
             assert called_with.zone == DEFAULT_ZONE
+
     def test_end_with_success(self):
         """
         end with success should be a pass-through helper for end_with_status
