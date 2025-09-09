@@ -43,16 +43,22 @@ def _with_operation_from_metadata(func):
 
     @wraps(func)
     def wrapper(self, continuation, client_call_details, request):
-        key = next(
-            (
-                m[1]
-                for m in client_call_details.metadata
-                if m[0] == OPERATION_INTERCEPTOR_METADATA_KEY
-            ),
-            None,
-        )
-        operation: "ActiveOperationMetric" = self.operation_map.get(key)
+        found_operation_id: str | None = None
+        new_metadata = client_call_details.metadata
+        if client_call_details.metadata:
+            # find operation key and strip it from metadata
+            temp_metadata = []
+            for k, v in client_call_details.metadata:
+                if k == OPERATION_INTERCEPTOR_METADATA_KEY:
+                    found_operation_id = v
+                else:
+                    temp_metadata.append((k, v))
+            new_metadata = temp_metadata
+
+        operation: "ActiveOperationMetric" = self.operation_map.get(found_operation_id)
         if operation:
+            # create new client_call_details without the operation key
+            client_call_details = client_call_details._replace(metadata=new_metadata)
             # start a new attempt if not started
             if (
                 operation.state == OperationState.CREATED
