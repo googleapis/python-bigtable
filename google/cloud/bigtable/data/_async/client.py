@@ -98,9 +98,6 @@ if CrossSync.is_async:
         BigtableAsyncClient as GapicClient,
     )
     from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
-    from google.cloud.bigtable.data._async.metrics_interceptor import (
-        AsyncBigtableMetricsInterceptor as MetricInterceptorType,
-    )
     from google.cloud.bigtable.data._async._swappable_channel import (
         AsyncSwappableChannel as SwappableChannelType,
     )
@@ -114,9 +111,6 @@ else:
     from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport as TransportType  # type: ignore
     from google.cloud.bigtable_v2.services.bigtable import BigtableClient as GapicClient  # type: ignore
     from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
-    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
-        BigtableMetricsInterceptor as MetricInterceptorType,
-    )
     from google.cloud.bigtable.data._sync_autogen._swappable_channel import (  # noqa: F401
         SwappableChannel as SwappableChannelType,
     )

@@ -82,9 +82,6 @@ from google.cloud.bigtable_v2.services.bigtable.transports import (
 )
 from google.cloud.bigtable_v2.services.bigtable import BigtableClient as GapicClient
 from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
-from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
-    BigtableMetricsInterceptor as MetricInterceptorType,
-)
 from google.cloud.bigtable.data._sync_autogen._swappable_channel import (
     SwappableChannel as SwappableChannelType,
 )
