@@ -237,16 +237,18 @@ class TestSystem:
             with client.get_table(instance_id, table_id) as table:
                 rows = table.read_rows({})
                 channel_wrapper = client.transport.grpc_channel
-                first_channel = client.transport.grpc_channel._channel
+                first_channel = channel_wrapper._channel
                 assert len(rows) == 2
                 CrossSync._Sync_Impl.sleep(2)
                 rows_after_refresh = table.read_rows({})
                 assert len(rows_after_refresh) == 2
                 assert client.transport.grpc_channel is channel_wrapper
-                assert client.transport.grpc_channel._channel is not first_channel
+                updated_channel = channel_wrapper._channel
+                assert updated_channel is not first_channel
                 assert isinstance(
                     client.transport._logged_channel._interceptor, GapicInterceptor
                 )
+                assert updated_channel._interceptor == client._metrics_interceptor
         finally:
             client.close()
 
@@ -258,7 +260,7 @@ class TestSystem:
         """Ensure cells can be set properly"""
         row_key = b"bulk_mutate"
         new_value = uuid.uuid4().hex.encode()
-        row_key, mutation = self._create_row_and_mutation(
+        (row_key, mutation) = self._create_row_and_mutation(
             target, temp_rows, new_value=new_value
         )
         target.mutate_row(row_key, mutation)
@@ -312,7 +314,7 @@ class TestSystem:
         from google.cloud.bigtable.data.mutations import RowMutationEntry
 
         new_value = uuid.uuid4().hex.encode()
-        row_key, mutation = self._create_row_and_mutation(
+        (row_key, mutation) = self._create_row_and_mutation(
             target, temp_rows, new_value=new_value
         )
         bulk_mutation = RowMutationEntry(row_key, [mutation])
@@ -347,11 +349,11 @@ class TestSystem:
         """test batcher with context manager. Should flush on exit"""
         from google.cloud.bigtable.data.mutations import RowMutationEntry
 
-        new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
-        row_key, mutation = self._create_row_and_mutation(
+        (new_value, new_value2) = [uuid.uuid4().hex.encode() for _ in range(2)]
+        (row_key, mutation) = self._create_row_and_mutation(
             target, temp_rows, new_value=new_value
         )
-        row_key2, mutation2 = self._create_row_and_mutation(
+        (row_key2, mutation2) = self._create_row_and_mutation(
             target, temp_rows, new_value=new_value2
         )
         bulk_mutation = RowMutationEntry(row_key, [mutation])
@@ -372,7 +374,7 @@ class TestSystem:
         from google.cloud.bigtable.data.mutations import RowMutationEntry
 
         new_value = uuid.uuid4().hex.encode()
-        row_key, mutation = self._create_row_and_mutation(
+        (row_key, mutation) = self._create_row_and_mutation(
             target, temp_rows, new_value=new_value
         )
         bulk_mutation = RowMutationEntry(row_key, [mutation])
@@ -394,12 +396,12 @@ class TestSystem:
         """batch should flush after flush_limit_mutation_count mutations"""
         from google.cloud.bigtable.data.mutations import RowMutationEntry
 
-        new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
-        row_key, mutation = self._create_row_and_mutation(
+        (new_value, new_value2) = [uuid.uuid4().hex.encode() for _ in range(2)]
+        (row_key, mutation) = self._create_row_and_mutation(
             target, temp_rows, new_value=new_value
         )
         bulk_mutation = RowMutationEntry(row_key, [mutation])
-        row_key2, mutation2 = self._create_row_and_mutation(
+        (row_key2, mutation2) = self._create_row_and_mutation(
             target, temp_rows, new_value=new_value2
         )
         bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
@@ -426,12 +428,12 @@ class TestSystem:
         """batch should flush after flush_limit_bytes bytes"""
         from google.cloud.bigtable.data.mutations import RowMutationEntry
 
-        new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
-        row_key, mutation = self._create_row_and_mutation(
+        (new_value, new_value2) = [uuid.uuid4().hex.encode() for _ in range(2)]
+        (row_key, mutation) = self._create_row_and_mutation(
             target, temp_rows, new_value=new_value
         )
         bulk_mutation = RowMutationEntry(row_key, [mutation])
-        row_key2, mutation2 = self._create_row_and_mutation(
+        (row_key2, mutation2) = self._create_row_and_mutation(
             target, temp_rows, new_value=new_value2
         )
         bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
@@ -457,11 +459,11 @@ class TestSystem:
 
         new_value = uuid.uuid4().hex.encode()
         start_value = b"unchanged"
-        row_key, mutation = self._create_row_and_mutation(
+        (row_key, mutation) = self._create_row_and_mutation(
             target, temp_rows, start_value=start_value, new_value=new_value
         )
         bulk_mutation = RowMutationEntry(row_key, [mutation])
-        row_key2, mutation2 = self._create_row_and_mutation(
+        (row_key2, mutation2) = self._create_row_and_mutation(
             target, temp_rows, start_value=start_value, new_value=new_value
         )
         bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
