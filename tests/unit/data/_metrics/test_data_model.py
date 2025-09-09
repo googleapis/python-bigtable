@@ -391,6 +391,7 @@ class TestActiveOperationMetric:
         - add one to completed_attempts
         - reset active_attempt to None
         - update state
+        - notify handlers
         """
         expected_start_time = 1
         expected_status = object()
@@ -398,8 +399,9 @@ class TestActiveOperationMetric:
         expected_app_blocking = 12
         expected_backoff = 2
         expected_grpc_throttle = 3
+        handlers = [mock.Mock(), mock.Mock()]
 
-        metric = self._make_one(mock.Mock())
+        metric = self._make_one(mock.Mock(), handlers=handlers)
         assert metric.active_attempt is None
         assert len(metric.completed_attempts) == 0
         metric.start_attempt()
@@ -420,6 +422,11 @@ class TestActiveOperationMetric:
         assert got_attempt.backoff_before_attempt_ns == expected_backoff
         # state should be changed to BETWEEN_ATTEMPTS
         assert metric.state == State.BETWEEN_ATTEMPTS
+        # check handlers
+        for h in handlers:
+            assert h.on_attempt_complete.call_count == 1
+            assert h.on_attempt_complete.call_args[0][0] == got_attempt
+            assert h.on_attempt_complete.call_args[0][1] == metric
 
     def test_end_attempt_with_status_w_exception(self):
         """
@@ -528,6 +535,48 @@ class TestActiveOperationMetric:
             final_op = handlers[0].on_operation_complete.call_args[0][0]
             assert final_op.final_status == expected_status
 
+    def test_interceptor_metadata(self):
+        from google.cloud.bigtable.data._metrics.data_model import (
+            OPERATION_INTERCEPTOR_METADATA_KEY,
+        )
+
+        metric = self._make_one(mock.Mock())
+        key, value = metric.interceptor_metadata
+        assert key == OPERATION_INTERCEPTOR_METADATA_KEY
+        assert value == metric.uuid
+
+    def test_cancel(self):
+        """
+        cancel should call on_operation_cancelled on handlers
+        """
+        handlers = [mock.Mock(), mock.Mock()]
+        metric = self._make_one(mock.Mock(), handlers=handlers)
+        metric.cancel()
+        for h in handlers:
+            assert h.on_operation_cancelled.call_count == 1
+            assert h.on_operation_cancelled.call_args[0][0] == metric
+
+    def test_end_with_status_with_default_cluster_zone(self):
+        """
+        ending the operation should use default cluster and zone if not set
+        """
+        from google.cloud.bigtable.data._metrics.data_model import (
+            DEFAULT_CLUSTER_ID,
+            DEFAULT_ZONE,
+        )
+
+        handlers = [mock.Mock()]
+        metric = self._make_one(mock.Mock(), handlers=handlers)
+        assert metric.cluster_id is None
+        assert metric.zone is None
+        metric.end_with_status(mock.Mock())
+        assert metric.state == State.COMPLETED
+        # check that finalized operation was passed to handlers
+        for h in handlers:
+            assert h.on_operation_complete.call_count == 1
+            called_with = h.on_operation_complete.call_args[0][0]
+            assert called_with.cluster_id == DEFAULT_CLUSTER_ID
+            assert called_with.zone == DEFAULT_ZONE
     def test_end_with_success(self):
         """
         end with success should be a pass-through helper for end_with_status
