@@ -85,7 +85,12 @@ from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
     BigtableMetricsInterceptor as MetricInterceptorType,
 )
-from google.cloud.bigtable.data._sync_autogen._swappable_channel import SwappableChannel
+from google.cloud.bigtable.data._sync_autogen._swappable_channel import (
+    SwappableChannel as SwappableChannelType,
+)
+from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
+    BigtableMetricsInterceptor as MetricInterceptorType,
+)
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -192,7 +197,7 @@ class BigtableDataClient(ClientWithProject):
                     stacklevel=2,
                 )
 
-    def _build_grpc_channel(self, *args, **kwargs) -> SwappableChannel:
+    def _build_grpc_channel(self, *args, **kwargs) -> SwappableChannelType:
         """This method is called by the gapic transport to create a grpc channel.
 
         The init arguments passed down are captured in a partial used by SwappableChannel
@@ -216,7 +221,7 @@ class BigtableDataClient(ClientWithProject):
                     self._metrics_interceptor,
                 )
 
-        new_channel = SwappableChannel(create_channel_fn)
+        new_channel = SwappableChannelType(create_channel_fn)
         return new_channel
 
     @property
@@ -338,10 +343,10 @@ class BigtableDataClient(ClientWithProject):
                 between `refresh_interval_min` and `refresh_interval_max`
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds"""
-        if not isinstance(self.transport.grpc_channel, SwappableChannel):
+        if not isinstance(self.transport.grpc_channel, SwappableChannelType):
             warnings.warn("Channel does not support auto-refresh.")
             return
-        super_channel: SwappableChannel = self.transport.grpc_channel
+        super_channel: SwappableChannelType = self.transport.grpc_channel
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )

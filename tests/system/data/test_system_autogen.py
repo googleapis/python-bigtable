@@ -244,7 +244,7 @@ class TestSystem:
                 assert len(rows_after_refresh) == 2
                 assert client.transport.grpc_channel is channel_wrapper
                 updated_channel = channel_wrapper._channel
-                assert channel_wrapper._channel is not first_channel
+                assert updated_channel is not first_channel
                 assert isinstance(
                     client.transport._logged_channel._interceptor, GapicInterceptor
                 )

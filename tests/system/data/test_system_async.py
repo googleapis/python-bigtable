@@ -292,7 +292,7 @@ class TestSystemAsync:
                 assert len(rows_after_refresh) == 2
                 assert client.transport.grpc_channel is channel_wrapper
                 updated_channel = channel_wrapper._channel
-                assert channel_wrapper._channel is not first_channel
+                assert updated_channel is not first_channel
                 # ensure interceptors are kept (gapic's logging interceptor, and metric interceptor)
                 if CrossSync.is_async:
                     unary_interceptors = updated_channel._unary_unary_interceptors
