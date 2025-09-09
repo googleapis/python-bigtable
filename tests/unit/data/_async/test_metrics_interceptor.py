@@ -156,7 +156,7 @@ class TestMetricsInterceptorAsync:
         """Test that interceptor call cuntinuation if op is not found"""
         instance = self._make_one()
         continuation = CrossSync.Mock()
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = []
         request = mock.Mock()
         await instance.intercept_unary_unary(continuation, details, request)
@@ -178,7 +178,7 @@ class TestMetricsInterceptorAsync:
         call = continuation.return_value
         call.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         result = await instance.intercept_unary_unary(continuation, details, request)
@@ -203,7 +203,7 @@ class TestMetricsInterceptorAsync:
         exc.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         exc.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
         continuation = CrossSync.Mock(side_effect=exc)
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(RpcError) as e:
@@ -230,7 +230,7 @@ class TestMetricsInterceptorAsync:
         call = continuation.return_value
         call.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(RpcError) as e:
@@ -257,7 +257,7 @@ class TestMetricsInterceptorAsync:
         call = continuation.return_value
         call.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(ValueError) as e:
@@ -272,7 +272,7 @@ class TestMetricsInterceptorAsync:
         """Test that interceptor calls continuation if op is not found"""
         instance = self._make_one()
         continuation = CrossSync.Mock()
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = []
         request = mock.Mock()
         await instance.intercept_unary_stream(continuation, details, request)
@@ -297,7 +297,7 @@ class TestMetricsInterceptorAsync:
         call = continuation.return_value
         call.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         wrapper = await instance.intercept_unary_stream(continuation, details, request)
@@ -327,7 +327,7 @@ class TestMetricsInterceptorAsync:
         call = continuation.return_value
         call.trailing_metadata = CrossSync.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync.Mock(return_value=[("c", "d")])
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         wrapper = await instance.intercept_unary_stream(continuation, details, request)
@@ -359,7 +359,7 @@ class TestMetricsInterceptorAsync:
 
         continuation = CrossSync.Mock()
         continuation.side_effect = exc
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(RpcError) as e:
@@ -388,7 +388,7 @@ class TestMetricsInterceptorAsync:
 
         continuation = CrossSync.Mock()
         continuation.side_effect = exc
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(RpcError) as e:
@@ -417,7 +417,7 @@ class TestMetricsInterceptorAsync:
 
         continuation = CrossSync.Mock()
         continuation.side_effect = exc
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(ValueError) as e:
@@ -447,7 +447,7 @@ class TestMetricsInterceptorAsync:
         call = continuation.return_value
         call.trailing_metadata = CrossSync.Mock(return_value=[])
         call.initial_metadata = CrossSync.Mock(return_value=[])
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         await instance.intercept_unary_unary(continuation, details, request)
@@ -473,7 +473,7 @@ class TestMetricsInterceptorAsync:
         call = continuation.return_value
         call.trailing_metadata = CrossSync.Mock(return_value=[])
         call.initial_metadata = CrossSync.Mock(return_value=[])
-        details = mock.Mock()
+        details = ClientCallDetails()
         details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         await instance.intercept_unary_stream(continuation, details, request)
