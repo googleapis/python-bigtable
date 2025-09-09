@@ -58,7 +58,7 @@ def _with_operation_from_metadata(func):
         operation: "ActiveOperationMetric" = self.operation_map.get(found_operation_id)
         if operation:
             # create new client_call_details without the operation key
-            client_call_details = client_call_details._replace(metadata=new_metadata)
+            client_call_details.metadata = new_metadata
             # start a new attempt if not started
             if (
                 operation.state == OperationState.CREATED
