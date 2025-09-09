@@ -418,6 +418,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self.transport._stubs = {}
         self.transport._prep_wrapped_messages(self.client_info)
 
+    @CrossSync.convert
     async def _manage_channel(
         self,
         refresh_interval_min: float = 60 * 35,

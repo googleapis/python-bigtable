@@ -316,7 +316,7 @@ class BigtableDataClient(ClientWithProject):
         self.transport._stubs = {}
         self.transport._prep_wrapped_messages(self.client_info)
 
-    async def _manage_channel(
+    def _manage_channel(
         self,
         refresh_interval_min: float = 60 * 35,
         refresh_interval_max: float = 60 * 45,
@@ -347,16 +347,16 @@ class BigtableDataClient(ClientWithProject):
         )
         next_sleep = max(first_refresh - time.monotonic(), 0)
         if next_sleep > 0:
-            await self._ping_and_warm_instances(channel=super_channel)
+            self._ping_and_warm_instances(channel=super_channel)
         while not self._is_closed.is_set():
-            await CrossSync._Sync_Impl.event_wait(
+            CrossSync._Sync_Impl.event_wait(
                 self._is_closed, next_sleep, async_break_early=False
             )
             if self._is_closed.is_set():
                 break
             start_timestamp = time.monotonic()
             new_channel = super_channel.create_channel()
-            await self._ping_and_warm_instances(channel=new_channel)
+            self._ping_and_warm_instances(channel=new_channel)
             old_channel = super_channel.swap_channel(new_channel)
             self._invalidate_channel_stubs()
             if grace_period:
