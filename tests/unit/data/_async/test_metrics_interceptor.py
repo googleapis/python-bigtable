@@ -14,6 +14,7 @@
 
 import pytest
 from grpc import RpcError
+from grpc import ClientCallDetails
 
 from google.cloud.bigtable.data._metrics.data_model import OperationState
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -127,6 +128,28 @@ class TestMetricsInterceptorAsync:
         instance.register_operation(op)
         op.cancel()
         assert op.uuid not in instance.operation_map
+
+    @CrossSync.pytest
+    async def test_strip_operation_id_metadata(self):
+        """
+        After operation id is detected in metadata, the field should be stripped out before calling continuation
+        """
+        from google.cloud.bigtable.data._metrics.data_model import (
+            OPERATION_INTERCEPTOR_METADATA_KEY,
+        )
+
+        instance = self._make_one()
+        op = mock.Mock()
+        op.uuid = "test-uuid"
+        op.state = OperationState.ACTIVE_ATTEMPT
+        instance.operation_map[op.uuid] = op
+        continuation = CrossSync.Mock()
+        details = ClientCallDetails()
+        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid), ("other_key", "other_value")]
+        await instance.intercept_unary_unary(continuation, details, mock.Mock())
+        assert details.metadata == [("other_key", "other_value")]
+        assert continuation.call_count == 1
+        assert continuation.call_args[0][0].metadata == [("other_key", "other_value")]
 
     @CrossSync.pytest
     async def test_unary_unary_interceptor_op_not_found(self):
