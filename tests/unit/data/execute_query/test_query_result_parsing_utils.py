@@ -523,6 +523,10 @@ class TestQueryResultParsingUtils:
                                     "field_name": "enum_field",
                                     "type_": enum_type(),
                                 },
+                                {
+                                    "field_name": None,
+                                    "type_": proto_type(),
+                                },
                             ]
                         }
                     }
@@ -538,6 +542,7 @@ class TestQueryResultParsingUtils:
                                 "values": [
                                     {"bytes_value": singer1.SerializeToString()},
                                     {"int_value": 0},  # POP
+                                    {"bytes_value": singer1.SerializeToString()},
                                 ]
                             }
                         },
@@ -546,6 +551,7 @@ class TestQueryResultParsingUtils:
                                 "values": [
                                     {"bytes_value": singer2.SerializeToString()},
                                     {"int_value": 1},  # JAZZ
+                                    {"bytes_value": singer2.SerializeToString()},
                                 ]
                             }
                         },
@@ -559,6 +565,7 @@ class TestQueryResultParsingUtils:
         assert type(metadata_type.element_type) is SqlType.Struct
         assert type(metadata_type.element_type["proto_field"]) is SqlType.Proto
         assert type(metadata_type.element_type["enum_field"]) is SqlType.Enum
+        assert type(metadata_type.element_type[2]) is SqlType.Proto
 
         # without proto definition
         result = _parse_pb_value_to_python_value(
@@ -569,9 +576,11 @@ class TestQueryResultParsingUtils:
         assert isinstance(result[0], Struct)
         assert result[0]["proto_field"] == singer1.SerializeToString()
         assert result[0]["enum_field"] == 0
+        assert result[0][2] == singer1.SerializeToString()
         assert isinstance(result[1], Struct)
         assert result[1]["proto_field"] == singer2.SerializeToString()
         assert result[1]["enum_field"] == 1
+        assert result[1][2] == singer2.SerializeToString()
 
         # with proto definition
         result = _parse_pb_value_to_python_value(
@@ -581,6 +590,7 @@ class TestQueryResultParsingUtils:
             {
                 "array_field.proto_field": singer_pb2.Singer(),
                 "array_field.enum_field": singer_pb2.Genre,
+                "array_field": singer_pb2.Singer(),
             },
         )
         assert isinstance(result, list)
@@ -588,9 +598,11 @@ class TestQueryResultParsingUtils:
         assert isinstance(result[0], Struct)
         assert result[0]["proto_field"] == singer1
         assert result[0]["enum_field"] == "POP"
+        assert result[0][2] == singer1
         assert isinstance(result[1], Struct)
         assert result[1]["proto_field"] == singer2
         assert result[1]["enum_field"] == "JAZZ"
+        assert result[1][2] == singer2
 
     def test__map(self):
         _type = PBType(

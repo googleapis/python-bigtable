@@ -585,6 +585,10 @@ class BigtableDataClient(ClientWithProject):
                             # Nested field in a MAP column named 'my_map'
                             "my_map.key": my_pb2.MapKeyEnum, # If map keys were enums
                             "my_map.value": my_pb2.MapValueMessage,
+
+                            # PROTO field inside a STRUCT, where the STRUCT is the value in a MAP column
+                            "struct_map.value.nested_proto_field": my_pb2.DeeplyNestedProto,
+                            "struct_map.value.nested_enum_field": my_pb2.DeeplyNestedEnum
                         }
 
         Returns:
