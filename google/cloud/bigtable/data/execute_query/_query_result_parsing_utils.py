@@ -116,13 +116,11 @@ def _parse_struct_type(
     for value, field in zip(value.array_value.values, metadata_type.fields):
         field_name, field_type = field
         nested_column_name: str | None
-        if column_name is None:
-            nested_column_name = None
-        else:
+        if column_name and field_name:
             # qualify the column name for nested lookups
-            nested_column_name = (
-                f"{column_name}.{field_name}" if field_name else column_name
-            )
+            nested_column_name = f"{column_name}.{field_name}"
+        else:
+            nested_column_name = None
         struct.add_field(
             field_name,
             _parse_pb_value_to_python_value(

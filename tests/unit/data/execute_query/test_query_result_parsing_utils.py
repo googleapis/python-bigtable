@@ -365,7 +365,7 @@ class TestQueryResultParsingUtils:
         assert result[2] == 0
         assert result[3] == 1
 
-        # with proto definition and Singer definition for unnamed nested fields
+        # with proto definition
         result = _parse_pb_value_to_python_value(
             value._pb,
             metadata_type,
@@ -373,35 +373,17 @@ class TestQueryResultParsingUtils:
             {
                 "struct_field.field1": singer_pb2.Singer(),
                 "struct_field.field2": singer_pb2.Genre,
-                "struct_field": singer_pb2.Singer(),
             },
         )
         assert isinstance(result, Struct)
         assert result["field1"] == singer1
         assert result["field2"] == "POP"
         assert result[0] == singer1
-        assert result[1] == singer2
-        assert result[2] == "POP"
-        assert result[3] == 1
-
-        # with proto definition and Genre definition for unnamed nested fields
-        result = _parse_pb_value_to_python_value(
-            value._pb,
-            metadata_type,
-            "struct_field",
-            {
-                "struct_field.field1": singer_pb2.Singer(),
-                "struct_field.field2": singer_pb2.Genre,
-                "struct_field": singer_pb2.Genre,
-            },
-        )
-        assert isinstance(result, Struct)
-        assert result["field1"] == singer1
-        assert result["field2"] == "POP"
-        assert result[0] == singer1
+        # unnamed proto fields won't get parsed
         assert result[1] == singer2.SerializeToString()
         assert result[2] == "POP"
-        assert result[3] == "JAZZ"
+        # unnamed enum fields won't get parsed
+        assert result[3] == 1
 
     def test__array_of_structs(self):
         _type = PBType(
@@ -590,7 +572,7 @@ class TestQueryResultParsingUtils:
             {
                 "array_field.proto_field": singer_pb2.Singer(),
                 "array_field.enum_field": singer_pb2.Genre,
-                "array_field": singer_pb2.Singer(),
+                "array_field": singer_pb2.Singer(),  # unused
             },
         )
         assert isinstance(result, list)
@@ -598,11 +580,13 @@ class TestQueryResultParsingUtils:
         assert isinstance(result[0], Struct)
         assert result[0]["proto_field"] == singer1
         assert result[0]["enum_field"] == "POP"
-        assert result[0][2] == singer1
+        # unnamed proto fields won't get parsed
+        assert result[0][2] == singer1.SerializeToString()
         assert isinstance(result[1], Struct)
         assert result[1]["proto_field"] == singer2
         assert result[1]["enum_field"] == "JAZZ"
-        assert result[1][2] == singer2
+        # unnamed proto fields won't get parsed
+        assert result[1][2] == singer2.SerializeToString()
 
     def test__map(self):
         _type = PBType(
