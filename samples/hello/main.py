@@ -57,7 +57,7 @@ def main(project_id, instance_id, table_id):
     # Create a column family with GC policy : most recent N versions
     # Define the GC policy to retain only the most recent 2 versions
     max_versions_rule = bigtable.column_family.MaxVersionsGCRule(2)
-    column_family_id = "cf1"
+    column_family_id = b"cf1"
     column_families = {column_family_id: max_versions_rule}
     if not table.exists():
         table.create(column_families=column_families)
@@ -88,7 +88,7 @@ def main(project_id, instance_id, table_id):
             row_key = f"greeting{i}".encode()
             row = table.direct_row(row_key)
             row.set_cell(
-                column_family_id.encode(), column, value, timestamp=datetime.datetime.utcnow(),
+                column_family_id, column, value, timestamp=datetime.datetime.utcnow(),
             )
             rows.append(row)
         table.mutate_rows(rows)
@@ -106,7 +106,7 @@ def main(project_id, instance_id, table_id):
         key = b"greeting0"
 
         row = table.read_row(key, row_filter)
-        cell = row.cells[column_family_id][column][0]
+        cell = row.cells[column_family_id.decode("utf-8")][column][0]
         print(cell.value.decode("utf-8"))
         # [END bigtable_hw_get_by_key]
         # [END bigtable_hw_get_with_filter]
@@ -117,7 +117,8 @@ def main(project_id, instance_id, table_id):
         partial_rows = table.read_rows(filter_=row_filter)
 
         for row in partial_rows:
-            cell = row.cells[column_family_id][column][0]
+            column_family_id_str = column_family_id.decode("utf-8")
+            cell = row.cells[column_family_id_str][column][0]
             print(cell.value.decode("utf-8"))
         # [END bigtable_hw_scan_all]
         # [END bigtable_hw_scan_with_filter]
