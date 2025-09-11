@@ -165,10 +165,13 @@ def _parse_proto_type(
 
     Returns:
         A deserialized Protobuf Message object if parsing is successful.
-        If parsing fails for any reason, or if the required type information
-        is not found in column_info, the function returns the original
-        serialized data as bytes (value.bytes_value). This fallback
-        ensures that the raw data is still accessible.
+        If the required type information is not found in column_info, the function
+        returns the original serialized data as bytes (value.bytes_value).
+        This fallback ensures that the raw data is still accessible.
+
+    Raises:
+        google.protobuf.message.DecodeError: If `value.bytes_value` cannot be
+            parsed as the Message type specified in `column_info`.
     """
     if (
         column_name is not None

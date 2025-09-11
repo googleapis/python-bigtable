@@ -555,7 +555,7 @@ class BigtableDataClient(ClientWithProject):
                     }
 
                 If ``column_info`` is not provided, or if a specific column name is not found
-                in the dictionary, or if deserialization fails:
+                in the dictionary:
 
                     - PROTO columns will be returned as raw bytes.
                     - ENUM columns will be returned as integers.
@@ -600,6 +600,7 @@ class BigtableDataClient(ClientWithProject):
             google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
             google.cloud.bigtable.data.exceptions.ParameterTypeInferenceFailed: Raised if
                 a parameter is passed without an explicit type, and the type cannot be infered
+            google.protobuf.message.DecodeError: raised if the deserialization of a PROTO/ENUM value fails.
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         converted_param_types = _to_param_types(parameters, parameter_types)
