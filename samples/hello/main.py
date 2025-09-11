@@ -71,9 +71,9 @@ def main(project_id, instance_id, table_id):
 
         # [START bigtable_hw_write_rows]
         print("Writing some greetings to the table.")
-        greetings = ["Hello World!", "Hello Cloud Bigtable!", "Hello Python!"]
+        greetings = [b"Hello World!", b"Hello Cloud Bigtable!", b"Hello Python!"]
         rows = []
-        column = "greeting".encode()
+        column = b"greeting"
         for i, value in enumerate(greetings):
             # Note: This example uses sequential numeric IDs for simplicity,
             # but this can result in poor performance in a production
@@ -85,10 +85,10 @@ def main(project_id, instance_id, table_id):
             # the best performance, see the documentation:
             #
             #     https://cloud.google.com/bigtable/docs/schema-design
-            row_key = "greeting{}".format(i).encode()
+            row_key = f"greeting{i}".encode()
             row = table.direct_row(row_key)
             row.set_cell(
-                column_family_id, column, value, timestamp=datetime.datetime.utcnow()
+                column_family_id.encode(), column, value, timestamp=datetime.datetime.utcnow(),
             )
             rows.append(row)
         table.mutate_rows(rows)
@@ -103,7 +103,7 @@ def main(project_id, instance_id, table_id):
         # [START bigtable_hw_get_with_filter]
         # [START bigtable_hw_get_by_key]
         print("Getting a single greeting by row key.")
-        key = "greeting0".encode()
+        key = b"greeting0"
 
         row = table.read_row(key, row_filter)
         cell = row.cells[column_family_id][column][0]
