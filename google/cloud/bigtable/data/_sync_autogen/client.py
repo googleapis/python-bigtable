@@ -206,7 +206,7 @@ class BigtableDataClient(ClientWithProject):
           - **kwargs: keyword arguments passed by the gapic layer to create a new channel with
         Returns:
           a custom wrapped swappable channel"""
-        create_channel_fn: Callable[[], Any]
+        create_channel_fn: Callable[[], Channel]
         if self._emulator_host is not None:
             create_channel_fn = partial(insecure_channel, self._emulator_host)
         else:

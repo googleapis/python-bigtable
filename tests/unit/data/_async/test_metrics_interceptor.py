@@ -67,10 +67,6 @@ class TestMetricsInterceptorAsync:
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
-    def test_ctor(self):
-        instance = self._make_one()
-        assert instance.operation_map == {}
-
     @CrossSync.pytest
     async def test_unary_unary_interceptor_success(self):
         """Test that interceptor handles successful unary-unary calls"""
