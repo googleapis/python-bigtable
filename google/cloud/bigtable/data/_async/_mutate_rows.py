@@ -187,6 +187,7 @@ class _MutateRowsOperationAsync:
                 ),
                 timeout=next(self.timeout_generator),
                 retry=None,
+                metadata=[self._operation_metric.interceptor_metadata],
             )
             async for result_list in result_generator:
                 for result in result_list.entries:

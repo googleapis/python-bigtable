@@ -1489,6 +1489,7 @@ class _DataApiTargetAsync(abc.ABC):
                 ),
                 timeout=attempt_timeout,
                 retry=None,
+                metadata=[operation_metric.interceptor_metadata],
             )
             return await CrossSync.retry_target(
                 target,
