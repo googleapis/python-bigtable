@@ -20,6 +20,7 @@ from google.cloud.bigtable.data._metrics.data_model import (
 )
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import OperationState
+from google.cloud.bigtable.data._metrics.data_model import OperationType
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -129,7 +130,8 @@ class AsyncBigtableMetricsInterceptor(
     ):
         # TODO: benchmark
         async def response_wrapper(call):
-            has_first_response = operation.first_response_latency is not None
+            # only track has_first response for READ_ROWS
+            has_first_response = operation.first_response_latency_ns is not None or operation.op_type != OperationType.READ_ROWS
             encountered_exc = None
             try:
                 async for response in call:

@@ -27,7 +27,7 @@ from google.type import date_pb2
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
-from . import TEST_FAMILY, TEST_FAMILY_2, TEST_AGGREGATE_FAMILY
+from . import TEST_FAMILY, TEST_FAMILY_2, TEST_AGGREGATE_FAMILY, SystemTestRunner
 
 if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.transports.grpc_asyncio import (
@@ -119,7 +119,7 @@ class TempRowBuilderAsync:
 
 
 @CrossSync.convert_class(sync_name="TestSystem")
-class TestSystemAsync:
+class TestSystemAsync(SystemTestRunner):
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
     async def client(self):
@@ -145,55 +145,6 @@ class TestSystemAsync:
                 yield view
         else:
             raise ValueError(f"unknown target type: {request.param}")
-
-    @CrossSync.drop
-    @pytest.fixture(scope="session")
-    def event_loop(self):
-        loop = asyncio.get_event_loop()
-        yield loop
-        loop.stop()
-        loop.close()
-
-    @pytest.fixture(scope="session")
-    def column_family_config(self):
-        """
-        specify column families to create when creating a new test table
-        """
-        from google.cloud.bigtable_admin_v2 import types
-
-        int_aggregate_type = types.Type.Aggregate(
-            input_type=types.Type(int64_type={"encoding": {"big_endian_bytes": {}}}),
-            sum={},
-        )
-        return {
-            TEST_FAMILY: types.ColumnFamily(),
-            TEST_FAMILY_2: types.ColumnFamily(),
-            TEST_AGGREGATE_FAMILY: types.ColumnFamily(
-                value_type=types.Type(aggregate_type=int_aggregate_type)
-            ),
-        }
-
-    @pytest.fixture(scope="session")
-    def init_table_id(self):
-        """
-        The table_id to use when creating a new test table
-        """
-        return f"test-table-{uuid.uuid4().hex}"
-
-    @pytest.fixture(scope="session")
-    def cluster_config(self, project_id):
-        """
-        Configuration for the clusters to use when creating a new instance
-        """
-        from google.cloud.bigtable_admin_v2 import types
-
-        cluster = {
-            "test-cluster": types.Cluster(
-                location=f"projects/{project_id}/locations/us-central1-b",
-                serve_nodes=1,
-            )
-        }
-        return cluster
 
     @CrossSync.convert
     @pytest.mark.usefixtures("target")
