@@ -213,7 +213,6 @@ class _ReadRowsOperationAsync:
                             raise InvalidChunk("emit count exceeds row limit")
                     current_key = None
 
-    @staticmethod
     @CrossSync.convert(
         replace_symbols={"__aiter__": "__iter__", "__anext__": "__next__"},
     )

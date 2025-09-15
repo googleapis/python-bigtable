@@ -180,7 +180,6 @@ class _ReadRowsOperation:
                             raise InvalidChunk("emit count exceeds row limit")
                     current_key = None
 
-    @staticmethod
     def merge_rows(
         self, chunks: CrossSync._Sync_Impl.Iterable[ReadRowsResponsePB.CellChunk] | None
     ) -> CrossSync._Sync_Impl.Iterable[Row]:
