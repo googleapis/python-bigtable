@@ -1666,7 +1666,7 @@ class _DataApiTargetAsync(abc.ABC):
         if not rules:
             raise ValueError("rules must contain at least one item")
 
-        with self._metrics.create_operation(OperationType.READ_MODIFY_WRITE):
+        with self._metrics.create_operation(OperationType.READ_MODIFY_WRITE) as op:
             result = await self.client._gapic_client.read_modify_write_row(
                 request=ReadModifyWriteRowRequest(
                     rules=[rule._to_pb() for rule in rules],
@@ -1678,6 +1678,7 @@ class _DataApiTargetAsync(abc.ABC):
                 ),
                 timeout=operation_timeout,
                 retry=None,
+                metadata=[op.interceptor_metadata],
             )
             # construct Row from result
             return Row._from_pb(result.row)
