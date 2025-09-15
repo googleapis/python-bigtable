@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import pytest
-import asyncio
 import datetime
 import uuid
 import os
@@ -120,11 +119,14 @@ class TempRowBuilderAsync:
 
 @CrossSync.convert_class(sync_name="TestSystem")
 class TestSystemAsync(SystemTestRunner):
+    def _make_client(self):
+        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
+        return CrossSync.DataClient(project=project)
+
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
     async def client(self):
-        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        async with CrossSync.DataClient(project=project) as client:
+        async with self._make_client() as client:
             yield client
 
     @CrossSync.convert
@@ -228,8 +230,7 @@ class TestSystemAsync(SystemTestRunner):
         """
         await temp_rows.add_row(b"row_key_1")
         await temp_rows.add_row(b"row_key_2")
-        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        client = CrossSync.DataClient(project=project)
+        client = self._make_client()
         # start custom refresh task
         try:
             client._channel_refresh_task = CrossSync.create_task(
@@ -250,7 +251,7 @@ class TestSystemAsync(SystemTestRunner):
                 assert len(rows_after_refresh) == 2
                 assert client.transport.grpc_channel is channel_wrapper
                 updated_channel = channel_wrapper._channel
-                assert channel_wrapper._channel is not first_channel
+                assert updated_channel is not first_channel
                 # ensure interceptors are kept (gapic's logging interceptor, and metric interceptor)
                 if CrossSync.is_async:
                     unary_interceptors = updated_channel._unary_unary_interceptors

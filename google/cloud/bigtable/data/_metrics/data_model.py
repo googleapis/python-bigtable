@@ -165,6 +165,11 @@ class ActiveOperationMetric:
 
     @property
     def interceptor_metadata(self) -> tuple[str, str]:
+        """
+        returns a tuple to attach to the grpc metadata.
+
+        This metadata field will be read by the BigtableMetricsInterceptor to associate a request with an operation
+        """
         return OPERATION_INTERCEPTOR_METADATA_KEY, self.uuid
 
     @property

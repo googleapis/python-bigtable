@@ -83,10 +83,12 @@ from google.cloud.bigtable_v2.services.bigtable.transports import (
 )
 from google.cloud.bigtable_v2.services.bigtable import BigtableClient as GapicClient
 from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
+from google.cloud.bigtable.data._sync_autogen._swappable_channel import (
+    SwappableChannel as SwappableChannelType,
+)
 from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
     BigtableMetricsInterceptor as MetricInterceptorType,
 )
-from google.cloud.bigtable.data._sync_autogen._swappable_channel import SwappableChannel
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -164,6 +166,14 @@ class BigtableDataClient(ClientWithProject):
                 *args, **kwargs, channel=self._build_grpc_channel
             ),
         )
+        if (
+            credentials
+            and credentials.universe_domain != self.universe_domain
+            and (self._emulator_host is None)
+        ):
+            raise ValueError(
+                f"The configured universe domain ({self.universe_domain}) does not match the universe domain found in the credentials ({self._credentials.universe_domain}). If you haven't configured the universe domain explicitly, `googleapis.com` is the default."
+            )
         self._is_closed = CrossSync._Sync_Impl.Event()
         self.transport = cast(TransportType, self._gapic_client.transport)
         self._active_instances: Set[_WarmedInstanceKey] = set()
@@ -185,7 +195,7 @@ class BigtableDataClient(ClientWithProject):
                     stacklevel=2,
                 )
 
-    def _build_grpc_channel(self, *args, **kwargs) -> SwappableChannel:
+    def _build_grpc_channel(self, *args, **kwargs) -> SwappableChannelType:
         """This method is called by the gapic transport to create a grpc channel.
 
         The init arguments passed down are captured in a partial used by SwappableChannel
@@ -209,8 +219,24 @@ class BigtableDataClient(ClientWithProject):
                     self._metrics_interceptor,
                 )
 
-        new_channel = SwappableChannel(create_channel_fn)
+        new_channel = SwappableChannelType(create_channel_fn)
         return new_channel
+
+    @property
+    def universe_domain(self) -> str:
+        """Return the universe domain used by the client instance.
+
+        Returns:
+            str: The universe domain used by the client instance."""
+        return self._gapic_client.universe_domain
+
+    @property
+    def api_endpoint(self) -> str:
+        """Return the API endpoint used by the client instance.
+
+        Returns:
+            str: The API endpoint used by the client instance."""
+        return self._gapic_client.api_endpoint
 
     @staticmethod
     def _client_version() -> str:
@@ -315,10 +341,10 @@ class BigtableDataClient(ClientWithProject):
                 between `refresh_interval_min` and `refresh_interval_max`
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds"""
-        if not isinstance(self.transport.grpc_channel, SwappableChannel):
+        if not isinstance(self.transport.grpc_channel, SwappableChannelType):
             warnings.warn("Channel does not support auto-refresh.")
             return
-        super_channel: SwappableChannel = self.transport.grpc_channel
+        super_channel: SwappableChannelType = self.transport.grpc_channel
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )

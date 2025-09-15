@@ -26,6 +26,7 @@ from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.api_core import exceptions as core_exceptions
+from google.api_core import client_options
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data.mutations import DeleteAllFromRow
@@ -1041,6 +1042,97 @@ class TestBigtableDataClientAsync:
         assert client.project == "project-id"
         assert client._channel_refresh_task is None
 
+    @CrossSync.pytest
+    async def test_default_universe_domain(self):
+        """
+        When not passed, universe_domain should default to googleapis.com
+        """
+        async with self._make_client(project="project-id", credentials=None) as client:
+            assert client.universe_domain == "googleapis.com"
+            assert client.api_endpoint == "bigtable.googleapis.com"
+
+    @CrossSync.pytest
+    async def test_custom_universe_domain(self):
+        """test with a customized universe domain value and emulator enabled"""
+        universe_domain = "test-universe.test"
+        options = client_options.ClientOptions(universe_domain=universe_domain)
+        async with self._make_client(
+            project="project_id",
+            client_options=options,
+            use_emulator=True,
+            credentials=None,
+        ) as client:
+            assert client.universe_domain == universe_domain
+            assert client.api_endpoint == f"bigtable.{universe_domain}"
+
+    @CrossSync.pytest
+    async def test_configured_universe_domain_matches_GDU(self):
+        """that configured universe domain succeeds with matched GDU credentials."""
+        universe_domain = "googleapis.com"
+        options = client_options.ClientOptions(universe_domain=universe_domain)
+        async with self._make_client(
+            project="project_id", client_options=options, credentials=None
+        ) as client:
+            assert client.universe_domain == "googleapis.com"
+            assert client.api_endpoint == "bigtable.googleapis.com"
+
+    @CrossSync.pytest
+    async def test_credential_universe_domain_matches_GDU(self):
+        """Test with credentials"""
+        creds = AnonymousCredentials()
+        creds._universe_domain = "googleapis.com"
+        async with self._make_client(project="project_id", credentials=creds) as client:
+            assert client.universe_domain == "googleapis.com"
+            assert client.api_endpoint == "bigtable.googleapis.com"
+
+    @CrossSync.pytest
+    async def test_anomynous_credential_universe_domain(self):
+        """Anomynopus credentials should use default universe domain"""
+        creds = AnonymousCredentials()
+        async with self._make_client(project="project_id", credentials=creds) as client:
+            assert client.universe_domain == "googleapis.com"
+            assert client.api_endpoint == "bigtable.googleapis.com"
+
+    @CrossSync.pytest
+    async def test_configured_universe_domain_mismatched_credentials(self):
+        """Test that configured universe domain errors with mismatched universe
+        domain credentials.
+        """
+        universe_domain = "test-universe.test"
+        options = client_options.ClientOptions(universe_domain=universe_domain)
+        creds = AnonymousCredentials()
+        creds._universe_domain = "different-universe"
+        with pytest.raises(ValueError) as exc:
+            self._make_client(
+                project="project_id",
+                client_options=options,
+                use_emulator=False,
+                credentials=creds,
+            )
+        err_msg = (
+            f"The configured universe domain ({universe_domain}) does "
+            "not match the universe domain found in the credentials "
+            f"({creds.universe_domain}). If you haven't "
+            "configured the universe domain explicitly, `googleapis.com` "
+            "is the default."
+        )
+        assert exc.value.args[0] == err_msg
+
+    @CrossSync.pytest
+    async def test_configured_universe_domain_matches_credentials(self):
+        """Test that configured universe domain succeeds with matching universe
+        domain credentials.
+        """
+        universe_domain = "test-universe.test"
+        options = client_options.ClientOptions(universe_domain=universe_domain)
+        creds = AnonymousCredentials()
+        creds._universe_domain = universe_domain
+        async with self._make_client(
+            project="project_id", credentials=creds, client_options=options
+        ) as client:
+            assert client.universe_domain == universe_domain
+            assert client.api_endpoint == f"bigtable.{universe_domain}"
+
 
 @CrossSync.convert_class("TestTable", add_mapping_for_name="TestTable")
 class TestTableAsync:
@@ -1068,6 +1160,9 @@ class TestTableAsync:
     @CrossSync.pytest
     async def test_ctor(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
+        from google.cloud.bigtable.data._metrics import (
+            BigtableClientSideMetricsController,
+        )
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -1109,6 +1204,8 @@ class TestTableAsync:
         instance_key = _WarmedInstanceKey(table.instance_name, table.app_profile_id)
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(table)}
+        assert isinstance(table._metrics, BigtableClientSideMetricsController)
+        assert table._metrics.interceptor == client._metrics_interceptor
         assert table.default_operation_timeout == expected_operation_timeout
         assert table.default_attempt_timeout == expected_attempt_timeout
         assert (
@@ -1361,19 +1458,12 @@ class TestTableAsync:
         # expect x-goog-request-params tag
         assert metadata[0][0] == "x-goog-request-params"
         routing_str = metadata[0][1]
-        assert self._expected_routing_header(table) in routing_str
+        assert f"table_name={table.table_name}" in routing_str
         if include_app_profile:
             assert "app_profile_id=profile" in routing_str
         else:
             # empty app_profile_id should send empty string
             assert "app_profile_id=" in routing_str
-
-    @staticmethod
-    def _expected_routing_header(table):
-        """
-        the expected routing header for this _ApiSurface type
-        """
-        return f"table_name={table.table_name}"
 
 
 @CrossSync.convert_class(
@@ -1402,16 +1492,12 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
             client, instance_id, table_id, view_id, app_profile_id, **kwargs
         )
 
-    @staticmethod
-    def _expected_routing_header(view):
-        """
-        the expected routing header for this _ApiSurface type
-        """
-        return f"authorized_view_name={view.authorized_view_name}"
-
     @CrossSync.pytest
     async def test_ctor(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
+        from google.cloud.bigtable.data._metrics import (
+            BigtableClientSideMetricsController,
+        )
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -1460,6 +1546,8 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
         instance_key = _WarmedInstanceKey(view.instance_name, view.app_profile_id)
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(view)}
+        assert isinstance(view._metrics, BigtableClientSideMetricsController)
+        assert view._metrics.interceptor == client._metrics_interceptor
         assert view.default_operation_timeout == expected_operation_timeout
         assert view.default_attempt_timeout == expected_attempt_timeout
         assert (

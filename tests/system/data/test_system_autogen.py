@@ -102,10 +102,13 @@ class TempRowBuilder:
 
 
 class TestSystem:
+    def _make_client(self):
+        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
+        return CrossSync._Sync_Impl.DataClient(project=project)
+
     @pytest.fixture(scope="session")
     def client(self):
-        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        with CrossSync._Sync_Impl.DataClient(project=project) as client:
+        with self._make_client() as client:
             yield client
 
     @pytest.fixture(scope="session", params=TARGETS)
@@ -222,8 +225,7 @@ class TestSystem:
         to ensure new channel works"""
         temp_rows.add_row(b"row_key_1")
         temp_rows.add_row(b"row_key_2")
-        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        client = CrossSync._Sync_Impl.DataClient(project=project)
+        client = self._make_client()
         try:
             client._channel_refresh_task = CrossSync._Sync_Impl.create_task(
                 client._manage_channel,
@@ -242,7 +244,7 @@ class TestSystem:
                 assert len(rows_after_refresh) == 2
                 assert client.transport.grpc_channel is channel_wrapper
                 updated_channel = channel_wrapper._channel
-                assert channel_wrapper._channel is not first_channel
+                assert updated_channel is not first_channel
                 assert isinstance(
                     client.transport._logged_channel._interceptor, GapicInterceptor
                 )

@@ -264,17 +264,46 @@ class TrackedBackoffGenerator:
         self.subgenerator = exponential_sleep_generator(
             initial=initial, maximum=maximum, multiplier=multiplier
         )
+        self._next_override: float | None = None
 
     def __iter__(self):
         return self
 
+    def set_next(self, next_value: float):
+        """
+        Set the next backoff value, instead of generating one from subgenerator.
+        After the value is yielded, it will go back to using self.subgenerator.
+
+        If set_next is called twice before the next() is called, only the latest
+        value will be used and others discarded
+
+        Args:
+            next_value: the upcomming value to yield when next() is called
+        Raises:
+            ValueError: if next_value is negative
+        """
+        if next_value < 0:
+            raise ValueError("backoff value cannot be less than 0")
+        self._next_override = next_value
+
     def __next__(self) -> float:
-        next_backoff = next(self.subgenerator)
+        if self._next_override is not None:
+            next_backoff = self._next_override
+            self._next_override = None
+        else:
+            next_backoff = next(self.subgenerator)
         self.history.append(next_backoff)
         return next_backoff
 
     def get_attempt_backoff(self, attempt_idx) -> float:
         """
         returns the backoff time for a specific attempt index, starting at 0.
+
+        Args:
+            attempt_idx: the index of the attempt to return backoff for
+        Raises:
+            IndexError: if attempt_idx is negative, or not in history
         """
+        if attempt_idx < 0:
+            raise IndexError("received negative attempt number")
         return self.history[attempt_idx]
