@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import asyncio
 import pytest
 import uuid
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -28,14 +27,6 @@ class SystemTestRunner:
 
     used by standard system tests, and metrics tests
     """
-
-    @CrossSync.drop
-    @pytest.fixture(scope="session")
-    def event_loop(self):
-        loop = asyncio.get_event_loop()
-        yield loop
-        loop.stop()
-        loop.close()
 
     @pytest.fixture(scope="session")
     def init_table_id(self):
