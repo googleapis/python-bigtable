@@ -1353,6 +1353,7 @@ class _DataApiTargetAsync(abc.ABC):
                     ),
                     timeout=next(attempt_timeout_gen),
                     retry=None,
+                    metadata=[operation_metric.interceptor_metadata],
                 )
                 return [(s.row_key, s.offset_bytes) async for s in results]
 
