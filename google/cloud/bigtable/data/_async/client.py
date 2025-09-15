@@ -1108,9 +1108,7 @@ class _DataApiTargetAsync(abc.ABC):
         )
         return [row async for row in row_generator]
 
-    @CrossSync.convert(
-        replace_symbols={"__anext__": "__next__", "StopAsyncIteration": "StopIteration"}
-    )
+    @CrossSync.convert
     async def read_row(
         self,
         row_key: str | bytes,
@@ -1168,8 +1166,9 @@ class _DataApiTargetAsync(abc.ABC):
         )
         results_generator = row_merger.start_operation()
         try:
-            return await results_generator.__anext__()
-        except StopAsyncIteration:
+            results = [a async for a in results_generator]
+            return results[0]
+        except IndexError:
             return None
 
     @CrossSync.convert
