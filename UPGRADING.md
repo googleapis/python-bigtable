@@ -5,10 +5,10 @@ The v3.0.0 release of `google-cloud-bigtable` deprecates the previous `google.cl
   - `google.cloud.bigtable.data.BigtableDataClient`
   - `google.cloud.bigtable.data.BigtableDataClientAsync`
 - Admin API: 
+  - `google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient`
   - `google.cloud.bigtable.admin.BigtableInstanceAdminClient`
-  - `google.cloud.bigtable.admin.BigtableInstanceAdminClientAsync`
   - `google.cloud.bigtable.admin.BigtableTableAdminClient`
-  - `google.cloud.bigtable.admin.BigtableTableAdminClientAsync`
+  - `google.cloud.bigtable.admin.BigtableTableAdminAsyncClient`
 
 The deprecated client will remain available as an alternative API surface, which internally delegates calls to the respective new clients. For most users, existing code will continue to work as before. But there may be some breaking changes associated with this update, which are detailed in this document.
 
