@@ -1608,7 +1608,7 @@ class _DataApiTargetAsync(abc.ABC):
             false_case_mutations = [false_case_mutations]
         false_case_list = [m._to_pb() for m in false_case_mutations or []]
 
-        with self._metrics.create_operation(OperationType.CHECK_AND_MUTATE):
+        with self._metrics.create_operation(OperationType.CHECK_AND_MUTATE) as op:
             result = await self.client._gapic_client.check_and_mutate_row(
                 request=CheckAndMutateRowRequest(
                     true_mutations=true_case_list,
@@ -1624,6 +1624,7 @@ class _DataApiTargetAsync(abc.ABC):
                 ),
                 timeout=operation_timeout,
                 retry=None,
+                metadata=[op.interceptor_metadata],
             )
             return result.predicate_matched
 
