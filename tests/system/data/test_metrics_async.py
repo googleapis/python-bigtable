@@ -22,7 +22,7 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMet
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
 
-from . import TEST_FAMILY
+from . import TEST_FAMILY, SystemTestRunner
 
 __CROSS_SYNC_OUTPUT__ = "tests.system.data.test_metrics_autogen"
 
@@ -54,48 +54,12 @@ class _MetricsTestHandler(MetricsHandler):
         self.completed_operations.clear()
         self.completed_attempts.clear()
 
+    def __repr__(self):
+        return f"{self.__class__}(completed_operations={len(self.completed_operations)}, cancelled_operations={len(self.cancelled_operations)}, completed_attempts={len(self.completed_attempts)}"
 
-@CrossSync.convert_class(sync_name="TestSystem")
-class TestMetricsAsync:
 
-    @CrossSync.drop
-    @pytest.fixture(scope="session")
-    def event_loop(self):
-        loop = asyncio.get_event_loop()
-        yield loop
-        loop.stop()
-        loop.close()
-
-    @pytest.fixture(scope="session")
-    def init_table_id(self):
-        """
-        The table_id to use when creating a new test table
-        """
-        return f"test-metrics-{uuid.uuid4().hex}"
-
-    @pytest.fixture(scope="session")
-    def cluster_config(self, project_id):
-        """
-        Configuration for the clusters to use when creating a new instance
-        """
-        from google.cloud.bigtable_admin_v2 import types
-
-        cluster = {
-            "test-cluster": types.Cluster(
-                location=f"projects/{project_id}/locations/us-central1-b",
-                serve_nodes=1,
-            )
-        }
-        return cluster
-
-    @pytest.fixture(scope="session")
-    def column_family_config(self):
-        """
-        specify column families to create when creating a new test table
-        """
-        from google.cloud.bigtable_admin_v2 import types
-
-        return {TEST_FAMILY: types.ColumnFamily()}
+@CrossSync.convert_class(sync_name="TestMetrics")
+class TestMetricsAsync(SystemTestRunner):
 
     def _make_client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
@@ -136,7 +100,8 @@ class TestMetricsAsync:
             table._metrics.add_handler(handler)
             yield table
 
-    async def test_read_modify_write(self, target, temp_rows):
+    @CrossSync.pytest
+    async def test_read_modify_write(self, target, temp_rows, handler):
         from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 
         row_key = b"test-row-key"
@@ -146,6 +111,12 @@ class TestMetricsAsync:
             row_key, value=0, family=family, qualifier=qualifier
         )
         rule = IncrementRule(family, qualifier, 1)
-        result = await target.read_modify_write_row(row_key, rule)
+        await target.read_modify_write_row(row_key, rule)
         breakpoint()
-        print(result)
+        assert handler.total() == 1
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        operation = handler.completed_operations[0]
+        assert operation.final_status.value[0] == 0
+        assert operation.final_status.value[0] == 0
