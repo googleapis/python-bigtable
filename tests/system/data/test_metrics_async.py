@@ -98,6 +98,34 @@ class TestMetricsAsync(SystemTestRunner):
             yield table
 
     @CrossSync.pytest
+    async def test_read_rows(self, target, temp_rows, handler, cluster_config):
+        pass
+
+    @CrossSync.pytest
+    async def test_read_rows_stream(self, target, temp_rows, handler, cluster_config):
+        pass
+
+    @CrossSync.pytest
+    async def test_read_row(self, target, temp_rows, handler, cluster_config):
+        pass
+
+    @CrossSync.pytest
+    async def test_read_rows_sharded(self, target, temp_rows, handler, cluster_config):
+        pass
+
+    @CrossSync.pytest
+    async def test_bulk_mutate_rows(self, target, temp_rows, handler, cluster_config):
+        pass
+
+    @CrossSync.pytest
+    async def test_row_batcher(self, target, temp_rows, handler, cluster_config):
+        pass
+
+    @CrossSync.pytest
+    async def test_mutate_row(self, target, temp_rows, handler, cluster_config):
+        pass
+
+    @CrossSync.pytest
     async def test_sample_row_keys(self, target, temp_rows, handler, cluster_config):
         await target.sample_row_keys()
         # validate counts
