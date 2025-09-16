@@ -89,8 +89,8 @@ def _end_attempt(operation, exc, metadata):
 async def _get_metadata(source):
     """Helper to extract metadata from a call or RpcError"""
     try:
-        return (await source.trailing_metadata() or []) + (
-            await source.initial_metadata() or []
+        return (await source.trailing_metadata() or {}) + (
+            await source.initial_metadata() or {}
         )
     except Exception:
         # ignore errors while fetching metadata

@@ -127,24 +127,31 @@ class TestMetricsAsync(SystemTestRunner):
 
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="function")
-    async def temp_rows(self, target):
-        builder = CrossSync.TempRowBuilder(target)
+    async def temp_rows(self, table):
+        builder = CrossSync.TempRowBuilder(table)
         yield builder
         await builder.delete_rows()
 
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
-    async def target(self, client, table_id, instance_id, handler):
+    async def table(self, client, table_id, instance_id, handler):
         async with client.get_table(instance_id, table_id) as table:
             table._metrics.add_handler(handler)
             yield table
 
+    @CrossSync.convert
+    @CrossSync.pytest_fixture(scope="session")
+    async def authorized_view(self, client, table_id, instance_id, authorized_view_id, handler):
+        async with client.get_authorized_view(instance_id, table_id, authorized_view_id) as table:
+            table._metrics.add_handler(handler)
+            yield table
+
     @CrossSync.pytest
-    async def test_read_rows(self, target, temp_rows, handler, cluster_config):
+    async def test_read_rows(self, table, temp_rows, handler, cluster_config):
         await temp_rows.add_row(b"row_key_1")
         await temp_rows.add_row(b"row_key_2")
         handler.clear()
-        row_list = await target.read_rows({})
+        row_list = await table.read_rows({})
         assert len(row_list) == 2
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -174,12 +181,12 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_read_rows_stream(self, target, temp_rows, handler, cluster_config):
+    async def test_read_rows_stream(self, table, temp_rows, handler, cluster_config):
         await temp_rows.add_row(b"row_key_1")
         await temp_rows.add_row(b"row_key_2")
         handler.clear()
         # full table scan
-        generator = await target.read_rows_stream({})
+        generator = await table.read_rows_stream({})
         row_list = [r async for r in generator]
         assert len(row_list) == 2
         # validate counts
@@ -210,10 +217,10 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_read_row(self, target, temp_rows, handler, cluster_config):
+    async def test_read_row(self, table, temp_rows, handler, cluster_config):
         await temp_rows.add_row(b"row_key_1")
         handler.clear()
-        await target.read_row(b"row_key_1")
+        await table.read_row(b"row_key_1")
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
@@ -242,7 +249,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_read_rows_sharded(self, target, temp_rows, handler, cluster_config):
+    async def test_read_rows_sharded(self, table, temp_rows, handler, cluster_config):
         from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
         await temp_rows.add_row(b"a")
         await temp_rows.add_row(b"b")
@@ -251,7 +258,7 @@ class TestMetricsAsync(SystemTestRunner):
         query1 = ReadRowsQuery(row_keys=[b"a", b"c"])
         query2 = ReadRowsQuery(row_keys=[b"b", b"d"])
         handler.clear()
-        row_list = await target.read_rows_sharded([query1, query2])
+        row_list = await table.read_rows_sharded([query1, query2])
         assert len(row_list) == 4
         # validate counts
         assert len(handler.completed_operations) == 2
@@ -281,17 +288,17 @@ class TestMetricsAsync(SystemTestRunner):
             assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_bulk_mutate_rows(self, target, temp_rows, handler, cluster_config):
+    async def test_bulk_mutate_rows(self, table, temp_rows, handler, cluster_config):
         from google.cloud.bigtable.data.mutations import RowMutationEntry
 
         new_value = uuid.uuid4().hex.encode()
         row_key, mutation = await temp_rows.create_row_and_mutation(
-            target, new_value=new_value
+            table, new_value=new_value
         )
         bulk_mutation = RowMutationEntry(row_key, [mutation])
 
         handler.clear()
-        await target.bulk_mutate_rows([bulk_mutation])
+        await table.bulk_mutate_rows([bulk_mutation])
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
@@ -320,21 +327,21 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_mutate_rows_batcher(self, target, temp_rows, handler, cluster_config):
+    async def test_mutate_rows_batcher(self, table, temp_rows, handler, cluster_config):
         from google.cloud.bigtable.data.mutations import RowMutationEntry
 
         new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
         row_key, mutation = await temp_rows.create_row_and_mutation(
-            target, new_value=new_value
+            table, new_value=new_value
         )
         row_key2, mutation2 = await temp_rows.create_row_and_mutation(
-            target, new_value=new_value2
+            table, new_value=new_value2
         )
         bulk_mutation = RowMutationEntry(row_key, [mutation])
         bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
 
         handler.clear()
-        async with target.mutations_batcher() as batcher:
+        async with table.mutations_batcher() as batcher:
             await batcher.append(bulk_mutation)
             await batcher.append(bulk_mutation2)
         # validate counts
@@ -370,14 +377,14 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_mutate_row(self, target, temp_rows, handler, cluster_config):
+    async def test_mutate_row(self, table, temp_rows, handler, cluster_config):
         row_key = b"bulk_mutate"
         new_value = uuid.uuid4().hex.encode()
         row_key, mutation = await temp_rows.create_row_and_mutation(
-            target, new_value=new_value
+            table, new_value=new_value
         )
         handler.clear()
-        await target.mutate_row(row_key, mutation)
+        await table.mutate_row(row_key, mutation)
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
@@ -406,8 +413,8 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_sample_row_keys(self, target, temp_rows, handler, cluster_config):
-        await target.sample_row_keys()
+    async def test_sample_row_keys(self, table, temp_rows, handler, cluster_config):
+        await table.sample_row_keys()
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
@@ -436,7 +443,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_read_modify_write(self, target, temp_rows, handler, cluster_config):
+    async def test_read_modify_write(self, table, temp_rows, handler, cluster_config):
         from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 
         row_key = b"test-row-key"
@@ -446,7 +453,7 @@ class TestMetricsAsync(SystemTestRunner):
             row_key, value=0, family=family, qualifier=qualifier
         )
         rule = IncrementRule(family, qualifier, 1)
-        await target.read_modify_write_row(row_key, rule)
+        await table.read_modify_write_row(row_key, rule)
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
@@ -475,7 +482,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_check_and_mutate_row(self, target, temp_rows, handler, cluster_config):
+    async def test_check_and_mutate_row(self, table, temp_rows, handler, cluster_config):
         from google.cloud.bigtable.data.mutations import SetCell
         from google.cloud.bigtable.data.row_filters import ValueRangeFilter
 
@@ -491,7 +498,7 @@ class TestMetricsAsync(SystemTestRunner):
             family=TEST_FAMILY, qualifier=qualifier, new_value=true_mutation_value
         )
         predicate = ValueRangeFilter(0, 2)
-        await target.check_and_mutate_row(
+        await table.check_and_mutate_row(
             row_key,
             predicate,
             true_case_mutations=true_mutation,
@@ -525,7 +532,7 @@ class TestMetricsAsync(SystemTestRunner):
 
     @CrossSync.pytest
     async def test_check_and_mutate_row_failure_grpc(
-        self, target, temp_rows, handler, error_injector
+        self, table, temp_rows, handler, error_injector
     ):
         """
         Test failure in grpc layer by injecting an error into an interceptor
@@ -544,7 +551,7 @@ class TestMetricsAsync(SystemTestRunner):
         exc = RuntimeError("injected")
         error_injector.push(exc)
         with pytest.raises(RuntimeError):
-            await target.check_and_mutate_row(
+            await table.check_and_mutate_row(
                 row_key,
                 predicate=ValueRangeFilter(0,2),
             )
@@ -579,46 +586,8 @@ class TestMetricsAsync(SystemTestRunner):
 
 
     @CrossSync.pytest
-    async def test_check_and_mutate_row_failure_invalid_argument(
-        self, target, temp_rows, handler
-    ):
-        """
-        Test failure on backend by passing invalid argument
-
-        We expect a server-timing header, but no cluster/zone info
-        """
-        from google.cloud.bigtable.data.mutations import SetCell
-        from google.cloud.bigtable.data.row_filters import ValueRangeFilter
-
-        row_key = b"test-row-key"
-        family = TEST_FAMILY
-        qualifier = b"test-qualifier"
-        await temp_rows.add_row(row_key, value=1, family=family, qualifier=qualifier)
-
-        predicate = ValueRangeFilter(-1, -1)
-        with pytest.raises(GoogleAPICallError):
-            await target.check_and_mutate_row(
-                row_key,
-                predicate,
-            )
-        # validate counts
-        assert len(handler.completed_operations) == 1
-        assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
-        # validate operation
-        operation = handler.completed_operations[0]
-        assert isinstance(operation, CompletedOperationMetric)
-        assert operation.final_status.name == "INVALID_ARGUMENT"
-        assert operation.cluster_id == "unspecified"
-        assert operation.zone == "global"
-        # validate attempt
-        attempt = handler.completed_attempts[0]
-        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
-
-
-    @CrossSync.pytest
     async def test_check_and_mutate_row_failure_timeout(
-        self, target, temp_rows, handler, error_injector
+        self, table, temp_rows, handler
     ):
         """
         Test failure in gapic layer by passing very low timeout
@@ -638,7 +607,7 @@ class TestMetricsAsync(SystemTestRunner):
             family=TEST_FAMILY, qualifier=qualifier, new_value=true_mutation_value
         )
         with pytest.raises(GoogleAPICallError):
-            await target.check_and_mutate_row(
+            await table.check_and_mutate_row(
                 row_key,
                 predicate=ValueRangeFilter(0, 2),
                 true_case_mutations=true_mutation,
@@ -657,3 +626,40 @@ class TestMetricsAsync(SystemTestRunner):
         # validate attempt
         attempt = handler.completed_attempts[0]
         assert attempt.gfe_latency_ns is None
+
+    @CrossSync.pytest
+    async def test_check_and_mutate_row_failure_unauthorized(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        Test failure in backend by accessing an unauthorized family
+        """
+        from google.cloud.bigtable.data.mutations import SetCell
+        from google.cloud.bigtable.data.row_filters import ValueRangeFilter
+
+        row_key = b"test-row-key"
+        qualifier = b"test-qualifier"
+        mutation_value = b"true-mutation-value"
+        mutation = SetCell(
+            family="unauthorized", qualifier=qualifier, new_value=mutation_value
+        )
+        with pytest.raises(GoogleAPICallError):
+            await authorized_view.check_and_mutate_row(
+                row_key,
+                predicate=ValueRangeFilter(0, 2),
+                true_case_mutations=mutation,
+                false_case_mutations=mutation,
+            )
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "PERMISSION_DENIED"
+        assert operation.cluster_id == next(iter(cluster_config.keys()))
+        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
