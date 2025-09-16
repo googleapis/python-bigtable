@@ -181,6 +181,35 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
+    async def test_read_rows_failure_grpc(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting an error into an interceptor
+
+        No headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_rows_failure_timeout(self, table, temp_rows, handler):
+        """
+        Test failure in gapic layer by passing very low timeout
+
+        No grpc headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_rows_failure_unauthorized(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        Test failure in backend by accessing an unauthorized family
+        """
+        pass
+
+    @CrossSync.pytest
     async def test_read_rows_stream(self, table, temp_rows, handler, cluster_config):
         await temp_rows.add_row(b"row_key_1")
         await temp_rows.add_row(b"row_key_2")
@@ -217,6 +246,46 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
+    async def test_read_rows_stream_failure_grpc(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting an error into an interceptor
+
+        No headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_rows_stream_failure_timeout(
+        self, table, temp_rows, handler
+    ):
+        """
+        Test failure in gapic layer by passing very low timeout
+
+        No grpc headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_rows_stream_failure_unauthorized(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        Test failure in backend by accessing an unauthorized family
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_rows_stream_failure_mid_stream(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc stream
+        """
+        pass
+
+    @CrossSync.pytest
     async def test_read_row(self, table, temp_rows, handler, cluster_config):
         await temp_rows.add_row(b"row_key_1")
         handler.clear()
@@ -247,6 +316,35 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         assert attempt.application_blocking_time_ns > 0 and attempt.application_blocking_time_ns < operation.duration_ns
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
+
+    @CrossSync.pytest
+    async def test_read_row_failure_grpc(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting an error into an interceptor
+
+        No headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_row_failure_timeout(self, table, temp_rows, handler):
+        """
+        Test failure in gapic layer by passing very low timeout
+
+        No grpc headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_row_failure_unauthorized(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        Test failure in backend by accessing an unauthorized family
+        """
+        pass
 
     @CrossSync.pytest
     async def test_read_rows_sharded(self, table, temp_rows, handler, cluster_config):
@@ -288,6 +386,46 @@ class TestMetricsAsync(SystemTestRunner):
             assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
+    async def test_read_rows_sharded_failure_grpc(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting an error into an interceptor
+
+        No headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_rows_sharded_failure_timeout(
+        self, table, temp_rows, handler
+    ):
+        """
+        Test failure in gapic layer by passing very low timeout
+
+        No grpc headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_rows_sharded_failure_unauthorized(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        Test failure in backend by accessing an unauthorized family
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_rows_sharded_failure_mid_stream(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc stream
+        """
+        pass
+
+    @CrossSync.pytest
     async def test_bulk_mutate_rows(self, table, temp_rows, handler, cluster_config):
         from google.cloud.bigtable.data.mutations import RowMutationEntry
 
@@ -325,6 +463,37 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
+
+    @CrossSync.pytest
+    async def test_bulk_mutate_rows_failure_grpc(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting an error into an interceptor
+
+        No headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_bulk_mutate_rows_failure_timeout(
+        self, table, temp_rows, handler
+    ):
+        """
+        Test failure in gapic layer by passing very low timeout
+
+        No grpc headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_bulk_mutate_rows_failure_unauthorized(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        Test failure in backend by accessing an unauthorized family
+        """
+        pass
 
     @CrossSync.pytest
     async def test_mutate_rows_batcher(self, table, temp_rows, handler, cluster_config):
@@ -377,8 +546,39 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
+    async def test_mutate_rows_batcher_failure_grpc(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting an error into an interceptor
+
+        No headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_mutate_rows_batcher_failure_timeout(
+        self, table, temp_rows, handler
+    ):
+        """
+        Test failure in gapic layer by passing very low timeout
+
+        No grpc headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_mutate_rows_batcher_failure_unauthorized(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        Test failure in backend by accessing an unauthorized family
+        """
+        pass
+
+    @CrossSync.pytest
     async def test_mutate_row(self, table, temp_rows, handler, cluster_config):
-        row_key = b"bulk_mutate"
+        row_key = b"mutate"
         new_value = uuid.uuid4().hex.encode()
         row_key, mutation = await temp_rows.create_row_and_mutation(
             table, new_value=new_value
@@ -413,6 +613,38 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
+    async def test_mutate_row_failure_grpc(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting an error into an interceptor
+
+        No headers expected
+        """
+        pass
+
+
+    @CrossSync.pytest
+    async def test_mutate_row_failure_timeout(
+        self, table, temp_rows, handler
+    ):
+        """
+        Test failure in gapic layer by passing very low timeout
+
+        No grpc headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_mutate_row_failure_unauthorized(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        Test failure in backend by accessing an unauthorized family
+        """
+        pass
+
+    @CrossSync.pytest
     async def test_sample_row_keys(self, table, temp_rows, handler, cluster_config):
         await table.sample_row_keys()
         # validate counts
@@ -441,6 +673,48 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
+
+    @CrossSync.pytest
+    async def test_sample_row_keys_failure_grpc(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting an error into an interceptor
+
+        No headers expected
+        """
+        pass
+
+
+    @CrossSync.pytest
+    async def test_sample_row_keys_failure_timeout(
+        self, table, temp_rows, handler
+    ):
+        """
+        Test failure in gapic layer by passing very low timeout
+
+        No grpc headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_sample_row_keys_failure_unauthorized(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        Test failure in backend by accessing an unauthorized family
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_sample_row_keys_failure_mid_stream(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc stream
+        """
+        pass
+
 
     @CrossSync.pytest
     async def test_read_modify_write(self, table, temp_rows, handler, cluster_config):
@@ -480,6 +754,39 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
+
+    @CrossSync.pytest
+    async def test_read_modify_write_row_failure_grpc(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting an error into an interceptor
+
+        No headers expected
+        """
+        pass
+
+
+    @CrossSync.pytest
+    async def test_read_modify_write_row_failure_timeout(
+        self, table, temp_rows, handler
+    ):
+        """
+        Test failure in gapic layer by passing very low timeout
+
+        No grpc headers expected
+        """
+        pass
+
+    @CrossSync.pytest
+    async def test_read_modify_write_row_failure_unauthorized(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        Test failure in backend by accessing an unauthorized family
+        """
+        pass
+
 
     @CrossSync.pytest
     async def test_check_and_mutate_row(self, table, temp_rows, handler, cluster_config):
