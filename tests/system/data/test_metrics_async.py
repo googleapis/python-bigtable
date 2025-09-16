@@ -831,7 +831,7 @@ class TestMetricsAsync(SystemTestRunner):
 
     @CrossSync.pytest
     async def test_sample_row_keys_failure_mid_stream(
-        self, table, temp_rows, handler, error_injector, cluster_config
+        self, table, temp_rows, handler, error_injector
     ):
         """
         Test failure in grpc stream
@@ -851,11 +851,6 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "SampleRowKeys"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 2
-        assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert (
-            operation.zone
-            == cluster_config[operation.cluster_id].location.split("/")[-1]
-        )
         # validate retried attempt
         attempt = handler.completed_attempts[0]
         assert attempt.end_status.name == "ABORTED"

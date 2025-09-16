@@ -173,7 +173,8 @@ class AsyncBigtableMetricsInterceptor(
                 raise
             finally:
                 if call is not None:
-                    _end_attempt(operation, encountered_exc, await _get_metadata(call))
+                    metadata = await _get_metadata(encountered_exc or call)
+                    _end_attempt(operation, encountered_exc, metadata)
 
         try:
             return response_wrapper(await continuation(client_call_details, request))
