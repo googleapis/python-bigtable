@@ -19,7 +19,9 @@ from grpc import RpcError
 from grpc.aio import AioRpcError
 from grpc.aio import Metadata
 
+from google.api_core.exceptions import Aborted
 from google.api_core.exceptions import GoogleAPICallError
+from google.api_core.exceptions import PermissionDenied
 from google.cloud.bigtable_v2.types import ResponseParams
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric, CompletedAttemptMetric, ActiveOperationMetric, OperationState
@@ -66,19 +68,21 @@ class _MetricsTestHandler(MetricsHandler):
         return f"{self.__class__}(completed_operations={len(self.completed_operations)}, cancelled_operations={len(self.cancelled_operations)}, completed_attempts={len(self.completed_attempts)}"
 
 
-class _ErrorInjectorInterceptor(UnaryUnaryClientInterceptor):
+class _ErrorInjectorInterceptor(UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor):
     """
     Gprc interceptor used to inject errors into rpc calls, to test failures
     """
 
     def __init__(self):
         self._exc_list = []
+        self.fail_mid_stream = False
 
     def push(self, exc: Exception):
         self._exc_list.append(exc)
 
     def clear(self):
         self._exc_list.clear()
+        self.fail_mid_stream = False
 
     async def intercept_unary_unary(
         self, continuation, client_call_details, request
@@ -86,6 +90,41 @@ class _ErrorInjectorInterceptor(UnaryUnaryClientInterceptor):
         if self._exc_list:
             raise self._exc_list.pop(0)
         return await continuation(client_call_details, request)
+
+    async def intercept_unary_stream(
+        self, continuation, client_call_details, request
+    ):
+        if not self.fail_mid_stream and self._exc_list:
+            raise self._exc_list.pop(0)
+
+        response = await continuation(client_call_details, request)
+
+        if self.fail_mid_stream and self._exc_list:
+            exc = self._exc_list.pop(0)
+
+            class CallWrapper:
+                def __init__(self, call, exc_to_raise):
+                    self._call = call
+                    self._exc = exc_to_raise
+                    self._raised = False
+
+                def __aiter__(self):
+                    return self
+
+                async def __anext__(self):
+                    if not self._raised:
+                        self._raised = True
+                        if self._exc:
+                            raise self._exc
+                    return await self._call.__anext__()
+
+                def __getattr__(self, name):
+                    return getattr(self._call, name)
+
+            return CallWrapper(response, exc)
+
+        return response
+
 
 @CrossSync.convert_class(sync_name="TestMetrics")
 class TestMetricsAsync(SystemTestRunner):
@@ -123,6 +162,9 @@ class TestMetricsAsync(SystemTestRunner):
         async with self._make_client() as client:
             if CrossSync.is_async:
                 client.transport.grpc_channel._unary_unary_interceptors.append(error_injector)
+                client.transport.grpc_channel._unary_stream_interceptors.append(
+                    error_injector
+                )
             yield client
 
     @CrossSync.convert
@@ -679,41 +721,147 @@ class TestMetricsAsync(SystemTestRunner):
         self, table, temp_rows, handler, error_injector
     ):
         """
-        Test failure in grpc layer by injecting an error into an interceptor
-
+        Test failure in grpc layer by injecting errors into an interceptor
+        test with retryable errors, then a terminal one
+        
         No headers expected
         """
-        pass
+        exc = Aborted("injected")
+        num_retryable = 3
+        for i in range(num_retryable):
+            error_injector.push(exc)
+        error_injector.push(RuntimeError)
+        with pytest.raises(RuntimeError):
+            await table.sample_row_keys(retryable_errors=[Aborted])
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == num_retryable+1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "UNKNOWN"
+        assert operation.op_type.value == "SampleRowKeys"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) == num_retryable+1
+        assert operation.completed_attempts[0] == handler.completed_attempts[0]
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        # validate attempts
+        for i in range(num_retryable):
+            attempt = handler.completed_attempts[i]
+            assert isinstance(attempt, CompletedAttemptMetric)
+            assert attempt.end_status.name == "ABORTED"
+            assert attempt.gfe_latency_ns is None
+        final_attempt = handler.completed_attempts[num_retryable]
+        assert isinstance(final_attempt, CompletedAttemptMetric)
+        assert final_attempt.end_status.name == "UNKNOWN"
+        assert final_attempt.gfe_latency_ns is None
+
+    @CrossSync.pytest
+    async def test_sample_row_keys_failure_grpc_eventual_success(
+        self, table, temp_rows, handler, error_injector, cluster_config
+    ):
+        """
+        Test failure in grpc layer by injecting errors into an interceptor
+        test with retryable errors, then a success
+        
+        No headers expected
+        """
+        exc = Aborted("injected")
+        num_retryable = 3
+        for i in range(num_retryable):
+            error_injector.push(exc)
+        await table.sample_row_keys(retryable_errors=[Aborted])
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == num_retryable+1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "OK"
+        assert operation.op_type.value == "SampleRowKeys"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) == num_retryable+1
+        assert operation.completed_attempts[0] == handler.completed_attempts[0]
+        assert operation.cluster_id == next(iter(cluster_config.keys()))
+        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        # validate attempts
+        for i in range(num_retryable):
+            attempt = handler.completed_attempts[i]
+            assert isinstance(attempt, CompletedAttemptMetric)
+            assert attempt.end_status.name == "ABORTED"
+            assert attempt.gfe_latency_ns is None
+        final_attempt = handler.completed_attempts[num_retryable]
+        assert isinstance(final_attempt, CompletedAttemptMetric)
+        assert final_attempt.end_status.name == "OK"
+        assert final_attempt.gfe_latency_ns > 0 and final_attempt.gfe_latency_ns < operation.duration_ns
 
 
     @CrossSync.pytest
     async def test_sample_row_keys_failure_timeout(
-        self, table, temp_rows, handler
+        self, table, handler
     ):
         """
         Test failure in gapic layer by passing very low timeout
 
         No grpc headers expected
         """
-        pass
-
-    @CrossSync.pytest
-    async def test_sample_row_keys_failure_unauthorized(
-        self, handler, authorized_view, cluster_config
-    ):
-        """
-        Test failure in backend by accessing an unauthorized family
-        """
-        pass
+        with pytest.raises(GoogleAPICallError):
+            await table.sample_row_keys(operation_timeout=0.001)
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "DEADLINE_EXCEEDED"
+        assert operation.op_type.value == "SampleRowKeys"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) == 1
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert isinstance(attempt, CompletedAttemptMetric)
+        assert attempt.end_status.name == "DEADLINE_EXCEEDED"
+        assert attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
     async def test_sample_row_keys_failure_mid_stream(
-        self, table, temp_rows, handler, error_injector
+        self, table, temp_rows, handler, error_injector, cluster_config
     ):
         """
         Test failure in grpc stream
         """
-        pass
+        error_injector.fail_mid_stream = True
+        error_injector.push(Aborted("retryable"))
+        error_injector.push(PermissionDenied("terminal"))
+        with pytest.raises(PermissionDenied):
+            await table.sample_row_keys(retryable_errors=[Aborted])
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 2
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert operation.final_status.name == "PERMISSION_DENIED"
+        assert operation.op_type.value == "SampleRowKeys"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) == 2
+        assert operation.cluster_id == next(iter(cluster_config.keys()))
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
+        # validate retried attempt
+        attempt = handler.completed_attempts[0]
+        assert attempt.end_status.name == "ABORTED"
+        # validate final attempt
+        final_attempt = handler.completed_attempts[-1]
+        assert final_attempt.end_status.name == "PERMISSION_DENIED"
 
 
     @CrossSync.pytest
