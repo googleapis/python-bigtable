@@ -90,6 +90,7 @@ def _retry_exception_factory(
     exc_list: list[Exception],
     reason: RetryFailureReason,
     timeout_val: float | None,
+    operation: "ActiveOperationMetric" | None=None,
 ) -> tuple[Exception, Exception | None]:
     """
     Build retry error based on exceptions encountered during operation
@@ -117,6 +118,16 @@ def _retry_exception_factory(
     # use the retry exception group as the cause of the exception
     cause_exc: Exception | None = RetryExceptionGroup(exc_list) if exc_list else None
     source_exc.__cause__ = cause_exc
+    if operation:
+        try:
+            if isinstance(source_exc, core_exceptions.GoogleAPICallError) and source_exc.errors:
+                rpc_error = source_exc.errors[-1]
+                metadata = list(rpc_error.trailing_metadata()) + list(rpc_error.initial_metadata())
+                operation.add_response_metadata({k:v for k,v in metadata})
+        except Exception:
+            # ignore errors in metadata collection
+            pass
+        operation.end_with_status(source_exc)
     return source_exc, cause_exc
 
 

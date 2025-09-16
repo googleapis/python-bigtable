@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Sequence, TYPE_CHECKING
 
 import time
+from functools import partial
 
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
@@ -121,7 +122,7 @@ class _ReadRowsOperationAsync:
             self._predicate,
             self._operation_metric.backoff_generator,
             self.operation_timeout,
-            exception_factory=_retry_exception_factory,
+            exception_factory=partial(_retry_exception_factory, operation=self._operation_metric),
         )
 
     def _read_rows_attempt(self) -> CrossSync.Iterable[Row]:
@@ -340,8 +341,6 @@ class _ReadRowsOperationAsync:
                 except CrossSync.StopIteration:
                     raise InvalidChunk("premature end of stream")
         except Exception as generic_exception:
-            if not self._predicate(generic_exception):
-                self._operation_metric.end_attempt_with_status(generic_exception)
             raise generic_exception
         else:
             self._operation_metric.end_with_success()
