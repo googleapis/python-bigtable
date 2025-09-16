@@ -899,7 +899,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_read_modify_write_row_failure_grpc(
+    async def test_read_modify_write_failure_grpc(
         self, table, temp_rows, handler, error_injector
     ):
         """
@@ -907,11 +907,54 @@ class TestMetricsAsync(SystemTestRunner):
 
         No headers expected
         """
-        pass
+        from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
+
+        row_key = b"test-row-key"
+        family = TEST_FAMILY
+        qualifier = b"test-qualifier"
+        await temp_rows.add_row(
+            row_key, value=0, family=family, qualifier=qualifier
+        )
+        rule = IncrementRule(family, qualifier, 1)
+
+        # trigger an exception
+        exc = RuntimeError("injected")
+        error_injector.push(exc)
+        with pytest.raises(RuntimeError):
+            await table.read_modify_write_row(row_key, rule)
+
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "UNKNOWN"
+        assert operation.is_streaming is False
+        assert operation.op_type.value == "ReadModifyWriteRow"
+        assert len(operation.completed_attempts) == len(handler.completed_attempts)
+        assert operation.completed_attempts == handler.completed_attempts
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        assert operation.duration_ns > 0 and operation.duration_ns < 1e9
+        assert (
+            operation.first_response_latency_ns is None
+        )  # populated for read_rows only
+        assert operation.flow_throttling_time_ns == 0
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert isinstance(attempt, CompletedAttemptMetric)
+        assert attempt.duration_ns > 0
+        assert attempt.end_status.name == "UNKNOWN"
+        assert attempt.backoff_before_attempt_ns == 0
+        assert attempt.gfe_latency_ns is None
+        assert attempt.application_blocking_time_ns == 0
+        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
 
     @CrossSync.pytest
-    async def test_read_modify_write_row_failure_timeout(
+    async def test_read_modify_write_failure_timeout(
         self, table, temp_rows, handler
     ):
         """
@@ -919,16 +962,60 @@ class TestMetricsAsync(SystemTestRunner):
 
         No grpc headers expected
         """
-        pass
+        from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
+
+        row_key = b"test-row-key"
+        family = TEST_FAMILY
+        qualifier = b"test-qualifier"
+        await temp_rows.add_row(
+            row_key, value=0, family=family, qualifier=qualifier
+        )
+        rule = IncrementRule(family, qualifier, 1)
+        with pytest.raises(GoogleAPICallError):
+            await table.read_modify_write_row(row_key, rule, operation_timeout=0.001)
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "DEADLINE_EXCEEDED"
+        assert operation.op_type.value == "ReadModifyWriteRow"
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
-    async def test_read_modify_write_row_failure_unauthorized(
+    async def test_read_modify_write_failure_unauthorized(
         self, handler, authorized_view, cluster_config
     ):
         """
         Test failure in backend by accessing an unauthorized family
         """
-        pass
+        from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
+
+        row_key = b"test-row-key"
+        qualifier = b"test-qualifier"
+        rule = IncrementRule("unauthorized", qualifier, 1)
+        with pytest.raises(GoogleAPICallError):
+            await authorized_view.read_modify_write_row(row_key, rule)
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "PERMISSION_DENIED"
+        assert operation.op_type.value == "ReadModifyWriteRow"
+        assert operation.cluster_id == next(iter(cluster_config.keys()))
+        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
 
 
     @CrossSync.pytest
