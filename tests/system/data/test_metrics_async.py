@@ -15,14 +15,25 @@ import asyncio
 import os
 import pytest
 import uuid
+from grpc import RpcError
+from grpc.aio import AioRpcError
+from grpc.aio import Metadata
 
+from google.api_core.exceptions import GoogleAPICallError
+from google.cloud.bigtable_v2.types import ResponseParams
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric, CompletedAttemptMetric, ActiveOperationMetric, OperationState
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
-
 from . import TEST_FAMILY, SystemTestRunner
+
+if CrossSync.is_async:
+    from grpc.aio import UnaryUnaryClientInterceptor
+    from grpc.aio import UnaryStreamClientInterceptor
+else:
+    from grpc import UnaryUnaryClientInterceptor
+    from grpc import UnaryStreamClientInterceptor
 
 __CROSS_SYNC_OUTPUT__ = "tests.system.data.test_metrics_autogen"
 
@@ -55,6 +66,27 @@ class _MetricsTestHandler(MetricsHandler):
         return f"{self.__class__}(completed_operations={len(self.completed_operations)}, cancelled_operations={len(self.cancelled_operations)}, completed_attempts={len(self.completed_attempts)}"
 
 
+class _ErrorInjectorInterceptor(UnaryUnaryClientInterceptor):
+    """
+    Gprc interceptor used to inject errors into rpc calls, to test failures
+    """
+
+    def __init__(self):
+        self._exc_list = []
+
+    def push(self, exc: Exception):
+        self._exc_list.append(exc)
+
+    def clear(self):
+        self._exc_list.clear()
+
+    async def intercept_unary_unary(
+        self, continuation, client_call_details, request
+    ):
+        if self._exc_list:
+            raise self._exc_list.pop(0)
+        return await continuation(client_call_details, request)
+
 @CrossSync.convert_class(sync_name="TestMetrics")
 class TestMetricsAsync(SystemTestRunner):
 
@@ -74,16 +106,23 @@ class TestMetricsAsync(SystemTestRunner):
     def handler(self):
         return _MetricsTestHandler()
 
+    @pytest.fixture(scope="session")
+    def error_injector(self):
+        return _ErrorInjectorInterceptor()
+
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="function", autouse=True)
-    async def _clear_handler(self, handler):
-        """Clear handler between each test"""
+    async def _clear_state(self, handler, error_injector):
+        """Clear handler and interceptor between each test"""
         handler.clear()
+        error_injector.clear()
 
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
-    async def client(self):
+    async def client(self, error_injector):
         async with self._make_client() as client:
+            if CrossSync.is_async:
+                client.transport.grpc_channel._unary_unary_interceptors.append(error_injector)
             yield client
 
     @CrossSync.convert
@@ -447,11 +486,6 @@ class TestMetricsAsync(SystemTestRunner):
             row_key, value=1, family=family, qualifier=qualifier
         )
 
-
-        false_mutation_value = b"false-mutation-value"
-        false_mutation = SetCell(
-            family=TEST_FAMILY, qualifier=qualifier, new_value=false_mutation_value
-        )
         true_mutation_value = b"true-mutation-value"
         true_mutation = SetCell(
             family=TEST_FAMILY, qualifier=qualifier, new_value=true_mutation_value
@@ -461,7 +495,6 @@ class TestMetricsAsync(SystemTestRunner):
             row_key,
             predicate,
             true_case_mutations=true_mutation,
-            false_case_mutations=false_mutation,
         )
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -489,3 +522,138 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
+
+    @CrossSync.pytest
+    async def test_check_and_mutate_row_failure_grpc(
+        self, target, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting an error into an interceptor
+
+        No headers expected
+        """
+        from google.cloud.bigtable.data.mutations import SetCell
+        from google.cloud.bigtable.data.row_filters import ValueRangeFilter
+
+        row_key = b"test-row-key"
+        family = TEST_FAMILY
+        qualifier = b"test-qualifier"
+        await temp_rows.add_row(row_key, value=1, family=family, qualifier=qualifier)
+
+        # trigger an exception
+        exc = RuntimeError("injected")
+        error_injector.push(exc)
+        with pytest.raises(RuntimeError):
+            await target.check_and_mutate_row(
+                row_key,
+                predicate=ValueRangeFilter(0,2),
+            )
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "UNKNOWN"
+        assert operation.is_streaming is False
+        assert operation.op_type.value == "CheckAndMutateRow"
+        assert len(operation.completed_attempts) == len(handler.completed_attempts)
+        assert operation.completed_attempts == handler.completed_attempts
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        assert operation.duration_ns > 0 and operation.duration_ns < 1e9
+        assert (
+            operation.first_response_latency_ns is None
+        )  # populated for read_rows only
+        assert operation.flow_throttling_time_ns == 0
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert isinstance(attempt, CompletedAttemptMetric)
+        assert attempt.duration_ns > 0
+        assert attempt.end_status.name == "UNKNOWN"
+        assert attempt.backoff_before_attempt_ns == 0
+        assert attempt.gfe_latency_ns is None
+        assert attempt.application_blocking_time_ns == 0
+        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
+
+
+    @CrossSync.pytest
+    async def test_check_and_mutate_row_failure_invalid_argument(
+        self, target, temp_rows, handler
+    ):
+        """
+        Test failure on backend by passing invalid argument
+
+        We expect a server-timing header, but no cluster/zone info
+        """
+        from google.cloud.bigtable.data.mutations import SetCell
+        from google.cloud.bigtable.data.row_filters import ValueRangeFilter
+
+        row_key = b"test-row-key"
+        family = TEST_FAMILY
+        qualifier = b"test-qualifier"
+        await temp_rows.add_row(row_key, value=1, family=family, qualifier=qualifier)
+
+        predicate = ValueRangeFilter(-1, -1)
+        with pytest.raises(GoogleAPICallError):
+            await target.check_and_mutate_row(
+                row_key,
+                predicate,
+            )
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "INVALID_ARGUMENT"
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
+
+
+    @CrossSync.pytest
+    async def test_check_and_mutate_row_failure_timeout(
+        self, target, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in gapic layer by passing very low timeout
+
+        No grpc headers expected
+        """
+        from google.cloud.bigtable.data.mutations import SetCell
+        from google.cloud.bigtable.data.row_filters import ValueRangeFilter
+
+        row_key = b"test-row-key"
+        family = TEST_FAMILY
+        qualifier = b"test-qualifier"
+        await temp_rows.add_row(row_key, value=1, family=family, qualifier=qualifier)
+
+        true_mutation_value = b"true-mutation-value"
+        true_mutation = SetCell(
+            family=TEST_FAMILY, qualifier=qualifier, new_value=true_mutation_value
+        )
+        with pytest.raises(GoogleAPICallError):
+            await target.check_and_mutate_row(
+                row_key,
+                predicate=ValueRangeFilter(0, 2),
+                true_case_mutations=true_mutation,
+                operation_timeout=0.001
+            )
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "DEADLINE_EXCEEDED"
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert attempt.gfe_latency_ns is None
