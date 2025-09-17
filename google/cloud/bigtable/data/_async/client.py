@@ -1391,7 +1391,7 @@ class _DataApiTargetAsync(abc.ABC):
                 predicate,
                 operation_metric.backoff_generator,
                 operation_timeout,
-                exception_factory=_retry_exception_factory,
+                exception_factory=partial(_retry_exception_factory, operation=operation_metric)
             )
 
     @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})

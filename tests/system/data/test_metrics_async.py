@@ -543,7 +543,38 @@ class TestMetricsAsync(SystemTestRunner):
 
         No headers expected
         """
-        pass
+        await temp_rows.add_row(b"row_key_1")
+        handler.clear()
+        exc = Aborted("injected")
+        num_retryable = 2
+        for i in range(num_retryable):
+            error_injector.push(exc)
+        error_injector.push(PermissionDenied("terminal"))
+        with pytest.raises(PermissionDenied):
+            await table.read_row(b"row_key_1", retryable_errors=[Aborted])
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == num_retryable + 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "PERMISSION_DENIED"
+        assert operation.op_type.value == "ReadRows"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) == num_retryable + 1
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        # validate attempts
+        for i in range(num_retryable):
+            attempt = handler.completed_attempts[i]
+            assert isinstance(attempt, CompletedAttemptMetric)
+            assert attempt.end_status.name == "ABORTED"
+            assert attempt.gfe_latency_ns is None
+        final_attempt = handler.completed_attempts[num_retryable]
+        assert isinstance(final_attempt, CompletedAttemptMetric)
+        assert final_attempt.end_status.name == "PERMISSION_DENIED"
+        assert final_attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
     async def test_read_row_failure_timeout(self, table, temp_rows, handler):
@@ -552,7 +583,28 @@ class TestMetricsAsync(SystemTestRunner):
 
         No grpc headers expected
         """
-        pass
+        await temp_rows.add_row(b"row_key_1")
+        handler.clear()
+        with pytest.raises(GoogleAPICallError):
+            await table.read_row(b"row_key_1", operation_timeout=0.001)
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "DEADLINE_EXCEEDED"
+        assert operation.op_type.value == "ReadRows"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) == 1
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert isinstance(attempt, CompletedAttemptMetric)
+        assert attempt.end_status.name == "DEADLINE_EXCEEDED"
+        assert attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
     async def test_read_row_failure_unauthorized(
@@ -561,7 +613,29 @@ class TestMetricsAsync(SystemTestRunner):
         """
         Test failure in backend by accessing an unauthorized family
         """
-        pass
+        from google.cloud.bigtable.data.row_filters import FamilyNameRegexFilter
+
+        with pytest.raises(GoogleAPICallError) as e:
+            await authorized_view.read_row(b"any_row", row_filter=FamilyNameRegexFilter("unauthorized"))
+        assert e.value.grpc_status_code.name == "PERMISSION_DENIED"
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "PERMISSION_DENIED"
+        assert operation.op_type.value == "ReadRows"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) == 1
+        assert operation.cluster_id == next(iter(cluster_config.keys()))
+        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert isinstance(attempt, CompletedAttemptMetric)
+        assert attempt.end_status.name == "PERMISSION_DENIED"
+        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
 
     @CrossSync.pytest
     async def test_read_rows_sharded(self, table, temp_rows, handler, cluster_config):
@@ -611,7 +685,46 @@ class TestMetricsAsync(SystemTestRunner):
 
         No headers expected
         """
-        pass
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+
+        await temp_rows.add_row(b"a")
+        await temp_rows.add_row(b"b")
+        query1 = ReadRowsQuery(row_keys=[b"a"])
+        query2 = ReadRowsQuery(row_keys=[b"b"])
+        handler.clear()
+
+        error_injector.push(PermissionDenied("terminal"))
+        with pytest.raises(ShardedReadRowsExceptionGroup) as e:
+            await table.read_rows_sharded([query1, query2])
+        assert len(e.value.exceptions) == 1
+        assert isinstance(e.value.exceptions[0].__cause__, PermissionDenied)
+
+        assert len(handler.completed_operations) == 2
+        assert len(handler.completed_attempts) == 2
+        assert len(handler.cancelled_operations) == 0
+        # sort operations by status
+        failed_op = next(op for op in handler.completed_operations if op.final_status.name != "OK")
+        success_op = next(op for op in handler.completed_operations if op.final_status.name == "OK")
+        # validate failed operation
+        assert failed_op.final_status.name == "PERMISSION_DENIED"
+        assert failed_op.op_type.value == "ReadRows"
+        assert failed_op.is_streaming is True
+        assert len(failed_op.completed_attempts) == 1
+        assert failed_op.cluster_id == "unspecified"
+        assert failed_op.zone == "global"
+        # validate failed attempt
+        failed_attempt = failed_op.completed_attempts[0]
+        assert failed_attempt.end_status.name == "PERMISSION_DENIED"
+        assert failed_attempt.gfe_latency_ns is None
+        # validate successful operation
+        assert success_op.final_status.name == "OK"
+        assert success_op.op_type.value == "ReadRows"
+        assert success_op.is_streaming is True
+        assert len(success_op.completed_attempts) == 1
+        # validate successful attempt
+        success_attempt = success_op.completed_attempts[0]
+        assert success_attempt.end_status.name == "OK"
 
     @CrossSync.pytest
     async def test_read_rows_sharded_failure_timeout(
@@ -622,7 +735,38 @@ class TestMetricsAsync(SystemTestRunner):
 
         No grpc headers expected
         """
-        pass
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+        from google.api_core.exceptions import DeadlineExceeded
+
+        await temp_rows.add_row(b"a")
+        await temp_rows.add_row(b"b")
+        query1 = ReadRowsQuery(row_keys=[b"a"])
+        query2 = ReadRowsQuery(row_keys=[b"b"])
+        handler.clear()
+        with pytest.raises(ShardedReadRowsExceptionGroup) as e:
+            await table.read_rows_sharded([query1, query2], operation_timeout=0.005)
+        assert len(e.value.exceptions) == 2
+        for sub_exc in e.value.exceptions:
+            assert isinstance(sub_exc.__cause__, DeadlineExceeded)
+        # both shards should fail
+        assert len(handler.completed_operations) == 2
+        assert len(handler.completed_attempts) == 2
+        assert len(handler.cancelled_operations) == 0
+        # validate operations
+        for operation in handler.completed_operations:
+            assert isinstance(operation, CompletedOperationMetric)
+            assert operation.final_status.name == "DEADLINE_EXCEEDED"
+            assert operation.op_type.value == "ReadRows"
+            assert operation.is_streaming is True
+            assert len(operation.completed_attempts) == 1
+            assert operation.cluster_id == "unspecified"
+            assert operation.zone == "global"
+            # validate attempt
+            attempt = operation.completed_attempts[0]
+            assert isinstance(attempt, CompletedAttemptMetric)
+            assert attempt.end_status.name == "DEADLINE_EXCEEDED"
+            assert attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
     async def test_read_rows_sharded_failure_unauthorized(
@@ -631,7 +775,44 @@ class TestMetricsAsync(SystemTestRunner):
         """
         Test failure in backend by accessing an unauthorized family
         """
-        pass
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.row_filters import FamilyNameRegexFilter
+        from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+
+        query1 = ReadRowsQuery(row_filter=FamilyNameRegexFilter("unauthorized"))
+        query2 = ReadRowsQuery(row_filter=FamilyNameRegexFilter(TEST_FAMILY))
+        handler.clear()
+        with pytest.raises(ShardedReadRowsExceptionGroup) as e:
+            await authorized_view.read_rows_sharded([query1, query2])
+        assert len(e.value.exceptions) == 1
+        assert isinstance(e.value.exceptions[0].__cause__, GoogleAPICallError)
+        assert e.value.exceptions[0].__cause__.grpc_status_code.name == "PERMISSION_DENIED"
+        # one shard will fail, the other will succeed
+        assert len(handler.completed_operations) == 2
+        assert len(handler.completed_attempts) == 2
+        assert len(handler.cancelled_operations) == 0
+        # sort operations by status
+        failed_op = next(op for op in handler.completed_operations if op.final_status.name != "OK")
+        success_op = next(op for op in handler.completed_operations if op.final_status.name == "OK")
+        # validate failed operation
+        assert failed_op.final_status.name == "PERMISSION_DENIED"
+        assert failed_op.op_type.value == "ReadRows"
+        assert failed_op.is_streaming is True
+        assert len(failed_op.completed_attempts) == 1
+        assert failed_op.cluster_id == next(iter(cluster_config.keys()))
+        assert failed_op.zone == cluster_config[failed_op.cluster_id].location.split("/")[-1]
+        # validate failed attempt
+        failed_attempt = failed_op.completed_attempts[0]
+        assert failed_attempt.end_status.name == "PERMISSION_DENIED"
+        assert failed_attempt.gfe_latency_ns >= 0 and failed_attempt.gfe_latency_ns < failed_op.duration_ns
+        # validate successful operation
+        assert success_op.final_status.name == "OK"
+        assert success_op.op_type.value == "ReadRows"
+        assert success_op.is_streaming is True
+        assert len(success_op.completed_attempts) == 1
+        # validate successful attempt
+        success_attempt = success_op.completed_attempts[0]
+        assert success_attempt.end_status.name == "OK"
 
     @CrossSync.pytest
     async def test_read_rows_sharded_failure_mid_stream(
@@ -640,7 +821,32 @@ class TestMetricsAsync(SystemTestRunner):
         """
         Test failure in grpc stream
         """
-        pass
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+
+        await temp_rows.add_row(b"a")
+        await temp_rows.add_row(b"b")
+        query1 = ReadRowsQuery(row_keys=[b"a"])
+        query2 = ReadRowsQuery(row_keys=[b"b"])
+        handler.clear()
+        error_injector.fail_mid_stream = True
+        error_injector.push(PermissionDenied("terminal"))
+        error_injector.push(PermissionDenied("terminal"))
+        with pytest.raises(ShardedReadRowsExceptionGroup) as e:
+            await table.read_rows_sharded([query1, query2])
+        assert len(e.value.exceptions) == 2
+        assert isinstance(e.value.exceptions[0].__cause__, PermissionDenied)
+        assert len(handler.completed_operations) == 2
+        assert len(handler.completed_attempts) == 2
+        assert len(handler.cancelled_operations) == 0
+        for operation in handler.completed_operations:
+            assert operation.final_status.name == "PERMISSION_DENIED"
+            assert operation.op_type.value == "ReadRows"
+            assert operation.is_streaming is True
+            assert len(operation.completed_attempts) == 1
+            # validate attempt
+            attempt = operation.completed_attempts[0]
+            assert attempt.end_status.name == "PERMISSION_DENIED"
 
     @CrossSync.pytest
     async def test_bulk_mutate_rows(self, table, temp_rows, handler, cluster_config):
