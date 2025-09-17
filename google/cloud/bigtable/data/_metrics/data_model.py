@@ -418,8 +418,11 @@ class ActiveOperationMetric:
 
         The operation is automatically ended on exit, with the status determined
         by the exception type and value.
+
+        If operation was already ended manually, do nothing.
         """
-        if exc_val is None:
-            self.end_with_success()
-        else:
-            self.end_with_status(exc_val)
+        if not self.state == OperationState.COMPLETED:
+            if exc_val is None:
+                self.end_with_success()
+            else:
+                self.end_with_status(exc_val)

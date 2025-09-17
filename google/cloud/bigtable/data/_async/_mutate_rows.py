@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import Sequence, TYPE_CHECKING
 
+from functools import partial
+
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
 import google.cloud.bigtable_v2.types.bigtable as types_pb
@@ -106,7 +108,9 @@ class _MutateRowsOperationAsync:
             self.is_retryable,
             metric.backoff_generator,
             operation_timeout,
-            exception_factory=_retry_exception_factory,
+            exception_factory=partial(
+                _retry_exception_factory, operation=metric
+            ),
         )
         # initialize state
         self.timeout_generator = _attempt_timeout_generator(
