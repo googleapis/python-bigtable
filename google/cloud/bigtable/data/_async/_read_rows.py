@@ -18,7 +18,6 @@ from __future__ import annotations
 from typing import Sequence, TYPE_CHECKING
 
 import time
-from functools import partial
 
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB

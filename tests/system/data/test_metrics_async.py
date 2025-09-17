@@ -15,16 +15,17 @@ import asyncio
 import os
 import pytest
 import uuid
-from grpc import RpcError
-from grpc.aio import AioRpcError
-from grpc.aio import Metadata
 
 from google.api_core.exceptions import Aborted
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core.exceptions import PermissionDenied
-from google.cloud.bigtable_v2.types import ResponseParams
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
-from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric, CompletedAttemptMetric, ActiveOperationMetric, OperationState
+from google.cloud.bigtable.data._metrics.data_model import (
+    CompletedOperationMetric,
+    CompletedAttemptMetric,
+    ActiveOperationMetric,
+    OperationState,
+)
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -69,7 +70,9 @@ class _MetricsTestHandler(MetricsHandler):
         return f"{self.__class__}(completed_operations={len(self.completed_operations)}, cancelled_operations={len(self.cancelled_operations)}, completed_attempts={len(self.completed_attempts)}"
 
 
-class _ErrorInjectorInterceptor(UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor):
+class _ErrorInjectorInterceptor(
+    UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor
+):
     """
     Gprc interceptor used to inject errors into rpc calls, to test failures
     """
@@ -85,16 +88,12 @@ class _ErrorInjectorInterceptor(UnaryUnaryClientInterceptor, UnaryStreamClientIn
         self._exc_list.clear()
         self.fail_mid_stream = False
 
-    async def intercept_unary_unary(
-        self, continuation, client_call_details, request
-    ):
+    async def intercept_unary_unary(self, continuation, client_call_details, request):
         if self._exc_list:
             raise self._exc_list.pop(0)
         return await continuation(client_call_details, request)
 
-    async def intercept_unary_stream(
-        self, continuation, client_call_details, request
-    ):
+    async def intercept_unary_stream(self, continuation, client_call_details, request):
         if not self.fail_mid_stream and self._exc_list:
             raise self._exc_list.pop(0)
 
@@ -129,7 +128,6 @@ class _ErrorInjectorInterceptor(UnaryUnaryClientInterceptor, UnaryStreamClientIn
 
 @CrossSync.convert_class(sync_name="TestMetrics")
 class TestMetricsAsync(SystemTestRunner):
-
     @CrossSync.drop
     @pytest.fixture(scope="session")
     def event_loop(self):
@@ -162,7 +160,9 @@ class TestMetricsAsync(SystemTestRunner):
     async def client(self, error_injector):
         async with self._make_client() as client:
             if CrossSync.is_async:
-                client.transport.grpc_channel._unary_unary_interceptors.append(error_injector)
+                client.transport.grpc_channel._unary_unary_interceptors.append(
+                    error_injector
+                )
                 client.transport.grpc_channel._unary_stream_interceptors.append(
                     error_injector
                 )
@@ -184,8 +184,12 @@ class TestMetricsAsync(SystemTestRunner):
 
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
-    async def authorized_view(self, client, table_id, instance_id, authorized_view_id, handler):
-        async with client.get_authorized_view(instance_id, table_id, authorized_view_id) as table:
+    async def authorized_view(
+        self, client, table_id, instance_id, authorized_view_id, handler
+    ):
+        async with client.get_authorized_view(
+            instance_id, table_id, authorized_view_id
+        ) as table:
             table._metrics.add_handler(handler)
             yield table
 
@@ -209,9 +213,15 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(operation.completed_attempts) == 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
-        assert operation.first_response_latency_ns is not None and operation.first_response_latency_ns < operation.duration_ns
+        assert (
+            operation.first_response_latency_ns is not None
+            and operation.first_response_latency_ns < operation.duration_ns
+        )
         assert operation.flow_throttling_time_ns == 0
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -219,8 +229,13 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
         assert attempt.end_status.value[0] == 0
         assert attempt.backoff_before_attempt_ns == 0
-        assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
-        assert attempt.application_blocking_time_ns > 0 and attempt.application_blocking_time_ns < operation.duration_ns
+        assert (
+            attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        )
+        assert (
+            attempt.application_blocking_time_ns > 0
+            and attempt.application_blocking_time_ns < operation.duration_ns
+        )
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
@@ -305,7 +320,9 @@ class TestMetricsAsync(SystemTestRunner):
         from google.cloud.bigtable.data.row_filters import FamilyNameRegexFilter
 
         with pytest.raises(GoogleAPICallError) as e:
-            await authorized_view.read_rows(ReadRowsQuery(row_filter=FamilyNameRegexFilter("unauthorized")))
+            await authorized_view.read_rows(
+                ReadRowsQuery(row_filter=FamilyNameRegexFilter("unauthorized"))
+            )
         assert e.value.grpc_status_code.name == "PERMISSION_DENIED"
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -319,12 +336,18 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.is_streaming is True
         assert len(operation.completed_attempts) == 1
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         # validate attempt
         attempt = handler.completed_attempts[0]
         assert isinstance(attempt, CompletedAttemptMetric)
         assert attempt.end_status.name == "PERMISSION_DENIED"
-        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
+        assert (
+            attempt.gfe_latency_ns >= 0
+            and attempt.gfe_latency_ns < operation.duration_ns
+        )
 
     @CrossSync.pytest
     async def test_read_rows_stream(self, table, temp_rows, handler, cluster_config):
@@ -348,9 +371,15 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(operation.completed_attempts) == 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
-        assert operation.first_response_latency_ns is not None and operation.first_response_latency_ns < operation.duration_ns
+        assert (
+            operation.first_response_latency_ns is not None
+            and operation.first_response_latency_ns < operation.duration_ns
+        )
         assert operation.flow_throttling_time_ns == 0
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -358,8 +387,13 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
         assert attempt.end_status.value[0] == 0
         assert attempt.backoff_before_attempt_ns == 0
-        assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
-        assert attempt.application_blocking_time_ns > 0 and attempt.application_blocking_time_ns < operation.duration_ns
+        assert (
+            attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        )
+        assert (
+            attempt.application_blocking_time_ns > 0
+            and attempt.application_blocking_time_ns < operation.duration_ns
+        )
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
@@ -378,7 +412,9 @@ class TestMetricsAsync(SystemTestRunner):
         for i in range(num_retryable):
             error_injector.push(exc)
         error_injector.push(PermissionDenied("terminal"))
-        generator = await table.read_rows_stream(ReadRowsQuery(), retryable_errors=[Aborted])
+        generator = await table.read_rows_stream(
+            ReadRowsQuery(), retryable_errors=[Aborted]
+        )
         with pytest.raises(PermissionDenied):
             [_ async for _ in generator]
         # validate counts
@@ -406,9 +442,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert final_attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
-    async def test_read_rows_stream_failure_timeout(
-        self, table, temp_rows, handler
-    ):
+    async def test_read_rows_stream_failure_timeout(self, table, temp_rows, handler):
         """
         Test failure in gapic layer by passing very low timeout
 
@@ -416,7 +450,9 @@ class TestMetricsAsync(SystemTestRunner):
         """
         await temp_rows.add_row(b"row_key_1")
         handler.clear()
-        generator = await table.read_rows_stream(ReadRowsQuery(), operation_timeout=0.001)
+        generator = await table.read_rows_stream(
+            ReadRowsQuery(), operation_timeout=0.001
+        )
         with pytest.raises(GoogleAPICallError):
             [_ async for _ in generator]
         # validate counts
@@ -448,7 +484,9 @@ class TestMetricsAsync(SystemTestRunner):
         from google.cloud.bigtable.data.row_filters import FamilyNameRegexFilter
 
         with pytest.raises(GoogleAPICallError) as e:
-            generator = await authorized_view.read_rows_stream(ReadRowsQuery(row_filter=FamilyNameRegexFilter("unauthorized")))
+            generator = await authorized_view.read_rows_stream(
+                ReadRowsQuery(row_filter=FamilyNameRegexFilter("unauthorized"))
+            )
             [_ async for _ in generator]
         assert e.value.grpc_status_code.name == "PERMISSION_DENIED"
         # validate counts
@@ -463,12 +501,18 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.is_streaming is True
         assert len(operation.completed_attempts) == 1
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         # validate attempt
         attempt = handler.completed_attempts[0]
         assert isinstance(attempt, CompletedAttemptMetric)
         assert attempt.end_status.name == "PERMISSION_DENIED"
-        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
+        assert (
+            attempt.gfe_latency_ns >= 0
+            and attempt.gfe_latency_ns < operation.duration_ns
+        )
 
     @CrossSync.pytest
     async def test_read_rows_stream_failure_mid_stream(
@@ -482,7 +526,9 @@ class TestMetricsAsync(SystemTestRunner):
         error_injector.fail_mid_stream = True
         error_injector.push(Aborted("retryable"))
         error_injector.push(PermissionDenied("terminal"))
-        generator = await table.read_rows_stream(ReadRowsQuery(), retryable_errors=[Aborted])
+        generator = await table.read_rows_stream(
+            ReadRowsQuery(), retryable_errors=[Aborted]
+        )
         with pytest.raises(PermissionDenied):
             [_ async for _ in generator]
         # validate counts
@@ -520,9 +566,15 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(operation.completed_attempts) == 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
-        assert operation.first_response_latency_ns > 0 and operation.first_response_latency_ns < operation.duration_ns
+        assert (
+            operation.first_response_latency_ns > 0
+            and operation.first_response_latency_ns < operation.duration_ns
+        )
         assert operation.flow_throttling_time_ns == 0
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -530,8 +582,13 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
         assert attempt.end_status.value[0] == 0
         assert attempt.backoff_before_attempt_ns == 0
-        assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
-        assert attempt.application_blocking_time_ns > 0 and attempt.application_blocking_time_ns < operation.duration_ns
+        assert (
+            attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        )
+        assert (
+            attempt.application_blocking_time_ns > 0
+            and attempt.application_blocking_time_ns < operation.duration_ns
+        )
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
@@ -616,7 +673,9 @@ class TestMetricsAsync(SystemTestRunner):
         from google.cloud.bigtable.data.row_filters import FamilyNameRegexFilter
 
         with pytest.raises(GoogleAPICallError) as e:
-            await authorized_view.read_row(b"any_row", row_filter=FamilyNameRegexFilter("unauthorized"))
+            await authorized_view.read_row(
+                b"any_row", row_filter=FamilyNameRegexFilter("unauthorized")
+            )
         assert e.value.grpc_status_code.name == "PERMISSION_DENIED"
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -630,16 +689,23 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 1
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         # validate attempt
         attempt = handler.completed_attempts[0]
         assert isinstance(attempt, CompletedAttemptMetric)
         assert attempt.end_status.name == "PERMISSION_DENIED"
-        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
+        assert (
+            attempt.gfe_latency_ns >= 0
+            and attempt.gfe_latency_ns < operation.duration_ns
+        )
 
     @CrossSync.pytest
     async def test_read_rows_sharded(self, table, temp_rows, handler, cluster_config):
         from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+
         await temp_rows.add_row(b"a")
         await temp_rows.add_row(b"b")
         await temp_rows.add_row(b"c")
@@ -663,17 +729,31 @@ class TestMetricsAsync(SystemTestRunner):
             attempt = operation.completed_attempts[0]
             assert attempt in handler.completed_attempts
             assert operation.cluster_id == next(iter(cluster_config.keys()))
-            assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+            assert (
+                operation.zone
+                == cluster_config[operation.cluster_id].location.split("/")[-1]
+            )
             assert operation.duration_ns > 0 and operation.duration_ns < 1e9
-            assert operation.first_response_latency_ns is not None and operation.first_response_latency_ns < operation.duration_ns
+            assert (
+                operation.first_response_latency_ns is not None
+                and operation.first_response_latency_ns < operation.duration_ns
+            )
             assert operation.flow_throttling_time_ns == 0
             # validate attempt
             assert isinstance(attempt, CompletedAttemptMetric)
-            assert attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
+            assert (
+                attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
+            )
             assert attempt.end_status.value[0] == 0
             assert attempt.backoff_before_attempt_ns == 0
-            assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
-            assert attempt.application_blocking_time_ns > 0 and attempt.application_blocking_time_ns < operation.duration_ns
+            assert (
+                attempt.gfe_latency_ns > 0
+                and attempt.gfe_latency_ns < attempt.duration_ns
+            )
+            assert (
+                attempt.application_blocking_time_ns > 0
+                and attempt.application_blocking_time_ns < operation.duration_ns
+            )
             assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
@@ -704,8 +784,12 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(handler.completed_attempts) == 2
         assert len(handler.cancelled_operations) == 0
         # sort operations by status
-        failed_op = next(op for op in handler.completed_operations if op.final_status.name != "OK")
-        success_op = next(op for op in handler.completed_operations if op.final_status.name == "OK")
+        failed_op = next(
+            op for op in handler.completed_operations if op.final_status.name != "OK"
+        )
+        success_op = next(
+            op for op in handler.completed_operations if op.final_status.name == "OK"
+        )
         # validate failed operation
         assert failed_op.final_status.name == "PERMISSION_DENIED"
         assert failed_op.op_type.value == "ReadRows"
@@ -727,9 +811,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert success_attempt.end_status.name == "OK"
 
     @CrossSync.pytest
-    async def test_read_rows_sharded_failure_timeout(
-        self, table, temp_rows, handler
-    ):
+    async def test_read_rows_sharded_failure_timeout(self, table, temp_rows, handler):
         """
         Test failure in gapic layer by passing very low timeout
 
@@ -786,25 +868,37 @@ class TestMetricsAsync(SystemTestRunner):
             await authorized_view.read_rows_sharded([query1, query2])
         assert len(e.value.exceptions) == 1
         assert isinstance(e.value.exceptions[0].__cause__, GoogleAPICallError)
-        assert e.value.exceptions[0].__cause__.grpc_status_code.name == "PERMISSION_DENIED"
+        assert (
+            e.value.exceptions[0].__cause__.grpc_status_code.name == "PERMISSION_DENIED"
+        )
         # one shard will fail, the other will succeed
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 2
         assert len(handler.cancelled_operations) == 0
         # sort operations by status
-        failed_op = next(op for op in handler.completed_operations if op.final_status.name != "OK")
-        success_op = next(op for op in handler.completed_operations if op.final_status.name == "OK")
+        failed_op = next(
+            op for op in handler.completed_operations if op.final_status.name != "OK"
+        )
+        success_op = next(
+            op for op in handler.completed_operations if op.final_status.name == "OK"
+        )
         # validate failed operation
         assert failed_op.final_status.name == "PERMISSION_DENIED"
         assert failed_op.op_type.value == "ReadRows"
         assert failed_op.is_streaming is True
         assert len(failed_op.completed_attempts) == 1
         assert failed_op.cluster_id == next(iter(cluster_config.keys()))
-        assert failed_op.zone == cluster_config[failed_op.cluster_id].location.split("/")[-1]
+        assert (
+            failed_op.zone
+            == cluster_config[failed_op.cluster_id].location.split("/")[-1]
+        )
         # validate failed attempt
         failed_attempt = failed_op.completed_attempts[0]
         assert failed_attempt.end_status.name == "PERMISSION_DENIED"
-        assert failed_attempt.gfe_latency_ns >= 0 and failed_attempt.gfe_latency_ns < failed_op.duration_ns
+        assert (
+            failed_attempt.gfe_latency_ns >= 0
+            and failed_attempt.gfe_latency_ns < failed_op.duration_ns
+        )
         # validate successful operation
         assert success_op.final_status.name == "OK"
         assert success_op.op_type.value == "ReadRows"
@@ -842,8 +936,12 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(handler.completed_attempts) == 3
         assert len(handler.cancelled_operations) == 0
         # sort operations by status
-        failed_op = next(op for op in handler.completed_operations if op.final_status.name != "OK")
-        success_op = next(op for op in handler.completed_operations if op.final_status.name == "OK")
+        failed_op = next(
+            op for op in handler.completed_operations if op.final_status.name != "OK"
+        )
+        success_op = next(
+            op for op in handler.completed_operations if op.final_status.name == "OK"
+        )
         # validate failed operation
         assert failed_op.final_status.name == "PERMISSION_DENIED"
         assert failed_op.op_type.value == "ReadRows"
@@ -887,9 +985,14 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(operation.completed_attempts) == 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
-        assert operation.first_response_latency_ns is None  # populated for read_rows only
+        assert (
+            operation.first_response_latency_ns is None
+        )  # populated for read_rows only
         assert operation.flow_throttling_time_ns == 0
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -897,7 +1000,9 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
         assert attempt.end_status.value[0] == 0
         assert attempt.backoff_before_attempt_ns == 0
-        assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        assert (
+            attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        )
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
@@ -924,7 +1029,7 @@ class TestMetricsAsync(SystemTestRunner):
         for i in range(num_retryable):
             error_injector.push(exc)
         error_injector.push(PermissionDenied("terminal"))
-        with pytest.raises(MutationsExceptionGroup) as e:
+        with pytest.raises(MutationsExceptionGroup):
             await table.bulk_mutate_rows([entry], retryable_errors=[Aborted])
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -951,9 +1056,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert final_attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
-    async def test_bulk_mutate_rows_failure_timeout(
-        self, table, temp_rows, handler
-    ):
+    async def test_bulk_mutate_rows_failure_timeout(self, table, temp_rows, handler):
         """
         Test failure in gapic layer by passing very low timeout
 
@@ -961,14 +1064,13 @@ class TestMetricsAsync(SystemTestRunner):
         """
         from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
         from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
-        from google.api_core.exceptions import DeadlineExceeded
 
         row_key = b"row_key_1"
         mutation = SetCell(TEST_FAMILY, b"q", b"v")
         entry = RowMutationEntry(row_key, [mutation])
 
         handler.clear()
-        with pytest.raises(MutationsExceptionGroup) as e:
+        with pytest.raises(MutationsExceptionGroup):
             await table.bulk_mutate_rows([entry], operation_timeout=0.001)
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -1008,7 +1110,9 @@ class TestMetricsAsync(SystemTestRunner):
             await authorized_view.bulk_mutate_rows([entry])
         assert len(e.value.exceptions) == 1
         assert isinstance(e.value.exceptions[0].__cause__, GoogleAPICallError)
-        assert e.value.exceptions[0].__cause__.grpc_status_code.name == "PERMISSION_DENIED"
+        assert (
+            e.value.exceptions[0].__cause__.grpc_status_code.name == "PERMISSION_DENIED"
+        )
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
@@ -1020,11 +1124,17 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 1
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         # validate attempt
         attempt = handler.completed_attempts[0]
         assert attempt.end_status.name == "PERMISSION_DENIED"
-        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
+        assert (
+            attempt.gfe_latency_ns >= 0
+            and attempt.gfe_latency_ns < operation.duration_ns
+        )
 
     @CrossSync.pytest
     async def test_mutate_rows_batcher(self, table, temp_rows, handler, cluster_config):
@@ -1062,17 +1172,27 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(operation.completed_attempts) == 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
-        assert operation.first_response_latency_ns is None  # populated for read_rows only
-        assert operation.flow_throttling_time_ns > 0 and operation.flow_throttling_time_ns < operation.duration_ns
+        assert (
+            operation.first_response_latency_ns is None
+        )  # populated for read_rows only
+        assert (
+            operation.flow_throttling_time_ns > 0
+            and operation.flow_throttling_time_ns < operation.duration_ns
+        )
         # validate attempt
         attempt = handler.completed_attempts[0]
         assert isinstance(attempt, CompletedAttemptMetric)
         assert attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
         assert attempt.end_status.value[0] == 0
         assert attempt.backoff_before_attempt_ns == 0
-        assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        assert (
+            attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        )
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
@@ -1098,8 +1218,10 @@ class TestMetricsAsync(SystemTestRunner):
         for i in range(num_retryable):
             error_injector.push(exc)
         error_injector.push(PermissionDenied("terminal"))
-        with pytest.raises(MutationsExceptionGroup) as e:
-            async with table.mutations_batcher(batch_retryable_errors=[Aborted]) as batcher:
+        with pytest.raises(MutationsExceptionGroup):
+            async with table.mutations_batcher(
+                batch_retryable_errors=[Aborted]
+            ) as batcher:
                 await batcher.append(entry)
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -1124,9 +1246,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert final_attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
-    async def test_mutate_rows_batcher_failure_timeout(
-        self, table, temp_rows, handler
-    ):
+    async def test_mutate_rows_batcher_failure_timeout(self, table, temp_rows, handler):
         """
         Test failure in gapic layer by passing very low timeout
 
@@ -1134,14 +1254,15 @@ class TestMetricsAsync(SystemTestRunner):
         """
         from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
         from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
-        from google.api_core.exceptions import DeadlineExceeded
 
         row_key = b"row_key_1"
         mutation = SetCell(TEST_FAMILY, b"q", b"v")
         entry = RowMutationEntry(row_key, [mutation])
 
-        with pytest.raises(MutationsExceptionGroup) as e:
-            async with table.mutations_batcher(batch_operation_timeout=0.001) as batcher:
+        with pytest.raises(MutationsExceptionGroup):
+            async with table.mutations_batcher(
+                batch_operation_timeout=0.001
+            ) as batcher:
                 await batcher.append(entry)
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -1227,9 +1348,14 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(operation.completed_attempts) == 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
-        assert operation.first_response_latency_ns is None  # populated for read_rows only
+        assert (
+            operation.first_response_latency_ns is None
+        )  # populated for read_rows only
         assert operation.flow_throttling_time_ns == 0
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -1237,7 +1363,9 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
         assert attempt.end_status.value[0] == 0
         assert attempt.backoff_before_attempt_ns == 0
-        assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        assert (
+            attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        )
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
@@ -1286,11 +1414,8 @@ class TestMetricsAsync(SystemTestRunner):
         assert final_attempt.end_status.name == "PERMISSION_DENIED"
         assert final_attempt.gfe_latency_ns is None
 
-
     @CrossSync.pytest
-    async def test_mutate_row_failure_timeout(
-        self, table, temp_rows, handler
-    ):
+    async def test_mutate_row_failure_timeout(self, table, temp_rows, handler):
         """
         Test failure in gapic layer by passing very low timeout
 
@@ -1349,12 +1474,18 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 1
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         # validate attempt
         attempt = handler.completed_attempts[0]
         assert isinstance(attempt, CompletedAttemptMetric)
         assert attempt.end_status.name == "PERMISSION_DENIED"
-        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
+        assert (
+            attempt.gfe_latency_ns >= 0
+            and attempt.gfe_latency_ns < operation.duration_ns
+        )
 
     @CrossSync.pytest
     async def test_sample_row_keys(self, table, temp_rows, handler, cluster_config):
@@ -1372,9 +1503,14 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(operation.completed_attempts) == 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
-        assert operation.first_response_latency_ns is None  # populated for read_rows only
+        assert (
+            operation.first_response_latency_ns is None
+        )  # populated for read_rows only
         assert operation.flow_throttling_time_ns == 0
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -1382,7 +1518,9 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
         assert attempt.end_status.value[0] == 0
         assert attempt.backoff_before_attempt_ns == 0
-        assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        assert (
+            attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        )
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
@@ -1393,7 +1531,7 @@ class TestMetricsAsync(SystemTestRunner):
         """
         Test failure in grpc layer by injecting errors into an interceptor
         test with retryable errors, then a terminal one
-        
+
         No headers expected
         """
         exc = Aborted("injected")
@@ -1405,7 +1543,7 @@ class TestMetricsAsync(SystemTestRunner):
             await table.sample_row_keys(retryable_errors=[Aborted])
         # validate counts
         assert len(handler.completed_operations) == 1
-        assert len(handler.completed_attempts) == num_retryable+1
+        assert len(handler.completed_attempts) == num_retryable + 1
         assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
@@ -1413,7 +1551,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.final_status.name == "UNKNOWN"
         assert operation.op_type.value == "SampleRowKeys"
         assert operation.is_streaming is False
-        assert len(operation.completed_attempts) == num_retryable+1
+        assert len(operation.completed_attempts) == num_retryable + 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == "unspecified"
         assert operation.zone == "global"
@@ -1435,7 +1573,7 @@ class TestMetricsAsync(SystemTestRunner):
         """
         Test failure in grpc layer by injecting errors into an interceptor
         test with retryable errors, then a success
-        
+
         No headers expected
         """
         exc = Aborted("injected")
@@ -1445,7 +1583,7 @@ class TestMetricsAsync(SystemTestRunner):
         await table.sample_row_keys(retryable_errors=[Aborted])
         # validate counts
         assert len(handler.completed_operations) == 1
-        assert len(handler.completed_attempts) == num_retryable+1
+        assert len(handler.completed_attempts) == num_retryable + 1
         assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
@@ -1453,10 +1591,13 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.final_status.name == "OK"
         assert operation.op_type.value == "SampleRowKeys"
         assert operation.is_streaming is False
-        assert len(operation.completed_attempts) == num_retryable+1
+        assert len(operation.completed_attempts) == num_retryable + 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         # validate attempts
         for i in range(num_retryable):
             attempt = handler.completed_attempts[i]
@@ -1466,13 +1607,13 @@ class TestMetricsAsync(SystemTestRunner):
         final_attempt = handler.completed_attempts[num_retryable]
         assert isinstance(final_attempt, CompletedAttemptMetric)
         assert final_attempt.end_status.name == "OK"
-        assert final_attempt.gfe_latency_ns > 0 and final_attempt.gfe_latency_ns < operation.duration_ns
-
+        assert (
+            final_attempt.gfe_latency_ns > 0
+            and final_attempt.gfe_latency_ns < operation.duration_ns
+        )
 
     @CrossSync.pytest
-    async def test_sample_row_keys_failure_timeout(
-        self, table, handler
-    ):
+    async def test_sample_row_keys_failure_timeout(self, table, handler):
         """
         Test failure in gapic layer by passing very low timeout
 
@@ -1528,7 +1669,6 @@ class TestMetricsAsync(SystemTestRunner):
         final_attempt = handler.completed_attempts[-1]
         assert final_attempt.end_status.name == "PERMISSION_DENIED"
 
-
     @CrossSync.pytest
     async def test_read_modify_write(self, table, temp_rows, handler, cluster_config):
         from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
@@ -1536,9 +1676,7 @@ class TestMetricsAsync(SystemTestRunner):
         row_key = b"test-row-key"
         family = TEST_FAMILY
         qualifier = b"test-qualifier"
-        await temp_rows.add_row(
-            row_key, value=0, family=family, qualifier=qualifier
-        )
+        await temp_rows.add_row(row_key, value=0, family=family, qualifier=qualifier)
         rule = IncrementRule(family, qualifier, 1)
         await table.read_modify_write_row(row_key, rule)
         # validate counts
@@ -1554,9 +1692,14 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(operation.completed_attempts) == 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
-        assert operation.first_response_latency_ns is None  # populated for read_rows only
+        assert (
+            operation.first_response_latency_ns is None
+        )  # populated for read_rows only
         assert operation.flow_throttling_time_ns == 0
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -1564,7 +1707,9 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
         assert attempt.end_status.value[0] == 0
         assert attempt.backoff_before_attempt_ns == 0
-        assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        assert (
+            attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        )
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
@@ -1582,9 +1727,7 @@ class TestMetricsAsync(SystemTestRunner):
         row_key = b"test-row-key"
         family = TEST_FAMILY
         qualifier = b"test-qualifier"
-        await temp_rows.add_row(
-            row_key, value=0, family=family, qualifier=qualifier
-        )
+        await temp_rows.add_row(row_key, value=0, family=family, qualifier=qualifier)
         rule = IncrementRule(family, qualifier, 1)
 
         # trigger an exception
@@ -1622,11 +1765,8 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
-
     @CrossSync.pytest
-    async def test_read_modify_write_failure_timeout(
-        self, table, temp_rows, handler
-    ):
+    async def test_read_modify_write_failure_timeout(self, table, temp_rows, handler):
         """
         Test failure in gapic layer by passing very low timeout
 
@@ -1637,9 +1777,7 @@ class TestMetricsAsync(SystemTestRunner):
         row_key = b"test-row-key"
         family = TEST_FAMILY
         qualifier = b"test-qualifier"
-        await temp_rows.add_row(
-            row_key, value=0, family=family, qualifier=qualifier
-        )
+        await temp_rows.add_row(row_key, value=0, family=family, qualifier=qualifier)
         rule = IncrementRule(family, qualifier, 1)
         with pytest.raises(GoogleAPICallError):
             await table.read_modify_write_row(row_key, rule, operation_timeout=0.001)
@@ -1682,23 +1820,28 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.final_status.name == "PERMISSION_DENIED"
         assert operation.op_type.value == "ReadModifyWriteRow"
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         # validate attempt
         attempt = handler.completed_attempts[0]
-        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
-
+        assert (
+            attempt.gfe_latency_ns >= 0
+            and attempt.gfe_latency_ns < operation.duration_ns
+        )
 
     @CrossSync.pytest
-    async def test_check_and_mutate_row(self, table, temp_rows, handler, cluster_config):
+    async def test_check_and_mutate_row(
+        self, table, temp_rows, handler, cluster_config
+    ):
         from google.cloud.bigtable.data.mutations import SetCell
         from google.cloud.bigtable.data.row_filters import ValueRangeFilter
 
         row_key = b"test-row-key"
         family = TEST_FAMILY
         qualifier = b"test-qualifier"
-        await temp_rows.add_row(
-            row_key, value=1, family=family, qualifier=qualifier
-        )
+        await temp_rows.add_row(row_key, value=1, family=family, qualifier=qualifier)
 
         true_mutation_value = b"true-mutation-value"
         true_mutation = SetCell(
@@ -1723,9 +1866,14 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(operation.completed_attempts) == 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
-        assert operation.first_response_latency_ns is None  # populated for read_rows only
+        assert (
+            operation.first_response_latency_ns is None
+        )  # populated for read_rows only
         assert operation.flow_throttling_time_ns == 0
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -1733,7 +1881,9 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.duration_ns > 0 and attempt.duration_ns < operation.duration_ns
         assert attempt.end_status.value[0] == 0
         assert attempt.backoff_before_attempt_ns == 0
-        assert attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        assert (
+            attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
+        )
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
@@ -1746,7 +1896,6 @@ class TestMetricsAsync(SystemTestRunner):
 
         No headers expected
         """
-        from google.cloud.bigtable.data.mutations import SetCell
         from google.cloud.bigtable.data.row_filters import ValueRangeFilter
 
         row_key = b"test-row-key"
@@ -1760,7 +1909,7 @@ class TestMetricsAsync(SystemTestRunner):
         with pytest.raises(RuntimeError):
             await table.check_and_mutate_row(
                 row_key,
-                predicate=ValueRangeFilter(0,2),
+                predicate=ValueRangeFilter(0, 2),
             )
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -1791,7 +1940,6 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
-
     @CrossSync.pytest
     async def test_check_and_mutate_row_failure_timeout(
         self, table, temp_rows, handler
@@ -1818,7 +1966,7 @@ class TestMetricsAsync(SystemTestRunner):
                 row_key,
                 predicate=ValueRangeFilter(0, 2),
                 true_case_mutations=true_mutation,
-                operation_timeout=0.001
+                operation_timeout=0.001,
             )
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -1866,7 +2014,13 @@ class TestMetricsAsync(SystemTestRunner):
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
         assert operation.cluster_id == next(iter(cluster_config.keys()))
-        assert operation.zone == cluster_config[operation.cluster_id].location.split("/")[-1]
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
         # validate attempt
         attempt = handler.completed_attempts[0]
-        assert attempt.gfe_latency_ns >= 0 and attempt.gfe_latency_ns < operation.duration_ns
+        assert (
+            attempt.gfe_latency_ns >= 0
+            and attempt.gfe_latency_ns < operation.duration_ns
+        )

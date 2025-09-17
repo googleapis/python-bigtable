@@ -16,8 +16,6 @@ from __future__ import annotations
 
 from typing import Sequence, TYPE_CHECKING
 
-from functools import partial
-
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
 import google.cloud.bigtable_v2.types.bigtable as types_pb

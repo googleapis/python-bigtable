@@ -15,11 +15,11 @@
 #
 import pytest
 import uuid
-from google.cloud.bigtable.data._cross_sync import CrossSync
 
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
 TEST_AGGREGATE_FAMILY = "test-aggregate-family"
+
 
 class SystemTestRunner:
     """

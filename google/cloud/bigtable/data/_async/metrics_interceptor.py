@@ -156,7 +156,10 @@ class AsyncBigtableMetricsInterceptor(
     ):
         async def response_wrapper(call):
             # only track has_first response for READ_ROWS
-            has_first_response = operation.first_response_latency_ns is not None or operation.op_type != OperationType.READ_ROWS
+            has_first_response = (
+                operation.first_response_latency_ns is not None
+                or operation.op_type != OperationType.READ_ROWS
+            )
             encountered_exc = None
             try:
                 async for response in call:

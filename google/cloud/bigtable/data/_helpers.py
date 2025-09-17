@@ -123,7 +123,10 @@ def _retry_exception_factory(
 
 def _tracked_exception_factory(
     operation: "ActiveOperationMetric",
-) -> Callable[[list[Exception], RetryFailureReason, float | None], tuple[Exception, Exception | None]]:
+) -> Callable[
+    [list[Exception], RetryFailureReason, float | None],
+    tuple[Exception, Exception | None],
+]:
     """
     wraps and extends _retry_exception_factory to add client-side metrics tracking.
 
@@ -143,19 +146,28 @@ def _tracked_exception_factory(
         tuple[Exception, Exception|None]:
             tuple of the exception to raise, and a cause exception if applicabl
     """
-    def wrapper(exc_list: list[Exception], reason: RetryFailureReason, timeout_val: float | None) -> tuple[Exception, Exception | None]:
+
+    def wrapper(
+        exc_list: list[Exception], reason: RetryFailureReason, timeout_val: float | None
+    ) -> tuple[Exception, Exception | None]:
         source_exc, cause_exc = _retry_exception_factory(exc_list, reason, timeout_val)
         try:
             # record metadata from failed rpc
-            if isinstance(source_exc, core_exceptions.GoogleAPICallError) and source_exc.errors:
+            if (
+                isinstance(source_exc, core_exceptions.GoogleAPICallError)
+                and source_exc.errors
+            ):
                 rpc_error = source_exc.errors[-1]
-                metadata = list(rpc_error.trailing_metadata()) + list(rpc_error.initial_metadata())
-                operation.add_response_metadata({k:v for k,v in metadata})
+                metadata = list(rpc_error.trailing_metadata()) + list(
+                    rpc_error.initial_metadata()
+                )
+                operation.add_response_metadata({k: v for k, v in metadata})
         except Exception:
             # ignore errors in metadata collection
             pass
         operation.end_with_status(source_exc)
         return source_exc, cause_exc
+
     return wrapper
 
 
