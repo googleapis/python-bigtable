@@ -848,17 +848,19 @@ class TestMetricsAsync(SystemTestRunner):
         assert failed_op.final_status.name == "PERMISSION_DENIED"
         assert failed_op.op_type.value == "ReadRows"
         assert failed_op.is_streaming is True
-        assert len(failed_op.completed_attempts) == 2
-        # validate retried attempt
-        attempt = failed_op.completed_attempts[0]
-        assert attempt.end_status.name == "ABORTED"
-        # validate final attempt
-        final_attempt = failed_op.completed_attempts[-1]
-        assert final_attempt.end_status.name == "PERMISSION_DENIED"
+        assert len(failed_op.completed_attempts) == 1
         # validate successful operation
         assert success_op.final_status.name == "OK"
-        assert len(success_op.completed_attempts) == 1
-        assert success_op.completed_attempts[0].end_status.name == "OK"
+        assert len(success_op.completed_attempts) == 2
+        # validate failed attempt
+        attempt = failed_op.completed_attempts[0]
+        assert attempt.end_status.name == "PERMISSION_DENIED"
+        # validate retried attempt
+        retried_attempt = success_op.completed_attempts[0]
+        assert retried_attempt.end_status.name == "ABORTED"
+        # validate successful attempt
+        success_attempt = success_op.completed_attempts[-1]
+        assert success_attempt.end_status.name == "OK"
 
     @CrossSync.pytest
     async def test_bulk_mutate_rows(self, table, temp_rows, handler, cluster_config):
