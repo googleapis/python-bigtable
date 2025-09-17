@@ -1083,7 +1083,43 @@ class TestMetricsAsync(SystemTestRunner):
 
         No headers expected
         """
-        pass
+        from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
+        from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+
+        row_key = b"row_key_1"
+        mutation = SetCell(TEST_FAMILY, b"q", b"v")
+        entry = RowMutationEntry(row_key, [mutation])
+        assert entry.is_idempotent()
+
+        exc = Aborted("injected")
+        num_retryable = 2
+        for i in range(num_retryable):
+            error_injector.push(exc)
+        error_injector.push(PermissionDenied("terminal"))
+        with pytest.raises(MutationsExceptionGroup) as e:
+            async with table.mutations_batcher(batch_retryable_errors=[Aborted]) as batcher:
+                await batcher.append(entry)
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == num_retryable + 1
+        assert len(handler.cancelled_operations) == 1  # from batcher auto-closing
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "PERMISSION_DENIED"
+        assert operation.op_type.value == "MutateRows"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) == num_retryable + 1
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        # validate attempts
+        for i in range(num_retryable):
+            attempt = handler.completed_attempts[i]
+            assert attempt.end_status.name == "ABORTED"
+            assert attempt.gfe_latency_ns is None
+        final_attempt = handler.completed_attempts[num_retryable]
+        assert final_attempt.end_status.name == "PERMISSION_DENIED"
+        assert final_attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
     async def test_mutate_rows_batcher_failure_timeout(
@@ -1094,7 +1130,33 @@ class TestMetricsAsync(SystemTestRunner):
 
         No grpc headers expected
         """
-        pass
+        from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
+        from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+        from google.api_core.exceptions import DeadlineExceeded
+
+        row_key = b"row_key_1"
+        mutation = SetCell(TEST_FAMILY, b"q", b"v")
+        entry = RowMutationEntry(row_key, [mutation])
+
+        with pytest.raises(MutationsExceptionGroup) as e:
+            async with table.mutations_batcher(batch_operation_timeout=0.001) as batcher:
+                await batcher.append(entry)
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 1  # from batcher auto-closing
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert operation.final_status.name == "DEADLINE_EXCEEDED"
+        assert operation.op_type.value == "MutateRows"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) == 1
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert attempt.end_status.name == "DEADLINE_EXCEEDED"
+        assert attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
     async def test_mutate_rows_batcher_failure_unauthorized(
@@ -1103,7 +1165,43 @@ class TestMetricsAsync(SystemTestRunner):
         """
         Test failure in backend by accessing an unauthorized family
         """
-        pass
+        from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
+        from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+
+        row_key = b"row_key_1"
+        mutation = SetCell("unauthorized", b"q", b"v")
+        entry = RowMutationEntry(row_key, [mutation])
+
+        with pytest.raises(MutationsExceptionGroup) as e:
+            async with authorized_view.mutations_batcher() as batcher:
+                await batcher.append(entry)
+        assert len(e.value.exceptions) == 1
+        assert isinstance(e.value.exceptions[0].__cause__, GoogleAPICallError)
+        assert (
+            e.value.exceptions[0].__cause__.grpc_status_code.name == "PERMISSION_DENIED"
+        )
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 1  # from batcher auto-closing
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert operation.final_status.name == "PERMISSION_DENIED"
+        assert operation.op_type.value == "MutateRows"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) == 1
+        assert operation.cluster_id == next(iter(cluster_config.keys()))
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert attempt.end_status.name == "PERMISSION_DENIED"
+        assert (
+            attempt.gfe_latency_ns >= 0
+            and attempt.gfe_latency_ns < operation.duration_ns
+        )
 
     @CrossSync.pytest
     async def test_mutate_row(self, table, temp_rows, handler, cluster_config):
