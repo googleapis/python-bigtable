@@ -73,6 +73,7 @@ from google.cloud.bigtable.data._helpers import TABLE_DEFAULT, _align_timeouts
 from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
+from google.cloud.bigtable.data._helpers import _tracked_exception_factory
 from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data._helpers import _get_error_type
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
@@ -1391,7 +1392,7 @@ class _DataApiTargetAsync(abc.ABC):
                 predicate,
                 operation_metric.backoff_generator,
                 operation_timeout,
-                exception_factory=partial(_retry_exception_factory, operation=operation_metric)
+                exception_factory=_tracked_exception_factory(operation_metric),
             )
 
     @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
