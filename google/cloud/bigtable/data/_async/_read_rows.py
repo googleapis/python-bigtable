@@ -19,6 +19,8 @@ from typing import Sequence, TYPE_CHECKING
 
 import time
 
+from grpc import StatusCode
+
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
@@ -339,7 +341,12 @@ class _ReadRowsOperationAsync:
                     continue
                 except CrossSync.StopIteration:
                     raise InvalidChunk("premature end of stream")
+        except GeneratorExit as close_exception:
+            # handle aclose()
+            self._operation_metric.end_with_status(StatusCode.CANCELLED)
+            raise close_exception
         except Exception as generic_exception:
+            # handle exceptions in retry wrapper
             raise generic_exception
         else:
             self._operation_metric.end_with_success()

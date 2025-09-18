@@ -397,13 +397,40 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_read_rows_stream_failure_grpc(
+    async def test_read_rows_stream_failure_closed(
         self, table, temp_rows, handler, error_injector
     ):
         """
-        Test failure in grpc layer by injecting an error into an interceptor
+        Test how metrics collection handles closed generator
+        """
+        await temp_rows.add_row(b"row_key_1")
+        await temp_rows.add_row(b"row_key_2")
+        handler.clear()
+        generator = await table.read_rows_stream(
+            ReadRowsQuery()
+        )
+        await generator.__anext__()
+        await generator.aclose()
+        with pytest.raises(CrossSync.StopIteration):
+            await generator.__anext__()
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) == 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert operation.final_status.name == "CANCELLED"
+        assert operation.op_type.value == "ReadRows"
+        assert operation.is_streaming is True
+        assert len(operation.completed_attempts) == 1
+        assert operation.cluster_id == "unspecified"
+        assert operation.zone == "global"
+        # validate attempt
+        attempt = handler.completed_attempts[0]
+        assert attempt.end_status.name == "CANCELLED"
+        assert attempt.gfe_latency_ns is None
 
-        No headers expected
+
         """
         await temp_rows.add_row(b"row_key_1")
         handler.clear()
