@@ -28,6 +28,7 @@ from google.cloud.bigtable.data._cross_sync import CrossSync
 if CrossSync.is_async:
     from grpc.aio import UnaryUnaryClientInterceptor
     from grpc.aio import UnaryStreamClientInterceptor
+    from grpc.aio import AioRpcError
 else:
     from grpc import UnaryUnaryClientInterceptor
     from grpc import UnaryStreamClientInterceptor
@@ -86,12 +87,18 @@ def _end_attempt(operation, exc, metadata):
 
 
 @CrossSync.convert
-async def _get_metadata(source):
+async def _get_metadata(source) -> dict[str, str|bytes] | None:
     """Helper to extract metadata from a call or RpcError"""
     try:
-        return (await source.trailing_metadata() or {}) + (
-            await source.initial_metadata() or {}
-        )
+        if isinstance(source, AioRpcError) and CrossSync.is_async:
+            return {
+                k:v for k,v 
+                in list(source.trailing_metadata()) + list(source.initial_metadata())
+            }
+        else:
+            return (await source.trailing_metadata() or {}) + (
+                await source.initial_metadata() or {}
+            )
     except Exception:
         # ignore errors while fetching metadata
         return None

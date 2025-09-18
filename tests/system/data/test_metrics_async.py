@@ -16,6 +16,8 @@ import os
 import pytest
 import uuid
 
+from grpc import StatusCode
+
 from google.api_core.exceptions import Aborted
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core.exceptions import PermissionDenied
@@ -27,6 +29,7 @@ from google.cloud.bigtable.data._metrics.data_model import (
     OperationState,
 )
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable_v2.types import ResponseParams
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -35,6 +38,8 @@ from . import TEST_FAMILY, SystemTestRunner
 if CrossSync.is_async:
     from grpc.aio import UnaryUnaryClientInterceptor
     from grpc.aio import UnaryStreamClientInterceptor
+    from grpc.aio import AioRpcError
+    from grpc.aio import Metadata
 else:
     from grpc import UnaryUnaryClientInterceptor
     from grpc import UnaryStreamClientInterceptor
@@ -140,6 +145,17 @@ class TestMetricsAsync(SystemTestRunner):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
         return CrossSync.DataClient(project=project)
 
+    def _make_exception(self, status, cluster_id=None, zone_id=None):
+        if cluster_id or zone_id:
+            metadata = ("x-goog-ext-425905942-bin", ResponseParams.serialize(
+                ResponseParams(cluster_id=cluster_id, zone_id=zone_id)
+            ))
+        else:
+            metadata = None
+        if CrossSync.is_async:
+            metadata = Metadata(metadata) if metadata else Metadata()
+            return AioRpcError(status, Metadata(), metadata)
+
     @pytest.fixture(scope="session")
     def handler(self):
         return _MetricsTestHandler()
@@ -239,21 +255,21 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_read_rows_failure_grpc(
+    async def test_read_rows_failure_with_retries(
         self, table, temp_rows, handler, error_injector
     ):
         """
-        Test failure in grpc layer by injecting an error into an interceptor
-
-        No headers expected
+        Test failure in grpc layer by injecting errors into an interceptor
+        with retryable errors, then a terminal one
         """
         await temp_rows.add_row(b"row_key_1")
         handler.clear()
-        exc = Aborted("injected")
+        expected_zone = "my_zone"
+        expected_cluster = "my_cluster"
         num_retryable = 2
         for i in range(num_retryable):
-            error_injector.push(exc)
-        error_injector.push(PermissionDenied("terminal"))
+            error_injector.push(self._make_exception(StatusCode.ABORTED, cluster_id=expected_cluster))
+        error_injector.push(self._make_exception(StatusCode.PERMISSION_DENIED, zone_id=expected_zone))
         with pytest.raises(PermissionDenied):
             await table.read_rows(ReadRowsQuery(), retryable_errors=[Aborted])
         # validate counts
@@ -267,8 +283,8 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "ReadRows"
         assert operation.is_streaming is True
         assert len(operation.completed_attempts) == num_retryable + 1
-        assert operation.cluster_id == "unspecified"
-        assert operation.zone == "global"
+        assert operation.cluster_id == expected_cluster
+        assert operation.zone == expected_zone
         # validate attempts
         for i in range(num_retryable):
             attempt = handler.completed_attempts[i]
@@ -431,14 +447,26 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.gfe_latency_ns is None
 
 
+    @CrossSync.pytest
+    async def test_read_rows_stream_failure_with_retries(
+        self, table, temp_rows, handler, error_injector
+    ):
+        """
+        Test failure in grpc layer by injecting errors into an interceptor
+        with retryable errors, then a terminal one
         """
         await temp_rows.add_row(b"row_key_1")
         handler.clear()
-        exc = Aborted("injected")
+        expected_zone = "my_zone"
+        expected_cluster = "my_cluster"
         num_retryable = 2
         for i in range(num_retryable):
-            error_injector.push(exc)
-        error_injector.push(PermissionDenied("terminal"))
+            error_injector.push(
+                self._make_exception(StatusCode.ABORTED, cluster_id=expected_cluster)
+            )
+        error_injector.push(
+            self._make_exception(StatusCode.PERMISSION_DENIED, zone_id=expected_zone)
+        )
         generator = await table.read_rows_stream(
             ReadRowsQuery(), retryable_errors=[Aborted]
         )
@@ -455,8 +483,8 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "ReadRows"
         assert operation.is_streaming is True
         assert len(operation.completed_attempts) == num_retryable + 1
-        assert operation.cluster_id == "unspecified"
-        assert operation.zone == "global"
+        assert operation.cluster_id == expected_cluster
+        assert operation.zone == expected_zone
         # validate attempts
         for i in range(num_retryable):
             attempt = handler.completed_attempts[i]
@@ -551,8 +579,8 @@ class TestMetricsAsync(SystemTestRunner):
         await temp_rows.add_row(b"row_key_1")
         handler.clear()
         error_injector.fail_mid_stream = True
-        error_injector.push(Aborted("retryable"))
-        error_injector.push(PermissionDenied("terminal"))
+        error_injector.push(self._make_exception(StatusCode.ABORTED))
+        error_injector.push(self._make_exception(StatusCode.PERMISSION_DENIED))
         generator = await table.read_rows_stream(
             ReadRowsQuery(), retryable_errors=[Aborted]
         )
@@ -619,21 +647,25 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_read_row_failure_grpc(
+    async def test_read_row_failure_with_retries(
         self, table, temp_rows, handler, error_injector
     ):
         """
-        Test failure in grpc layer by injecting an error into an interceptor
-
-        No headers expected
+        Test failure in grpc layer by injecting errors into an interceptor
+        with retryable errors, then a terminal one
         """
         await temp_rows.add_row(b"row_key_1")
         handler.clear()
-        exc = Aborted("injected")
+        expected_zone = "my_zone"
+        expected_cluster = "my_cluster"
         num_retryable = 2
         for i in range(num_retryable):
-            error_injector.push(exc)
-        error_injector.push(PermissionDenied("terminal"))
+            error_injector.push(
+                self._make_exception(StatusCode.ABORTED, cluster_id=expected_cluster)
+            )
+        error_injector.push(
+            self._make_exception(StatusCode.PERMISSION_DENIED, zone_id=expected_zone)
+        )
         with pytest.raises(PermissionDenied):
             await table.read_row(b"row_key_1", retryable_errors=[Aborted])
         # validate counts
@@ -647,8 +679,8 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "ReadRows"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == num_retryable + 1
-        assert operation.cluster_id == "unspecified"
-        assert operation.zone == "global"
+        assert operation.cluster_id == expected_cluster
+        assert operation.zone == expected_zone
         # validate attempts
         for i in range(num_retryable):
             attempt = handler.completed_attempts[i]
@@ -784,13 +816,12 @@ class TestMetricsAsync(SystemTestRunner):
             assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_read_rows_sharded_failure_grpc(
+    async def test_read_rows_sharded_failure_with_retries(
         self, table, temp_rows, handler, error_injector
     ):
         """
-        Test failure in grpc layer by injecting an error into an interceptor
-
-        No headers expected
+        Test failure in grpc layer by injecting errors into an interceptor
+        with retryable errors
         """
         from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
         from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
@@ -801,41 +832,20 @@ class TestMetricsAsync(SystemTestRunner):
         query2 = ReadRowsQuery(row_keys=[b"b"])
         handler.clear()
 
-        error_injector.push(PermissionDenied("terminal"))
-        with pytest.raises(ShardedReadRowsExceptionGroup) as e:
-            await table.read_rows_sharded([query1, query2])
-        assert len(e.value.exceptions) == 1
-        assert isinstance(e.value.exceptions[0].__cause__, PermissionDenied)
+        error_injector.push(self._make_exception(StatusCode.ABORTED))
+        await table.read_rows_sharded([query1, query2], retryable_errors=[Aborted])
 
         assert len(handler.completed_operations) == 2
-        assert len(handler.completed_attempts) == 2
+        assert len(handler.completed_attempts) == 3
         assert len(handler.cancelled_operations) == 0
-        # sort operations by status
-        failed_op = next(
-            op for op in handler.completed_operations if op.final_status.name != "OK"
-        )
-        success_op = next(
-            op for op in handler.completed_operations if op.final_status.name == "OK"
-        )
-        # validate failed operation
-        assert failed_op.final_status.name == "PERMISSION_DENIED"
-        assert failed_op.op_type.value == "ReadRows"
-        assert failed_op.is_streaming is True
-        assert len(failed_op.completed_attempts) == 1
-        assert failed_op.cluster_id == "unspecified"
-        assert failed_op.zone == "global"
-        # validate failed attempt
-        failed_attempt = failed_op.completed_attempts[0]
-        assert failed_attempt.end_status.name == "PERMISSION_DENIED"
-        assert failed_attempt.gfe_latency_ns is None
-        # validate successful operation
-        assert success_op.final_status.name == "OK"
-        assert success_op.op_type.value == "ReadRows"
-        assert success_op.is_streaming is True
-        assert len(success_op.completed_attempts) == 1
-        # validate successful attempt
-        success_attempt = success_op.completed_attempts[0]
-        assert success_attempt.end_status.name == "OK"
+        # validate operations
+        for op in handler.completed_operations:
+            assert op.final_status.name == "OK"
+            assert op.op_type.value == "ReadRows"
+            assert op.is_streaming is True
+        # validate attempts
+        assert len([a for a in handler.completed_attempts if a.end_status.name == "OK"]) == 2
+        assert len([a for a in handler.completed_attempts if a.end_status.name == "ABORTED"]) == 1
 
     @CrossSync.pytest
     async def test_read_rows_sharded_failure_timeout(self, table, temp_rows, handler):
@@ -951,8 +961,8 @@ class TestMetricsAsync(SystemTestRunner):
         query2 = ReadRowsQuery(row_keys=[b"b"])
         handler.clear()
         error_injector.fail_mid_stream = True
-        error_injector.push(Aborted("retryable"))
-        error_injector.push(PermissionDenied("terminal"))
+        error_injector.push(self._make_exception(StatusCode.ABORTED))
+        error_injector.push(self._make_exception(StatusCode.PERMISSION_DENIED))
         with pytest.raises(ShardedReadRowsExceptionGroup) as e:
             await table.read_rows_sharded([query1, query2], retryable_errors=[Aborted])
         assert len(e.value.exceptions) == 1
@@ -1034,13 +1044,12 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_bulk_mutate_rows_failure_grpc(
+    async def test_bulk_mutate_rows_failure_with_retries(
         self, table, temp_rows, handler, error_injector
     ):
         """
-        Test failure in grpc layer by injecting an error into an interceptor
-
-        No headers expected
+        Test failure in grpc layer by injecting errors into an interceptor
+        with retryable errors, then a terminal one
         """
         from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
         from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
@@ -1051,11 +1060,16 @@ class TestMetricsAsync(SystemTestRunner):
         assert entry.is_idempotent()
 
         handler.clear()
-        exc = Aborted("injected")
+        expected_zone = "my_zone"
+        expected_cluster = "my_cluster"
         num_retryable = 2
         for i in range(num_retryable):
-            error_injector.push(exc)
-        error_injector.push(PermissionDenied("terminal"))
+            error_injector.push(
+                self._make_exception(StatusCode.ABORTED, cluster_id=expected_cluster)
+            )
+        error_injector.push(
+            self._make_exception(StatusCode.PERMISSION_DENIED, zone_id=expected_zone)
+        )
         with pytest.raises(MutationsExceptionGroup):
             await table.bulk_mutate_rows([entry], retryable_errors=[Aborted])
         # validate counts
@@ -1069,8 +1083,8 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "MutateRows"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == num_retryable + 1
-        assert operation.cluster_id == "unspecified"
-        assert operation.zone == "global"
+        assert operation.cluster_id == expected_cluster
+        assert operation.zone == expected_zone
         # validate attempts
         for i in range(num_retryable):
             attempt = handler.completed_attempts[i]
@@ -1224,13 +1238,12 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_mutate_rows_batcher_failure_grpc(
-        self, table, temp_rows, handler, error_injector
+    async def test_mutate_rows_batcher_failure_with_retries(
+        self, table, handler, error_injector
     ):
         """
-        Test failure in grpc layer by injecting an error into an interceptor
-
-        No headers expected
+        Test failure in grpc layer by injecting errors into an interceptor
+        with retryable errors, then a terminal one
         """
         from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
         from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
@@ -1240,11 +1253,17 @@ class TestMetricsAsync(SystemTestRunner):
         entry = RowMutationEntry(row_key, [mutation])
         assert entry.is_idempotent()
 
-        exc = Aborted("injected")
+        handler.clear()
+        expected_zone = "my_zone"
+        expected_cluster = "my_cluster"
         num_retryable = 2
         for i in range(num_retryable):
-            error_injector.push(exc)
-        error_injector.push(PermissionDenied("terminal"))
+            error_injector.push(
+                self._make_exception(StatusCode.ABORTED, cluster_id=expected_cluster)
+            )
+        error_injector.push(
+            self._make_exception(StatusCode.PERMISSION_DENIED, zone_id=expected_zone)
+        )
         with pytest.raises(MutationsExceptionGroup):
             async with table.mutations_batcher(
                 batch_retryable_errors=[Aborted]
@@ -1261,8 +1280,8 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "MutateRows"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == num_retryable + 1
-        assert operation.cluster_id == "unspecified"
-        assert operation.zone == "global"
+        assert operation.cluster_id == expected_cluster
+        assert operation.zone == expected_zone
         # validate attempts
         for i in range(num_retryable):
             attempt = handler.completed_attempts[i]
@@ -1397,24 +1416,29 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_mutate_row_failure_grpc(
-        self, table, temp_rows, handler, error_injector
+    async def test_mutate_row_failure_with_retries(
+        self, table, handler, error_injector
     ):
         """
-        Test failure in grpc layer by injecting an error into an interceptor
-
-        No headers expected
+        Test failure in grpc layer by injecting errors into an interceptor
+        with retryable errors, then a terminal one
         """
         from google.cloud.bigtable.data.mutations import SetCell
 
         row_key = b"row_key_1"
         mutation = SetCell(TEST_FAMILY, b"q", b"v")
 
-        exc = Aborted("injected")
+        handler.clear()
+        expected_zone = "my_zone"
+        expected_cluster = "my_cluster"
         num_retryable = 2
         for i in range(num_retryable):
-            error_injector.push(exc)
-        error_injector.push(PermissionDenied("terminal"))
+            error_injector.push(
+                self._make_exception(StatusCode.ABORTED, cluster_id=expected_cluster)
+            )
+        error_injector.push(
+            self._make_exception(StatusCode.PERMISSION_DENIED, zone_id=expected_zone)
+        )
         with pytest.raises(PermissionDenied):
             await table.mutate_row(row_key, [mutation], retryable_errors=[Aborted])
         # validate counts
@@ -1428,8 +1452,8 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "MutateRow"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == num_retryable + 1
-        assert operation.cluster_id == "unspecified"
-        assert operation.zone == "global"
+        assert operation.cluster_id == expected_cluster
+        assert operation.zone == expected_zone
         # validate attempts
         for i in range(num_retryable):
             attempt = handler.completed_attempts[i]
@@ -1552,7 +1576,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_sample_row_keys_failure_grpc(
+    async def test_sample_row_keys_failure_cancelled(
         self, table, temp_rows, handler, error_injector
     ):
         """
@@ -1561,10 +1585,9 @@ class TestMetricsAsync(SystemTestRunner):
 
         No headers expected
         """
-        exc = Aborted("injected")
         num_retryable = 3
         for i in range(num_retryable):
-            error_injector.push(exc)
+            error_injector.push(self._make_exception(StatusCode.ABORTED))
         error_injector.push(asyncio.CancelledError)
         with pytest.raises(asyncio.CancelledError):
             await table.sample_row_keys(retryable_errors=[Aborted])
@@ -1594,19 +1617,16 @@ class TestMetricsAsync(SystemTestRunner):
         assert final_attempt.gfe_latency_ns is None
 
     @CrossSync.pytest
-    async def test_sample_row_keys_failure_grpc_eventual_success(
+    async def test_sample_row_keys_failure_with_retries(
         self, table, temp_rows, handler, error_injector, cluster_config
     ):
         """
         Test failure in grpc layer by injecting errors into an interceptor
-        test with retryable errors, then a success
-
-        No headers expected
+        with retryable errors, then a success
         """
-        exc = Aborted("injected")
         num_retryable = 3
         for i in range(num_retryable):
-            error_injector.push(exc)
+            error_injector.push(self._make_exception(StatusCode.ABORTED))
         await table.sample_row_keys(retryable_errors=[Aborted])
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -1675,8 +1695,8 @@ class TestMetricsAsync(SystemTestRunner):
         Test failure in grpc stream
         """
         error_injector.fail_mid_stream = True
-        error_injector.push(Aborted("retryable"))
-        error_injector.push(PermissionDenied("terminal"))
+        error_injector.push(self._make_exception(StatusCode.ABORTED))
+        error_injector.push(self._make_exception(StatusCode.PERMISSION_DENIED))
         with pytest.raises(PermissionDenied):
             await table.sample_row_keys(retryable_errors=[Aborted])
         # validate counts
