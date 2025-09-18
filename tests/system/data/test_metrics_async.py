@@ -1741,7 +1741,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_read_modify_write_failure_grpc(
+    async def test_read_modify_write_failure_cancelled(
         self, table, temp_rows, handler, error_injector
     ):
         """
@@ -1915,7 +1915,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
-    async def test_check_and_mutate_row_failure_grpc(
+    async def test_check_and_mutate_row_failure_cancelled(
         self, table, temp_rows, handler, error_injector
     ):
         """
