@@ -280,7 +280,7 @@ class ActiveOperationMetric:
             # failed to parse metadata
             return None
 
-    def end_attempt_with_status(self, status: StatusCode | Exception) -> None:
+    def end_attempt_with_status(self, status: StatusCode | BaseException) -> None:
         """
         Called to mark the end of an attempt for the operation.
 
@@ -297,7 +297,7 @@ class ActiveOperationMetric:
             return self._handle_error(
                 INVALID_STATE_ERROR.format("end_attempt_with_status", self.state)
             )
-        if isinstance(status, Exception):
+        if isinstance(status, BaseException):
             status = self._exc_to_status(status)
         complete_attempt = CompletedAttemptMetric(
             duration_ns=time.monotonic_ns() - self.active_attempt.start_time_ns,
@@ -312,7 +312,7 @@ class ActiveOperationMetric:
         for handler in self.handlers:
             handler.on_attempt_complete(complete_attempt, self)
 
-    def end_with_status(self, status: StatusCode | Exception) -> None:
+    def end_with_status(self, status: StatusCode | BaseException) -> None:
         """
         Called to mark the end of the operation. If there is an active attempt,
         end_attempt_with_status will be called with the same status.
@@ -329,7 +329,7 @@ class ActiveOperationMetric:
                 INVALID_STATE_ERROR.format("end_with_status", self.state)
             )
         final_status = (
-            self._exc_to_status(status) if isinstance(status, Exception) else status
+            self._exc_to_status(status) if isinstance(status, BaseException) else status
         )
         if self.state == OperationState.ACTIVE_ATTEMPT:
             self.end_attempt_with_status(final_status)
@@ -367,7 +367,7 @@ class ActiveOperationMetric:
             handler.on_operation_cancelled(self)
 
     @staticmethod
-    def _exc_to_status(exc: Exception) -> StatusCode:
+    def _exc_to_status(exc: BaseException) -> StatusCode:
         """
         Extracts the grpc status code from an exception.
 

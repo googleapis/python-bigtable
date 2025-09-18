@@ -1538,8 +1538,8 @@ class TestMetricsAsync(SystemTestRunner):
         num_retryable = 3
         for i in range(num_retryable):
             error_injector.push(exc)
-        error_injector.push(RuntimeError)
-        with pytest.raises(RuntimeError):
+        error_injector.push(asyncio.CancelledError)
+        with pytest.raises(asyncio.CancelledError):
             await table.sample_row_keys(retryable_errors=[Aborted])
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -1731,9 +1731,9 @@ class TestMetricsAsync(SystemTestRunner):
         rule = IncrementRule(family, qualifier, 1)
 
         # trigger an exception
-        exc = RuntimeError("injected")
+        exc = asyncio.CancelledError("injected")
         error_injector.push(exc)
-        with pytest.raises(RuntimeError):
+        with pytest.raises(asyncio.CancelledError):
             await table.read_modify_write_row(row_key, rule)
 
         # validate counts
@@ -1904,9 +1904,9 @@ class TestMetricsAsync(SystemTestRunner):
         await temp_rows.add_row(row_key, value=1, family=family, qualifier=qualifier)
 
         # trigger an exception
-        exc = RuntimeError("injected")
+        exc = asyncio.CancelledError("injected")
         error_injector.push(exc)
-        with pytest.raises(RuntimeError):
+        with pytest.raises(asyncio.CancelledError):
             await table.check_and_mutate_row(
                 row_key,
                 predicate=ValueRangeFilter(0, 2),
