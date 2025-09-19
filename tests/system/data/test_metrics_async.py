@@ -43,6 +43,8 @@ if CrossSync.is_async:
 else:
     from grpc import UnaryUnaryClientInterceptor
     from grpc import UnaryStreamClientInterceptor
+    from grpc import RpcError
+    from grpc import intercept_channel
 
 __CROSS_SYNC_OUTPUT__ = "tests.system.data.test_metrics_autogen"
 
@@ -75,6 +77,7 @@ class _MetricsTestHandler(MetricsHandler):
         return f"{self.__class__}(completed_operations={len(self.completed_operations)}, cancelled_operations={len(self.cancelled_operations)}, completed_attempts={len(self.completed_attempts)}"
 
 
+@CrossSync.convert_class
 class _ErrorInjectorInterceptor(
     UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor
 ):
@@ -93,11 +96,13 @@ class _ErrorInjectorInterceptor(
         self._exc_list.clear()
         self.fail_mid_stream = False
 
+    @CrossSync.convert
     async def intercept_unary_unary(self, continuation, client_call_details, request):
         if self._exc_list:
             raise self._exc_list.pop(0)
         return await continuation(client_call_details, request)
 
+    @CrossSync.convert
     async def intercept_unary_stream(self, continuation, client_call_details, request):
         if not self.fail_mid_stream and self._exc_list:
             raise self._exc_list.pop(0)
@@ -113,9 +118,12 @@ class _ErrorInjectorInterceptor(
                     self._exc = exc_to_raise
                     self._raised = False
 
+                @CrossSync.convert(sync_name="__iter__")
                 def __aiter__(self):
                     return self
 
+
+                @CrossSync.convert(sync_name="__next__", replace_symbols={"__anext__": "__next__"})
                 async def __anext__(self):
                     if not self._raised:
                         self._raised = True
@@ -155,6 +163,16 @@ class TestMetricsAsync(SystemTestRunner):
         if CrossSync.is_async:
             metadata = Metadata(metadata) if metadata else Metadata()
             return AioRpcError(status, Metadata(), metadata)
+        else:
+            exc = RpcError(status)
+            exc.trailing_metadata = lambda: [metadata] if metadata else []
+            exc.initial_metadata = lambda: []
+            exc.code = lambda: status
+            exc.details = lambda: None
+            def _result():
+                raise exc
+            exc.result = _result
+            return exc
 
     @pytest.fixture(scope="session")
     def handler(self):
@@ -182,6 +200,10 @@ class TestMetricsAsync(SystemTestRunner):
                 client.transport.grpc_channel._unary_stream_interceptors.append(
                     error_injector
                 )
+            else:
+                # inject interceptor after bigtable metrics interceptors
+                metrics_channel = client.transport._grpc_channel._channel._channel
+                client.transport._grpc_channel._channel._channel = intercept_channel(metrics_channel, error_injector)
             yield client
 
     @CrossSync.convert
@@ -413,6 +435,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
+    @CrossSync.convert(replace_symbols={"__anext__": "__next__", "aclose": "close"})
     async def test_read_rows_stream_failure_closed(
         self, table, temp_rows, handler, error_injector
     ):
@@ -1575,6 +1598,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
+    @CrossSync.drop
     @CrossSync.pytest
     async def test_sample_row_keys_failure_cancelled(
         self, table, temp_rows, handler, error_injector
@@ -1760,6 +1784,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
+    @CrossSync.drop
     @CrossSync.pytest
     async def test_read_modify_write_failure_cancelled(
         self, table, temp_rows, handler, error_injector
@@ -1934,6 +1959,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.application_blocking_time_ns == 0
         assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
+    @CrossSync.drop
     @CrossSync.pytest
     async def test_check_and_mutate_row_failure_cancelled(
         self, table, temp_rows, handler, error_injector

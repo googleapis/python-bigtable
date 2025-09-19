@@ -13,6 +13,8 @@
 # limitations under the License
 from __future__ import annotations
 
+from typing import Sequence
+
 import time
 from functools import wraps
 from google.cloud.bigtable.data._metrics.data_model import (
@@ -90,15 +92,17 @@ def _end_attempt(operation, exc, metadata):
 async def _get_metadata(source) -> dict[str, str|bytes] | None:
     """Helper to extract metadata from a call or RpcError"""
     try:
-        if isinstance(source, AioRpcError) and CrossSync.is_async:
-            return {
-                k:v for k,v 
-                in list(source.trailing_metadata()) + list(source.initial_metadata())
-            }
+        if CrossSync.is_async:
+            # grpc.aio returns metadata in Metadata objects
+            if isinstance(source, AioRpcError):
+                metadata = list(source.trailing_metadata()) + list(source.initial_metadata())
+            else:
+                metadata = list(await source.trailing_metadata()) + list(await source.initial_metadata())
         else:
-            return (await source.trailing_metadata() or {}) + (
-                await source.initial_metadata() or {}
-            )
+            # sync grpc returns metadata as a sequence of tuples
+            metadata: Sequence[tuple[str. str|bytes]] = source.trailing_metadata() + source.initial_metadata()
+        # convert metadata to dict format
+        return {k:v for k,v in metadata}
     except Exception:
         # ignore errors while fetching metadata
         return None

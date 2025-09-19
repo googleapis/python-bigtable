@@ -25,6 +25,7 @@ from functools import lru_cache
 from dataclasses import dataclass
 from dataclasses import field
 from grpc import StatusCode
+from grpc import RpcError
 from grpc.aio import AioRpcError
 
 import google.cloud.bigtable.data.exceptions as bt_exceptions
@@ -390,7 +391,7 @@ class ActiveOperationMetric:
             and exc.__cause__.grpc_status_code is not None
         ):
             return exc.__cause__.grpc_status_code
-        if isinstance(exc, AioRpcError):
+        if isinstance(exc, AioRpcError) or isinstance(exc, RpcError):
             return exc.code()
         return StatusCode.UNKNOWN
 
