@@ -17,6 +17,8 @@ from typing import Sequence
 
 import time
 from functools import wraps
+from grpc import StatusCode
+
 from google.cloud.bigtable.data._metrics.data_model import (
     OPERATION_INTERCEPTOR_METADATA_KEY,
 )
@@ -147,18 +149,23 @@ class AsyncBigtableMetricsInterceptor(
     async def intercept_unary_unary(
         self, operation, continuation, client_call_details, request
     ):
-        encountered_exc: Exception | None = None
+        encountered_status: Exception | StatusCode | None = None
         metadata = None
         try:
             call = await continuation(client_call_details, request)
             metadata = await _get_metadata(call)
+            if CrossSync.is_async:
+                encountered_status = await call.code()
+            elif isinstance(call, Exception):
+                # sync unary calls return exception objects without raising
+                encountered_status = call
             return call
         except Exception as rpc_error:
             metadata = await _get_metadata(rpc_error)
-            encountered_exc = rpc_error
+            encountered_status = rpc_error
             raise rpc_error
         finally:
-            _end_attempt(operation, encountered_exc, metadata)
+            _end_attempt(operation, encountered_status, metadata)
 
     @CrossSync.convert
     @_with_operation_from_metadata

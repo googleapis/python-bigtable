@@ -1562,6 +1562,45 @@ class TestMetricsAsync(SystemTestRunner):
         )
 
     @CrossSync.pytest
+    async def test_mutate_row_failure_unauthorized_with_retries(
+        self, handler, authorized_view, cluster_config
+    ):
+        """
+        retry unauthorized request multiple times before timing out
+        """
+        from google.cloud.bigtable.data.mutations import SetCell
+
+        row_key = b"row_key_1"
+        mutation = SetCell("unauthorized", b"q", b"v")
+
+        with pytest.raises(GoogleAPICallError) as e:
+            await authorized_view.mutate_row(row_key, [mutation], retryable_errors=[PermissionDenied], operation_timeout=30)
+        assert e.value.grpc_status_code.name == "DEADLINE_EXCEEDED"
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) > 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert isinstance(operation, CompletedOperationMetric)
+        assert operation.final_status.name == "DEADLINE_EXCEEDED"
+        assert operation.op_type.value == "MutateRow"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) > 1
+        assert operation.cluster_id == next(iter(cluster_config.keys()))
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
+        # validate attempts
+        for attempt in handler.completed_attempts:
+            assert attempt.end_status.name == "PERMISSION_DENIED"
+            assert (
+                attempt.gfe_latency_ns >= 0
+                and attempt.gfe_latency_ns < operation.duration_ns
+            )
+
+    @CrossSync.pytest
     async def test_sample_row_keys(self, table, temp_rows, handler, cluster_config):
         await table.sample_row_keys()
         # validate counts
