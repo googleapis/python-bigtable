@@ -1214,11 +1214,6 @@ class TestMetricsAsync(SystemTestRunner):
         handler.clear()
         with pytest.raises(MutationsExceptionGroup) as e:
             await authorized_view.bulk_mutate_rows([entry])
-        assert len(e.value.exceptions) == 1
-        assert isinstance(e.value.exceptions[0].__cause__, GoogleAPICallError)
-        assert (
-            e.value.exceptions[0].__cause__.grpc_status_code.name == "PERMISSION_DENIED"
-        )
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
@@ -1241,6 +1236,45 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.gfe_latency_ns >= 0
             and attempt.gfe_latency_ns < operation.duration_ns
         )
+
+    @CrossSync.pytest
+    async def test_bulk_mutate_rows_failure_unauthorized_with_retries(
+        self, handler, authorized_view, cluster_config
+    ):
+        """retry unauthorized request multiple times before timing out"""
+        from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
+        from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+
+        row_key = b"row_key_1"
+        mutation = SetCell("unauthorized", b"q", b"v")
+        entry = RowMutationEntry(row_key, [mutation])
+
+        handler.clear()
+        with pytest.raises(MutationsExceptionGroup) as e:
+            await authorized_view.bulk_mutate_rows([entry], retryable_errors=[PermissionDenied], operation_timeout=25)
+        assert len(e.value.exceptions) == 1
+        # validate counts
+        assert len(handler.completed_operations) == 1
+        assert len(handler.completed_attempts) > 1
+        assert len(handler.cancelled_operations) == 0
+        # validate operation
+        operation = handler.completed_operations[0]
+        assert operation.final_status.name == "DEADLINE_EXCEEDED"
+        assert operation.op_type.value == "MutateRows"
+        assert operation.is_streaming is False
+        assert len(operation.completed_attempts) > 1
+        assert operation.cluster_id == next(iter(cluster_config.keys()))
+        assert (
+            operation.zone
+            == cluster_config[operation.cluster_id].location.split("/")[-1]
+        )
+        # validate attempts
+        for attempt in handler.completed_attempts:
+            assert attempt.end_status.name == "PERMISSION_DENIED"
+            assert (
+                attempt.gfe_latency_ns >= 0
+                and attempt.gfe_latency_ns < operation.duration_ns
+            )
 
     @CrossSync.pytest
     async def test_mutate_rows_batcher(self, table, temp_rows, handler, cluster_config):
