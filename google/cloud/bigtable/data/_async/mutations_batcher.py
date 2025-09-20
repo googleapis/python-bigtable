@@ -181,6 +181,7 @@ class _FlowControlAsync:
                         )
             yield mutations[start_idx:end_idx]
 
+    @CrossSync.convert(replace_symbols={"__anext__": "__next__"})
     async def add_to_flow_with_metrics(
         self,
         mutations: RowMutationEntry | list[RowMutationEntry],
@@ -193,7 +194,7 @@ class _FlowControlAsync:
             flow_start_time = time.monotonic_ns()
             try:
                 value = await inner_generator.__anext__()
-            except StopAsyncIteration:
+            except CrossSync.StopIteration:
                 metric.cancel()
                 return
             metric.flow_throttling_time_ns = time.monotonic_ns() - flow_start_time
