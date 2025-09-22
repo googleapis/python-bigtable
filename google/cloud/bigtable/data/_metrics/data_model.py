@@ -28,13 +28,17 @@ from grpc import StatusCode
 from grpc import RpcError
 from grpc.aio import AioRpcError
 
+from google.api_core.exceptions import GoogleAPICallError
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
 from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
+from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
+from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.protobuf.message import DecodeError
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
+    from google.api_core.retry import RetryFailureReason
 
 
 LOGGER = logging.getLogger(__name__)
@@ -394,6 +398,66 @@ class ActiveOperationMetric:
         if isinstance(exc, AioRpcError) or isinstance(exc, RpcError):
             return exc.code()
         return StatusCode.UNKNOWN
+
+    def track_retryable_error(self) -> callable[[Exception], None]:
+        """
+        Used as input to api_core.Retry classes, to track when retryable errors are encountered
+
+        Should be passed as on_error callback
+        """
+
+        def wrapper(exc: Exception) -> None:
+            try:
+                # record metadata from failed rpc
+                if (
+                    isinstance(exc, GoogleAPICallError)
+                    and exc.errors
+                ):
+                    rpc_error = exc.errors[-1]
+                    metadata = list(rpc_error.trailing_metadata()) + list(
+                        rpc_error.initial_metadata()
+                    )
+                    self.add_response_metadata({k: v for k, v in metadata})
+            except Exception:
+                # ignore errors in metadata collection
+                pass
+            if isinstance(exc, _MutateRowsIncomplete):
+                # _MutateRowsIncomplete represents a successful rpc with some failed mutations
+                # mark the attempt as successful
+                self.end_attempt_with_status(StatusCode.OK)
+            else:
+                self.end_attempt_with_status(exc)
+        return wrapper
+
+    def track_terminal_error(self, exception_factory:callable[
+        [list[Exception], RetryFailureReason, float | None],tuple[Exception, Exception | None],
+    ]) -> callable[[list[Exception], RetryFailureReason, float | None], None]:
+        """
+        Used as input to api_core.Retry classes, to track when terminal errors are encountered
+
+        Should be used as a wrapper over an exception_factory callback
+        """
+        def wrapper(
+            exc_list: list[Exception], reason: RetryFailureReason, timeout_val: float | None
+        ) -> tuple[Exception, Exception | None]:
+            source_exc, cause_exc = exception_factory(exc_list, reason, timeout_val)
+            try:
+                # record metadata from failed rpc
+                if (
+                    isinstance(source_exc, GoogleAPICallError)
+                    and source_exc.errors
+                ):
+                    rpc_error = source_exc.errors[-1]
+                    metadata = list(rpc_error.trailing_metadata()) + list(
+                        rpc_error.initial_metadata()
+                    )
+                    self.add_response_metadata({k: v for k, v in metadata})
+            except Exception:
+                # ignore errors in metadata collection
+                pass
+            self.end_with_status(source_exc)
+            return source_exc, cause_exc
+        return wrapper
 
     @staticmethod
     def _handle_error(message: str) -> None:
