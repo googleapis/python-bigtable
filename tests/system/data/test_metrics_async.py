@@ -1241,7 +1241,13 @@ class TestMetricsAsync(SystemTestRunner):
     async def test_bulk_mutate_rows_failure_unauthorized_with_retries(
         self, handler, authorized_view, cluster_config
     ):
-        """retry unauthorized request multiple times before timing out"""
+        """
+        retry unauthorized request multiple times before timing out
+
+        For bulk_mutate, the rpc returns success, with failures returned in the response.
+        For this reason, We expect the attempts to be marked as successful, even though
+        the underlying mutation is retried
+        """
         from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
         from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 
@@ -1270,7 +1276,7 @@ class TestMetricsAsync(SystemTestRunner):
         )
         # validate attempts
         for attempt in handler.completed_attempts:
-            assert attempt.end_status.name == "PERMISSION_DENIED"
+            assert attempt.end_status.name == "OK"
             assert (
                 attempt.gfe_latency_ns >= 0
                 and attempt.gfe_latency_ns < operation.duration_ns
