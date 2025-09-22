@@ -31,7 +31,6 @@ if TYPE_CHECKING:
     import grpc
     from google.cloud.bigtable.data._async.client import _DataApiTargetAsync
     from google.cloud.bigtable.data._sync_autogen.client import _DataApiTarget
-    from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 
 """
 Helper functions used in various places in the library.
@@ -119,56 +118,6 @@ def _retry_exception_factory(
     cause_exc: Exception | None = RetryExceptionGroup(exc_list) if exc_list else None
     source_exc.__cause__ = cause_exc
     return source_exc, cause_exc
-
-
-def _tracked_exception_factory(
-    operation: "ActiveOperationMetric",
-) -> Callable[
-    [list[Exception], RetryFailureReason, float | None],
-    tuple[Exception, Exception | None],
-]:
-    """
-    wraps and extends _retry_exception_factory to add client-side metrics tracking.
-
-    When the rpc raises a terminal error, record any discovered metadata and finalize
-    the associated operation
-
-    Used by streaming rpcs, which can't always be perfectly captured by context managers
-    for operation termination.
-
-    Args:
-        exc_list: list of exceptions encountered during operation
-        is_timeout: whether the operation failed due to timeout
-        timeout_val: the operation timeout value in seconds, for constructing
-            the error message
-        operation: the operation to finalize when an exception is built
-    Returns:
-        tuple[Exception, Exception|None]:
-            tuple of the exception to raise, and a cause exception if applicabl
-    """
-
-    def wrapper(
-        exc_list: list[Exception], reason: RetryFailureReason, timeout_val: float | None
-    ) -> tuple[Exception, Exception | None]:
-        source_exc, cause_exc = _retry_exception_factory(exc_list, reason, timeout_val)
-        try:
-            # record metadata from failed rpc
-            if (
-                isinstance(source_exc, core_exceptions.GoogleAPICallError)
-                and source_exc.errors
-            ):
-                rpc_error = source_exc.errors[-1]
-                metadata = list(rpc_error.trailing_metadata()) + list(
-                    rpc_error.initial_metadata()
-                )
-                operation.add_response_metadata({k: v for k, v in metadata})
-        except Exception:
-            # ignore errors in metadata collection
-            pass
-        operation.end_with_status(source_exc)
-        return source_exc, cause_exc
-
-    return wrapper
 
 
 def _get_timeouts(

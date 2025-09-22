@@ -80,16 +80,6 @@ def _with_operation_from_metadata(func):
 
     return wrapper
 
-
-def _end_attempt(operation, exc, metadata):
-    """Helper to add metadata and exception to an operation"""
-    if metadata is not None:
-        operation.add_response_metadata(metadata)
-    if exc is not None:
-        # end attempt. If it succeeded, let higher levels decide when to end operation
-        operation.end_attempt_with_status(exc)
-
-
 @CrossSync.convert
 async def _get_metadata(source) -> dict[str, str|bytes] | None:
     """Helper to extract metadata from a call or RpcError"""
@@ -129,7 +119,6 @@ class AsyncBigtableMetricsInterceptor(
         When registered, the operation will receive metadata updates:
         - start_attempt if attempt not started when rpc is being sent
         - add_response_metadata after call is complete
-        - end_attempt_with_status if attempt receives an error
 
         The interceptor will register itself as a handeler for the operation,
         so it can unregister the operation when it is complete
@@ -149,23 +138,17 @@ class AsyncBigtableMetricsInterceptor(
     async def intercept_unary_unary(
         self, operation, continuation, client_call_details, request
     ):
-        encountered_status: Exception | StatusCode | None = None
         metadata = None
         try:
             call = await continuation(client_call_details, request)
             metadata = await _get_metadata(call)
-            if CrossSync.is_async:
-                encountered_status = await call.code()
-            elif isinstance(call, Exception):
-                # sync unary calls return exception objects without raising
-                encountered_status = call
             return call
         except Exception as rpc_error:
             metadata = await _get_metadata(rpc_error)
-            encountered_status = rpc_error
             raise rpc_error
         finally:
-            _end_attempt(operation, encountered_status, metadata)
+            if metadata is not None:
+                operation.add_response_metadata(metadata)
 
     @CrossSync.convert
     @_with_operation_from_metadata
@@ -195,11 +178,13 @@ class AsyncBigtableMetricsInterceptor(
             finally:
                 if call is not None:
                     metadata = await _get_metadata(encountered_exc or call)
-                    _end_attempt(operation, encountered_exc, metadata)
+                    if metadata is not None:
+                        operation.add_response_metadata(metadata)
 
         try:
             return response_wrapper(await continuation(client_call_details, request))
         except Exception as rpc_error:
-            # handle errors while intializing stream
-            _end_attempt(operation, rpc_error, await _get_metadata(rpc_error))
+            metadata = await _get_metadata(rpc_error)
+            if metadata is not None:
+                operation.add_response_metadata(metadata)
             raise rpc_error

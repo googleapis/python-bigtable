@@ -21,7 +21,7 @@ from google.api_core import retry as retries
 import google.cloud.bigtable_v2.types.bigtable as types_pb
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import _tracked_exception_factory
+from google.cloud.bigtable.data._helpers import _retry_exception_factory
 
 # mutate_rows requests are limited to this number of mutations
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
@@ -106,7 +106,8 @@ class _MutateRowsOperationAsync:
             self.is_retryable,
             metric.backoff_generator,
             operation_timeout,
-            exception_factory=_tracked_exception_factory(self._operation_metric),
+            exception_factory=self._operation_metric.track_terminal_error(_retry_exception_factory),
+            on_error=self._operation_metric.track_retryable_error(),
         )
         # initialize state
         self.timeout_generator = _attempt_timeout_generator(
