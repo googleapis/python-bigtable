@@ -325,7 +325,7 @@ class _ReadRowsOperationAsync:
                             if self._operation_metric.active_attempt is not None:
                                 self._operation_metric.active_attempt.application_blocking_time_ns += (  # type: ignore
                                     time.monotonic_ns() - block_time
-                                ) * 1000
+                                )
                             break
                         c = await it.__anext__()
                 except _ResetRow as e:
