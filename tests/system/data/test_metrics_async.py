@@ -605,7 +605,7 @@ class TestMetricsAsync(SystemTestRunner):
             generator = await authorized_view.read_rows_stream(
                 ReadRowsQuery(row_filter=FamilyNameRegexFilter("unauthorized")),
                 retryable_errors=[PermissionDenied],
-                operation_timeout=0.1,
+                operation_timeout=0.5,
             )
             [_ async for _ in generator]
         assert e.value.grpc_status_code.name == "DEADLINE_EXCEEDED"
@@ -1257,7 +1257,7 @@ class TestMetricsAsync(SystemTestRunner):
 
         handler.clear()
         with pytest.raises(MutationsExceptionGroup) as e:
-            await authorized_view.bulk_mutate_rows([entry], retryable_errors=[PermissionDenied], operation_timeout=25)
+            await authorized_view.bulk_mutate_rows([entry], retryable_errors=[PermissionDenied], operation_timeout=0.5)
         assert len(e.value.exceptions) == 1
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -1656,7 +1656,7 @@ class TestMetricsAsync(SystemTestRunner):
         mutation = SetCell("unauthorized", b"q", b"v")
 
         with pytest.raises(GoogleAPICallError) as e:
-            await authorized_view.mutate_row(row_key, [mutation], retryable_errors=[PermissionDenied], operation_timeout=0.1)
+            await authorized_view.mutate_row(row_key, [mutation], retryable_errors=[PermissionDenied], operation_timeout=0.5)
         assert e.value.grpc_status_code.name == "DEADLINE_EXCEEDED"
         # validate counts
         assert len(handler.completed_operations) == 1

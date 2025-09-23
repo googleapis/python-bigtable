@@ -29,6 +29,7 @@ from grpc import RpcError
 from grpc.aio import AioRpcError
 
 from google.api_core.exceptions import GoogleAPICallError
+from google.api_core.retry import RetryFailureReason
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
 from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
@@ -38,7 +39,6 @@ from google.protobuf.message import DecodeError
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
-    from google.api_core.retry import RetryFailureReason
 
 
 LOGGER = logging.getLogger(__name__)
@@ -455,6 +455,10 @@ class ActiveOperationMetric:
             except Exception:
                 # ignore errors in metadata collection
                 pass
+            if reason == RetryFailureReason.TIMEOUT and self.state == OperationState.ACTIVE_ATTEMPT and exc_list:
+                # record ending attempt for timeout failures
+                attempt_exc = exc_list[-1]
+                self.track_retryable_error()(attempt_exc)
             self.end_with_status(source_exc)
             return source_exc, cause_exc
         return wrapper
