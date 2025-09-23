@@ -124,7 +124,7 @@ class _ReadRowsOperationAsync:
             self._operation_metric.backoff_generator,
             self.operation_timeout,
             exception_factory=self._operation_metric.track_terminal_error(_retry_exception_factory),
-            on_error=self._operation_metric.track_retryable_error(),
+            on_error=self._operation_metric.track_retryable_error,
         )
 
     def _read_rows_attempt(self) -> CrossSync.Iterable[Row]:

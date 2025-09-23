@@ -1392,7 +1392,7 @@ class _DataApiTargetAsync(abc.ABC):
                 operation_metric.backoff_generator,
                 operation_timeout,
                 exception_factory=operation_metric.track_terminal_error(_retry_exception_factory),
-                on_error=operation_metric.track_retryable_error(),
+                on_error=operation_metric.track_retryable_error,
             )
 
     @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
@@ -1527,7 +1527,7 @@ class _DataApiTargetAsync(abc.ABC):
                 operation_metric.backoff_generator,
                 operation_timeout,
                 exception_factory=operation_metric.track_terminal_error(_retry_exception_factory),
-                on_error=operation_metric.track_retryable_error(),
+                on_error=operation_metric.track_retryable_error,
             )
 
     @CrossSync.convert
