@@ -132,7 +132,7 @@ class TempRowBuilderAsync:
 
     @CrossSync.convert
     async def create_row_and_mutation(
-        self, table,  *, start_value=b"start", new_value=b"new_value"
+        self, table, *, start_value=b"start", new_value=b"new_value"
     ):
         """
         Helper to create a new row, and a sample set_cell mutation to change its value
@@ -151,9 +151,9 @@ class TempRowBuilderAsync:
         mutation = SetCell(family=TEST_FAMILY, qualifier=qualifier, new_value=new_value)
         return row_key, mutation
 
+
 @CrossSync.convert_class(sync_name="TestSystem")
 class TestSystemAsync(SystemTestRunner):
-
     @CrossSync.drop
     @pytest.fixture(scope="session")
     def event_loop(self):
@@ -570,7 +570,9 @@ class TestSystemAsync(SystemTestRunner):
             assert len(batcher._flush_jobs) == 0
             # ensure cells were not updated
             assert (await temp_rows.retrieve_cell_value(target, row_key)) == start_value
-            assert (await temp_rows.retrieve_cell_value(target, row_key2)) == start_value
+            assert (
+                await temp_rows.retrieve_cell_value(target, row_key2)
+            ) == start_value
 
     @pytest.mark.usefixtures("client")
     @pytest.mark.usefixtures("target")
