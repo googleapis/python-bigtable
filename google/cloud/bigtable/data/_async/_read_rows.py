@@ -159,7 +159,6 @@ class _ReadRowsOperationAsync:
             self.request,
             timeout=next(self.attempt_timeout_gen),
             retry=None,
-            metadata=[self._operation_metric.interceptor_metadata],
         )
         chunked_stream = self.chunk_stream(gapic_stream)
         return self.merge_rows(chunked_stream)

@@ -19,9 +19,6 @@ import time
 from functools import wraps
 from grpc import StatusCode
 
-from google.cloud.bigtable.data._metrics.data_model import (
-    OPERATION_INTERCEPTOR_METADATA_KEY,
-)
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import OperationState
 from google.cloud.bigtable.data._metrics.data_model import OperationType
@@ -49,22 +46,8 @@ def _with_operation_from_metadata(func):
 
     @wraps(func)
     def wrapper(self, continuation, client_call_details, request):
-        found_operation_id: str | None = None
-        try:
-            new_metadata: list[tuple[str, str]] = []
-            if client_call_details.metadata:
-                # find operation key from metadata
-                for k, v in client_call_details.metadata:
-                    if k == OPERATION_INTERCEPTOR_METADATA_KEY:
-                        found_operation_id = v
-                    else:
-                        new_metadata.append((k, v))
-            # update client_call_details to drop the operation key metadata
-            client_call_details.metadata = new_metadata
-        except Exception:
-            pass
+        operation: "ActiveOperationMetric" | None = ActiveOperationMetric.get_active()
 
-        operation: "ActiveOperationMetric" = self.operation_map.get(found_operation_id)
         if operation:
             # start a new attempt if not started
             if (
@@ -107,31 +90,6 @@ class AsyncBigtableMetricsInterceptor(
     """
     An async gRPC interceptor to add client metadata and print server metadata.
     """
-
-    def __init__(self):
-        super().__init__()
-        self.operation_map = {}
-
-    def register_operation(self, operation):
-        """
-        Register an operation object to be tracked my the interceptor
-
-        When registered, the operation will receive metadata updates:
-        - start_attempt if attempt not started when rpc is being sent
-        - add_response_metadata after call is complete
-
-        The interceptor will register itself as a handeler for the operation,
-        so it can unregister the operation when it is complete
-        """
-        self.operation_map[operation.uuid] = operation
-        operation.handlers.append(self)
-
-    def on_operation_complete(self, op):
-        if op.uuid in self.operation_map:
-            del self.operation_map[op.uuid]
-
-    def on_operation_cancelled(self, op):
-        self.on_operation_complete(op)
 
     @CrossSync.convert
     @_with_operation_from_metadata
