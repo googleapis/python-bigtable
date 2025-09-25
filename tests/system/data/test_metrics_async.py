@@ -57,24 +57,19 @@ class _MetricsTestHandler(MetricsHandler):
     def __init__(self, **kwargs):
         self.completed_operations = []
         self.completed_attempts = []
-        self.cancelled_operations = []
 
     def on_operation_complete(self, op):
         self.completed_operations.append(op)
-
-    def on_operation_cancelled(self, op):
-        self.cancelled_operations.append(op)
 
     def on_attempt_complete(self, attempt, _):
         self.completed_attempts.append(attempt)
 
     def clear(self):
-        self.cancelled_operations.clear()
         self.completed_operations.clear()
         self.completed_attempts.clear()
 
     def __repr__(self):
-        return f"{self.__class__}(completed_operations={len(self.completed_operations)}, cancelled_operations={len(self.cancelled_operations)}, completed_attempts={len(self.completed_attempts)}"
+        return f"{self.__class__}(completed_operations={len(self.completed_operations)}, completed_attempts={len(self.completed_attempts)}"
 
 
 @CrossSync.convert_class
@@ -241,7 +236,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -297,7 +291,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -332,7 +325,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -365,7 +357,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -399,7 +390,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -455,7 +445,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "CANCELLED"
@@ -498,7 +487,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -536,7 +524,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -570,7 +557,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -612,7 +598,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) > 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -654,7 +639,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 2
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -676,7 +660,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -736,7 +719,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -771,7 +753,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -804,7 +785,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -842,7 +822,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 2
-        assert len(handler.cancelled_operations) == 0
         # validate operations
         for operation in handler.completed_operations:
             assert isinstance(operation, CompletedOperationMetric)
@@ -902,7 +881,6 @@ class TestMetricsAsync(SystemTestRunner):
 
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 3
-        assert len(handler.cancelled_operations) == 0
         # validate operations
         for op in handler.completed_operations:
             assert op.final_status.name == "OK"
@@ -936,7 +914,6 @@ class TestMetricsAsync(SystemTestRunner):
         # both shards should fail
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 2
-        assert len(handler.cancelled_operations) == 0
         # validate operations
         for operation in handler.completed_operations:
             assert isinstance(operation, CompletedOperationMetric)
@@ -976,7 +953,6 @@ class TestMetricsAsync(SystemTestRunner):
         # one shard will fail, the other will succeed
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 2
-        assert len(handler.cancelled_operations) == 0
         # sort operations by status
         failed_op = next(
             op for op in handler.completed_operations if op.final_status.name != "OK"
@@ -1036,7 +1012,6 @@ class TestMetricsAsync(SystemTestRunner):
         # the failing shard will have one retry
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 3
-        assert len(handler.cancelled_operations) == 0
         # sort operations by status
         failed_op = next(
             op for op in handler.completed_operations if op.final_status.name != "OK"
@@ -1077,7 +1052,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1140,7 +1114,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1181,7 +1154,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1217,7 +1189,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -1262,7 +1233,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) > 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -1304,11 +1274,6 @@ class TestMetricsAsync(SystemTestRunner):
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
         # bacher expects to cancel staged operation on close
-        assert len(handler.cancelled_operations) == 1
-        cancelled = handler.cancelled_operations[0]
-        assert isinstance(cancelled, ActiveOperationMetric)
-        assert cancelled.state == OperationState.CREATED
-        assert not cancelled.completed_attempts
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1377,7 +1342,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 1  # from batcher auto-closing
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1418,7 +1382,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 1  # from batcher auto-closing
         # validate operation
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -1457,7 +1420,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 1  # from batcher auto-closing
         # validate operation
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -1489,7 +1451,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1549,7 +1510,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1587,7 +1547,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1621,7 +1580,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1661,7 +1619,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) > 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1688,7 +1645,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1739,7 +1695,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1776,7 +1731,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1816,7 +1770,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1847,7 +1800,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 2
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -1874,7 +1826,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1932,7 +1883,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -1977,7 +1927,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -2006,7 +1955,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -2049,7 +1997,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -2108,7 +2055,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -2165,7 +2111,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
@@ -2202,7 +2147,6 @@ class TestMetricsAsync(SystemTestRunner):
         # validate counts
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         # validate operation
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
