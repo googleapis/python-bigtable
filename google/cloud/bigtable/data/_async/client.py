@@ -1382,7 +1382,6 @@ class _DataApiTargetAsync(abc.ABC):
                     ),
                     timeout=next(attempt_timeout_gen),
                     retry=None,
-                    metadata=[operation_metric.interceptor_metadata],
                 )
                 return [(s.row_key, s.offset_bytes) async for s in results]
 
@@ -1519,7 +1518,6 @@ class _DataApiTargetAsync(abc.ABC):
                 ),
                 timeout=attempt_timeout,
                 retry=None,
-                metadata=[operation_metric.interceptor_metadata],
             )
             return await CrossSync.retry_target(
                 target,
@@ -1657,7 +1655,6 @@ class _DataApiTargetAsync(abc.ABC):
                 ),
                 timeout=operation_timeout,
                 retry=None,
-                metadata=[op.interceptor_metadata],
             )
             return result.predicate_matched
 
@@ -1712,7 +1709,6 @@ class _DataApiTargetAsync(abc.ABC):
                 ),
                 timeout=operation_timeout,
                 retry=None,
-                metadata=[op.interceptor_metadata],
             )
             # construct Row from result
             return Row._from_pb(result.row)
