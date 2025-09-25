@@ -151,7 +151,7 @@ class _FlowControl:
                         )
             yield mutations[start_idx:end_idx]
 
-    async def add_to_flow_with_metrics(
+    def add_to_flow_with_metrics(
         self,
         mutations: RowMutationEntry | list[RowMutationEntry],
         metrics_controller: BigtableClientSideMetricsController,
@@ -161,9 +161,8 @@ class _FlowControl:
             metric = metrics_controller.create_operation(OperationType.BULK_MUTATE_ROWS)
             flow_start_time = time.monotonic_ns()
             try:
-                value = await inner_generator.__anext__()
-            except StopAsyncIteration:
-                metric.cancel()
+                value = inner_generator.__next__()
+            except CrossSync._Sync_Impl.StopIteration:
                 return
             metric.flow_throttling_time_ns = time.monotonic_ns() - flow_start_time
             yield (value, metric)

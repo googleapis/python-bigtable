@@ -18,6 +18,7 @@
 import pytest
 from grpc import RpcError
 from grpc import ClientCallDetails
+from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import OperationState
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -54,80 +55,9 @@ class TestMetricsInterceptor:
 
     def test_ctor(self):
         instance = self._make_one()
-        assert instance.operation_map == {}
-
-    def test_register_operation(self):
-        """adding a new operation should register it in operation_map"""
-        from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
-        from google.cloud.bigtable.data._metrics.data_model import OperationType
-
-        instance = self._make_one()
-        op = ActiveOperationMetric(OperationType.READ_ROWS)
-        instance.register_operation(op)
-        assert instance.operation_map[op.uuid] == op
-        assert instance in op.handlers
-
-    def test_on_operation_comple_mock(self):
-        """completing or cancelling an operation should call on_operation_complete on interceptor"""
-        from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
-        from google.cloud.bigtable.data._metrics.data_model import OperationType
-
-        instance = self._make_one()
-        instance.on_operation_complete = mock.Mock()
-        op = ActiveOperationMetric(OperationType.READ_ROWS)
-        instance.register_operation(op)
-        op.end_with_success()
-        assert instance.on_operation_complete.call_count == 1
-        op.cancel()
-        assert instance.on_operation_complete.call_count == 2
-
-    def test_on_operation_complete(self):
-        """completing an operation should remove it from the operation map"""
-        from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
-        from google.cloud.bigtable.data._metrics.data_model import OperationType
-
-        instance = self._make_one()
-        op = ActiveOperationMetric(OperationType.READ_ROWS)
-        instance.register_operation(op)
-        op.end_with_success()
-        instance.on_operation_complete(op)
-        assert op.uuid not in instance.operation_map
-
-    def test_on_operation_cancelled(self):
-        """completing an operation should remove it from the operation map"""
-        from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
-        from google.cloud.bigtable.data._metrics.data_model import OperationType
-
-        instance = self._make_one()
-        op = ActiveOperationMetric(OperationType.READ_ROWS)
-        instance.register_operation(op)
-        op.cancel()
-        assert op.uuid not in instance.operation_map
-
-    def test_strip_operation_id_metadata(self):
-        """After operation id is detected in metadata, the field should be stripped out before calling continuation"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
-        instance = self._make_one()
-        op = mock.Mock()
-        op.uuid = "test-uuid"
-        op.state = OperationState.ACTIVE_ATTEMPT
-        instance.operation_map[op.uuid] = op
-        continuation = CrossSync._Sync_Impl.Mock()
-        details = ClientCallDetails()
-        details.metadata = [
-            (OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid),
-            ("other_key", "other_value"),
-        ]
-        instance.intercept_unary_unary(continuation, details, mock.Mock())
-        assert details.metadata == [("other_key", "other_value")]
-        assert continuation.call_count == 1
-        assert continuation.call_args[0][0].metadata == [("other_key", "other_value")]
 
     def test_unary_unary_interceptor_op_not_found(self):
-        """Test that interceptor call cuntinuation if op is not found"""
+        """Test that interceptor call continuation if op is not found"""
         instance = self._make_one()
         continuation = CrossSync._Sync_Impl.Mock()
         details = ClientCallDetails()
@@ -138,104 +68,81 @@ class TestMetricsInterceptor:
 
     def test_unary_unary_interceptor_success(self):
         """Test that interceptor handles successful unary-unary calls"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
         op.state = OperationState.ACTIVE_ATTEMPT
-        instance.operation_map[op.uuid] = op
+        ActiveOperationMetric._active_operation_context.set(op)
         continuation = CrossSync._Sync_Impl.Mock()
         call = continuation.return_value
         call.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[("c", "d")])
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         result = instance.intercept_unary_unary(continuation, details, request)
         assert result == call
         continuation.assert_called_once_with(details, request)
-        op.add_response_metadata.assert_called_once_with([("a", "b"), ("c", "d")])
+        op.add_response_metadata.assert_called_once_with({"a": "b", "c": "d"})
         op.end_attempt_with_status.assert_not_called()
 
     def test_unary_unary_interceptor_failure(self):
         """test a failed RpcError with metadata"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
         op.state = OperationState.ACTIVE_ATTEMPT
-        instance.operation_map[op.uuid] = op
+        ActiveOperationMetric._active_operation_context.set(op)
         exc = RpcError("test")
         exc.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[("a", "b")])
         exc.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[("c", "d")])
         continuation = CrossSync._Sync_Impl.Mock(side_effect=exc)
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(RpcError) as e:
             instance.intercept_unary_unary(continuation, details, request)
         assert e.value == exc
         continuation.assert_called_once_with(details, request)
-        op.add_response_metadata.assert_called_once_with([("a", "b"), ("c", "d")])
-        op.end_attempt_with_status.assert_called_once_with(exc)
+        op.add_response_metadata.assert_called_once_with({"a": "b", "c": "d"})
 
     def test_unary_unary_interceptor_failure_no_metadata(self):
         """test with RpcError without without metadata attached"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
         op.state = OperationState.ACTIVE_ATTEMPT
-        instance.operation_map[op.uuid] = op
+        ActiveOperationMetric._active_operation_context.set(op)
         exc = RpcError("test")
         continuation = CrossSync._Sync_Impl.Mock(side_effect=exc)
         call = continuation.return_value
         call.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[("c", "d")])
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(RpcError) as e:
             instance.intercept_unary_unary(continuation, details, request)
         assert e.value == exc
         continuation.assert_called_once_with(details, request)
         op.add_response_metadata.assert_not_called()
-        op.end_attempt_with_status.assert_called_once_with(exc)
 
     def test_unary_unary_interceptor_failure_generic(self):
         """test generic exception"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
         op.state = OperationState.ACTIVE_ATTEMPT
-        instance.operation_map[op.uuid] = op
+        ActiveOperationMetric._active_operation_context.set(op)
         exc = ValueError("test")
         continuation = CrossSync._Sync_Impl.Mock(side_effect=exc)
         call = continuation.return_value
         call.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[("c", "d")])
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(ValueError) as e:
             instance.intercept_unary_unary(continuation, details, request)
         assert e.value == exc
         continuation.assert_called_once_with(details, request)
         op.add_response_metadata.assert_not_called()
-        op.end_attempt_with_status.assert_called_once_with(exc)
 
     def test_unary_stream_interceptor_op_not_found(self):
         """Test that interceptor calls continuation if op is not found"""
@@ -249,17 +156,13 @@ class TestMetricsInterceptor:
 
     def test_unary_stream_interceptor_success(self):
         """Test that interceptor handles successful unary-stream calls"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
         op.state = OperationState.ACTIVE_ATTEMPT
         op.start_time_ns = 0
         op.first_response_latency = None
-        instance.operation_map[op.uuid] = op
+        ActiveOperationMetric._active_operation_context.set(op)
         continuation = CrossSync._Sync_Impl.Mock(
             return_value=_make_mock_stream_call([1, 2])
         )
@@ -267,21 +170,18 @@ class TestMetricsInterceptor:
         call.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[("a", "b")])
         call.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[("c", "d")])
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         wrapper = instance.intercept_unary_stream(continuation, details, request)
         results = [val for val in wrapper]
         assert results == [1, 2]
         continuation.assert_called_once_with(details, request)
         assert op.first_response_latency_ns is not None
-        op.add_response_metadata.assert_called_once_with([("a", "b"), ("c", "d")])
+        op.add_response_metadata.assert_called_once_with({"a": "b", "c": "d"})
         op.end_attempt_with_status.assert_not_called()
 
     def test_unary_stream_interceptor_failure_mid_stream(self):
         """Test that interceptor handles failures mid-stream"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
+        from grpc.aio import AioRpcError, Metadata
 
         instance = self._make_one()
         op = mock.Mock()
@@ -289,73 +189,57 @@ class TestMetricsInterceptor:
         op.state = OperationState.ACTIVE_ATTEMPT
         op.start_time_ns = 0
         op.first_response_latency = None
-        instance.operation_map[op.uuid] = op
-        exc = ValueError("test")
+        ActiveOperationMetric._active_operation_context.set(op)
+        exc = AioRpcError(0, Metadata(), Metadata(("a", "b"), ("c", "d")))
         continuation = CrossSync._Sync_Impl.Mock(
             return_value=_make_mock_stream_call([1], exc=exc)
         )
-        call = continuation.return_value
-        call.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[("a", "b")])
-        call.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[("c", "d")])
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         wrapper = instance.intercept_unary_stream(continuation, details, request)
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(AioRpcError) as e:
             [val for val in wrapper]
         assert e.value == exc
         continuation.assert_called_once_with(details, request)
         assert op.first_response_latency_ns is not None
-        op.add_response_metadata.assert_called_once_with([("a", "b"), ("c", "d")])
-        op.end_attempt_with_status.assert_called_once_with(exc)
+        op.add_response_metadata.assert_called_once_with({"a": "b", "c": "d"})
 
     def test_unary_stream_interceptor_failure_start_stream(self):
         """Test that interceptor handles failures at start of stream with RpcError with metadata"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
         op.state = OperationState.ACTIVE_ATTEMPT
         op.start_time_ns = 0
         op.first_response_latency = None
-        instance.operation_map[op.uuid] = op
+        ActiveOperationMetric._active_operation_context.set(op)
         exc = RpcError("test")
         exc.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[("a", "b")])
         exc.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[("c", "d")])
         continuation = CrossSync._Sync_Impl.Mock()
         continuation.side_effect = exc
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(RpcError) as e:
             instance.intercept_unary_stream(continuation, details, request)
         assert e.value == exc
         continuation.assert_called_once_with(details, request)
         assert op.first_response_latency_ns is not None
-        op.add_response_metadata.assert_called_once_with([("a", "b"), ("c", "d")])
-        op.end_attempt_with_status.assert_called_once_with(exc)
+        op.add_response_metadata.assert_called_once_with({"a": "b", "c": "d"})
 
     def test_unary_stream_interceptor_failure_start_stream_no_metadata(self):
         """Test that interceptor handles failures at start of stream with RpcError with no metadata"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
         op.state = OperationState.ACTIVE_ATTEMPT
         op.start_time_ns = 0
         op.first_response_latency = None
-        instance.operation_map[op.uuid] = op
+        ActiveOperationMetric._active_operation_context.set(op)
         exc = RpcError("test")
         continuation = CrossSync._Sync_Impl.Mock()
         continuation.side_effect = exc
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(RpcError) as e:
             instance.intercept_unary_stream(continuation, details, request)
@@ -363,26 +247,20 @@ class TestMetricsInterceptor:
         continuation.assert_called_once_with(details, request)
         assert op.first_response_latency_ns is not None
         op.add_response_metadata.assert_not_called()
-        op.end_attempt_with_status.assert_called_once_with(exc)
 
     def test_unary_stream_interceptor_failure_start_stream_generic(self):
         """Test that interceptor handles failures at start of stream with generic exception"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
         op.state = OperationState.ACTIVE_ATTEMPT
         op.start_time_ns = 0
         op.first_response_latency = None
-        instance.operation_map[op.uuid] = op
+        ActiveOperationMetric._active_operation_context.set(op)
         exc = ValueError("test")
         continuation = CrossSync._Sync_Impl.Mock()
         continuation.side_effect = exc
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         with pytest.raises(ValueError) as e:
             instance.intercept_unary_stream(continuation, details, request)
@@ -390,28 +268,22 @@ class TestMetricsInterceptor:
         continuation.assert_called_once_with(details, request)
         assert op.first_response_latency_ns is not None
         op.add_response_metadata.assert_not_called()
-        op.end_attempt_with_status.assert_called_once_with(exc)
 
     @pytest.mark.parametrize(
         "initial_state", [OperationState.CREATED, OperationState.BETWEEN_ATTEMPTS]
     )
     def test_unary_unary_interceptor_start_operation(self, initial_state):
         """if called with a newly created operation, it should be started"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
         op.state = initial_state
-        instance.operation_map[op.uuid] = op
+        ActiveOperationMetric._active_operation_context.set(op)
         continuation = CrossSync._Sync_Impl.Mock()
         call = continuation.return_value
         call.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[])
         call.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[])
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         instance.intercept_unary_unary(continuation, details, request)
         op.start_attempt.assert_called_once()
@@ -421,15 +293,11 @@ class TestMetricsInterceptor:
     )
     def test_unary_stream_interceptor_start_operation(self, initial_state):
         """if called with a newly created operation, it should be started"""
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"
         op.state = initial_state
-        instance.operation_map[op.uuid] = op
+        ActiveOperationMetric._active_operation_context.set(op)
         continuation = CrossSync._Sync_Impl.Mock(
             return_value=_make_mock_stream_call([1, 2])
         )
@@ -437,7 +305,6 @@ class TestMetricsInterceptor:
         call.trailing_metadata = CrossSync._Sync_Impl.Mock(return_value=[])
         call.initial_metadata = CrossSync._Sync_Impl.Mock(return_value=[])
         details = ClientCallDetails()
-        details.metadata = [(OPERATION_INTERCEPTOR_METADATA_KEY, op.uuid)]
         request = mock.Mock()
         instance.intercept_unary_stream(continuation, details, request)
         op.start_attempt.assert_called_once()

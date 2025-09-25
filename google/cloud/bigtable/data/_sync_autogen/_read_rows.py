@@ -19,6 +19,7 @@
 from __future__ import annotations
 from typing import Sequence, TYPE_CHECKING
 import time
+from grpc import StatusCode
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
@@ -107,7 +108,10 @@ class _ReadRowsOperation:
             self._predicate,
             self._operation_metric.backoff_generator,
             self.operation_timeout,
-            exception_factory=_retry_exception_factory,
+            exception_factory=self._operation_metric.track_terminal_error(
+                _retry_exception_factory
+            ),
+            on_error=self._operation_metric.track_retryable_error,
         )
 
     def _read_rows_attempt(self) -> CrossSync._Sync_Impl.Iterable[Row]:
@@ -268,7 +272,7 @@ class _ReadRowsOperation:
                             if self._operation_metric.active_attempt is not None:
                                 self._operation_metric.active_attempt.application_blocking_time_ns += (
                                     time.monotonic_ns() - block_time
-                                ) * 1000
+                                )
                             break
                         c = it.__next__()
                 except _ResetRow as e:
@@ -285,9 +289,10 @@ class _ReadRowsOperation:
                     continue
                 except CrossSync._Sync_Impl.StopIteration:
                     raise InvalidChunk("premature end of stream")
+        except GeneratorExit as close_exception:
+            self._operation_metric.end_with_status(StatusCode.CANCELLED)
+            raise close_exception
         except Exception as generic_exception:
-            if not self._predicate(generic_exception):
-                self._operation_metric.end_attempt_with_status(generic_exception)
             raise generic_exception
         else:
             self._operation_metric.end_with_success()

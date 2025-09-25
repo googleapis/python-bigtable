@@ -25,8 +25,6 @@ from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import (
     CompletedOperationMetric,
     CompletedAttemptMetric,
-    ActiveOperationMetric,
-    OperationState,
 )
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable_v2.types import ResponseParams
@@ -46,24 +44,19 @@ class _MetricsTestHandler(MetricsHandler):
     def __init__(self, **kwargs):
         self.completed_operations = []
         self.completed_attempts = []
-        self.cancelled_operations = []
 
     def on_operation_complete(self, op):
         self.completed_operations.append(op)
-
-    def on_operation_cancelled(self, op):
-        self.cancelled_operations.append(op)
 
     def on_attempt_complete(self, attempt, _):
         self.completed_attempts.append(attempt)
 
     def clear(self):
-        self.cancelled_operations.clear()
         self.completed_operations.clear()
         self.completed_attempts.clear()
 
     def __repr__(self):
-        return f"{self.__class__}(completed_operations={len(self.completed_operations)}, cancelled_operations={len(self.cancelled_operations)}, completed_attempts={len(self.completed_attempts)}"
+        return f"{self.__class__}(completed_operations={len(self.completed_operations)}, completed_attempts={len(self.completed_attempts)}"
 
 
 class _ErrorInjectorInterceptor(
@@ -199,7 +192,6 @@ class TestMetrics(SystemTestRunner):
         assert len(row_list) == 2
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.value[0] == 0
@@ -253,7 +245,6 @@ class TestMetrics(SystemTestRunner):
             table.read_rows(ReadRowsQuery(), retryable_errors=[Aborted])
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -282,7 +273,6 @@ class TestMetrics(SystemTestRunner):
             table.read_rows(ReadRowsQuery(), operation_timeout=0.001)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -309,7 +299,6 @@ class TestMetrics(SystemTestRunner):
         assert e.value.grpc_status_code.name == "PERMISSION_DENIED"
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -338,7 +327,6 @@ class TestMetrics(SystemTestRunner):
         assert len(row_list) == 2
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.value[0] == 0
@@ -385,7 +373,6 @@ class TestMetrics(SystemTestRunner):
             generator.__next__()
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "CANCELLED"
         assert operation.op_type.value == "ReadRows"
@@ -419,7 +406,6 @@ class TestMetrics(SystemTestRunner):
             [_ for _ in generator]
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -449,7 +435,6 @@ class TestMetrics(SystemTestRunner):
             [_ for _ in generator]
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -477,7 +462,6 @@ class TestMetrics(SystemTestRunner):
         assert e.value.grpc_status_code.name == "PERMISSION_DENIED"
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -513,7 +497,6 @@ class TestMetrics(SystemTestRunner):
         assert e.value.grpc_status_code.name == "DEADLINE_EXCEEDED"
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) > 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -547,7 +530,6 @@ class TestMetrics(SystemTestRunner):
             [_ for _ in generator]
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 2
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "PERMISSION_DENIED"
         assert operation.op_type.value == "ReadRows"
@@ -564,7 +546,6 @@ class TestMetrics(SystemTestRunner):
         table.read_row(b"row_key_1")
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.value[0] == 0
@@ -618,7 +599,6 @@ class TestMetrics(SystemTestRunner):
             table.read_row(b"row_key_1", retryable_errors=[Aborted])
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -647,7 +627,6 @@ class TestMetrics(SystemTestRunner):
             table.read_row(b"row_key_1", operation_timeout=0.001)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -674,7 +653,6 @@ class TestMetrics(SystemTestRunner):
         assert e.value.grpc_status_code.name == "PERMISSION_DENIED"
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -708,7 +686,6 @@ class TestMetrics(SystemTestRunner):
         assert len(row_list) == 4
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 2
-        assert len(handler.cancelled_operations) == 0
         for operation in handler.completed_operations:
             assert isinstance(operation, CompletedOperationMetric)
             assert operation.final_status.value[0] == 0
@@ -760,7 +737,6 @@ class TestMetrics(SystemTestRunner):
         table.read_rows_sharded([query1, query2], retryable_errors=[Aborted])
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 3
-        assert len(handler.cancelled_operations) == 0
         for op in handler.completed_operations:
             assert op.final_status.name == "OK"
             assert op.op_type.value == "ReadRows"
@@ -800,7 +776,6 @@ class TestMetrics(SystemTestRunner):
             assert isinstance(sub_exc.__cause__, DeadlineExceeded)
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 2
-        assert len(handler.cancelled_operations) == 0
         for operation in handler.completed_operations:
             assert isinstance(operation, CompletedOperationMetric)
             assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -834,7 +809,6 @@ class TestMetrics(SystemTestRunner):
         )
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 2
-        assert len(handler.cancelled_operations) == 0
         failed_op = next(
             (op for op in handler.completed_operations if op.final_status.name != "OK")
         )
@@ -884,7 +858,6 @@ class TestMetrics(SystemTestRunner):
         assert isinstance(e.value.exceptions[0].__cause__, PermissionDenied)
         assert len(handler.completed_operations) == 2
         assert len(handler.completed_attempts) == 3
-        assert len(handler.cancelled_operations) == 0
         failed_op = next(
             (op for op in handler.completed_operations if op.final_status.name != "OK")
         )
@@ -916,7 +889,6 @@ class TestMetrics(SystemTestRunner):
         table.bulk_mutate_rows([bulk_mutation])
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.value[0] == 0
@@ -970,7 +942,6 @@ class TestMetrics(SystemTestRunner):
             table.bulk_mutate_rows([entry], retryable_errors=[Aborted])
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -1004,7 +975,6 @@ class TestMetrics(SystemTestRunner):
             table.bulk_mutate_rows([entry], operation_timeout=0.001)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -1033,7 +1003,6 @@ class TestMetrics(SystemTestRunner):
             authorized_view.bulk_mutate_rows([entry])
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "PERMISSION_DENIED"
         assert operation.op_type.value == "MutateRows"
@@ -1073,7 +1042,6 @@ class TestMetrics(SystemTestRunner):
         assert len(e.value.exceptions) == 1
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) > 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
         assert operation.op_type.value == "MutateRows"
@@ -1109,11 +1077,6 @@ class TestMetrics(SystemTestRunner):
             batcher.append(bulk_mutation2)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 1
-        cancelled = handler.cancelled_operations[0]
-        assert isinstance(cancelled, ActiveOperationMetric)
-        assert cancelled.state == OperationState.CREATED
-        assert not cancelled.completed_attempts
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.value[0] == 0
@@ -1171,7 +1134,6 @@ class TestMetrics(SystemTestRunner):
                 batcher.append(entry)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 1
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -1203,7 +1165,6 @@ class TestMetrics(SystemTestRunner):
                 batcher.append(entry)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 1
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
         assert operation.op_type.value == "MutateRows"
@@ -1235,7 +1196,6 @@ class TestMetrics(SystemTestRunner):
         )
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 1
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "PERMISSION_DENIED"
         assert operation.op_type.value == "MutateRows"
@@ -1263,7 +1223,6 @@ class TestMetrics(SystemTestRunner):
         table.mutate_row(row_key, mutation)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.value[0] == 0
@@ -1312,7 +1271,6 @@ class TestMetrics(SystemTestRunner):
             table.mutate_row(row_key, [mutation], retryable_errors=[Aborted])
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -1343,7 +1301,6 @@ class TestMetrics(SystemTestRunner):
             table.mutate_row(row_key, [mutation], operation_timeout=0.001)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -1370,7 +1327,6 @@ class TestMetrics(SystemTestRunner):
         assert e.value.grpc_status_code.name == "PERMISSION_DENIED"
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -1408,7 +1364,6 @@ class TestMetrics(SystemTestRunner):
         assert e.value.grpc_status_code.name == "DEADLINE_EXCEEDED"
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) > 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -1431,7 +1386,6 @@ class TestMetrics(SystemTestRunner):
         table.sample_row_keys()
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.value[0] == 0
@@ -1469,7 +1423,6 @@ class TestMetrics(SystemTestRunner):
         table.sample_row_keys(retryable_errors=[Aborted])
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == num_retryable + 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "OK"
@@ -1503,7 +1456,6 @@ class TestMetrics(SystemTestRunner):
             table.sample_row_keys(operation_timeout=0.001)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -1528,7 +1480,6 @@ class TestMetrics(SystemTestRunner):
             table.sample_row_keys(retryable_errors=[Aborted])
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 2
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert operation.final_status.name == "PERMISSION_DENIED"
         assert operation.op_type.value == "SampleRowKeys"
@@ -1550,7 +1501,6 @@ class TestMetrics(SystemTestRunner):
         table.read_modify_write_row(row_key, rule)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.value[0] == 0
@@ -1592,7 +1542,6 @@ class TestMetrics(SystemTestRunner):
             table.read_modify_write_row(row_key, rule, operation_timeout=0.001)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -1615,7 +1564,6 @@ class TestMetrics(SystemTestRunner):
             authorized_view.read_modify_write_row(row_key, rule)
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
@@ -1649,7 +1597,6 @@ class TestMetrics(SystemTestRunner):
         )
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.value[0] == 0
@@ -1700,7 +1647,6 @@ class TestMetrics(SystemTestRunner):
             )
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
@@ -1731,7 +1677,6 @@ class TestMetrics(SystemTestRunner):
             )
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1
-        assert len(handler.cancelled_operations) == 0
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "PERMISSION_DENIED"
