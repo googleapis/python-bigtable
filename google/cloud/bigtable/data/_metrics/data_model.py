@@ -368,13 +368,6 @@ class ActiveOperationMetric:
         """
         return self.end_with_status(StatusCode.OK)
 
-    def cancel(self):
-        """
-        Called to cancel an operation without processing emitting it.
-        """
-        for handler in self.handlers:
-            handler.on_operation_cancelled(self)
-
     @staticmethod
     def _exc_to_status(exc: BaseException) -> StatusCode:
         """

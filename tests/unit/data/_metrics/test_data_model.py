@@ -545,17 +545,6 @@ class TestActiveOperationMetric:
         assert key == OPERATION_INTERCEPTOR_METADATA_KEY
         assert value == metric.uuid
 
-    def test_cancel(self):
-        """
-        cancel should call on_operation_cancelled on handlers
-        """
-        handlers = [mock.Mock(), mock.Mock()]
-        metric = self._make_one(mock.Mock(), handlers=handlers)
-        metric.cancel()
-        for h in handlers:
-            assert h.on_operation_cancelled.call_count == 1
-            assert h.on_operation_cancelled.call_args[0][0] == metric
-
     def test_end_with_status_with_default_cluster_zone(self):
         """
         ending the operation should use default cluster and zone if not set

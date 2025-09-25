@@ -195,7 +195,6 @@ class _FlowControlAsync:
             try:
                 value = await inner_generator.__anext__()
             except CrossSync.StopIteration:
-                metric.cancel()
                 return
             metric.flow_throttling_time_ns = time.monotonic_ns() - flow_start_time
             yield value, metric
