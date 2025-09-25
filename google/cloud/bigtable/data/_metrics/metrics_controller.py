@@ -49,7 +49,6 @@ class BigtableClientSideMetricsController:
           - handlers: A list of MetricsHandler objects to subscribe to metrics events.
           - **kwargs: Optional arguments to pass to the metrics handlers.
         """
-        self.interceptor = interceptor
         self.handlers: list[MetricsHandler] = handlers or []
 
     def add_handler(self, handler: MetricsHandler) -> None:
