@@ -972,7 +972,6 @@ class _DataApiTargetAsync(abc.ABC):
         )
 
         self._metrics = BigtableClientSideMetricsController(
-            client._metrics_interceptor,
             handlers=[],
             project_id=self.client.project,
             instance_id=instance_id,

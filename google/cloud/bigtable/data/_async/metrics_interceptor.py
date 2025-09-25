@@ -91,31 +91,6 @@ class AsyncBigtableMetricsInterceptor(
     An async gRPC interceptor to add client metadata and print server metadata.
     """
 
-    def __init__(self):
-        super().__init__()
-        self.operation_map = {}
-
-    def register_operation(self, operation):
-        """
-        Register an operation object to be tracked my the interceptor
-
-        When registered, the operation will receive metadata updates:
-        - start_attempt if attempt not started when rpc is being sent
-        - add_response_metadata after call is complete
-
-        The interceptor will register itself as a handeler for the operation,
-        so it can unregister the operation when it is complete
-        """
-        self.operation_map[operation.uuid] = operation
-        operation.handlers.append(self)
-
-    def on_operation_complete(self, op):
-        if op.uuid in self.operation_map:
-            del self.operation_map[op.uuid]
-
-    def on_operation_cancelled(self, op):
-        self.on_operation_complete(op)
-
     @CrossSync.convert
     @_with_operation_from_metadata
     async def intercept_unary_unary(

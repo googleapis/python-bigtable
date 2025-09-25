@@ -38,7 +38,6 @@ class BigtableClientSideMetricsController:
 
     def __init__(
         self,
-        interceptor: AsyncBigtableMetricsInterceptor | BigtableMetricsInterceptor,
         handlers: list[MetricsHandler] | None = None,
         **kwargs,
     ):
@@ -52,10 +51,6 @@ class BigtableClientSideMetricsController:
         """
         self.interceptor = interceptor
         self.handlers: list[MetricsHandler] = handlers or []
-        if handlers is None:
-            # handlers not given. Use default handlers.
-            # TODO: add default handlers
-            pass
 
     def add_handler(self, handler: MetricsHandler) -> None:
         """
@@ -72,6 +67,4 @@ class BigtableClientSideMetricsController:
         """
         Creates a new operation and registers it with the subscribed handlers.
         """
-        new_op = ActiveOperationMetric(op_type, **kwargs, handlers=self.handlers)
-        self.interceptor.register_operation(new_op)
-        return new_op
+        return ActiveOperationMetric(op_type, **kwargs, handlers=self.handlers)
