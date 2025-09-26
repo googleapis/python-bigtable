@@ -999,7 +999,7 @@ class TestMetrics(SystemTestRunner):
         mutation = SetCell("unauthorized", b"q", b"v")
         entry = RowMutationEntry(row_key, [mutation])
         handler.clear()
-        with pytest.raises(MutationsExceptionGroup) as e:
+        with pytest.raises(MutationsExceptionGroup):
             authorized_view.bulk_mutate_rows([entry])
         assert len(handler.completed_operations) == 1
         assert len(handler.completed_attempts) == 1

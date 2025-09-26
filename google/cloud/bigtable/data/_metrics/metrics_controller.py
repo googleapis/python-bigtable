@@ -13,19 +13,9 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
-
-if TYPE_CHECKING:
-    from google.cloud.bigtable.data._async.metrics_interceptor import (
-        AsyncBigtableMetricsInterceptor,
-    )
-    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
-        BigtableMetricsInterceptor,
-    )
 
 
 class BigtableClientSideMetricsController:

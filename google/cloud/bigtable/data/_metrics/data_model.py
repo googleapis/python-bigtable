@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from typing import ClassVar, Tuple, cast, TYPE_CHECKING
 
-
 import time
 import re
 import logging
@@ -36,7 +35,6 @@ import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
 from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
-from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.protobuf.message import DecodeError
 
 if TYPE_CHECKING:
@@ -169,8 +167,9 @@ class ActiveOperationMetric:
     # time waiting on flow control, in nanoseconds
     flow_throttling_time_ns: int = 0
 
-
-    _active_operation_context: ClassVar[contextvars.ContextVar] = contextvars.ContextVar("active_operation_context")
+    _active_operation_context: ClassVar[
+        contextvars.ContextVar
+    ] = contextvars.ContextVar("active_operation_context")
 
     @classmethod
     def get_active(cls):
@@ -403,10 +402,7 @@ class ActiveOperationMetric:
         """
         try:
             # record metadata from failed rpc
-            if (
-                isinstance(exc, GoogleAPICallError)
-                and exc.errors
-            ):
+            if isinstance(exc, GoogleAPICallError) and exc.errors:
                 rpc_error = exc.errors[-1]
                 metadata = list(rpc_error.trailing_metadata()) + list(
                     rpc_error.initial_metadata()
@@ -422,24 +418,28 @@ class ActiveOperationMetric:
         else:
             self.end_attempt_with_status(exc)
 
-    def track_terminal_error(self, exception_factory:callable[
-        [list[Exception], RetryFailureReason, float | None],tuple[Exception, Exception | None],
-    ]) -> callable[[list[Exception], RetryFailureReason, float | None], None]:
+    def track_terminal_error(
+        self,
+        exception_factory: callable[
+            [list[Exception], RetryFailureReason, float | None],
+            tuple[Exception, Exception | None],
+        ],
+    ) -> callable[[list[Exception], RetryFailureReason, float | None], None]:
         """
         Used as input to api_core.Retry classes, to track when terminal errors are encountered
 
         Should be used as a wrapper over an exception_factory callback
         """
+
         def wrapper(
-            exc_list: list[Exception], reason: RetryFailureReason, timeout_val: float | None
+            exc_list: list[Exception],
+            reason: RetryFailureReason,
+            timeout_val: float | None,
         ) -> tuple[Exception, Exception | None]:
             source_exc, cause_exc = exception_factory(exc_list, reason, timeout_val)
             try:
                 # record metadata from failed rpc
-                if (
-                    isinstance(source_exc, GoogleAPICallError)
-                    and source_exc.errors
-                ):
+                if isinstance(source_exc, GoogleAPICallError) and source_exc.errors:
                     rpc_error = source_exc.errors[-1]
                     metadata = list(rpc_error.trailing_metadata()) + list(
                         rpc_error.initial_metadata()
@@ -448,12 +448,17 @@ class ActiveOperationMetric:
             except Exception:
                 # ignore errors in metadata collection
                 pass
-            if reason == RetryFailureReason.TIMEOUT and self.state == OperationState.ACTIVE_ATTEMPT and exc_list:
+            if (
+                reason == RetryFailureReason.TIMEOUT
+                and self.state == OperationState.ACTIVE_ATTEMPT
+                and exc_list
+            ):
                 # record ending attempt for timeout failures
                 attempt_exc = exc_list[-1]
                 self.track_retryable_error(attempt_exc)
             self.end_with_status(source_exc)
             return source_exc, cause_exc
+
         return wrapper
 
     @staticmethod

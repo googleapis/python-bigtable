@@ -68,6 +68,10 @@ class BigtableMetricsInterceptor(
     def intercept_unary_unary(
         self, operation, continuation, client_call_details, request
     ):
+        """Interceptor for unary rpcs:
+        - MutateRow
+        - CheckAndMutateRow
+        - ReadModifyWriteRow"""
         metadata = None
         try:
             call = continuation(client_call_details, request)
@@ -84,33 +88,41 @@ class BigtableMetricsInterceptor(
     def intercept_unary_stream(
         self, operation, continuation, client_call_details, request
     ):
-        def response_wrapper(call):
-            has_first_response = (
-                operation.first_response_latency_ns is not None
-                or operation.op_type != OperationType.READ_ROWS
-            )
-            encountered_exc = None
-            try:
-                for response in call:
-                    if not has_first_response:
-                        operation.first_response_latency_ns = (
-                            time.monotonic_ns() - operation.start_time_ns
-                        )
-                        has_first_response = True
-                    yield response
-            except Exception as e:
-                encountered_exc = e
-                raise
-            finally:
-                if call is not None:
-                    metadata = _get_metadata(encountered_exc or call)
-                    if metadata is not None:
-                        operation.add_response_metadata(metadata)
-
+        """Interceptor for streaming rpcs:
+        - ReadRows
+        - MutateRows
+        - SampleRowKeys"""
         try:
-            return response_wrapper(continuation(client_call_details, request))
+            return self._streaming_generator_wrapper(
+                operation, continuation(client_call_details, request)
+            )
         except Exception as rpc_error:
             metadata = _get_metadata(rpc_error)
             if metadata is not None:
                 operation.add_response_metadata(metadata)
             raise rpc_error
+
+    @staticmethod
+    def _streaming_generator_wrapper(operation, call):
+        """Wrapped generator to be returned by intercept_unary_stream"""
+        has_first_response = (
+            operation.first_response_latency_ns is not None
+            or operation.op_type != OperationType.READ_ROWS
+        )
+        encountered_exc = None
+        try:
+            for response in call:
+                if not has_first_response:
+                    operation.first_response_latency_ns = (
+                        time.monotonic_ns() - operation.start_time_ns
+                    )
+                    has_first_response = True
+                yield response
+        except Exception as e:
+            encountered_exc = e
+            raise
+        finally:
+            if call is not None:
+                metadata = _get_metadata(encountered_exc or call)
+                if metadata is not None:
+                    operation.add_response_metadata(metadata)

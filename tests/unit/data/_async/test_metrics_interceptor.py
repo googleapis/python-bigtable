@@ -70,9 +70,6 @@ class TestMetricsInterceptorAsync:
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
-    def test_ctor(self):
-        instance = self._make_one()
-
     @CrossSync.pytest
     async def test_unary_unary_interceptor_op_not_found(self):
         """Test that interceptor call continuation if op is not found"""
@@ -206,6 +203,7 @@ class TestMetricsInterceptorAsync:
     async def test_unary_stream_interceptor_failure_mid_stream(self):
         """Test that interceptor handles failures mid-stream"""
         from grpc.aio import AioRpcError, Metadata
+
         instance = self._make_one()
         op = mock.Mock()
         op.uuid = "test-uuid"

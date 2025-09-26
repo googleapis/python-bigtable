@@ -106,7 +106,9 @@ class _MutateRowsOperationAsync:
             self.is_retryable,
             metric.backoff_generator,
             operation_timeout,
-            exception_factory=self._operation_metric.track_terminal_error(_retry_exception_factory),
+            exception_factory=self._operation_metric.track_terminal_error(
+                _retry_exception_factory
+            ),
             on_error=self._operation_metric.track_retryable_error,
         )
         # initialize state

@@ -53,9 +53,6 @@ class TestMetricsInterceptor:
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
-    def test_ctor(self):
-        instance = self._make_one()
-
     def test_unary_unary_interceptor_op_not_found(self):
         """Test that interceptor call continuation if op is not found"""
         instance = self._make_one()

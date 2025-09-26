@@ -25,8 +25,6 @@ from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import (
     CompletedOperationMetric,
     CompletedAttemptMetric,
-    ActiveOperationMetric,
-    OperationState,
 )
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable_v2.types import ResponseParams
@@ -117,8 +115,9 @@ class _ErrorInjectorInterceptor(
                 def __aiter__(self):
                     return self
 
-
-                @CrossSync.convert(sync_name="__next__", replace_symbols={"__anext__": "__next__"})
+                @CrossSync.convert(
+                    sync_name="__next__", replace_symbols={"__anext__": "__next__"}
+                )
                 async def __anext__(self):
                     if not self._raised:
                         self._raised = True
@@ -150,9 +149,12 @@ class TestMetricsAsync(SystemTestRunner):
 
     def _make_exception(self, status, cluster_id=None, zone_id=None):
         if cluster_id or zone_id:
-            metadata = ("x-goog-ext-425905942-bin", ResponseParams.serialize(
-                ResponseParams(cluster_id=cluster_id, zone_id=zone_id)
-            ))
+            metadata = (
+                "x-goog-ext-425905942-bin",
+                ResponseParams.serialize(
+                    ResponseParams(cluster_id=cluster_id, zone_id=zone_id)
+                ),
+            )
         else:
             metadata = None
         if CrossSync.is_async:
@@ -164,8 +166,10 @@ class TestMetricsAsync(SystemTestRunner):
             exc.initial_metadata = lambda: []
             exc.code = lambda: status
             exc.details = lambda: None
+
             def _result():
                 raise exc
+
             exc.result = _result
             return exc
 
@@ -198,7 +202,9 @@ class TestMetricsAsync(SystemTestRunner):
             else:
                 # inject interceptor after bigtable metrics interceptors
                 metrics_channel = client.transport._grpc_channel._channel._channel
-                client.transport._grpc_channel._channel._channel = intercept_channel(metrics_channel, error_injector)
+                client.transport._grpc_channel._channel._channel = intercept_channel(
+                    metrics_channel, error_injector
+                )
             yield client
 
     @CrossSync.convert
@@ -284,8 +290,12 @@ class TestMetricsAsync(SystemTestRunner):
         expected_cluster = "my_cluster"
         num_retryable = 2
         for i in range(num_retryable):
-            error_injector.push(self._make_exception(StatusCode.ABORTED, cluster_id=expected_cluster))
-        error_injector.push(self._make_exception(StatusCode.PERMISSION_DENIED, zone_id=expected_zone))
+            error_injector.push(
+                self._make_exception(StatusCode.ABORTED, cluster_id=expected_cluster)
+            )
+        error_injector.push(
+            self._make_exception(StatusCode.PERMISSION_DENIED, zone_id=expected_zone)
+        )
         with pytest.raises(PermissionDenied):
             await table.read_rows(ReadRowsQuery(), retryable_errors=[Aborted])
         # validate counts
@@ -435,9 +445,7 @@ class TestMetricsAsync(SystemTestRunner):
         await temp_rows.add_row(b"row_key_1")
         await temp_rows.add_row(b"row_key_2")
         handler.clear()
-        generator = await table.read_rows_stream(
-            ReadRowsQuery()
-        )
+        generator = await table.read_rows_stream(ReadRowsQuery())
         await generator.__anext__()
         await generator.aclose()
         with pytest.raises(CrossSync.StopIteration):
@@ -457,7 +465,6 @@ class TestMetricsAsync(SystemTestRunner):
         attempt = handler.completed_attempts[0]
         assert attempt.end_status.name == "CANCELLED"
         assert attempt.gfe_latency_ns is None
-
 
     @CrossSync.pytest
     async def test_read_rows_stream_failure_with_retries(
@@ -868,7 +875,6 @@ class TestMetricsAsync(SystemTestRunner):
         with retryable errors
         """
         from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
-        from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 
         await temp_rows.add_row(b"a")
         await temp_rows.add_row(b"b")
@@ -887,8 +893,20 @@ class TestMetricsAsync(SystemTestRunner):
             assert op.op_type.value == "ReadRows"
             assert op.is_streaming is True
         # validate attempts
-        assert len([a for a in handler.completed_attempts if a.end_status.name == "OK"]) == 2
-        assert len([a for a in handler.completed_attempts if a.end_status.name == "ABORTED"]) == 1
+        assert (
+            len([a for a in handler.completed_attempts if a.end_status.name == "OK"])
+            == 2
+        )
+        assert (
+            len(
+                [
+                    a
+                    for a in handler.completed_attempts
+                    if a.end_status.name == "ABORTED"
+                ]
+            )
+            == 1
+        )
 
     @CrossSync.pytest
     async def test_read_rows_sharded_failure_timeout(self, table, temp_rows, handler):
@@ -1184,7 +1202,7 @@ class TestMetricsAsync(SystemTestRunner):
         entry = RowMutationEntry(row_key, [mutation])
 
         handler.clear()
-        with pytest.raises(MutationsExceptionGroup) as e:
+        with pytest.raises(MutationsExceptionGroup):
             await authorized_view.bulk_mutate_rows([entry])
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -1228,7 +1246,9 @@ class TestMetricsAsync(SystemTestRunner):
 
         handler.clear()
         with pytest.raises(MutationsExceptionGroup) as e:
-            await authorized_view.bulk_mutate_rows([entry], retryable_errors=[PermissionDenied], operation_timeout=0.5)
+            await authorized_view.bulk_mutate_rows(
+                [entry], retryable_errors=[PermissionDenied], operation_timeout=0.5
+            )
         assert len(e.value.exceptions) == 1
         # validate counts
         assert len(handler.completed_operations) == 1
@@ -1614,7 +1634,12 @@ class TestMetricsAsync(SystemTestRunner):
         mutation = SetCell("unauthorized", b"q", b"v")
 
         with pytest.raises(GoogleAPICallError) as e:
-            await authorized_view.mutate_row(row_key, [mutation], retryable_errors=[PermissionDenied], operation_timeout=0.5)
+            await authorized_view.mutate_row(
+                row_key,
+                [mutation],
+                retryable_errors=[PermissionDenied],
+                operation_timeout=0.5,
+            )
         assert e.value.grpc_status_code.name == "DEADLINE_EXCEEDED"
         # validate counts
         assert len(handler.completed_operations) == 1

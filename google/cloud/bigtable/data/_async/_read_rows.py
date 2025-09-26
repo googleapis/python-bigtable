@@ -123,7 +123,9 @@ class _ReadRowsOperationAsync:
             self._predicate,
             self._operation_metric.backoff_generator,
             self.operation_timeout,
-            exception_factory=self._operation_metric.track_terminal_error(_retry_exception_factory),
+            exception_factory=self._operation_metric.track_terminal_error(
+                _retry_exception_factory
+            ),
             on_error=self._operation_metric.track_retryable_error,
         )
 

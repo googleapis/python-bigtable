@@ -1389,7 +1389,9 @@ class _DataApiTargetAsync(abc.ABC):
                 predicate,
                 operation_metric.backoff_generator,
                 operation_timeout,
-                exception_factory=operation_metric.track_terminal_error(_retry_exception_factory),
+                exception_factory=operation_metric.track_terminal_error(
+                    _retry_exception_factory
+                ),
                 on_error=operation_metric.track_retryable_error,
             )
 
@@ -1523,7 +1525,9 @@ class _DataApiTargetAsync(abc.ABC):
                 predicate,
                 operation_metric.backoff_generator,
                 operation_timeout,
-                exception_factory=operation_metric.track_terminal_error(_retry_exception_factory),
+                exception_factory=operation_metric.track_terminal_error(
+                    _retry_exception_factory
+                ),
                 on_error=operation_metric.track_retryable_error,
             )
 
@@ -1638,7 +1642,7 @@ class _DataApiTargetAsync(abc.ABC):
             false_case_mutations = [false_case_mutations]
         false_case_list = [m._to_pb() for m in false_case_mutations or []]
 
-        with self._metrics.create_operation(OperationType.CHECK_AND_MUTATE) as op:
+        with self._metrics.create_operation(OperationType.CHECK_AND_MUTATE):
             result = await self.client._gapic_client.check_and_mutate_row(
                 request=CheckAndMutateRowRequest(
                     true_mutations=true_case_list,
@@ -1696,7 +1700,7 @@ class _DataApiTargetAsync(abc.ABC):
         if not rules:
             raise ValueError("rules must contain at least one item")
 
-        with self._metrics.create_operation(OperationType.READ_MODIFY_WRITE) as op:
+        with self._metrics.create_operation(OperationType.READ_MODIFY_WRITE):
             result = await self.client._gapic_client.read_modify_write_row(
                 request=ReadModifyWriteRowRequest(
                     rules=[rule._to_pb() for rule in rules],
