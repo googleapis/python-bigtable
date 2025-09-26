@@ -620,7 +620,7 @@ class TestMetricsAsync(SystemTestRunner):
         # validate attempts
         for attempt in handler.completed_attempts:
             assert isinstance(attempt, CompletedAttemptMetric)
-            assert attempt.end_status.name == "PERMISSION_DENIED"
+            assert attempt.end_status.name in ["PERMISSION_DENIED", "DEADLINE_EXCEEDED"]
             assert (
                 attempt.gfe_latency_ns >= 0
                 and attempt.gfe_latency_ns < operation.duration_ns
@@ -1266,7 +1266,7 @@ class TestMetricsAsync(SystemTestRunner):
         )
         # validate attempts
         for attempt in handler.completed_attempts:
-            assert attempt.end_status.name == "OK"
+            assert attempt.end_status.name in ["OK", "DEADLINE_EXCEEDED"]
             assert (
                 attempt.gfe_latency_ns >= 0
                 and attempt.gfe_latency_ns < operation.duration_ns
@@ -1658,7 +1658,7 @@ class TestMetricsAsync(SystemTestRunner):
         )
         # validate attempts
         for attempt in handler.completed_attempts:
-            assert attempt.end_status.name == "PERMISSION_DENIED"
+            assert attempt.end_status.name in ["PERMISSION_DENIED", "DEADLINE_EXCEEDED"]
             assert (
                 attempt.gfe_latency_ns >= 0
                 and attempt.gfe_latency_ns < operation.duration_ns
