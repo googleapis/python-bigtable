@@ -982,7 +982,6 @@ class TestTable:
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(table)}
         assert isinstance(table._metrics, BigtableClientSideMetricsController)
-        assert table._metrics.interceptor == client._metrics_interceptor
         assert table.default_operation_timeout == expected_operation_timeout
         assert table.default_attempt_timeout == expected_attempt_timeout
         assert (
@@ -1251,7 +1250,6 @@ class TestAuthorizedView(CrossSync._Sync_Impl.TestTable):
         assert instance_key in client._active_instances
         assert client._instance_owners[instance_key] == {id(view)}
         assert isinstance(view._metrics, BigtableClientSideMetricsController)
-        assert view._metrics.interceptor == client._metrics_interceptor
         assert view.default_operation_timeout == expected_operation_timeout
         assert view.default_attempt_timeout == expected_attempt_timeout
         assert (

@@ -970,13 +970,7 @@ class _DataApiTargetAsync(abc.ABC):
             default_retryable_errors or ()
         )
 
-        self._metrics = BigtableClientSideMetricsController(
-            client._metrics_interceptor,
-            project_id=self.client.project,
-            instance_id=instance_id,
-            table_id=table_id,
-            app_profile_id=app_profile_id,
-        )
+        self._metrics = BigtableClientSideMetricsController()
 
         try:
             self._register_instance_future = CrossSync.create_task(
