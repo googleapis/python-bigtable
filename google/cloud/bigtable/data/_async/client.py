@@ -973,10 +973,6 @@ class _DataApiTargetAsync(abc.ABC):
 
         self._metrics = BigtableClientSideMetricsController(
             handlers=[],
-            project_id=self.client.project,
-            instance_id=instance_id,
-            table_id=table_id,
-            app_profile_id=app_profile_id,
         )
 
         try:
