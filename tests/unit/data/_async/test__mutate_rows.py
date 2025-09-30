@@ -49,7 +49,9 @@ class TestMutateRowsOperationAsync:
             kwargs["attempt_timeout"] = kwargs.pop("attempt_timeout", 0.1)
             kwargs["retryable_exceptions"] = kwargs.pop("retryable_exceptions", ())
             kwargs["mutation_entries"] = kwargs.pop("mutation_entries", [])
-            kwargs["metric"] = kwargs.pop("metric", ActiveOperationMetric("MUTATE_ROWS"))
+            kwargs["metric"] = kwargs.pop(
+                "metric", ActiveOperationMetric("MUTATE_ROWS")
+            )
         return self._target_class()(*args, **kwargs)
 
     def _make_mutation(self, count=1, size=1):

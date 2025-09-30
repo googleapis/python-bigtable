@@ -46,7 +46,6 @@ class TestReadRowsAcceptanceAsync:
         op._remaining_count = None
         return op
 
-
     @staticmethod
     @CrossSync.convert
     def _get_client_class():
@@ -88,9 +87,7 @@ class TestReadRowsAcceptanceAsync:
         async def _row_stream():
             yield ReadRowsResponse(chunks=chunks)
 
-        chunker = self._make_operation().chunk_stream(
-            self._coro_wrapper(_row_stream())
-        )
+        chunker = self._make_operation().chunk_stream(self._coro_wrapper(_row_stream()))
         merger = self._make_operation().merge_rows(chunker)
         results = []
         async for row in merger:
@@ -200,9 +197,7 @@ class TestReadRowsAcceptanceAsync:
 
         op = self._make_operation()
         op._last_yielded_row_key = b"b"
-        chunker = op.chunk_stream(
-            self._coro_wrapper(_row_stream())
-        )
+        chunker = op.chunk_stream(self._coro_wrapper(_row_stream()))
         merger = self._make_operation().merge_rows(chunker)
         with pytest.raises(InvalidChunk):
             async for _ in merger:

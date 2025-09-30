@@ -273,7 +273,9 @@ class TestReadRowsOperationAsync:
         table = mock.Mock()
         table._request_path = {"table_name": "table_name"}
         table.app_profile_id = "app_profile_id"
-        instance = self._make_one(query, table, 10, 10, ActiveOperationMetric("READ_ROWS"))
+        instance = self._make_one(
+            query, table, 10, 10, ActiveOperationMetric("READ_ROWS")
+        )
         assert instance._remaining_count == start_limit
         # read emit_num rows
         async for val in instance.chunk_stream(awaitable_stream()):
@@ -312,7 +314,9 @@ class TestReadRowsOperationAsync:
         table = mock.Mock()
         table._request_path = {"table_name": "table_name"}
         table.app_profile_id = "app_profile_id"
-        instance = self._make_one(query, table, 10, 10, ActiveOperationMetric("READ_ROWS"))
+        instance = self._make_one(
+            query, table, 10, 10, ActiveOperationMetric("READ_ROWS")
+        )
         assert instance._remaining_count == start_limit
         with pytest.raises(InvalidChunk) as e:
             # read emit_num rows
@@ -338,7 +342,9 @@ class TestReadRowsOperationAsync:
         with mock.patch.object(
             self._get_target_class(), "_read_rows_attempt"
         ) as mock_attempt:
-            instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1, ActiveOperationMetric("READ_ROWS"))
+            instance = self._make_one(
+                mock.Mock(), mock.Mock(), 1, 1, ActiveOperationMetric("READ_ROWS")
+            )
             wrapped_gen = mock_stream()
             mock_attempt.return_value = wrapped_gen
             gen = instance.start_operation()

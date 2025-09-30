@@ -1957,7 +1957,9 @@ class TestReadRowsAsync:
         async with self._make_client() as client:
             table = client.get_table("instance", "table")
             row_key = b"test_1"
-            with mock.patch.object(CrossSync, "_ReadRowsOperation") as mock_op_constructor:
+            with mock.patch.object(
+                CrossSync, "_ReadRowsOperation"
+            ) as mock_op_constructor:
                 mock_op = mock.Mock()
                 expected_result = object()
 
@@ -1996,7 +1998,9 @@ class TestReadRowsAsync:
         async with self._make_client() as client:
             table = client.get_table("instance", "table")
             row_key = b"test_1"
-            with mock.patch.object(CrossSync, "_ReadRowsOperation") as mock_op_constructor:
+            with mock.patch.object(
+                CrossSync, "_ReadRowsOperation"
+            ) as mock_op_constructor:
                 mock_op = mock.Mock()
                 expected_result = object()
 
@@ -2037,7 +2041,9 @@ class TestReadRowsAsync:
         async with self._make_client() as client:
             table = client.get_table("instance", "table")
             row_key = b"test_1"
-            with mock.patch.object(CrossSync, "_ReadRowsOperation") as mock_op_constructor:
+            with mock.patch.object(
+                CrossSync, "_ReadRowsOperation"
+            ) as mock_op_constructor:
                 mock_op = mock.Mock()
 
                 if CrossSync.is_async:
@@ -2082,7 +2088,9 @@ class TestReadRowsAsync:
         async with self._make_client() as client:
             table = client.get_table("instance", "table")
             row_key = b"test_1"
-            with mock.patch.object(CrossSync, "_ReadRowsOperation") as mock_op_constructor:
+            with mock.patch.object(
+                CrossSync, "_ReadRowsOperation"
+            ) as mock_op_constructor:
                 mock_op = mock.Mock()
                 if CrossSync.is_async:
 

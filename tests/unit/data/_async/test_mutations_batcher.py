@@ -307,7 +307,9 @@ class TestMutationsBatcherAsync:
     def _make_one(self, table=None, **kwargs):
         from google.api_core.exceptions import DeadlineExceeded
         from google.api_core.exceptions import ServiceUnavailable
-        from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+        from google.cloud.bigtable.data._metrics import (
+            BigtableClientSideMetricsController,
+        )
 
         if table is None:
             table = mock.Mock()
@@ -1097,7 +1099,9 @@ class TestMutationsBatcherAsync:
                 assert instance._operation_timeout == expected_operation_timeout
                 assert instance._attempt_timeout == expected_attempt_timeout
                 # make simulated gapic call
-                await instance._execute_mutate_rows([self._make_mutation()], mock.Mock())
+                await instance._execute_mutate_rows(
+                    [self._make_mutation()], mock.Mock()
+                )
                 assert mutate_rows.call_count == 1
                 kwargs = mutate_rows.call_args[1]
                 assert kwargs["operation_timeout"] == expected_operation_timeout
@@ -1196,6 +1200,7 @@ class TestMutationsBatcherAsync:
         down to the gapic layer.
         """
         from google.cloud.bigtable.data._metrics import ActiveOperationMetric
+
         with mock.patch.object(
             google.api_core.retry, "if_exception_type"
         ) as predicate_builder_mock:
@@ -1211,7 +1216,9 @@ class TestMutationsBatcherAsync:
                     predicate_builder_mock.return_value = expected_predicate
                     retry_fn_mock.side_effect = RuntimeError("stop early")
                     mutation = self._make_mutation(count=1, size=1)
-                    await instance._execute_mutate_rows([mutation], ActiveOperationMetric("MUTATE_ROWS"))
+                    await instance._execute_mutate_rows(
+                        [mutation], ActiveOperationMetric("MUTATE_ROWS")
+                    )
                     # passed in errors should be used to build the predicate
                     predicate_builder_mock.assert_called_once_with(
                         *expected_retryables, _MutateRowsIncomplete
