@@ -19,14 +19,6 @@ from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
 
-if TYPE_CHECKING:
-    from google.cloud.bigtable.data._async.metrics_interceptor import (
-        AsyncBigtableMetricsInterceptor,
-    )
-    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
-        BigtableMetricsInterceptor,
-    )
-
 
 class BigtableClientSideMetricsController:
     """
@@ -38,24 +30,15 @@ class BigtableClientSideMetricsController:
 
     def __init__(
         self,
-        interceptor: AsyncBigtableMetricsInterceptor | BigtableMetricsInterceptor,
         handlers: list[MetricsHandler] | None = None,
-        **kwargs,
     ):
         """
         Initializes the metrics controller.
 
         Args:
-          - interceptor: A metrics interceptor to use for triggering Operation lifecycle events
           - handlers: A list of MetricsHandler objects to subscribe to metrics events.
-          - **kwargs: Optional arguments to pass to the metrics handlers.
         """
-        self.interceptor = interceptor
         self.handlers: list[MetricsHandler] = handlers or []
-        if handlers is None:
-            # handlers not given. Use default handlers.
-            # TODO: add default handlers
-            pass
 
     def add_handler(self, handler: MetricsHandler) -> None:
         """
@@ -72,6 +55,4 @@ class BigtableClientSideMetricsController:
         """
         Creates a new operation and registers it with the subscribed handlers.
         """
-        new_op = ActiveOperationMetric(op_type, **kwargs, handlers=self.handlers)
-        self.interceptor.register_operation(new_op)
-        return new_op
+        return ActiveOperationMetric(op_type, **kwargs, handlers=self.handlers)

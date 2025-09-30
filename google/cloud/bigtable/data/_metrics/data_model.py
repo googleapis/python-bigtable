@@ -13,12 +13,13 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Tuple, cast, TYPE_CHECKING
+from typing import Callable, ClassVar, List, Tuple, Optional, cast, TYPE_CHECKING
 
 import time
 import re
 import logging
 import uuid
+import contextvars
 
 from enum import Enum
 from functools import lru_cache
@@ -48,7 +49,6 @@ SERVER_TIMING_REGEX = re.compile(r".*gfet4t7;\s*dur=(\d+\.?\d*).*")
 
 INVALID_STATE_ERROR = "Invalid state for {}: {}"
 
-OPERATION_INTERCEPTOR_METADATA_KEY = "x-goog-operation-key"
 
 
 class OperationType(Enum):
@@ -163,14 +163,13 @@ class ActiveOperationMetric:
     # time waiting on flow control, in nanoseconds
     flow_throttling_time_ns: int = 0
 
-    @property
-    def interceptor_metadata(self) -> tuple[str, str]:
-        """
-        returns a tuple to attach to the grpc metadata.
+    _active_operation_context: ClassVar[
+        contextvars.ContextVar[ActiveOperationMetric]
+    ] = contextvars.ContextVar("active_operation_context")
 
-        This metadata field will be read by the BigtableMetricsInterceptor to associate a request with an operation
-        """
-        return OPERATION_INTERCEPTOR_METADATA_KEY, self.uuid
+    @classmethod
+    def get_active(cls):
+        return cls._active_operation_context.get(None)
 
     @property
     def state(self) -> OperationState:
@@ -184,6 +183,9 @@ class ActiveOperationMetric:
         else:
             return OperationState.ACTIVE_ATTEMPT
 
+    def __post_init__(self):
+        self._active_operation_context.set(self)
+
     def start(self) -> None:
         """
         Optionally called to mark the start of the operation. If not called,
@@ -194,6 +196,7 @@ class ActiveOperationMetric:
         if self.state != OperationState.CREATED:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
         self.start_time_ns = time.monotonic_ns()
+        self._active_operation_context.set(self)
 
     def start_attempt(self) -> ActiveAttemptMetric | None:
         """
@@ -208,6 +211,7 @@ class ActiveOperationMetric:
             return self._handle_error(
                 INVALID_STATE_ERROR.format("start_attempt", self.state)
             )
+        self._active_operation_context.set(self)
 
         try:
             # find backoff value before this attempt
