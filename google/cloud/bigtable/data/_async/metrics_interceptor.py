@@ -36,6 +36,12 @@ class AsyncBigtableMetricsInterceptor(
 
     @CrossSync.convert
     async def intercept_unary_unary(self, continuation, client_call_details, request):
+        """
+        Interceptor for unary rpcs:
+          - MutateRow
+          - CheckAndMutateRow
+          - ReadModifyWriteRow
+        """
         try:
             call = await continuation(client_call_details, request)
             return call
@@ -44,16 +50,29 @@ class AsyncBigtableMetricsInterceptor(
 
     @CrossSync.convert
     async def intercept_unary_stream(self, continuation, client_call_details, request):
-        async def response_wrapper(call):
-            try:
-                async for response in call:
-                    yield response
-            except Exception as e:
-                # handle errors while processing stream
-                raise e
-
+        """
+        Interceptor for streaming rpcs:
+          - ReadRows
+          - MutateRows
+          - SampleRowKeys
+        """
         try:
-            return response_wrapper(await continuation(client_call_details, request))
+            return self._streaming_generator_wrapper(
+                await continuation(client_call_details, request)
+            )
         except Exception as rpc_error:
             # handle errors while intializing stream
             raise rpc_error
+
+    @staticmethod
+    @CrossSync.convert
+    async def _streaming_generator_wrapper(call):
+        """
+        Wrapped generator to be returned by intercept_unary_stream
+        """
+        try:
+            async for response in call:
+                yield response
+        except Exception as e:
+            # handle errors while processing stream
+            raise
