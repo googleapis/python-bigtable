@@ -294,8 +294,6 @@ class _ReadRowsOperation:
             raise close_exception
         except Exception as generic_exception:
             raise generic_exception
-        else:
-            self._operation_metric.end_with_success()
 
     @staticmethod
     def _revise_request_rowset(row_set: RowSetPB, last_seen_row_key: bytes) -> RowSetPB:

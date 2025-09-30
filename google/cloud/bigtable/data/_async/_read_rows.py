@@ -350,8 +350,6 @@ class _ReadRowsOperationAsync:
         except Exception as generic_exception:
             # handle exceptions in retry wrapper
             raise generic_exception
-        else:
-            self._operation_metric.end_with_success()
 
     @staticmethod
     def _revise_request_rowset(

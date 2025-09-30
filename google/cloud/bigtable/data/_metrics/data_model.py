@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import ClassVar, Tuple, cast, TYPE_CHECKING
+from typing import Callable, ClassVar, List, Tuple, Optional, cast, TYPE_CHECKING
 
 import time
 import re
@@ -53,6 +53,11 @@ SERVER_TIMING_METADATA_KEY = "server-timing"
 SERVER_TIMING_REGEX = re.compile(r".*gfet4t7;\s*dur=(\d+\.?\d*).*")
 
 INVALID_STATE_ERROR = "Invalid state for {}: {}"
+
+ExceptionFactoryType = Callable[
+    [List[Exception], RetryFailureReason, Optional[float]],
+    Tuple[Exception, Optional[Exception]],
+]
 
 
 class OperationType(Enum):
@@ -168,7 +173,7 @@ class ActiveOperationMetric:
     flow_throttling_time_ns: int = 0
 
     _active_operation_context: ClassVar[
-        contextvars.ContextVar
+        contextvars.ContextVar[ActiveOperationMetric]
     ] = contextvars.ContextVar("active_operation_context")
 
     @classmethod
@@ -419,12 +424,8 @@ class ActiveOperationMetric:
             self.end_attempt_with_status(exc)
 
     def track_terminal_error(
-        self,
-        exception_factory: callable[
-            [list[Exception], RetryFailureReason, float | None],
-            tuple[Exception, Exception | None],
-        ],
-    ) -> callable[[list[Exception], RetryFailureReason, float | None], None]:
+        self, exception_factory: ExceptionFactoryType
+    ) -> ExceptionFactoryType:
         """
         Used as input to api_core.Retry classes, to track when terminal errors are encountered
 

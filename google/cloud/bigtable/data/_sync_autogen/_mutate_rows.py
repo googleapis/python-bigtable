@@ -84,10 +84,8 @@ class _MutateRowsOperation:
             self.is_retryable,
             metric.backoff_generator,
             operation_timeout,
-            exception_factory=self._operation_metric.track_terminal_error(
-                _retry_exception_factory
-            ),
-            on_error=self._operation_metric.track_retryable_error,
+            exception_factory=metric.track_terminal_error(_retry_exception_factory),
+            on_error=metric.track_retryable_error,
         )
         self.timeout_generator = _attempt_timeout_generator(
             attempt_timeout, operation_timeout

@@ -67,6 +67,7 @@ def _with_operation_from_metadata(func):
 async def _get_metadata(source) -> dict[str, str | bytes] | None:
     """Helper to extract metadata from a call or RpcError"""
     try:
+        metadata: Sequence[tuple[str, str | bytes]]
         if CrossSync.is_async:
             # grpc.aio returns metadata in Metadata objects
             if isinstance(source, AioRpcError):
@@ -79,11 +80,9 @@ async def _get_metadata(source) -> dict[str, str | bytes] | None:
                 )
         else:
             # sync grpc returns metadata as a sequence of tuples
-            metadata: Sequence[tuple[str.str | bytes]] = (
-                source.trailing_metadata() + source.initial_metadata()
-            )
+            metadata = source.trailing_metadata() + source.initial_metadata()
         # convert metadata to dict format
-        return {k: v for k, v in metadata}
+        return {k: v for (k, v) in metadata}
     except Exception:
         # ignore errors while fetching metadata
         return None
