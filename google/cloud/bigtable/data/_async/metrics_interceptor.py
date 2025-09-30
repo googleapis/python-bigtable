@@ -75,4 +75,4 @@ class AsyncBigtableMetricsInterceptor(
                 yield response
         except Exception as e:
             # handle errors while processing stream
-            raise
+            raise e

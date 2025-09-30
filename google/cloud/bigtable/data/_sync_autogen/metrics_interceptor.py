@@ -27,6 +27,10 @@ class BigtableMetricsInterceptor(
     """
 
     def intercept_unary_unary(self, continuation, client_call_details, request):
+        """Interceptor for unary rpcs:
+        - MutateRow
+        - CheckAndMutateRow
+        - ReadModifyWriteRow"""
         try:
             call = continuation(client_call_details, request)
             return call
@@ -34,14 +38,22 @@ class BigtableMetricsInterceptor(
             raise rpc_error
 
     def intercept_unary_stream(self, continuation, client_call_details, request):
-        def response_wrapper(call):
-            try:
-                for response in call:
-                    yield response
-            except Exception as e:
-                raise e
-
+        """Interceptor for streaming rpcs:
+        - ReadRows
+        - MutateRows
+        - SampleRowKeys"""
         try:
-            return response_wrapper(continuation(client_call_details, request))
+            return self._streaming_generator_wrapper(
+                continuation(client_call_details, request)
+            )
         except Exception as rpc_error:
             raise rpc_error
+
+    @staticmethod
+    def _streaming_generator_wrapper(call):
+        """Wrapped generator to be returned by intercept_unary_stream"""
+        try:
+            for response in call:
+                yield response
+        except Exception as e:
+            raise e
