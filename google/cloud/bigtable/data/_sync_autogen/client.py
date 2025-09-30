@@ -758,7 +758,7 @@ class _DataApiTarget(abc.ABC):
         self.default_retryable_errors: Sequence[type[Exception]] = (
             default_retryable_errors or ()
         )
-        self._metrics = BigtableClientSideMetricsController(handlers=[])
+        self._metrics = BigtableClientSideMetricsController()
         try:
             self._register_instance_future = CrossSync._Sync_Impl.create_task(
                 self.client._register_instance,

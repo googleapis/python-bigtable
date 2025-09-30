@@ -34,9 +34,7 @@ class BigtableClientSideMetricsController:
         Initializes the metrics controller.
 
         Args:
-          - interceptor: A metrics interceptor to use for triggering Operation lifecycle events
           - handlers: A list of MetricsHandler objects to subscribe to metrics events.
-          - **kwargs: Optional arguments to pass to the metrics handlers.
         """
         self.handlers: list[MetricsHandler] = handlers or []
 
