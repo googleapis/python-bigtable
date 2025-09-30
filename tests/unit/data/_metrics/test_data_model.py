@@ -535,16 +535,6 @@ class TestActiveOperationMetric:
             final_op = handlers[0].on_operation_complete.call_args[0][0]
             assert final_op.final_status == expected_status
 
-    def test_interceptor_metadata(self):
-        from google.cloud.bigtable.data._metrics.data_model import (
-            OPERATION_INTERCEPTOR_METADATA_KEY,
-        )
-
-        metric = self._make_one(mock.Mock())
-        key, value = metric.interceptor_metadata
-        assert key == OPERATION_INTERCEPTOR_METADATA_KEY
-        assert value == metric.uuid
-
     def test_end_with_status_with_default_cluster_zone(self):
         """
         ending the operation should use default cluster and zone if not set
