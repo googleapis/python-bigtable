@@ -29,7 +29,6 @@ class BigtableClientSideMetricsController:
     def __init__(
         self,
         handlers: list[MetricsHandler] | None = None,
-        **kwargs,
     ):
         """
         Initializes the metrics controller.
