@@ -30,6 +30,7 @@ from google.cloud.bigtable.data._metrics.data_model import (
 )
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable_v2.types import ResponseParams
+from google.cloud.bigtable import __version__ as CLIENT_VERSION
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -2231,18 +2232,15 @@ class TestExportedMetricsAsync(SystemTestRunner):
     @pytest.mark.parametrize("method", [m.value for m in OperationType])
     @CrossSync.pytest
     async def test_attempt_latency(self, client, metrics_client, time_interval, method):
-        from google.cloud import monitoring_v3
-        import google.cloud.bigtable
-
         metric_filter = (
             f'metric.type = "bigtable.googleapis.com/client/attempt_latencies" ' +
-            f'AND metric.labels.client_name = "python-bigtable/{google.cloud.bigtable.__version__}" ' +
+            f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" ' +
             f'AND metric.labels.method = "{method}"'
         )
         results = list(metrics_client.list_time_series(
             name=f"projects/{client.project}",
             filter=metric_filter,
             interval=time_interval,
-            view=monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
+            view=0,
         ))
         assert len(results) > 0
