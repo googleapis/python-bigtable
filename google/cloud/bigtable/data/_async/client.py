@@ -215,8 +215,8 @@ class BigtableDataClientAsync(ClientWithProject):
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
         # create a metrics exporter using the same client configuration
         self._gcp_metrics_exporter = BigtableMetricsExporter(
+            project_id=project,
             credentials=credentials,
-            project=project,
             client_options=client_options,
         )
         self._metrics_interceptor = MetricInterceptorType()
@@ -981,7 +981,6 @@ class _DataApiTargetAsync(abc.ABC):
             handlers=[
                 GoogleCloudMetricsHandler(
                     exporter=client._gcp_metrics_exporter,
-                    project_id=self.client.project,
                     instance_id=instance_id,
                     table_id=table_id,
                     app_profile_id=app_profile_id
@@ -1702,6 +1701,8 @@ class _DataApiTargetAsync(abc.ABC):
         """
         Called to close the Table instance and release any resources held by it.
         """
+        for handler in self._metrics.handlers:
+            handler.close()
         if self._register_instance_future:
             self._register_instance_future.cancel()
         await self.client._remove_instance_registration(self.instance_id, self)

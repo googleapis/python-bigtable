@@ -112,9 +112,12 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
             exporter, export_interval_millis=export_interval * 1000
         )
         # use private meter provider to store instruments and views
-        meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)
-        otel = _OpenTelemetryInstruments(meter_provider=meter_provider)
-        super().__init__(*args, instruments=otel, project_id=exporter.roject_id, **kwargs)
+        self.meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)
+        otel = _OpenTelemetryInstruments(meter_provider=self.meter_provider)
+        super().__init__(*args, instruments=otel, project_id=exporter.project_id, **kwargs)
+
+    def close(self):
+        self.meter_provider.shutdown()
 
 
 class BigtableMetricsExporter(MetricExporter):
@@ -131,11 +134,11 @@ class BigtableMetricsExporter(MetricExporter):
       - project_id: GCP project id to associate metrics with
     """
 
-    def __init__(self, *client_args, **client_kwargs):
+    def __init__(self, project_id: str, *client_args, **client_kwargs):
         super().__init__()
         self.client = MetricServiceClient(*client_args, **client_kwargs)
         self.prefix = "bigtable.googleapis.com/internal/client"
-        self.project_id = self.client.project
+        self.project_id = project_id
         self.project_name = self.client.common_project_path(self.project_id)
 
     def export(
