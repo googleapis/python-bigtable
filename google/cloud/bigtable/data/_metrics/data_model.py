@@ -13,22 +13,28 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Tuple, cast, TYPE_CHECKING
+from typing import Callable, ClassVar, List, Tuple, Optional, cast, TYPE_CHECKING
 
 import time
 import re
 import logging
 import uuid
+import contextvars
 
 from enum import Enum
 from functools import lru_cache
 from dataclasses import dataclass
 from dataclasses import field
 from grpc import StatusCode
+from grpc import RpcError
+from grpc.aio import AioRpcError
 
+from google.api_core.exceptions import GoogleAPICallError
+from google.api_core.retry import RetryFailureReason
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
 from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
+from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.protobuf.message import DecodeError
 
 if TYPE_CHECKING:
@@ -48,7 +54,10 @@ SERVER_TIMING_REGEX = re.compile(r".*gfet4t7;\s*dur=(\d+\.?\d*).*")
 
 INVALID_STATE_ERROR = "Invalid state for {}: {}"
 
-OPERATION_INTERCEPTOR_METADATA_KEY = "x-goog-operation-key"
+ExceptionFactoryType = Callable[
+    [List[Exception], RetryFailureReason, Optional[float]],
+    Tuple[Exception, Optional[Exception]],
+]
 
 
 class OperationType(Enum):
@@ -163,9 +172,13 @@ class ActiveOperationMetric:
     # time waiting on flow control, in nanoseconds
     flow_throttling_time_ns: int = 0
 
-    @property
-    def interceptor_metadata(self) -> tuple[str, str]:
-        return OPERATION_INTERCEPTOR_METADATA_KEY, self.uuid
+    _active_operation_context: ClassVar[
+        contextvars.ContextVar[ActiveOperationMetric]
+    ] = contextvars.ContextVar("active_operation_context")
+
+    @classmethod
+    def get_active(cls):
+        return cls._active_operation_context.get(None)
 
     @property
     def state(self) -> OperationState:
@@ -179,6 +192,9 @@ class ActiveOperationMetric:
         else:
             return OperationState.ACTIVE_ATTEMPT
 
+    def __post_init__(self):
+        self._active_operation_context.set(self)
+
     def start(self) -> None:
         """
         Optionally called to mark the start of the operation. If not called,
@@ -189,6 +205,7 @@ class ActiveOperationMetric:
         if self.state != OperationState.CREATED:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
         self.start_time_ns = time.monotonic_ns()
+        self._active_operation_context.set(self)
 
     def start_attempt(self) -> ActiveAttemptMetric | None:
         """
@@ -203,6 +220,7 @@ class ActiveOperationMetric:
             return self._handle_error(
                 INVALID_STATE_ERROR.format("start_attempt", self.state)
             )
+        self._active_operation_context.set(self)
 
         try:
             # find backoff value before this attempt
@@ -275,7 +293,7 @@ class ActiveOperationMetric:
             # failed to parse metadata
             return None
 
-    def end_attempt_with_status(self, status: StatusCode | Exception) -> None:
+    def end_attempt_with_status(self, status: StatusCode | BaseException) -> None:
         """
         Called to mark the end of an attempt for the operation.
 
@@ -292,7 +310,7 @@ class ActiveOperationMetric:
             return self._handle_error(
                 INVALID_STATE_ERROR.format("end_attempt_with_status", self.state)
             )
-        if isinstance(status, Exception):
+        if isinstance(status, BaseException):
             status = self._exc_to_status(status)
         complete_attempt = CompletedAttemptMetric(
             duration_ns=time.monotonic_ns() - self.active_attempt.start_time_ns,
@@ -307,7 +325,7 @@ class ActiveOperationMetric:
         for handler in self.handlers:
             handler.on_attempt_complete(complete_attempt, self)
 
-    def end_with_status(self, status: StatusCode | Exception) -> None:
+    def end_with_status(self, status: StatusCode | BaseException) -> None:
         """
         Called to mark the end of the operation. If there is an active attempt,
         end_attempt_with_status will be called with the same status.
@@ -324,7 +342,7 @@ class ActiveOperationMetric:
                 INVALID_STATE_ERROR.format("end_with_status", self.state)
             )
         final_status = (
-            self._exc_to_status(status) if isinstance(status, Exception) else status
+            self._exc_to_status(status) if isinstance(status, BaseException) else status
         )
         if self.state == OperationState.ACTIVE_ATTEMPT:
             self.end_attempt_with_status(final_status)
@@ -354,15 +372,8 @@ class ActiveOperationMetric:
         """
         return self.end_with_status(StatusCode.OK)
 
-    def cancel(self):
-        """
-        Called to cancel an operation without processing emitting it.
-        """
-        for handler in self.handlers:
-            handler.on_operation_cancelled(self)
-
     @staticmethod
-    def _exc_to_status(exc: Exception) -> StatusCode:
+    def _exc_to_status(exc: BaseException) -> StatusCode:
         """
         Extracts the grpc status code from an exception.
 
@@ -384,7 +395,72 @@ class ActiveOperationMetric:
             and exc.__cause__.grpc_status_code is not None
         ):
             return exc.__cause__.grpc_status_code
+        if isinstance(exc, AioRpcError) or isinstance(exc, RpcError):
+            return exc.code()
         return StatusCode.UNKNOWN
+
+    def track_retryable_error(self, exc: Exception) -> None:
+        """
+        Used as input to api_core.Retry classes, to track when retryable errors are encountered
+
+        Should be passed as on_error callback
+        """
+        try:
+            # record metadata from failed rpc
+            if isinstance(exc, GoogleAPICallError) and exc.errors:
+                rpc_error = exc.errors[-1]
+                metadata = list(rpc_error.trailing_metadata()) + list(
+                    rpc_error.initial_metadata()
+                )
+                self.add_response_metadata({k: v for k, v in metadata})
+        except Exception:
+            # ignore errors in metadata collection
+            pass
+        if isinstance(exc, _MutateRowsIncomplete):
+            # _MutateRowsIncomplete represents a successful rpc with some failed mutations
+            # mark the attempt as successful
+            self.end_attempt_with_status(StatusCode.OK)
+        else:
+            self.end_attempt_with_status(exc)
+
+    def track_terminal_error(
+        self, exception_factory: ExceptionFactoryType
+    ) -> ExceptionFactoryType:
+        """
+        Used as input to api_core.Retry classes, to track when terminal errors are encountered
+
+        Should be used as a wrapper over an exception_factory callback
+        """
+
+        def wrapper(
+            exc_list: list[Exception],
+            reason: RetryFailureReason,
+            timeout_val: float | None,
+        ) -> tuple[Exception, Exception | None]:
+            source_exc, cause_exc = exception_factory(exc_list, reason, timeout_val)
+            try:
+                # record metadata from failed rpc
+                if isinstance(source_exc, GoogleAPICallError) and source_exc.errors:
+                    rpc_error = source_exc.errors[-1]
+                    metadata = list(rpc_error.trailing_metadata()) + list(
+                        rpc_error.initial_metadata()
+                    )
+                    self.add_response_metadata({k: v for k, v in metadata})
+            except Exception:
+                # ignore errors in metadata collection
+                pass
+            if (
+                reason == RetryFailureReason.TIMEOUT
+                and self.state == OperationState.ACTIVE_ATTEMPT
+                and exc_list
+            ):
+                # record ending attempt for timeout failures
+                attempt_exc = exc_list[-1]
+                self.track_retryable_error(attempt_exc)
+            self.end_with_status(source_exc)
+            return source_exc, cause_exc
+
+        return wrapper
 
     @staticmethod
     def _handle_error(message: str) -> None:
@@ -413,8 +489,11 @@ class ActiveOperationMetric:
 
         The operation is automatically ended on exit, with the status determined
         by the exception type and value.
+
+        If operation was already ended manually, do nothing.
         """
-        if exc_val is None:
-            self.end_with_success()
-        else:
-            self.end_with_status(exc_val)
+        if not self.state == OperationState.COMPLETED:
+            if exc_val is None:
+                self.end_with_success()
+            else:
+                self.end_with_status(exc_val)

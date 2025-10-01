@@ -27,9 +27,7 @@ class TestBigtableClientSideMetricsController:
         """
         should create instance with GCP Exporter handler by default
         """
-        instance = self._make_one(
-            project_id="p", instance_id="i", table_id="t", app_profile_id="a"
-        )
+        instance = self._make_one()
         assert len(instance.handlers) == 0
 
     def ctor_custom_handlers(self):
@@ -37,7 +35,9 @@ class TestBigtableClientSideMetricsController:
         if handlers are passed to init, use those instead
         """
         custom_handler = object()
-        controller = self._make_one(handlers=[custom_handler])
+        custom_interceptor = object()
+        controller = self._make_one(custom_interceptor, handlers=[custom_handler])
+        assert controller.interceptor == custom_interceptor
         assert len(controller.handlers) == 1
         assert controller.handlers[0] is custom_handler
 
@@ -87,12 +87,3 @@ class TestBigtableClientSideMetricsController:
         assert op.zone is expected_zone
         assert len(op.handlers) == 1
         assert op.handlers[0] is handler
-
-    def test_create_operation_multiple_handlers(self):
-        orig_handler = object()
-        new_handler = object()
-        controller = self._make_one(handlers=[orig_handler])
-        op = controller.create_operation(object(), handlers=[new_handler])
-        assert len(op.handlers) == 2
-        assert orig_handler in op.handlers
-        assert new_handler in op.handlers

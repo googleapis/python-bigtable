@@ -125,7 +125,6 @@ class TestActiveOperationMetric:
             ("start", (), (State.CREATED,), None),
             ("start_attempt", (), (State.CREATED, State.BETWEEN_ATTEMPTS), None),
             ("add_response_metadata", ({},), (State.ACTIVE_ATTEMPT,), None),
-            ("attempt_first_response", (), (State.ACTIVE_ATTEMPT,), None),
             ("end_attempt_with_status", (mock.Mock(),), (State.ACTIVE_ATTEMPT,), None),
             (
                 "end_with_status",
@@ -202,7 +201,6 @@ class TestActiveOperationMetric:
         assert (
             abs(time.monotonic_ns() - metric.active_attempt.start_time_ns) < 1e6
         )  # 1ms buffer
-        assert metric.active_attempt.first_response_latency_ns is None
         assert metric.active_attempt.gfe_latency_ns is None
         assert metric.active_attempt.grpc_throttling_time_ns == 0
         # should be in ACTIVE_ATTEMPT state after completing
@@ -219,8 +217,6 @@ class TestActiveOperationMetric:
         # pre-seed generator with exepcted values
         generator.history = list(range(10))
         metric = self._make_one(mock.Mock(), backoff_generator=generator)
-        # initialize generator
-        next(metric.backoff_generator)
         metric.start_attempt()
         assert len(metric.completed_attempts) == 0
         # first attempt should always be 0
@@ -307,7 +303,7 @@ class TestActiveOperationMetric:
     @pytest.mark.parametrize(
         "metadata_field",
         [
-            b"cluster",
+            b"bad-input",
             "cluster zone",  # expect bytes
         ],
     )
@@ -389,52 +385,28 @@ class TestActiveOperationMetric:
             assert metric.cluster_id is None
             assert metric.zone is None
 
-    def test_attempt_first_response(self):
-        cls = type(self._make_one(mock.Mock()))
-        with mock.patch.object(cls, "_handle_error") as mock_handle_error:
-            metric = self._make_one(mock.Mock())
-            metric.start_attempt()
-            metric.active_attempt.start_time_ns = 0
-            metric.attempt_first_response()
-            got_latency_ns = metric.active_attempt.first_response_latency_ns
-            # latency should be equal to current time
-            assert abs(got_latency_ns - time.monotonic_ns()) < 1e6  # 1ms
-            # should remain in ACTIVE_ATTEMPT state after completing
-            assert metric.state == State.ACTIVE_ATTEMPT
-            # no errors encountered
-            assert mock_handle_error.call_count == 0
-            # calling it again should cause an error
-            metric.attempt_first_response()
-            assert mock_handle_error.call_count == 1
-            assert (
-                mock_handle_error.call_args[0][0]
-                == "Attempt already received first response"
-            )
-            # value should not be changed
-            assert metric.active_attempt.first_response_latency_ns == got_latency_ns
-
     def test_end_attempt_with_status(self):
         """
         ending the attempt should:
         - add one to completed_attempts
         - reset active_attempt to None
         - update state
+        - notify handlers
         """
-        expected_latency_ns = 9
         expected_start_time = 1
         expected_status = object()
         expected_gfe_latency_ns = 5
         expected_app_blocking = 12
         expected_backoff = 2
         expected_grpc_throttle = 3
+        handlers = [mock.Mock(), mock.Mock()]
 
-        metric = self._make_one(mock.Mock())
+        metric = self._make_one(mock.Mock(), handlers=handlers)
         assert metric.active_attempt is None
         assert len(metric.completed_attempts) == 0
         metric.start_attempt()
         metric.active_attempt.start_time_ns = expected_start_time
         metric.active_attempt.gfe_latency_ns = expected_gfe_latency_ns
-        metric.active_attempt.first_response_latency_ns = expected_latency_ns
         metric.active_attempt.application_blocking_time_ns = expected_app_blocking
         metric.active_attempt.backoff_before_attempt_ns = expected_backoff
         metric.active_attempt.grpc_throttling_time_ns = expected_grpc_throttle
@@ -443,7 +415,6 @@ class TestActiveOperationMetric:
         got_attempt = metric.completed_attempts[0]
         expected_duration = time.monotonic_ns() - expected_start_time
         assert abs(got_attempt.duration_ns - expected_duration) < 10e6  # within 10ms
-        assert got_attempt.first_response_latency_ns == expected_latency_ns
         assert got_attempt.grpc_throttling_time_ns == expected_grpc_throttle
         assert got_attempt.end_status == expected_status
         assert got_attempt.gfe_latency_ns == expected_gfe_latency_ns
@@ -451,6 +422,11 @@ class TestActiveOperationMetric:
         assert got_attempt.backoff_before_attempt_ns == expected_backoff
         # state should be changed to BETWEEN_ATTEMPTS
         assert metric.state == State.BETWEEN_ATTEMPTS
+        # check handlers
+        for h in handlers:
+            assert h.on_attempt_complete.call_count == 1
+            assert h.on_attempt_complete.call_args[0][0] == got_attempt
+            assert h.on_attempt_complete.call_args[0][1] == metric
 
     def test_end_attempt_with_status_w_exception(self):
         """
@@ -479,10 +455,10 @@ class TestActiveOperationMetric:
         from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
 
         expected_attempt_start_time = 0
-        expected_attempt_first_response_latency_ns = 9
         expected_attempt_gfe_latency_ns = 5
         expected_flow_time = 16
 
+        expected_first_response_latency_ns = 9
         expected_status = object()
         expected_type = object()
         expected_start_time = 1
@@ -498,9 +474,9 @@ class TestActiveOperationMetric:
         metric.zone = expected_zone
         metric.is_streaming = is_streaming
         metric.flow_throttling_time_ns = expected_flow_time
+        metric.first_response_latency_ns = expected_first_response_latency_ns
         attempt = ActiveAttemptMetric(
             start_time_ns=expected_attempt_start_time,
-            first_response_latency_ns=expected_attempt_first_response_latency_ns,
             gfe_latency_ns=expected_attempt_gfe_latency_ns,
         )
         metric.active_attempt = attempt
@@ -525,13 +501,13 @@ class TestActiveOperationMetric:
             assert called_with.zone == expected_zone
             assert called_with.is_streaming == is_streaming
             assert called_with.flow_throttling_time_ns == expected_flow_time
+            assert (
+                called_with.first_response_latency_ns
+                == expected_first_response_latency_ns
+            )
             # check the attempt
             assert len(called_with.completed_attempts) == 1
             final_attempt = called_with.completed_attempts[0]
-            assert (
-                final_attempt.first_response_latency_ns
-                == expected_attempt_first_response_latency_ns
-            )
             assert final_attempt.gfe_latency_ns == expected_attempt_gfe_latency_ns
             assert final_attempt.end_status == expected_status
             expected_duration = time.monotonic_ns() - expected_attempt_start_time
@@ -558,6 +534,28 @@ class TestActiveOperationMetric:
             assert metric.completed_attempts[0].end_status == expected_status
             final_op = handlers[0].on_operation_complete.call_args[0][0]
             assert final_op.final_status == expected_status
+
+    def test_end_with_status_with_default_cluster_zone(self):
+        """
+        ending the operation should use default cluster and zone if not set
+        """
+        from google.cloud.bigtable.data._metrics.data_model import (
+            DEFAULT_CLUSTER_ID,
+            DEFAULT_ZONE,
+        )
+
+        handlers = [mock.Mock()]
+        metric = self._make_one(mock.Mock(), handlers=handlers)
+        assert metric.cluster_id is None
+        assert metric.zone is None
+        metric.end_with_status(mock.Mock())
+        assert metric.state == State.COMPLETED
+        # check that finalized operation was passed to handlers
+        for h in handlers:
+            assert h.on_operation_complete.call_count == 1
+            called_with = h.on_operation_complete.call_args[0][0]
+            assert called_with.cluster_id == DEFAULT_CLUSTER_ID
+            assert called_with.zone == DEFAULT_ZONE
 
     def test_end_with_success(self):
         """
@@ -589,32 +587,6 @@ class TestActiveOperationMetric:
         final_op = handlers[0].on_operation_complete.call_args[0][0]
         assert final_op.final_status == StatusCode.OK
         assert final_op.completed_attempts == []
-
-    def test_build_wrapped_predicate(self):
-        """
-        predicate generated by object should terminate attempt or operation
-        based on passed in predicate
-        """
-        input_exc = ValueError("test")
-        cls = type(self._make_one(object()))
-        # ensure predicate is called with the exception
-        mock_predicate = mock.Mock()
-        cls.build_wrapped_predicate(mock.Mock(), mock_predicate)(input_exc)
-        assert mock_predicate.call_count == 1
-        assert mock_predicate.call_args[0][0] == input_exc
-        assert len(mock_predicate.call_args[0]) == 1
-        # if predicate is true, end the attempt
-        mock_instance = mock.Mock()
-        cls.build_wrapped_predicate(mock_instance, lambda x: True)(input_exc)
-        assert mock_instance.end_attempt_with_status.call_count == 1
-        assert mock_instance.end_attempt_with_status.call_args[0][0] == input_exc
-        assert len(mock_instance.end_attempt_with_status.call_args[0]) == 1
-        # if predicate is false, end the operation
-        mock_instance = mock.Mock()
-        cls.build_wrapped_predicate(mock_instance, lambda x: False)(input_exc)
-        assert mock_instance.end_with_status.call_count == 1
-        assert mock_instance.end_with_status.call_args[0][0] == input_exc
-        assert len(mock_instance.end_with_status.call_args[0]) == 1
 
     def test__exc_to_status(self):
         """
@@ -688,16 +660,15 @@ class TestActiveOperationMetric:
             assert len(logger_mock.warning.call_args[0]) == 1
 
     @pytest.mark.asyncio
-    async def test_async_context_manager(self):
+    async def test_context_manager(self):
         """
         Should implement context manager protocol
         """
         metric = self._make_one(object())
         with mock.patch.object(metric, "end_with_success") as end_with_success_mock:
             end_with_success_mock.side_effect = lambda: metric.end_with_status(object())
-            async with metric as context:
-                assert isinstance(context, type(metric)._AsyncContextManager)
-                assert context.operation == metric
+            with metric as context:
+                assert context == metric
                 # inside context manager, still active
                 assert end_with_success_mock.call_count == 0
                 assert metric.state == State.CREATED
@@ -706,7 +677,7 @@ class TestActiveOperationMetric:
             assert metric.state == State.COMPLETED
 
     @pytest.mark.asyncio
-    async def test_async_context_manager_exception(self):
+    async def test_context_manager_exception(self):
         """
         Exception within context manager causes end_with_status to be called with error
         """
@@ -714,9 +685,7 @@ class TestActiveOperationMetric:
         metric = self._make_one(object())
         with mock.patch.object(metric, "end_with_status") as end_with_status_mock:
             try:
-                async with metric as context:
-                    assert isinstance(context, type(metric)._AsyncContextManager)
-                    assert context.operation == metric
+                with metric:
                     # inside context manager, still active
                     assert end_with_status_mock.call_count == 0
                     assert metric.state == State.CREATED
@@ -726,155 +695,3 @@ class TestActiveOperationMetric:
             # outside context manager, should be ended
             assert end_with_status_mock.call_count == 1
             assert end_with_status_mock.call_args[0][0] == expected_exc
-            assert len(end_with_status_mock.call_args[0]) == 1
-
-    @pytest.mark.asyncio
-    async def test_metadata_passthrough(self):
-        """
-        add_response_metadata in context manager should defer to wrapped operation
-        """
-        inner_result = object()
-        fake_metadata = object()
-
-        metric = self._make_one(mock.Mock())
-        with mock.patch.object(metric, "add_response_metadata") as mock_add_metadata:
-            mock_add_metadata.return_value = inner_result
-            async with metric as context:
-                result = context.add_response_metadata(fake_metadata)
-                assert result == inner_result
-                assert mock_add_metadata.call_count == 1
-                assert mock_add_metadata.call_args[0][0] == fake_metadata
-                assert len(mock_add_metadata.call_args[0]) == 1
-
-    @pytest.mark.asyncio
-    async def test_wrap_attempt_fn_success(self):
-        """
-        Context manager's wrap_attempt_fn should wrap an arbitrary function
-        in operation instrumentation
-
-        Test successful call
-        - should return the result of the wrapped function
-        - should call end_with_success
-        """
-        from grpc import StatusCode
-
-        metric = self._make_one(object())
-        async with metric as context:
-            mock_call = mock.AsyncMock()
-            mock_args = (1, 2, 3)
-            mock_kwargs = {"a": 1, "b": 2}
-            inner_fn = lambda *args, **kwargs: mock_call(*args, **kwargs)  # noqa
-            wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=False)
-            # make the wrapped call
-            result = await wrapped_fn(*mock_args, **mock_kwargs)
-            assert result == mock_call.return_value
-            assert mock_call.call_count == 1
-            assert mock_call.call_args[0] == mock_args
-            assert mock_call.call_args[1] == mock_kwargs
-            assert mock_call.await_count == 1
-            # operation should be still in progress after wrapped fn
-            # let context manager close it, in case we need to add metadata, etc
-            assert metric.state == State.ACTIVE_ATTEMPT
-        # make sure the operation is complete after exiting context manager
-        assert metric.state == State.COMPLETED
-        assert len(metric.completed_attempts) == 1
-        assert metric.completed_attempts[0].end_status == StatusCode.OK
-
-    @pytest.mark.asyncio
-    async def test_wrap_attempt_fn_failed_extract_call_metadata(self):
-        """
-        When extract_call_metadata is True, should call add_response_metadata
-        on operation with output of wrapped function, even if failed
-        """
-        mock_call = mock.AsyncMock()
-        mock_call.trailing_metadata.return_value = 3
-        mock_call.initial_metadata.return_value = 4
-        inner_fn = lambda *args, **kwargs: mock_call  # noqa
-        metric = self._make_one(object())
-        async with metric as context:
-            wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
-            with mock.patch.object(
-                metric, "add_response_metadata"
-            ) as mock_add_metadata:
-                # make the wrapped call. expect exception when awaiting on mock_call
-                with pytest.raises(TypeError):
-                    await wrapped_fn()
-                assert mock_add_metadata.call_count == 1
-                assert mock_call.trailing_metadata.call_count == 1
-                assert mock_call.initial_metadata.call_count == 1
-                assert mock_add_metadata.call_args[0][0] == 3 + 4
-
-    @pytest.mark.asyncio
-    async def test_wrap_attempt_fn_failed_extract_call_metadata_no_mock(self):
-        """
-        Make sure the metadata is accessible after a failed attempt
-        """
-        import grpc
-
-        mock_call = mock.AsyncMock()
-        mock_call.trailing_metadata.return_value = grpc.aio.Metadata()
-        mock_call.initial_metadata.return_value = grpc.aio.Metadata(
-            ("server-timing", "gfet4t7; dur=5000")
-        )
-        inner_fn = lambda *args, **kwargs: mock_call  # noqa
-        metric = self._make_one(object())
-        async with metric as context:
-            wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
-            with pytest.raises(TypeError):
-                await wrapped_fn()
-            assert metric.active_attempt is None
-            assert len(metric.completed_attempts) == 1
-            assert metric.completed_attempts[0].gfe_latency_ns == 5000e6  # ms to ns
-
-    @pytest.mark.asyncio
-    async def test_wrap_attempt_fn_failed_attempt(self):
-        """
-        failed attempts should call operation.end_attempt with error
-        """
-        from grpc import StatusCode
-
-        metric = self._make_one(object())
-        async with metric as context:
-            wrapped_fn = context.wrap_attempt_fn(
-                mock.Mock(), extract_call_metadata=False
-            )
-            # make the wrapped call. expect type error when awaiting response of mock
-            with pytest.raises(TypeError):
-                await wrapped_fn()
-            # should have one failed attempt, but operation still in progress
-            assert len(metric.completed_attempts) == 1
-            assert metric.state == State.BETWEEN_ATTEMPTS
-            assert metric.active_attempt is None
-            # unknown status from type error
-            assert metric.completed_attempts[0].end_status == StatusCode.UNKNOWN
-        # make sure operation is closed on end
-        assert metric.state == State.COMPLETED
-
-    @pytest.mark.asyncio
-    async def test_wrap_attempt_fn_with_retry(self):
-        """
-        wrap_attampt_fn is meant to be used with retry object. Test using them together
-        """
-        from grpc import StatusCode
-        from google.api_core.retry import AsyncRetry
-        from google.api_core.exceptions import RetryError
-
-        metric = self._make_one(object())
-        with pytest.raises(RetryError):
-            # should eventually fail due to timeout
-            async with metric as context:
-                always_retry = lambda x: True  # noqa
-                retry_obj = AsyncRetry(
-                    predicate=always_retry, timeout=0.05, maximum=0.001
-                )
-                # mock.Mock will fail on await
-                double_wrapped_fn = retry_obj(
-                    context.wrap_attempt_fn(mock.Mock(), extract_call_metadata=False)
-                )
-                await double_wrapped_fn()
-        # make sure operation ended with expected state
-        assert metric.state == State.COMPLETED
-        # we expect > 30 retries in 0.05 seconds
-        assert len(metric.completed_attempts) > 5
-        # unknown error due to TyperError
-        assert metric.completed_attempts[-1].end_status == StatusCode.UNKNOWN
