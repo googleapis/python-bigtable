@@ -15,6 +15,7 @@ import asyncio
 import os
 import pytest
 import uuid
+import datetime
 
 from grpc import StatusCode
 
@@ -25,6 +26,7 @@ from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import (
     CompletedOperationMetric,
     CompletedAttemptMetric,
+    OperationType,
 )
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable_v2.types import ResponseParams
@@ -2199,6 +2201,7 @@ class TestExportedMetricsAsync(SystemTestRunner):
     Runs at the end of test suite, to allow other tests to write metrics
     """
 
+
     @pytest.fixture(scope="session")
     def client(self):
         from google.cloud.bigtable.data import BigtableDataClient
@@ -2210,28 +2213,36 @@ class TestExportedMetricsAsync(SystemTestRunner):
     def metrics_client(self, client):
         yield client._gcp_metrics_exporter.client
 
-    @pytest.mark.parametrize("method", ["ReadRows", "MutateRows", "MutateRow", "SampleRowKeys", "CheckAndMutateRow", "ReadModifyWriteRow"])
+    @pytest.fixture(scope="session")
+    def time_interval(self, start_timestamp):
+        """
+        Build a time interval between when system tests started, and the exported metric tests
+
+        Optionally adds LOOKBACK_MINUTES value for testing
+        """
+        end_time = datetime.datetime.now(datetime.timezone.utc)
+        LOOKBACK_MINUTES = os.getenv("LOOKBACK_MINUTES")
+        if LOOKBACK_MINUTES is not None:
+            print(f"running with LOOKBACK_MINUTES={LOOKBACK_MINUTES}")
+            start_timestamp = start_timestamp - datetime.timedelta(minutes=int(LOOKBACK_MINUTES))
+        return {"start_time": start_timestamp, "end_time": end_time}
+
+
+    @pytest.mark.parametrize("method", [m.value for m in OperationType])
     @CrossSync.pytest
-    async def test_attempt_latency(self, client, metrics_client, method):
-        from datetime import datetime, timedelta, timezone
+    async def test_attempt_latency(self, client, metrics_client, time_interval, method):
         from google.cloud import monitoring_v3
         import google.cloud.bigtable
 
-        # 1. Define the Time Interval
-        now = datetime.now(timezone.utc)
-        # The end time is inclusive
-        end_time = now
-        # The start time is exclusive, for an interval (startTime, endTime]
-        start_time = now - timedelta(minutes=10)
-
-        interval = {"start_time": start_time, "end_time": end_time}
         metric_filter = (
-            f'metric.type = "bigtable.googleapis.com/client/attempt_latencies" AND metric.labels.client_name = "python-bigtable/{google.cloud.bigtable.__version__}" AND metric.labels.method = "{method}"'
+            f'metric.type = "bigtable.googleapis.com/client/attempt_latencies" ' +
+            f'AND metric.labels.client_name = "python-bigtable/{google.cloud.bigtable.__version__}" ' +
+            f'AND metric.labels.method = "{method}"'
         )
         results = list(metrics_client.list_time_series(
             name=f"projects/{client.project}",
             filter=metric_filter,
-            interval=interval,
+            interval=time_interval,
             view=monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
         ))
         assert len(results) > 0
