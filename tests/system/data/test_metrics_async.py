@@ -2189,6 +2189,7 @@ class TestMetricsAsync(SystemTestRunner):
         )
 
 
+@pytest.mark.order('last')
 @CrossSync.convert_class(sync_name="TestExportedMetrics")
 class TestExportedMetricsAsync(SystemTestRunner):
 
