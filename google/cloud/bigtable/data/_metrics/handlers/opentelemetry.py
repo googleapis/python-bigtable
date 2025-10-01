@@ -210,7 +210,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         is_streaming = str(op.is_streaming)
 
         self.otel.attempt_latencies.record(
-            attempt.duration_ns, {"streaming": is_streaming, "status": status, **labels}
+            attempt.duration_ns / 1e6, {"streaming": is_streaming, "status": status, **labels}
         )
         combined_throttling = attempt.grpc_throttling_time_ns / 1e6
         if not op.completed_attempts:
