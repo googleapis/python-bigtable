@@ -2190,7 +2190,7 @@ class TestMetricsAsync(SystemTestRunner):
 
 
 @CrossSync.convert_class(sync_name="TestExportedMetrics")
-class TestExportedExportedMetricsAsync(SystemTestRunner):
+class TestExportedMetricsAsync(SystemTestRunner):
 
     @CrossSync.drop
     @pytest.fixture(scope="session")
@@ -2232,6 +2232,7 @@ class TestExportedExportedMetricsAsync(SystemTestRunner):
     async def test_read_rows(self, table, temp_rows, metrics_client):
         from datetime import datetime, timedelta, timezone
         from google.cloud import monitoring_v3
+        import google.cloud.bigtable
 
         await temp_rows.add_row(b"row_key_1")
         await temp_rows.add_row(b"row_key_2")
@@ -2247,7 +2248,7 @@ class TestExportedExportedMetricsAsync(SystemTestRunner):
 
         interval = {"start_time": start_time, "end_time": end_time}
         metric_filter = (
-            'metric.type = "bigtable.googleapis.com/client/attempt_latencies" AND metric.labels.client_name != "go-bigtable/1.40.0"'
+            f'metric.type = "bigtable.googleapis.com/client/attempt_latencies" AND metric.labels.client_name = "python-bigtable/{google.cloud.bigtable.__version__}"'
         )
         results = metrics_client.list_time_series(
             name=f"projects/{table.client.project}",
