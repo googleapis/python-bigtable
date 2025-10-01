@@ -214,12 +214,6 @@ class BigtableDataClientAsync(ClientWithProject):
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
-        # create a metrics exporter using the same client configuration
-        self._gcp_metrics_exporter = BigtableMetricsExporter(
-            project_id=project,
-            credentials=credentials,
-            client_options=client_options,
-        )
         self._metrics_interceptor = MetricInterceptorType()
         # initialize client
         ClientWithProject.__init__(
@@ -250,6 +244,12 @@ class BigtableDataClientAsync(ClientWithProject):
                 "configured the universe domain explicitly, `googleapis.com` "
                 "is the default."
             )
+        # create a metrics exporter using the same client configuration
+        self._gcp_metrics_exporter = BigtableMetricsExporter(
+            project_id=self.project,
+            credentials=credentials,
+            client_options=client_options,
+        )
         self._is_closed = CrossSync.Event()
         self.transport = cast(TransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh

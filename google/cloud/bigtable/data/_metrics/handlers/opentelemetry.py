@@ -175,8 +175,15 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         is_streaming = str(op.is_streaming)
 
         self.otel.operation_latencies.record(
-            op.duration_ms, {"streaming": is_streaming, **labels}
+            op.duration_ns / 1e6, {"streaming": is_streaming, **labels}
         )
+        if (
+            op.op_type == OperationType.READ_ROWS
+            and op.first_response_latency_ns is not None
+        ):
+            self.otel.first_response_latencies.record(
+                op.first_response_latency_ns / 1e6, labels
+            )
         # only record completed attempts if there were retries
         if op.completed_attempts:
             self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
@@ -203,26 +210,19 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         is_streaming = str(op.is_streaming)
 
         self.otel.attempt_latencies.record(
-            attempt.duration_ms, {"streaming": is_streaming, "status": status, **labels}
+            attempt.duration_ns, {"streaming": is_streaming, "status": status, **labels}
         )
-        combined_throttling = attempt.grpc_throttling_time_ms
+        combined_throttling = attempt.grpc_throttling_time_ns / 1e6
         if not op.completed_attempts:
             # add flow control latency to first attempt's throttling latency
-            combined_throttling += op.flow_throttling_time_ms
+            combined_throttling += (op.flow_throttling_time_ns / 1e6 if op.flow_throttling_time_ns else 0)
         self.otel.throttling_latencies.record(combined_throttling, labels)
         self.otel.application_latencies.record(
-            attempt.application_blocking_time_ms + attempt.backoff_before_attempt_ms, labels
+            (attempt.application_blocking_time_ns + attempt.backoff_before_attempt_ns) / 1e6, labels
         )
-        if (
-            op.op_type == OperationType.READ_ROWS
-            and attempt.first_response_latency_ms is not None
-        ):
-            self.otel.first_response_latencies.record(
-                attempt.first_response_latency_ms, {"status": status, **labels}
-            )
-        if attempt.gfe_latency_ms is not None:
+        if attempt.gfe_latency_ns is not None:
             self.otel.server_latencies.record(
-                attempt.gfe_latency_ms,
+                attempt.gfe_latency_ns / 1e6,
                 {"streaming": is_streaming, "status": status, **labels},
             )
         else:
