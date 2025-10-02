@@ -120,7 +120,6 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
     def __init__(
         self,
         *,
-        project_id: str,
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
@@ -134,7 +133,6 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         self.shared_labels = {
             "client_name": f"python-bigtable/{bigtable_version}",
             "client_uid": client_uid or self._generate_client_uid(),
-            "resource_project": project_id,
             "resource_instance": instance_id,
             "resource_table": table_id,
             "app_profile": app_profile_id or "default",

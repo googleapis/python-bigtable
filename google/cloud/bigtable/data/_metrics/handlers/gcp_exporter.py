@@ -114,7 +114,7 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
         # use private meter provider to store instruments and views
         self.meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)
         otel = _OpenTelemetryInstruments(meter_provider=self.meter_provider)
-        super().__init__(*args, instruments=otel, project_id=exporter.project_id, **kwargs)
+        super().__init__(*args, instruments=otel, **kwargs)
 
     def close(self):
         self.meter_provider.shutdown()
@@ -139,7 +139,6 @@ class BigtableMetricsExporter(MetricExporter):
         self.client = MetricServiceClient(*client_args, **client_kwargs)
         self.prefix = "bigtable.googleapis.com/internal/client"
         self.project_id = project_id
-        self.project_name = self.client.common_project_path(self.project_id)
 
     def export(
         self, metrics_data: MetricsData, timeout_millis: float = 10_000, **kwargs
@@ -159,14 +158,10 @@ class BigtableMetricsExporter(MetricExporter):
                         pt for pt in metric.data.data_points if pt.attributes
                     ]:
                         if data_point.attributes:
-                            project_id = data_point.attributes.get("resource_project")
-                            if not isinstance(project_id, str):
-                                # we expect string for project_id field
-                                continue
                             monitored_resource = MonitoredResource(
                                 type="bigtable_client_raw",
                                 labels={
-                                    "project_id": project_id,
+                                    "project_id": self.project_id,
                                     "instance": data_point.attributes[
                                         "resource_instance"
                                     ],
@@ -220,7 +215,7 @@ class BigtableMetricsExporter(MetricExporter):
             # write next batch
             self.client.create_service_time_series(
                 CreateTimeSeriesRequest(
-                    name=self.project_name,
+                    name=f"projects/{self.project_id}",
                     time_series=series[write_ind : write_ind + max_batch_size],
                 ),
                 timeout=timeout,
