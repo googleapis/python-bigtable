@@ -22,12 +22,14 @@ from google.api_core.exceptions import ClientError, PermissionDenied
 
 from google.cloud.bigtable.data.execute_query.metadata import SqlType
 from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VALUE
+from google.cloud.bigtable.data._metrics import OperationType
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.type import date_pb2
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
 from . import TEST_FAMILY, TEST_FAMILY_2, TEST_AGGREGATE_FAMILY, SystemTestRunner
+
 
 if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.transports.grpc_asyncio import (
@@ -161,6 +163,17 @@ class TestSystemAsync(SystemTestRunner):
         yield loop
         loop.stop()
         loop.close()
+
+    @pytest.fixture(scope="session")
+    def init_table_id(self):
+        """
+        The table_id to use when creating a new test table
+        """
+        base_id = self._generate_table_id()
+        if CrossSync.is_async:
+            base_id = f"{base_id}-async"
+        return base_id
+
 
     def _make_client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
@@ -1324,3 +1337,61 @@ class TestSystemAsync(SystemTestRunner):
         assert md[TEST_AGGREGATE_FAMILY].column_type == SqlType.Map(
             SqlType.Bytes(), SqlType.Int64()
         )
+
+    @pytest.mark.order('last')
+    class TestExportedMetrics(SystemTestRunner):
+        """
+        Checks to make sure metrics were exported by tests
+
+        Runs at the end of test suite, to allow other tests to write metrics
+        """
+
+        @pytest.fixture(scope="session")
+        def metrics_client(self, client):
+            yield client._gcp_metrics_exporter.client
+
+        @pytest.fixture(scope="session")
+        def time_interval(self, start_timestamp):
+            """
+            Build a time interval between when system tests started, and the exported metric tests
+
+            Optionally adds LOOKBACK_MINUTES value for testing
+            """
+            end_time = datetime.datetime.now(datetime.timezone.utc)
+            LOOKBACK_MINUTES = os.getenv("LOOKBACK_MINUTES")
+            if LOOKBACK_MINUTES is not None:
+                print(f"running with LOOKBACK_MINUTES={LOOKBACK_MINUTES}")
+                start_timestamp = start_timestamp - datetime.timedelta(minutes=int(LOOKBACK_MINUTES))
+            return {"start_time": start_timestamp, "end_time": end_time}
+
+
+        @pytest.mark.parametrize("metric,methods", [
+            ("attempt_latencies", [m.value for m in OperationType]),
+            ("operation_latencies", [m.value for m in OperationType]),
+            ("retry_count", [m.value for m in OperationType]),
+            ("first_response_latencies", [OperationType.READ_ROWS]),
+            ("server_latencies", [m.value for m in OperationType]),
+            ("connectivity_error_count", [m.value for m in OperationType]),
+            ("application_blocking_latencies", [OperationType.READ_ROWS]),
+        ])
+        @retry.Retry(
+            predicate=retry.if_exception_type(AssertionError)
+        )
+        def test_metric_existence(self, client, table_id, metrics_client, time_interval, metric, methods):
+            """
+            Checks existence of each metric in Cloud Monitoring
+            """
+            from google.cloud.bigtable import __version__ as CLIENT_VERSION
+            for m in methods:
+                metric_filter = (
+                    f'metric.type = "bigtable.googleapis.com/client/{metric}" ' +
+                    f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" '
+                    f'AND resource.labels.table = "{table_id}" '
+                )
+                results = list(metrics_client.list_time_series(
+                    name=f"projects/{client.project}",
+                    filter=metric_filter,
+                    interval=time_interval,
+                    view=0,
+                ))
+                assert len(results) > 0, f"No data found for {metric} {m}"

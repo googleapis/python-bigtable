@@ -157,9 +157,6 @@ class BigtableDataClient(ClientWithProject):
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
-        self._gcp_metrics_exporter = BigtableMetricsExporter(
-            project_id=project, credentials=credentials, client_options=client_options
-        )
         self._metrics_interceptor = MetricInterceptorType()
         ClientWithProject.__init__(
             self,
@@ -183,6 +180,11 @@ class BigtableDataClient(ClientWithProject):
             raise ValueError(
                 f"The configured universe domain ({self.universe_domain}) does not match the universe domain found in the credentials ({self._credentials.universe_domain}). If you haven't configured the universe domain explicitly, `googleapis.com` is the default."
             )
+        self._gcp_metrics_exporter = BigtableMetricsExporter(
+            project_id=self.project,
+            credentials=credentials,
+            client_options=client_options,
+        )
         self._is_closed = CrossSync._Sync_Impl.Event()
         self.transport = cast(TransportType, self._gapic_client.transport)
         self._active_instances: Set[_WarmedInstanceKey] = set()

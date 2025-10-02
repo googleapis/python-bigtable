@@ -217,6 +217,13 @@ class TestMetricsAsync(SystemTestRunner):
         yield builder
         await builder.delete_rows()
 
+    @pytest.fixture(scope="session")
+    def init_table_id(self):
+        """
+        The table_id to use when creating a new test table
+        """
+        return self._generate_table_id()
+
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
     async def table(self, client, table_id, instance_id, handler):
@@ -2191,64 +2198,3 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.gfe_latency_ns >= 0
             and attempt.gfe_latency_ns < operation.duration_ns
         )
-
-
-@pytest.mark.order('last')
-@CrossSync.drop
-class TestExportedMetrics(SystemTestRunner):
-    """
-    Checks to make sure metrics were exported by tests
-
-    Runs at the end of test suite, to allow other tests to write metrics
-    """
-
-    @pytest.fixture(scope="session")
-    def client(self):
-        from google.cloud.bigtable.data import BigtableDataClient
-        project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        with BigtableDataClient(project=project) as client:
-            yield client
-
-    @pytest.fixture(scope="session")
-    def metrics_client(self, client):
-        yield client._gcp_metrics_exporter.client
-
-    @pytest.fixture(scope="session")
-    def time_interval(self, start_timestamp):
-        """
-        Build a time interval between when system tests started, and the exported metric tests
-
-        Optionally adds LOOKBACK_MINUTES value for testing
-        """
-        end_time = datetime.datetime.now(datetime.timezone.utc)
-        LOOKBACK_MINUTES = os.getenv("LOOKBACK_MINUTES")
-        if LOOKBACK_MINUTES is not None:
-            print(f"running with LOOKBACK_MINUTES={LOOKBACK_MINUTES}")
-            start_timestamp = start_timestamp - datetime.timedelta(minutes=int(LOOKBACK_MINUTES))
-        return {"start_time": start_timestamp, "end_time": end_time}
-
-
-    @pytest.mark.parametrize("metric,methods", [
-        ("attempt_latencies", [m.value for m in OperationType]),
-        ("operation_latencies", [m.value for m in OperationType]),
-        ("retry_count", [m.value for m in OperationType]),
-        ("first_response_latencies", [OperationType.READ_ROWS]),
-        ("server_latencies", [m.value for m in OperationType]),
-        ("connectivity_error_count", [m.value for m in OperationType]),
-        ("application_blocking_latencies", [OperationType.READ_ROWS]),
-    ])
-    def test_metric_existence(self, table_id, client, metrics_client, time_interval, metric, methods):
-        print(f"using table: {table_id}")
-        for m in methods:
-            metric_filter = (
-                f'metric.type = "bigtable.googleapis.com/client/{metric}" ' +
-                f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" ' +
-                f'AND resource.labels.table = "{table_id}" '
-            )
-            results = list(metrics_client.list_time_series(
-                name=f"projects/{client.project}",
-                filter=metric_filter,
-                interval=time_interval,
-                view=0,
-            ))
-            assert len(results) > 0, f"No data found for {metric} {m}"
