@@ -54,3 +54,10 @@ class BigtableClientSideMetricsController:
         Creates a new operation and registers it with the subscribed handlers.
         """
         return ActiveOperationMetric(op_type, **kwargs, handlers=self.handlers)
+
+    def close(self):
+        """
+        Close all handlers.
+        """
+        for handler in self.handlers:
+            handler.close()
