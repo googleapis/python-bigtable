@@ -19,6 +19,7 @@ Bigtable database for testing purposes.
 import pytest
 import os
 import uuid
+import datetime
 
 from . import TEST_FAMILY, TEST_FAMILY_2, TEST_AGGREGATE_FAMILY
 
@@ -86,6 +87,12 @@ def column_split_config():
     """
     return [(num * 1000).to_bytes(8, "big") for num in range(1, 10)]
 
+@pytest.fixture(scope="session")
+def start_timestamp():
+    """
+    A timestamp taken before any tests are run. Used to fetch back metrics relevant to the tests
+    """
+    return datetime.datetime.now(datetime.timezone.utc)
 
 @pytest.fixture(scope="session")
 def table_id(
@@ -95,6 +102,7 @@ def table_id(
     column_family_config,
     init_table_id,
     column_split_config,
+    start_timestamp,
 ):
     """
     Returns BIGTABLE_TEST_TABLE if set, otherwise creates a new temporary table for the test session
@@ -108,6 +116,7 @@ def table_id(
       - init_table_id: The table ID to give to the test table, if pre-initialized table is not given with BIGTABLE_TEST_TABLE.
             Supplied by the init_table_id fixture.
       - column_split_config: A list of row keys to use as initial splits when creating the test table.
+      - start_timestamp: accessed when building table to ensure timestamp data is loaded before tests are run
     """
     from google.api_core import exceptions
     from google.api_core import retry

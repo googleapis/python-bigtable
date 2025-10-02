@@ -15,6 +15,7 @@ import asyncio
 import os
 import pytest
 import uuid
+import datetime
 
 from grpc import StatusCode
 
@@ -25,9 +26,11 @@ from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import (
     CompletedOperationMetric,
     CompletedAttemptMetric,
+    OperationType,
 )
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable_v2.types import ResponseParams
+from google.cloud.bigtable import __version__ as CLIENT_VERSION
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -218,7 +221,8 @@ class TestMetricsAsync(SystemTestRunner):
     @CrossSync.pytest_fixture(scope="session")
     async def table(self, client, table_id, instance_id, handler):
         async with client.get_table(instance_id, table_id) as table:
-            table._metrics.add_handler(handler)
+            # override handlers with custom test object
+            table._metrics.handlers = [handler]
             yield table
 
     @CrossSync.convert
@@ -2189,71 +2193,64 @@ class TestMetricsAsync(SystemTestRunner):
         )
 
 
+@pytest.mark.order('last')
 @CrossSync.convert_class(sync_name="TestExportedMetrics")
 class TestExportedMetricsAsync(SystemTestRunner):
+    """
+    Checks to make sure metrics were exported by tests
 
-    @CrossSync.drop
+    Runs at the end of test suite, to allow other tests to write metrics
+    """
+
+
     @pytest.fixture(scope="session")
-    def event_loop(self):
-        loop = asyncio.get_event_loop()
-        yield loop
-        loop.stop()
-        loop.close()
-
-    def _make_client(self):
+    def client(self):
+        from google.cloud.bigtable.data import BigtableDataClient
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-        return CrossSync.DataClient(project=project)
-
-    @CrossSync.convert
-    @CrossSync.pytest_fixture(scope="session")
-    async def client(self):
-        async with self._make_client() as client:
+        with BigtableDataClient(project=project) as client:
             yield client
 
     @pytest.fixture(scope="session")
     def metrics_client(self, client):
         yield client._gcp_metrics_exporter.client
 
+    @pytest.fixture(scope="session")
+    def time_interval(self, start_timestamp):
+        """
+        Build a time interval between when system tests started, and the exported metric tests
 
-    @CrossSync.convert
-    @CrossSync.pytest_fixture(scope="function")
-    async def temp_rows(self, table):
-        builder = CrossSync.TempRowBuilder(table)
-        yield builder
-        await builder.delete_rows()
+        Optionally adds LOOKBACK_MINUTES value for testing
+        """
+        end_time = datetime.datetime.now(datetime.timezone.utc)
+        LOOKBACK_MINUTES = os.getenv("LOOKBACK_MINUTES")
+        if LOOKBACK_MINUTES is not None:
+            print(f"running with LOOKBACK_MINUTES={LOOKBACK_MINUTES}")
+            start_timestamp = start_timestamp - datetime.timedelta(minutes=int(LOOKBACK_MINUTES))
+        return {"start_time": start_timestamp, "end_time": end_time}
 
-    @CrossSync.convert
-    @CrossSync.pytest_fixture(scope="session")
-    async def table(self, client, table_id, instance_id):
-        async with client.get_table(instance_id, table_id) as table:
-            yield table
 
+    @pytest.mark.parametrize("metric,methods", [
+        ("attempt_latencies", [m.value for m in OperationType]),
+        ("operation_latencies", [m.value for m in OperationType]),
+        ("retry_count", [m.value for m in OperationType]),
+        ("first_response_latencies", [OperationType.READ_ROWS]),
+        ("server_latencies", [m.value for m in OperationType]),
+        ("connectivity_error_count", [m.value for m in OperationType]),
+        ("application_blocking_latencies", [OperationType.READ_ROWS]),
+    ])
     @CrossSync.pytest
-    async def test_read_rows(self, table, temp_rows, metrics_client):
-        from datetime import datetime, timedelta, timezone
-        from google.cloud import monitoring_v3
-        import google.cloud.bigtable
-
-        await temp_rows.add_row(b"row_key_1")
-        await temp_rows.add_row(b"row_key_2")
-        row_list = await table.read_rows(ReadRowsQuery())
-        # read back metrics
-
-        # 1. Define the Time Interval
-        now = datetime.now(timezone.utc)
-        # The end time is inclusive
-        end_time = now
-        # The start time is exclusive, for an interval (startTime, endTime]
-        start_time = now - timedelta(minutes=5)
-
-        interval = {"start_time": start_time, "end_time": end_time}
-        metric_filter = (
-            f'metric.type = "bigtable.googleapis.com/client/attempt_latencies" AND metric.labels.client_name = "python-bigtable/{google.cloud.bigtable.__version__}"'
-        )
-        results = metrics_client.list_time_series(
-            name=f"projects/{table.client.project}",
-            filter=metric_filter,
-            interval=interval,
-            view=monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
-        )
-        print(results)
+    async def test_metric_existence(self, table_id, client, metrics_client, time_interval, metric, methods):
+        print(f"using table: {table_id}")
+        for m in methods:
+            metric_filter = (
+                f'metric.type = "bigtable.googleapis.com/client/{metric}" ' +
+                f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" ' +
+                f'AND resource.labels.table = "{table_id}" '
+            )
+            results = list(metrics_client.list_time_series(
+                name=f"projects/{client.project}",
+                filter=metric_filter,
+                interval=time_interval,
+                view=0,
+            ))
+            assert len(results) > 0, f"No data found for {metric} {m}"
