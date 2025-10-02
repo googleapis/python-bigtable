@@ -2229,18 +2229,27 @@ class TestExportedMetricsAsync(SystemTestRunner):
         return {"start_time": start_timestamp, "end_time": end_time}
 
 
-    @pytest.mark.parametrize("method", [m.value for m in OperationType])
+    @pytest.mark.parametrize("metric,methods", [
+        ("attempt_latencies", [m.value for m in OperationType]),
+        ("operation_latencies", [m.value for m in OperationType]),
+        ("retry_count", [m.value for m in OperationType]),
+        ("first_response_latencies", [OperationType.READ_ROWS]),
+        ("server_latencies", [m.value for m in OperationType]),
+        ("connectivity_error_count", [m.value for m in OperationType]),
+        ("application_blocking_latencies", [OperationType.READ_ROWS]),
+    ])
     @CrossSync.pytest
-    async def test_attempt_latency(self, client, metrics_client, time_interval, method):
-        metric_filter = (
-            f'metric.type = "bigtable.googleapis.com/client/attempt_latencies" ' +
-            f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" ' +
-            f'AND metric.labels.method = "{method}"'
-        )
-        results = list(metrics_client.list_time_series(
-            name=f"projects/{client.project}",
-            filter=metric_filter,
-            interval=time_interval,
-            view=0,
-        ))
-        assert len(results) > 0
+    async def test_metric_existence(self, client, metrics_client, time_interval, metric, methods):
+        for m in methods:
+            metric_filter = (
+                f'metric.type = "bigtable.googleapis.com/client/{metric}" ' +
+                f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" ' +
+                f'AND metric.labels.method = "{m}"'
+            )
+            results = list(metrics_client.list_time_series(
+                name=f"projects/{client.project}",
+                filter=metric_filter,
+                interval=time_interval,
+                view=0,
+            ))
+            assert len(results) > 0, f"No data found for {metric} {m}"
