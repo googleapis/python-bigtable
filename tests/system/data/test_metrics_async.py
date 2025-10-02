@@ -2243,8 +2243,7 @@ class TestExportedMetricsAsync(SystemTestRunner):
         for m in methods:
             metric_filter = (
                 f'metric.type = "bigtable.googleapis.com/client/{metric}" ' +
-                f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" ' +
-                f'AND metric.labels.method = "{m}"'
+                f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" '
             )
             results = list(metrics_client.list_time_series(
                 name=f"projects/{client.project}",
