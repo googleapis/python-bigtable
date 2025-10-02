@@ -2194,14 +2194,13 @@ class TestMetricsAsync(SystemTestRunner):
 
 
 @pytest.mark.order('last')
-@CrossSync.convert_class(sync_name="TestExportedMetrics")
-class TestExportedMetricsAsync(SystemTestRunner):
+@CrossSync.drop
+class TestExportedMetrics(SystemTestRunner):
     """
     Checks to make sure metrics were exported by tests
 
     Runs at the end of test suite, to allow other tests to write metrics
     """
-
 
     @pytest.fixture(scope="session")
     def client(self):
@@ -2238,8 +2237,7 @@ class TestExportedMetricsAsync(SystemTestRunner):
         ("connectivity_error_count", [m.value for m in OperationType]),
         ("application_blocking_latencies", [OperationType.READ_ROWS]),
     ])
-    @CrossSync.pytest
-    async def test_metric_existence(self, table_id, client, metrics_client, time_interval, metric, methods):
+    def test_metric_existence(self, table_id, client, metrics_client, time_interval, metric, methods):
         print(f"using table: {table_id}")
         for m in methods:
             metric_filter = (
