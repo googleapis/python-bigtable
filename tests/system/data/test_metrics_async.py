@@ -2239,11 +2239,13 @@ class TestExportedMetricsAsync(SystemTestRunner):
         ("application_blocking_latencies", [OperationType.READ_ROWS]),
     ])
     @CrossSync.pytest
-    async def test_metric_existence(self, client, metrics_client, time_interval, metric, methods):
+    async def test_metric_existence(self, table_id, client, metrics_client, time_interval, metric, methods):
+        print(f"using table: {table_id}")
         for m in methods:
             metric_filter = (
                 f'metric.type = "bigtable.googleapis.com/client/{metric}" ' +
-                f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" '
+                f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" ' +
+                f'AND resource.labels.table = "{table_id}" '
             )
             results = list(metrics_client.list_time_series(
                 name=f"projects/{client.project}",
