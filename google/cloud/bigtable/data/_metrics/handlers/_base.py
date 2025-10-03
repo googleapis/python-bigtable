@@ -33,3 +33,6 @@ class MetricsHandler:
         self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric
     ) -> None:
         pass
+
+    def close(self):
+        pass

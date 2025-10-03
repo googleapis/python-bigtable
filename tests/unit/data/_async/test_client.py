@@ -1464,6 +1464,20 @@ class TestTableAsync:
             # empty app_profile_id should send empty string
             assert "app_profile_id=" in routing_str
 
+    @CrossSync.pytest
+    async def test_close(self):
+        client = self._make_client()
+        table = self._make_one(client)
+        with mock.patch.object(
+            table._metrics, "close", mock.Mock()
+        ) as metric_close_mock:
+            with mock.patch.object(
+                client, "_remove_instance_registration"
+            ) as remove_mock:
+                await table.close()
+                remove_mock.assert_called_once_with(table.instance_id, table)
+                metric_close_mock.assert_called_once()
+
 
 @CrossSync.convert_class(
     "TestAuthorizedView", add_mapping_for_name="TestAuthorizedView"
