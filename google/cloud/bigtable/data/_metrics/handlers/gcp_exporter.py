@@ -99,11 +99,11 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
       - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
 
     Args:
-      - exporter: The exporter object used to write metrics to Cloud Montitoring.
+        exporter: The exporter object used to write metrics to Cloud Montitoring.
             Should correspond 1:1 with a bigtable client, and share auth configuration
-      - export_interval: The interval (in seconds) at which to export metrics to Cloud Monitoring.
-      - *args: configuration positional arguments passed down to super class
-      - *kwargs: configuration keyword arguments passed down to super class
+        export_interval: The interval (in seconds) at which to export metrics to Cloud Monitoring.
+        *args: configuration positional arguments passed down to super class
+        *kwargs: configuration keyword arguments passed down to super class
     """
 
     def __init__(self, exporter, *args, export_interval=60, **kwargs):
@@ -133,7 +133,7 @@ class BigtableMetricsExporter(MetricExporter):
     project_id it is configured with.
 
     Args:
-      - project_id: GCP project id to associate metrics with
+        project_id: GCP project id to associate metrics with
     """
 
     def __init__(self, project_id: str, *client_args, **client_kwargs):
@@ -205,9 +205,9 @@ class BigtableMetricsExporter(MetricExporter):
         https://github.com/GoogleCloudPlatform/opentelemetry-operations-python/blob/3668dfe7ce3b80dd01f42af72428de957b58b316/opentelemetry-exporter-gcp-monitoring/src/opentelemetry/exporter/cloud_monitoring/__init__.py#L82
 
         Args:
-            - series: list of TimeSeries to write. Will be split into batches if necessary
-            - deadline: designates the time.time() at which to stop writing. If None, uses API default
-            - max_batch_size: maximum number of time series to write at once.
+            series: list of TimeSeries to write. Will be split into batches if necessary
+            deadline: designates the time.time() at which to stop writing. If None, uses API default
+            max_batch_size: maximum number of time series to write at once.
                 Cloud Monitoring allows up to 200 per request
         """
         write_ind = 0
