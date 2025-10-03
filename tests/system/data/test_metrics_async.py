@@ -135,14 +135,6 @@ class _ErrorInjectorInterceptor(
 
 @CrossSync.convert_class(sync_name="TestMetrics")
 class TestMetricsAsync(SystemTestRunner):
-    @CrossSync.drop
-    @pytest.fixture(scope="session")
-    def event_loop(self):
-        loop = asyncio.get_event_loop()
-        yield loop
-        loop.stop()
-        loop.close()
-
     def _make_client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
         return CrossSync.DataClient(project=project)
