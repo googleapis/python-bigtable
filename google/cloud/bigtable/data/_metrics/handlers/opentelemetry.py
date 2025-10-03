@@ -26,6 +26,8 @@ from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetric
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
 
+# conversion factor for converting from nanoseconds to milliseconds
+NS_TO_MS= 1e6
 
 class _OpenTelemetryInstruments:
     """
@@ -175,14 +177,14 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         is_streaming = str(op.is_streaming)
 
         self.otel.operation_latencies.record(
-            op.duration_ns / 1e6, {"streaming": is_streaming, **labels}
+            op.duration_ns / NS_TO_MS, {"streaming": is_streaming, **labels}
         )
         if (
             op.op_type == OperationType.READ_ROWS
             and op.first_response_latency_ns is not None
         ):
             self.otel.first_response_latencies.record(
-                op.first_response_latency_ns / 1e6, labels
+                op.first_response_latency_ns / NS_TO_MS, labels
             )
         # only record completed attempts if there were retries
         if op.completed_attempts:
@@ -209,19 +211,19 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         is_streaming = str(op.is_streaming)
 
         self.otel.attempt_latencies.record(
-            attempt.duration_ns / 1e6, {"streaming": is_streaming, "status": status, **labels}
+            attempt.duration_ns / NS_TO_MS, {"streaming": is_streaming, "status": status, **labels}
         )
-        combined_throttling = attempt.grpc_throttling_time_ns / 1e6
+        combined_throttling = attempt.grpc_throttling_time_ns / NS_TO_MS
         if not op.completed_attempts:
             # add flow control latency to first attempt's throttling latency
-            combined_throttling += (op.flow_throttling_time_ns / 1e6 if op.flow_throttling_time_ns else 0)
+            combined_throttling += (op.flow_throttling_time_ns / NS_TO_MS if op.flow_throttling_time_ns else 0)
         self.otel.throttling_latencies.record(combined_throttling, labels)
         self.otel.application_latencies.record(
-            (attempt.application_blocking_time_ns + attempt.backoff_before_attempt_ns) / 1e6, labels
+            (attempt.application_blocking_time_ns + attempt.backoff_before_attempt_ns) / NS_TO_MS, labels
         )
         if attempt.gfe_latency_ns is not None:
             self.otel.server_latencies.record(
-                attempt.gfe_latency_ns / 1e6,
+                attempt.gfe_latency_ns / NS_TO_MS,
                 {"streaming": is_streaming, "status": status, **labels},
             )
         else:
