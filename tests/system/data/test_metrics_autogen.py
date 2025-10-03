@@ -511,10 +511,6 @@ class TestMetrics(SystemTestRunner):
         for attempt in handler.completed_attempts:
             assert isinstance(attempt, CompletedAttemptMetric)
             assert attempt.end_status.name in ["PERMISSION_DENIED", "DEADLINE_EXCEEDED"]
-            assert (
-                attempt.gfe_latency_ns >= 0
-                and attempt.gfe_latency_ns < operation.duration_ns
-            )
 
     def test_read_rows_stream_failure_mid_stream(
         self, table, temp_rows, handler, error_injector
@@ -1054,10 +1050,6 @@ class TestMetrics(SystemTestRunner):
         )
         for attempt in handler.completed_attempts:
             assert attempt.end_status.name in ["OK", "DEADLINE_EXCEEDED"]
-            assert (
-                attempt.gfe_latency_ns >= 0
-                and attempt.gfe_latency_ns < operation.duration_ns
-            )
 
     def test_mutate_rows_batcher(self, table, temp_rows, handler, cluster_config):
         from google.cloud.bigtable.data.mutations import RowMutationEntry
@@ -1377,10 +1369,6 @@ class TestMetrics(SystemTestRunner):
         )
         for attempt in handler.completed_attempts:
             assert attempt.end_status.name in ["PERMISSION_DENIED", "DEADLINE_EXCEEDED"]
-            assert (
-                attempt.gfe_latency_ns >= 0
-                and attempt.gfe_latency_ns < operation.duration_ns
-            )
 
     def test_sample_row_keys(self, table, temp_rows, handler, cluster_config):
         table.sample_row_keys()

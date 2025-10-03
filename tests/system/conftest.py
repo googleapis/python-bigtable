@@ -23,10 +23,6 @@ import asyncio
 script_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(script_path)
 
-pytest_plugins = [
-    "data.setup_fixtures",
-]
-
 
 @pytest.fixture(scope="session")
 def event_loop():
