@@ -1381,11 +1381,10 @@ class TestSystemAsync(SystemTestRunner):
             """
             Checks existence of each metric in Cloud Monitoring
             """
-            from google.cloud.bigtable import __version__ as CLIENT_VERSION
             for m in methods:
                 metric_filter = (
                     f'metric.type = "bigtable.googleapis.com/client/{metric}" ' +
-                    f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" '
+                    f'AND metric.labels.client_name = "python-bigtable/{client._client_version()}" ' +
                     f'AND resource.labels.table = "{table_id}" '
                 )
                 results = list(metrics_client.list_time_series(

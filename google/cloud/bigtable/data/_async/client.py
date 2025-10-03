@@ -984,7 +984,8 @@ class _DataApiTargetAsync(abc.ABC):
                     exporter=client._gcp_metrics_exporter,
                     instance_id=instance_id,
                     table_id=table_id,
-                    app_profile_id=app_profile_id
+                    app_profile_id=app_profile_id,
+                    client_version=client._client_version(),
                 )
             ]
         )
