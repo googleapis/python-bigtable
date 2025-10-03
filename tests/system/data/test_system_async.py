@@ -174,7 +174,6 @@ class TestSystemAsync(SystemTestRunner):
             base_id = f"{base_id}-async"
         return base_id
 
-
     def _make_client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
         return CrossSync.DataClient(project=project)
@@ -1338,7 +1337,7 @@ class TestSystemAsync(SystemTestRunner):
             SqlType.Bytes(), SqlType.Int64()
         )
 
-    @pytest.mark.order('last')
+    @pytest.mark.order("last")
     class TestExportedMetrics(SystemTestRunner):
         """
         Checks to make sure metrics were exported by tests
@@ -1361,36 +1360,42 @@ class TestSystemAsync(SystemTestRunner):
             LOOKBACK_MINUTES = os.getenv("LOOKBACK_MINUTES")
             if LOOKBACK_MINUTES is not None:
                 print(f"running with LOOKBACK_MINUTES={LOOKBACK_MINUTES}")
-                start_timestamp = start_timestamp - datetime.timedelta(minutes=int(LOOKBACK_MINUTES))
+                start_timestamp = start_timestamp - datetime.timedelta(
+                    minutes=int(LOOKBACK_MINUTES)
+                )
             return {"start_time": start_timestamp, "end_time": end_time}
 
-
-        @pytest.mark.parametrize("metric,methods", [
-            ("attempt_latencies", [m.value for m in OperationType]),
-            ("operation_latencies", [m.value for m in OperationType]),
-            ("retry_count", [m.value for m in OperationType]),
-            ("first_response_latencies", [OperationType.READ_ROWS]),
-            ("server_latencies", [m.value for m in OperationType]),
-            ("connectivity_error_count", [m.value for m in OperationType]),
-            ("application_blocking_latencies", [OperationType.READ_ROWS]),
-        ])
-        @retry.Retry(
-            predicate=retry.if_exception_type(AssertionError)
+        @pytest.mark.parametrize(
+            "metric,methods",
+            [
+                ("attempt_latencies", [m.value for m in OperationType]),
+                ("operation_latencies", [m.value for m in OperationType]),
+                ("retry_count", [m.value for m in OperationType]),
+                ("first_response_latencies", [OperationType.READ_ROWS]),
+                ("server_latencies", [m.value for m in OperationType]),
+                ("connectivity_error_count", [m.value for m in OperationType]),
+                ("application_blocking_latencies", [OperationType.READ_ROWS]),
+            ],
         )
-        def test_metric_existence(self, client, table_id, metrics_client, time_interval, metric, methods):
+        @retry.Retry(predicate=retry.if_exception_type(AssertionError))
+        def test_metric_existence(
+            self, client, table_id, metrics_client, time_interval, metric, methods
+        ):
             """
             Checks existence of each metric in Cloud Monitoring
             """
             for m in methods:
                 metric_filter = (
-                    f'metric.type = "bigtable.googleapis.com/client/{metric}" ' +
-                    f'AND metric.labels.client_name = "python-bigtable/{client._client_version()}" ' +
-                    f'AND resource.labels.table = "{table_id}" '
+                    f'metric.type = "bigtable.googleapis.com/client/{metric}" '
+                    + f'AND metric.labels.client_name = "python-bigtable/{client._client_version()}" '
+                    + f'AND resource.labels.table = "{table_id}" '
                 )
-                results = list(metrics_client.list_time_series(
-                    name=f"projects/{client.project}",
-                    filter=metric_filter,
-                    interval=time_interval,
-                    view=0,
-                ))
+                results = list(
+                    metrics_client.list_time_series(
+                        name=f"projects/{client.project}",
+                        filter=metric_filter,
+                        interval=time_interval,
+                        view=0,
+                    )
+                )
                 assert len(results) > 0, f"No data found for {metric} {m}"

@@ -86,8 +86,12 @@ from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
-from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import BigtableMetricsExporter
-from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import GoogleCloudMetricsHandler
+from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import (
+    BigtableMetricsExporter,
+)
+from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import (
+    GoogleCloudMetricsHandler,
+)
 from google.cloud.bigtable.data._metrics import OperationType
 
 from google.cloud.bigtable.data._cross_sync import CrossSync

@@ -202,9 +202,20 @@ class TestBigtableDataClientAsync:
         expected_options = client_options.ClientOptions()
         expected_options.credentials_file = None
         expected_options.quota_project_id = None
-        with mock.patch("google.cloud.bigtable.data._metrics.handlers.gcp_exporter.BigtableMetricsExporter.__init__", return_value=None) as exporter_mock:
-            async with self._make_client(project=expected_project, credentials=expected_credentials, client_options=expected_options):
-                exporter_mock.assert_called_once_with(project_id=expected_project, credentials=expected_credentials, client_options=expected_options)
+        with mock.patch(
+            "google.cloud.bigtable.data._metrics.handlers.gcp_exporter.BigtableMetricsExporter.__init__",
+            return_value=None,
+        ) as exporter_mock:
+            async with self._make_client(
+                project=expected_project,
+                credentials=expected_credentials,
+                client_options=expected_options,
+            ):
+                exporter_mock.assert_called_once_with(
+                    project_id=expected_project,
+                    credentials=expected_credentials,
+                    client_options=expected_options,
+                )
 
     @CrossSync.pytest
     async def test_metrics_exporter_init_implicit_project(self):
@@ -1185,9 +1196,7 @@ class TestTableAsync:
         from google.cloud.bigtable.data._metrics import (
             BigtableClientSideMetricsController,
         )
-        from google.cloud.bigtable.data._metrics import (
-            GoogleCloudMetricsHandler
-        )
+        from google.cloud.bigtable.data._metrics import GoogleCloudMetricsHandler
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -1522,7 +1531,8 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
     async def test_ctor(self):
         from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
         from google.cloud.bigtable.data._metrics import (
-            BigtableClientSideMetricsController, GoogleCloudMetricsHandler
+            BigtableClientSideMetricsController,
+            GoogleCloudMetricsHandler,
         )
 
         expected_table_id = "table-id"

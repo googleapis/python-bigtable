@@ -27,7 +27,8 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetri
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
 
 # conversion factor for converting from nanoseconds to milliseconds
-NS_TO_MS= 1e6
+NS_TO_MS = 1e6
+
 
 class _OpenTelemetryInstruments:
     """
@@ -211,15 +212,22 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         is_streaming = str(op.is_streaming)
 
         self.otel.attempt_latencies.record(
-            attempt.duration_ns / NS_TO_MS, {"streaming": is_streaming, "status": status, **labels}
+            attempt.duration_ns / NS_TO_MS,
+            {"streaming": is_streaming, "status": status, **labels},
         )
         combined_throttling = attempt.grpc_throttling_time_ns / NS_TO_MS
         if not op.completed_attempts:
             # add flow control latency to first attempt's throttling latency
-            combined_throttling += (op.flow_throttling_time_ns / NS_TO_MS if op.flow_throttling_time_ns else 0)
+            combined_throttling += (
+                op.flow_throttling_time_ns / NS_TO_MS
+                if op.flow_throttling_time_ns
+                else 0
+            )
         self.otel.throttling_latencies.record(combined_throttling, labels)
         self.otel.application_latencies.record(
-            (attempt.application_blocking_time_ns + attempt.backoff_before_attempt_ns) / NS_TO_MS, labels
+            (attempt.application_blocking_time_ns + attempt.backoff_before_attempt_ns)
+            / NS_TO_MS,
+            labels,
         )
         if attempt.gfe_latency_ns is not None:
             self.otel.server_latencies.record(
@@ -229,6 +237,4 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         else:
             # gfe headers not attached. Record a connectivity error.
             # TODO: this should not be recorded as an error when direct path is enabled
-            self.otel.connectivity_error_count.add(
-                1, {"status": status, **labels}
-            )
+            self.otel.connectivity_error_count.add(1, {"status": status, **labels})

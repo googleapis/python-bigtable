@@ -99,7 +99,7 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
       - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
 
     Args:
-      - exporter: The exporter object used to write metrics to Cloud Montitoring. 
+      - exporter: The exporter object used to write metrics to Cloud Montitoring.
             Should correspond 1:1 with a bigtable client, and share auth configuration
       - export_interval: The interval (in seconds) at which to export metrics to Cloud Monitoring.
       - *args: configuration positional arguments passed down to super class
@@ -112,7 +112,9 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
             exporter, export_interval_millis=export_interval * 1000
         )
         # use private meter provider to store instruments and views
-        self.meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)
+        self.meter_provider = MeterProvider(
+            metric_readers=[gcp_reader], views=VIEW_LIST
+        )
         otel = _OpenTelemetryInstruments(meter_provider=self.meter_provider)
         super().__init__(*args, instruments=otel, **kwargs)
 
