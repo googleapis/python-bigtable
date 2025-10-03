@@ -163,6 +163,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         Update the metrics associated with a completed operation:
           - operation_latencies
           - retry_count
+          - first_response_latencies
         """
         labels = {
             "method": op.op_type.value,
@@ -193,7 +194,6 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         """
         Update the metrics associated with a completed attempt:
           - attempt_latencies
-          - first_response_latencies
           - server_latencies
           - connectivity_error_count
           - application_latencies
