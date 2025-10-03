@@ -87,3 +87,10 @@ class TestBigtableClientSideMetricsController:
         assert op.zone is expected_zone
         assert len(op.handlers) == 1
         assert op.handlers[0] is handler
+
+    def test_close(self):
+        handlers = [mock.Mock() for _ in range(3)]
+        controller = self._make_one(handlers=handlers)
+        controller.close()
+        for handler in handlers:
+            handler.close.assert_called_once()

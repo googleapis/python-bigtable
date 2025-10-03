@@ -1463,8 +1463,7 @@ class _DataApiTarget(abc.ABC):
 
     def close(self):
         """Called to close the Table instance and release any resources held by it."""
-        for handler in self._metrics.handlers:
-            handler.close()
+        self._metrics.close()
         if self._register_instance_future:
             self._register_instance_future.cancel()
         self.client._remove_instance_registration(self.instance_id, self)

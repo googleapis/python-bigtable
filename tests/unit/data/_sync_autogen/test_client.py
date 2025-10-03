@@ -1207,6 +1207,19 @@ class TestTable:
         else:
             assert "app_profile_id=" in routing_str
 
+    def test_close(self):
+        client = self._make_client()
+        table = self._make_one(client)
+        with mock.patch.object(
+            table._metrics, "close", mock.Mock()
+        ) as metric_close_mock:
+            with mock.patch.object(
+                client, "_remove_instance_registration"
+            ) as remove_mock:
+                table.close()
+                remove_mock.assert_called_once_with(table.instance_id, table)
+                metric_close_mock.assert_called_once()
+
 
 @CrossSync._Sync_Impl.add_mapping_decorator("TestAuthorizedView")
 class TestAuthorizedView(CrossSync._Sync_Impl.TestTable):
