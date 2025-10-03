@@ -78,7 +78,9 @@ class TestOpentelemetryInstruments:
         )
         assert getattr(instruments, metric_name) is not None
 
-    @pytest.mark.parametrize("metric_name", [m for m in EXPECTED_METRICS if "count" in m])
+    @pytest.mark.parametrize(
+        "metric_name", [m for m in EXPECTED_METRICS if "count" in m]
+    )
     def test_counter_creation(self, metric_name):
         mock_meter_provider = mock.Mock()
         instruments = self._make_one(mock_meter_provider)
@@ -155,7 +157,8 @@ class TestOpentelemetryMetricsHandler:
         assert handler.shared_labels["resource_table"] == expected_table
         assert handler.shared_labels["app_profile"] == expected_app_profile
         assert (
-            handler.shared_labels["client_name"] == f"python-bigtable/{expected_version}"
+            handler.shared_labels["client_name"]
+            == f"python-bigtable/{expected_version}"
         )
         assert handler.shared_labels["client_uid"] == expected_uid
 
