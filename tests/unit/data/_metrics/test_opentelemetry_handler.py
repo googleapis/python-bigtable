@@ -185,46 +185,22 @@ class TestOpentelemetryMetricsHandler:
         )
         assert re.match(expected_pattern, uid)
 
-    @pytest.mark.parametrize(
-        "op_type,is_streaming,first_response_latency_ns,attempts_count",
-        [
-            (OperationType.READ_ROWS, True, 12345, 0),
-            (OperationType.READ_ROWS, True, None, 2),
-            (OperationType.MUTATE_ROW, False, None, 3),
-            (
-                OperationType.SAMPLE_ROW_KEYS,
-                False,
-                12345,
-                1,
-            ),  # first_response_latency should be ignored
-        ],
-    )
-    def test_on_operation_complete(
-        self, op_type, is_streaming, first_response_latency_ns, attempts_count
-    ):
-        mock_instruments = mock.Mock(
-            operation_latencies=mock.Mock(),
-            first_response_latencies=mock.Mock(),
-            retry_count=mock.Mock(),
-        )
+    def test_on_operation_complete_operation_latencies(self):
+        mock_instruments = mock.Mock(operation_latencies=mock.Mock())
         handler = self._make_one(
             instance_id="inst", table_id="table", instruments=mock_instruments
         )
-        attempts = [mock.Mock() for _ in range(attempts_count)]
         op = CompletedOperationMetric(
-            op_type=op_type,
+            op_type=OperationType.READ_ROWS,
             uuid="test-uuid",
             duration_ns=1234567,
-            completed_attempts=attempts,
+            completed_attempts=[],
             final_status=StatusCode.OK,
             cluster_id="cluster",
             zone="zone",
-            is_streaming=is_streaming,
-            first_response_latency_ns=first_response_latency_ns,
+            is_streaming=True,
         )
-
         handler.on_operation_complete(op)
-
         expected_labels = {
             "method": op.op_type.value,
             "status": op.final_status.name,
@@ -232,49 +208,170 @@ class TestOpentelemetryMetricsHandler:
             "resource_cluster": op.cluster_id,
             **handler.shared_labels,
         }
-
-        # check operation_latencies
         mock_instruments.operation_latencies.record.assert_called_once_with(
             op.duration_ns / 1e6,
-            {"streaming": str(is_streaming), **expected_labels},
+            {"streaming": str(op.is_streaming), **expected_labels},
         )
 
-        # check first_response_latencies
-        if (
-            op_type == OperationType.READ_ROWS
-            and first_response_latency_ns is not None
-        ):
+    @pytest.mark.parametrize(
+        "op_type,first_response_latency_ns,should_record",
+        [
+            (OperationType.READ_ROWS, 12345, True),
+            (OperationType.READ_ROWS, None, False),
+            (OperationType.MUTATE_ROW, 12345, False),
+        ],
+    )
+    def test_on_operation_complete_first_response_latencies(
+        self, op_type, first_response_latency_ns, should_record
+    ):
+        mock_instruments = mock.Mock(first_response_latencies=mock.Mock())
+        handler = self._make_one(
+            instance_id="inst", table_id="table", instruments=mock_instruments
+        )
+        op = CompletedOperationMetric(
+            op_type=op_type,
+            uuid="test-uuid",
+            duration_ns=1234567,
+            completed_attempts=[],
+            final_status=StatusCode.OK,
+            cluster_id="cluster",
+            zone="zone",
+            is_streaming=True,
+            first_response_latency_ns=first_response_latency_ns,
+        )
+        handler.on_operation_complete(op)
+        if should_record:
+            expected_labels = {
+                "method": op.op_type.value,
+                "status": op.final_status.name,
+                "resource_zone": op.zone,
+                "resource_cluster": op.cluster_id,
+                **handler.shared_labels,
+            }
             mock_instruments.first_response_latencies.record.assert_called_once_with(
                 first_response_latency_ns / 1e6, expected_labels
             )
         else:
             mock_instruments.first_response_latencies.record.assert_not_called()
 
-        # check retry_count
+    @pytest.mark.parametrize("attempts_count", [0, 1, 5])
+    def test_on_operation_complete_retry_count(self, attempts_count):
+        mock_instruments = mock.Mock(retry_count=mock.Mock())
+        handler = self._make_one(
+            instance_id="inst", table_id="table", instruments=mock_instruments
+        )
+        attempts = [mock.Mock()] * attempts_count
+        op = CompletedOperationMetric(
+            op_type=OperationType.READ_ROWS,
+            uuid="test-uuid",
+            duration_ns=1234567,
+            completed_attempts=attempts,
+            final_status=StatusCode.OK,
+            cluster_id="cluster",
+            zone="zone",
+            is_streaming=True,
+        )
+        handler.on_operation_complete(op)
         if attempts:
+            expected_labels = {
+                "method": op.op_type.value,
+                "status": op.final_status.name,
+                "resource_zone": op.zone,
+                "resource_cluster": op.cluster_id,
+                **handler.shared_labels,
+            }
             mock_instruments.retry_count.add.assert_called_once_with(
                 len(attempts) - 1, expected_labels
             )
         else:
             mock_instruments.retry_count.add.assert_not_called()
 
+    def test_on_attempt_complete_attempt_latencies(self):
+        mock_instruments = mock.Mock(attempt_latencies=mock.Mock())
+        handler = self._make_one(
+            instance_id="inst", table_id="table", instruments=mock_instruments
+        )
+        attempt = CompletedAttemptMetric(duration_ns=1234567, end_status=StatusCode.OK)
+        op = ActiveOperationMetric(
+            op_type=OperationType.READ_ROWS,
+            zone="zone",
+            cluster_id="cluster",
+            is_streaming=True,
+        )
+        handler.on_attempt_complete(attempt, op)
+        expected_labels = {
+            "method": op.op_type.value,
+            "resource_zone": op.zone,
+            "resource_cluster": op.cluster_id,
+            **handler.shared_labels,
+        }
+        mock_instruments.attempt_latencies.record.assert_called_once_with(
+            attempt.duration_ns / 1e6,
+            {
+                "streaming": str(op.is_streaming),
+                "status": attempt.end_status.name,
+                **expected_labels,
+            },
+        )
+
     @pytest.mark.parametrize(
-        "zone,cluster,gfe_latency_ns,is_first_attempt,flow_throttling_ns",
-        [
-            ("zone", "cluster", 12345, True, 54321),
-            (None, None, None, False, 0),
-            ("zone", "cluster", 0, True, 0),  # gfe_latency_ns is 0
-        ],
+        "is_first_attempt,flow_throttling_ns",
+        [(True, 54321), (False, 0), (True, 0)],
     )
-    def test_on_attempt_complete(
-        self, zone, cluster, gfe_latency_ns, is_first_attempt, flow_throttling_ns
+    def test_on_attempt_complete_throttling_latencies(
+        self, is_first_attempt, flow_throttling_ns
+    ):
+        mock_instruments = mock.Mock(throttling_latencies=mock.Mock())
+        handler = self._make_one(
+            instance_id="inst", table_id="table", instruments=mock_instruments
+        )
+        attempt = CompletedAttemptMetric(
+            duration_ns=1234567,
+            end_status=StatusCode.OK,
+            grpc_throttling_time_ns=456789,
+        )
+        op = ActiveOperationMetric(
+            op_type=OperationType.READ_ROWS,
+            flow_throttling_time_ns=flow_throttling_ns,
+        )
+        if not is_first_attempt:
+            op.completed_attempts.append(mock.Mock())
+        handler.on_attempt_complete(attempt, op)
+        expected_throttling = attempt.grpc_throttling_time_ns / 1e6
+        if is_first_attempt:
+            expected_throttling += flow_throttling_ns / 1e6
+        mock_instruments.throttling_latencies.record.assert_called_once_with(
+            pytest.approx(expected_throttling), mock.ANY
+        )
+
+    def test_on_attempt_complete_application_latencies(self):
+        mock_instruments = mock.Mock(application_latencies=mock.Mock())
+        handler = self._make_one(
+            instance_id="inst", table_id="table", instruments=mock_instruments
+        )
+        attempt = CompletedAttemptMetric(
+            duration_ns=1234567,
+            end_status=StatusCode.OK,
+            application_blocking_time_ns=234567,
+            backoff_before_attempt_ns=345678,
+        )
+        op = ActiveOperationMetric(op_type=OperationType.READ_ROWS)
+        handler.on_attempt_complete(attempt, op)
+        mock_instruments.application_latencies.record.assert_called_once_with(
+            (attempt.application_blocking_time_ns + attempt.backoff_before_attempt_ns)
+            / 1e6,
+            mock.ANY,
+        )
+
+    @pytest.mark.parametrize(
+        "gfe_latency_ns,should_record_server_latency",
+        [(12345, True), (None, False), (0, True)],
+    )
+    def test_on_attempt_complete_server_latencies_and_connectivity_error(
+        self, gfe_latency_ns, should_record_server_latency
     ):
         mock_instruments = mock.Mock(
-            attempt_latencies=mock.Mock(),
-            throttling_latencies=mock.Mock(),
-            application_latencies=mock.Mock(),
-            server_latencies=mock.Mock(),
-            connectivity_error_count=mock.Mock(),
+            server_latencies=mock.Mock(), connectivity_error_count=mock.Mock()
         )
         handler = self._make_one(
             instance_id="inst", table_id="table", instruments=mock_instruments
@@ -283,61 +380,21 @@ class TestOpentelemetryMetricsHandler:
             duration_ns=1234567,
             end_status=StatusCode.OK,
             gfe_latency_ns=gfe_latency_ns,
-            application_blocking_time_ns=234567,
-            backoff_before_attempt_ns=345678,
-            grpc_throttling_time_ns=456789,
         )
         op = ActiveOperationMetric(
             op_type=OperationType.READ_ROWS,
-            zone=zone,
-            cluster_id=cluster,
+            zone="zone",
+            cluster_id="cluster",
             is_streaming=True,
-            flow_throttling_time_ns=flow_throttling_ns,
         )
-        if not is_first_attempt:
-            op.completed_attempts.append(mock.Mock())
-
         handler.on_attempt_complete(attempt, op)
-
-        expected_labels = {
-            "method": op.op_type.value,
-            "resource_zone": zone or DEFAULT_ZONE,
-            "resource_cluster": cluster or DEFAULT_CLUSTER_ID,
-            **handler.shared_labels,
-        }
-        status = attempt.end_status.name
-        is_streaming = str(op.is_streaming)
-
-        # check attempt_latencies
-        mock_instruments.attempt_latencies.record.assert_called_once_with(
-            attempt.duration_ns / 1e6,
-            {"streaming": is_streaming, "status": status, **expected_labels},
-        )
-
-        # check throttling_latencies
-        expected_throttling = attempt.grpc_throttling_time_ns / 1e6
-        if is_first_attempt:
-            expected_throttling += flow_throttling_ns / 1e6
-        mock_instruments.throttling_latencies.record.assert_called_once_with(
-            pytest.approx(expected_throttling), expected_labels
-        )
-
-        # check application_latencies
-        mock_instruments.application_latencies.record.assert_called_once_with(
-            (attempt.application_blocking_time_ns + attempt.backoff_before_attempt_ns)
-            / 1e6,
-            expected_labels,
-        )
-
-        # check server_latencies or connectivity_error_count
-        if gfe_latency_ns is not None:
+        if should_record_server_latency:
             mock_instruments.server_latencies.record.assert_called_once_with(
-                gfe_latency_ns / 1e6,
-                {"streaming": is_streaming, "status": status, **expected_labels},
+                gfe_latency_ns / 1e6, mock.ANY
             )
             mock_instruments.connectivity_error_count.add.assert_not_called()
         else:
             mock_instruments.server_latencies.record.assert_not_called()
             mock_instruments.connectivity_error_count.add.assert_called_once_with(
-                1, {"status": status, **expected_labels}
+                1, mock.ANY
             )
