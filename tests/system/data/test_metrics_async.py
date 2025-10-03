@@ -214,13 +214,6 @@ class TestMetricsAsync(SystemTestRunner):
         yield builder
         await builder.delete_rows()
 
-    @pytest.fixture(scope="session")
-    def init_table_id(self):
-        """
-        The table_id to use when creating a new test table
-        """
-        return self._generate_table_id()
-
     @CrossSync.convert
     @CrossSync.pytest_fixture(scope="session")
     async def table(self, client, table_id, instance_id, handler):

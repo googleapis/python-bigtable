@@ -20,7 +20,7 @@ import datetime
 import uuid
 import os
 from google.api_core import retry
-from google.api_core.exceptions import ClientError, PermissionDenied
+from google.api_core.exceptions import ClientError, PermissionDenied, ServerError
 from google.cloud.bigtable.data.execute_query.metadata import SqlType
 from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VALUE
 from google.cloud.bigtable.data._metrics import OperationType
@@ -127,12 +127,6 @@ class TempRowBuilder:
 
 
 class TestSystem(SystemTestRunner):
-    @pytest.fixture(scope="session")
-    def init_table_id(self):
-        """The table_id to use when creating a new test table"""
-        base_id = self._generate_table_id()
-        return base_id
-
     def _make_client(self):
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
         return CrossSync._Sync_Impl.DataClient(project=project)
@@ -1098,7 +1092,7 @@ class TestSystem(SystemTestRunner):
             ("application_blocking_latencies", [OperationType.READ_ROWS]),
         ],
     )
-    @retry.Retry(predicate=retry.if_exception_type(AssertionError))
+    @retry.Retry(predicate=retry.if_exception_type(AssertionError, ServerError))
     def test_metric_existence(
         self, client, table_id, metrics_client, start_timestamp, metric, methods
     ):

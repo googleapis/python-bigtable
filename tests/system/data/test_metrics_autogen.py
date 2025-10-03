@@ -169,11 +169,6 @@ class TestMetrics(SystemTestRunner):
         builder.delete_rows()
 
     @pytest.fixture(scope="session")
-    def init_table_id(self):
-        """The table_id to use when creating a new test table"""
-        return self._generate_table_id()
-
-    @pytest.fixture(scope="session")
     def table(self, client, table_id, instance_id, handler):
         with client.get_table(instance_id, table_id) as table:
             table._metrics.handlers = [handler]
