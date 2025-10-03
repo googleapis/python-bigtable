@@ -19,7 +19,6 @@ Bigtable database for testing purposes.
 import pytest
 import os
 import uuid
-import datetime
 
 
 @pytest.fixture(scope="session")

@@ -17,8 +17,6 @@ import mock
 from grpc import StatusCode
 
 from google.cloud.bigtable.data._metrics.data_model import (
-    DEFAULT_CLUSTER_ID,
-    DEFAULT_ZONE,
     ActiveOperationMetric,
     CompletedAttemptMetric,
     CompletedOperationMetric,

@@ -24,7 +24,6 @@ from opentelemetry.sdk.metrics.export import (
     ScopeMetrics,
     Metric,
     Sum,
-    Histogram,
     AggregationTemporality,
 )
 from google.cloud.monitoring_v3 import (
@@ -46,7 +45,6 @@ from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
 
 
 class TestGoogleCloudMetricsHandler:
-
     def _make_one(self, *args, **kwargs):
         return GoogleCloudMetricsHandler(*args, **kwargs)
 
@@ -62,7 +60,7 @@ class TestGoogleCloudMetricsHandler:
             handler = self._make_one(
                 expected_exporter,
                 instance_id=expected_instance,
-                table_id=expected_table
+                table_id=expected_table,
             )
         assert isinstance(handler.meter_provider, MeterProvider)
         assert isinstance(handler.otel, _OpenTelemetryInstruments)
@@ -80,7 +78,6 @@ class TestGoogleCloudMetricsHandler:
         expected_version = "my_version"
         expected_uid = "my_uid"
         expected_app_profile = "my_profile"
-        expected_instruments = object()
         expected_exporter = BigtableMetricsExporter("project")
         handler = self._make_one(
             expected_exporter,
@@ -98,8 +95,6 @@ class TestGoogleCloudMetricsHandler:
             == f"python-bigtable/{expected_version}"
         )
         assert handler.shared_labels["client_uid"] == expected_uid
-
-
 
     @mock.patch(
         "google.cloud.bigtable.data._metrics.handlers.gcp_exporter.PeriodicExportingMetricReader"
@@ -188,13 +183,20 @@ class TestBigtableMetricsExporter:
         expected_start_time_nanos = 100
         expected_end_time_nanos = 200
         dp = NumberDataPoint(
-            attributes={}, start_time_unix_nano=expected_start_time_nanos, time_unix_nano=expected_end_time_nanos, value=value
+            attributes={},
+            start_time_unix_nano=expected_start_time_nanos,
+            time_unix_nano=expected_end_time_nanos,
+            value=value,
         )
         point = instance._to_point(dp)
         assert isinstance(point, Point)
         assert getattr(point.value, expected_field) == value
-        assert (point.interval.start_time.second * 10**9) + point.interval.start_time.nanosecond == expected_start_time_nanos
-        assert (point.interval.end_time.second * 10**9) + point.interval.end_time.nanosecond == expected_end_time_nanos
+        assert (
+            point.interval.start_time.second * 10**9
+        ) + point.interval.start_time.nanosecond == expected_start_time_nanos
+        assert (
+            point.interval.end_time.second * 10**9
+        ) + point.interval.end_time.nanosecond == expected_end_time_nanos
 
     def test__to_point_w_histogram(self):
         """Test that HistogramDataPoint is converted to a Point correctly."""
@@ -223,9 +225,16 @@ class TestBigtableMetricsExporter:
         assert dist.count == expected_count
         assert dist.mean == expected_sum / expected_count
         assert list(dist.bucket_counts) == expected_bucket_counts
-        assert list(dist.bucket_options.explicit_buckets.bounds) == expected_explicit_bounds
-        assert (point.interval.start_time.second * 10**9) + point.interval.start_time.nanosecond == expected_start_time_nanos
-        assert (point.interval.end_time.second * 10**9) + point.interval.end_time.nanosecond == expected_end_time_nanos
+        assert (
+            list(dist.bucket_options.explicit_buckets.bounds)
+            == expected_explicit_bounds
+        )
+        assert (
+            point.interval.start_time.second * 10**9
+        ) + point.interval.start_time.nanosecond == expected_start_time_nanos
+        assert (
+            point.interval.end_time.second * 10**9
+        ) + point.interval.end_time.nanosecond == expected_end_time_nanos
 
     def test__to_point_w_histogram_zero_count(self):
         """Test that HistogramDataPoint with zero count is converted to a Point correctly."""
@@ -329,7 +338,9 @@ class TestBigtableMetricsExporter:
                 is_monotonic=False,
             ),
         )
-        scope_metric = ScopeMetrics(scope=mock.Mock(), metrics=[metric], schema_url=None)
+        scope_metric = ScopeMetrics(
+            scope=mock.Mock(), metrics=[metric], schema_url=None
+        )
         resource_metric = ResourceMetrics(
             resource=mock.Mock(), scope_metrics=[scope_metric], schema_url=None
         )
@@ -372,7 +383,9 @@ class TestBigtableMetricsExporter:
                 is_monotonic=False,
             ),
         )
-        scope_metric = ScopeMetrics(scope=mock.Mock(), metrics=[metric], schema_url=None)
+        scope_metric = ScopeMetrics(
+            scope=mock.Mock(), metrics=[metric], schema_url=None
+        )
         resource_metric = ResourceMetrics(
             resource=mock.Mock(), scope_metrics=[scope_metric], schema_url=None
         )
@@ -412,7 +425,9 @@ class TestBigtableMetricsExporter:
                 is_monotonic=False,
             ),
         )
-        scope_metric = ScopeMetrics(scope=mock.Mock(), metrics=[metric], schema_url=None)
+        scope_metric = ScopeMetrics(
+            scope=mock.Mock(), metrics=[metric], schema_url=None
+        )
         resource_metric = ResourceMetrics(
             resource=mock.Mock(), scope_metrics=[scope_metric], schema_url=None
         )

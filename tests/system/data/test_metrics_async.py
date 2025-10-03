@@ -15,7 +15,6 @@ import asyncio
 import os
 import pytest
 import uuid
-import datetime
 
 from grpc import StatusCode
 
@@ -26,11 +25,9 @@ from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import (
     CompletedOperationMetric,
     CompletedAttemptMetric,
-    OperationType,
 )
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable_v2.types import ResponseParams
-from google.cloud.bigtable import __version__ as CLIENT_VERSION
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 

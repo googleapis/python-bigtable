@@ -1081,62 +1081,43 @@ class TestSystem(SystemTestRunner):
             SqlType.Bytes(), SqlType.Int64()
         )
 
+    @pytest.fixture(scope="session")
+    def metrics_client(self, client):
+        yield client._gcp_metrics_exporter.client
+
     @pytest.mark.order("last")
-    class TestExportedMetrics(SystemTestRunner):
-        """
-        Checks to make sure metrics were exported by tests
+    @pytest.mark.parametrize(
+        "metric,methods",
+        [
+            ("attempt_latencies", [m.value for m in OperationType]),
+            ("operation_latencies", [m.value for m in OperationType]),
+            ("retry_count", [m.value for m in OperationType]),
+            ("first_response_latencies", [OperationType.READ_ROWS]),
+            ("server_latencies", [m.value for m in OperationType]),
+            ("connectivity_error_count", [m.value for m in OperationType]),
+            ("application_blocking_latencies", [OperationType.READ_ROWS]),
+        ],
+    )
+    @retry.Retry(predicate=retry.if_exception_type(AssertionError))
+    def test_metric_existence(
+        self, client, table_id, metrics_client, start_timestamp, metric, methods
+    ):
+        """Checks to make sure metrics were exported by tests
 
-        Runs at the end of test suite, to allow other tests to write metrics
-        """
-
-        @pytest.fixture(scope="session")
-        def metrics_client(self, client):
-            yield client._gcp_metrics_exporter.client
-
-        @pytest.fixture(scope="session")
-        def time_interval(self, start_timestamp):
-            """Build a time interval between when system tests started, and the exported metric tests
-
-            Optionally adds LOOKBACK_MINUTES value for testing"""
-            end_time = datetime.datetime.now(datetime.timezone.utc)
-            LOOKBACK_MINUTES = os.getenv("LOOKBACK_MINUTES")
-            if LOOKBACK_MINUTES is not None:
-                print(f"running with LOOKBACK_MINUTES={LOOKBACK_MINUTES}")
-                start_timestamp = start_timestamp - datetime.timedelta(
-                    minutes=int(LOOKBACK_MINUTES)
+        Runs at the end of test suite, to let other tests write metrics"""
+        end_timestamp = datetime.datetime.now(datetime.timezone.utc)
+        for m in methods:
+            metric_filter = (
+                f'metric.type = "bigtable.googleapis.com/client/{metric}" '
+                + f'AND metric.labels.client_name = "python-bigtable/{client._client_version()}" '
+                + f'AND resource.labels.table = "{table_id}" '
+            )
+            results = list(
+                metrics_client.list_time_series(
+                    name=f"projects/{client.project}",
+                    filter=metric_filter,
+                    interval={"start_time": start_timestamp, "end_time": end_timestamp},
+                    view=0,
                 )
-            return {"start_time": start_timestamp, "end_time": end_time}
-
-        @pytest.mark.parametrize(
-            "metric,methods",
-            [
-                ("attempt_latencies", [m.value for m in OperationType]),
-                ("operation_latencies", [m.value for m in OperationType]),
-                ("retry_count", [m.value for m in OperationType]),
-                ("first_response_latencies", [OperationType.READ_ROWS]),
-                ("server_latencies", [m.value for m in OperationType]),
-                ("connectivity_error_count", [m.value for m in OperationType]),
-                ("application_blocking_latencies", [OperationType.READ_ROWS]),
-            ],
-        )
-        @retry.Retry(predicate=retry.if_exception_type(AssertionError))
-        def test_metric_existence(
-            self, client, table_id, metrics_client, time_interval, metric, methods
-        ):
-            """Checks existence of each metric in Cloud Monitoring"""
-            from google.cloud.bigtable import __version__ as CLIENT_VERSION
-
-            for m in methods:
-                metric_filter = (
-                    f'metric.type = "bigtable.googleapis.com/client/{metric}" '
-                    + f'AND metric.labels.client_name = "python-bigtable/{CLIENT_VERSION}" AND resource.labels.table = "{table_id}" '
-                )
-                results = list(
-                    metrics_client.list_time_series(
-                        name=f"projects/{client.project}",
-                        filter=metric_filter,
-                        interval=time_interval,
-                        view=0,
-                    )
-                )
-                assert len(results) > 0, f"No data found for {metric} {m}"
+            )
+            assert len(results) > 0, f"No data found for {metric} {m}"
