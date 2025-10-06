@@ -491,7 +491,7 @@ class BigtableDataClientAsync(ClientWithProject):
           owner_id: integer id of the object owning the instance. Owners will be tracked in
               _instance_owners, and instances will only be unregistered when all
               owners call _remove_instance_registration. Can be obtained by calling
-              id(owner)
+              `id` identity funcion, using `id(owner)`
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         instance_key = _WarmedInstanceKey(instance_name, app_profile_id)
@@ -529,7 +529,7 @@ class BigtableDataClientAsync(ClientWithProject):
             instance_id: id of the instance to remove
             app_profile_id: id of the app profile calling the instance.
             owner_id: integer id of the object owning the instance. Can be
-                obtained by calling id(owner)
+                obtained by the `id` identity funcion, using `id(owner)`.
         Returns:
             bool: True if instance was removed, else False
         """
