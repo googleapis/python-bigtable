@@ -92,10 +92,6 @@ async def _get_metadata(source) -> dict[str, str | bytes] | None:
 class AsyncBigtableMetricsInterceptor(
     UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor, MetricsHandler
 ):
-    """
-    An async gRPC interceptor to add client metadata and print server metadata.
-    """
-
     @CrossSync.convert
     @_with_operation_from_metadata
     async def intercept_unary_unary(
