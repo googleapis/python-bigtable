@@ -457,7 +457,7 @@ def docfx(session):
     session.run("python", "docs/scripts/patch_devsite_toc.py")
 
 
-@nox.session(python="3.12")
+@nox.session(python="3.14")
 @nox.parametrize(
     "protobuf_implementation",
     ["python", "upb", "cpp"],
