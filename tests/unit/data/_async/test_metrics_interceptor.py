@@ -81,7 +81,7 @@ class TestMetricsInterceptorAsync:
 
     @CrossSync.pytest
     async def test_unary_unary_interceptor_failure(self):
-        """test a failed RpcError with metadata"""
+        """Test a failed RpcError with metadata"""
 
         instance = self._make_one()
         exc = RpcError("test")
@@ -95,7 +95,7 @@ class TestMetricsInterceptorAsync:
 
     @CrossSync.pytest
     async def test_unary_unary_interceptor_failure_generic(self):
-        """test generic exception"""
+        """Test generic exception"""
 
         instance = self._make_one()
         exc = ValueError("test")

@@ -101,7 +101,7 @@ if CrossSync.is_async:
         AsyncSwappableChannel as SwappableChannelType,
     )
     from google.cloud.bigtable.data._async.metrics_interceptor import (
-        AsyncBigtableMetricsInterceptor as MetricInterceptorType,
+        AsyncBigtableMetricsInterceptor as MetricsInterceptorType,
     )
 else:
     from typing import Iterable  # noqa: F401
@@ -114,7 +114,7 @@ else:
         SwappableChannel as SwappableChannelType,
     )
     from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (  # noqa: F401
-        BigtableMetricsInterceptor as MetricInterceptorType,
+        BigtableMetricsInterceptor as MetricsInterceptorType,
     )
 
 if TYPE_CHECKING:
@@ -210,7 +210,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
-        self._metrics_interceptor = MetricInterceptorType()
+        self._metrics_interceptor = MetricsInterceptorType()
         # initialize client
         ClientWithProject.__init__(
             self,
@@ -281,21 +281,25 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         create_channel_fn: Callable[[], Channel]
         if self._emulator_host is not None:
-            # emulators use insecure channel
+            # Emulators use insecure channels
             create_channel_fn = partial(insecure_channel, self._emulator_host)
         elif CrossSync.is_async:
+            # For async client, use the default create_channel.
             create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
         else:
-            # attach sync interceptors in create_channel_fn
-            def create_channel_fn():
+            # For sync client, wrap create_channel with interceptors.
+            def sync_create_channel_fn():
                 return intercept_channel(
                     TransportType.create_channel(*args, **kwargs),
                     self._metrics_interceptor,
                 )
 
+            create_channel_fn = sync_create_channel_fn
+
+        # Instantiate SwappableChannelType with the determined creation function.
         new_channel = SwappableChannelType(create_channel_fn)
         if CrossSync.is_async:
-            # attach async interceptors
+            # Attach async interceptors to the channel instance itself.
             new_channel._unary_unary_interceptors.append(self._metrics_interceptor)
             new_channel._unary_stream_interceptors.append(self._metrics_interceptor)
         return new_channel

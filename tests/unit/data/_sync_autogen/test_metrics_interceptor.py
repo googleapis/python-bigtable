@@ -62,7 +62,7 @@ class TestMetricsInterceptor:
         continuation.assert_called_once_with(details, request)
 
     def test_unary_unary_interceptor_failure(self):
-        """test a failed RpcError with metadata"""
+        """Test a failed RpcError with metadata"""
         instance = self._make_one()
         exc = RpcError("test")
         continuation = CrossSync._Sync_Impl.Mock(side_effect=exc)
@@ -74,7 +74,7 @@ class TestMetricsInterceptor:
         continuation.assert_called_once_with(details, request)
 
     def test_unary_unary_interceptor_failure_generic(self):
-        """test generic exception"""
+        """Test generic exception"""
         instance = self._make_one()
         exc = ValueError("test")
         continuation = CrossSync._Sync_Impl.Mock(side_effect=exc)

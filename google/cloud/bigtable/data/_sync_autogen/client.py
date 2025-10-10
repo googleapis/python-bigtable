@@ -85,7 +85,7 @@ from google.cloud.bigtable.data._sync_autogen._swappable_channel import (
     SwappableChannel as SwappableChannelType,
 )
 from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
-    BigtableMetricsInterceptor as MetricInterceptorType,
+    BigtableMetricsInterceptor as MetricsInterceptorType,
 )
 
 if TYPE_CHECKING:
@@ -149,7 +149,7 @@ class BigtableDataClient(ClientWithProject):
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
-        self._metrics_interceptor = MetricInterceptorType()
+        self._metrics_interceptor = MetricsInterceptorType()
         ClientWithProject.__init__(
             self,
             credentials=credentials,
@@ -211,12 +211,13 @@ class BigtableDataClient(ClientWithProject):
             create_channel_fn = partial(insecure_channel, self._emulator_host)
         else:
 
-            def create_channel_fn():
+            def sync_create_channel_fn():
                 return intercept_channel(
                     TransportType.create_channel(*args, **kwargs),
                     self._metrics_interceptor,
                 )
 
+            create_channel_fn = sync_create_channel_fn
         new_channel = SwappableChannelType(create_channel_fn)
         return new_channel
 

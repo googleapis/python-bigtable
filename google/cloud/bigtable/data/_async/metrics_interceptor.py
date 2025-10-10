@@ -10,7 +10,7 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License
+# limitations under the License.
 from __future__ import annotations
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -68,7 +68,7 @@ class AsyncBigtableMetricsInterceptor(
     @CrossSync.convert
     async def _streaming_generator_wrapper(call):
         """
-        Wrapped generator to be returned by intercept_unary_stream
+        Wrapped generator to be returned by intercept_unary_stream.
         """
         try:
             async for response in call:
