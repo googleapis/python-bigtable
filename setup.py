@@ -38,6 +38,7 @@ version = version["__version__"]
 release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
     "google-api-core[grpc] >= 2.17.0, <3.0.0",
+    "grpcio >= 1.75.1, < 2.0.0; python_version >= '3.14'",
     "google-cloud-core >= 1.4.4, <3.0.0",
     "google-auth >= 2.23.0, <3.0.0,!=2.24.0,!=2.25.0",
     "grpc-google-iam-v1 >= 0.12.4, <1.0.0",
