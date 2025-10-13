@@ -209,6 +209,11 @@ def unit(session, protobuf_implementation):
     if protobuf_implementation == "cpp" and py_version >= (3, 11):
         session.skip("cpp implementation is not supported in python 3.11+")
 
+    # Skip python 3.7 and 3.8 tests if not available in kokoro environment
+    # TODO: remove when 3.7 and 3.8 are dropped
+    if py_version < (3, 9) and os.getenv("KOKORO_BUILD_ID"):
+        session.skip("skipping deprecated python versions")
+
     constraints_path = str(
         CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
     )
