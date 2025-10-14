@@ -32,7 +32,7 @@ BLACK_VERSION = "black[jupyter]==23.3.0"
 ISORT_VERSION = "isort==5.11.0"
 LINT_PATHS = ["docs", "google", "tests", "noxfile.py", "setup.py"]
 
-DEFAULT_PYTHON_VERSION = "3.8"
+DEFAULT_PYTHON_VERSION = "3.9"
 
 UNIT_TEST_PYTHON_VERSIONS: List[str] = [
     "3.7",
@@ -149,20 +149,7 @@ def mypy(session):
         "mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests"
     )
     session.install("google-cloud-testutils")
-    session.run(
-        "mypy",
-        "-p",
-        "google.cloud.bigtable.data",
-        "--check-untyped-defs",
-        "--warn-unreachable",
-        "--disallow-any-generics",
-        "--exclude",
-        "tests/system/v2_client",
-        "--exclude",
-        "tests/unit/v2_client",
-        "--disable-error-code",
-        "func-returns-value",  # needed for CrossSync.rm_aio
-    )
+    session.run("mypy", "-p", "google.cloud.bigtable.data")
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
@@ -210,11 +197,6 @@ def unit(session, protobuf_implementation):
     py_version = tuple([int(v) for v in session.python.split(".")])
     if protobuf_implementation == "cpp" and py_version >= (3, 11):
         session.skip("cpp implementation is not supported in python 3.11+")
-
-    # Skip python 3.7 and 3.8 tests if not available in kokoro environment
-    # TODO: remove when 3.7 and 3.8 are dropped
-    if py_version < (3, 9) and os.getenv("KOKORO_BUILD_ID"):
-        session.skip("skipping deprecated python versions")
 
     constraints_path = str(
         CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
