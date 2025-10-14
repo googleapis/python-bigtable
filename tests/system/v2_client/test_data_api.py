@@ -42,22 +42,19 @@ CELL_VAL_TRUE = b"true"
 CELL_VAL_FALSE = b"false"
 INT_COL_NAME = 67890
 INT_CELL_VAL = 12345
-OVERFLOW_INT_CELL_VAL = 10 ** 100
-OVERFLOW_INT_CELL_VAL2 = -(10 ** 100)
+OVERFLOW_INT_CELL_VAL = 10**100
+OVERFLOW_INT_CELL_VAL2 = -(10**100)
 FLOAT_CELL_VAL = 1.4
 FLOAT_CELL_VAL2 = -1.4
 
-INITIAL_ROW_SPLITS = [
-    b"row_split_1",
-    b"row_split_2",
-    b"row_split_3"
-]
+INITIAL_ROW_SPLITS = [b"row_split_1", b"row_split_2", b"row_split_3"]
 JOY_EMOJI = "\N{FACE WITH TEARS OF JOY}"
 
 PASS_ALL_FILTER = row_filters.PassAllFilter(True)
 BLOCK_ALL_FILTER = row_filters.BlockAllFilter(True)
 
 READ_ROWS_METHOD_NAME = "/google.bigtable.v2.Bigtable/ReadRows"
+
 
 class SelectiveMethodsErrorInjector(UnaryStreamClientInterceptor):
     def __init__(self):
@@ -71,7 +68,9 @@ class SelectiveMethodsErrorInjector(UnaryStreamClientInterceptor):
         self.errors_to_inject = []
 
     @staticmethod
-    def make_exception(status_code, message=None, fail_mid_stream=False, successes_before_fail=0):
+    def make_exception(
+        status_code, message=None, fail_mid_stream=False, successes_before_fail=0
+    ):
         # successes_before_fail allows us to test injecting failures mid-iterator iteration.
         exc = RpcError(status_code)
         exc.code = lambda: status_code
@@ -86,25 +85,29 @@ class SelectiveMethodsErrorInjector(UnaryStreamClientInterceptor):
 
         def _result():
             raise exc
-        
+
         exc.result = _result
         return exc
 
     def intercept_unary_stream(self, continuation, client_call_details, request):
-        if client_call_details.method == READ_ROWS_METHOD_NAME and self.errors_to_inject:
+        if (
+            client_call_details.method == READ_ROWS_METHOD_NAME
+            and self.errors_to_inject
+        ):
             error = self.errors_to_inject.pop(0)
             if not error.fail_mid_stream:
                 raise error
-            
+
             response = continuation(client_call_details, request)
             if error.fail_mid_stream:
+
                 class CallWrapper:
                     def __init__(self, call, exc_to_raise):
                         self._call = call
                         self._exc = exc_to_raise
                         self._successes_remaining = exc_to_raise.successes_before_fail
                         self._raised = False
-                    
+
                     def __iter__(self):
                         return self
 
@@ -113,15 +116,15 @@ class SelectiveMethodsErrorInjector(UnaryStreamClientInterceptor):
                             self._raised = True
                             if self._exc:
                                 raise self._exc
-                        
+
                         else:
                             if self._successes_remaining > 0:
                                 self._successes_remaining -= 1
                             return self._call.__next__()
-                    
+
                     def __getattr__(self, name):
                         return getattr(self._call, name)
-                
+
                 return CallWrapper(response, error)
         else:
             return continuation(client_call_details, request)
@@ -161,7 +164,9 @@ def data_table_read_rows_retry_tests(data_table, rows_to_delete):
     row_keys = [f"row_key_{i}".encode() for i in range(0, 32)]
     columns = [f"col_{i}".encode() for i in range(0, 32)]
 
-    _populate_table(data_table, rows_to_delete, row_keys, columns, CELL_VAL_READ_ROWS_RETRY)
+    _populate_table(
+        data_table, rows_to_delete, row_keys, columns, CELL_VAL_READ_ROWS_RETRY
+    )
 
     yield data_table
 
@@ -293,7 +298,9 @@ def test_table_mutate_rows_retries_timeout(data_table, rows_to_delete):
 
     final_success_response = [MutateRowsResponse(entries=[MutateRowsResponse.Entry()])]
 
-    with mock.patch.object(data_table._instance._client.table_data_client, "mutate_rows") as mutate_mock:
+    with mock.patch.object(
+        data_table._instance._client.table_data_client, "mutate_rows"
+    ) as mutate_mock:
         mutate_mock.side_effect = [
             initial_error_response,
             followup_error_response,
@@ -317,8 +324,12 @@ def test_table_mutate_rows_retries_timeout(data_table, rows_to_delete):
         assert statuses[1].code == Code.OK
 
     # Simulate only server failures for row 2.
-    with mock.patch.object(data_table._instance._client.table_data_client, "mutate_rows") as mutate_mock:
-        mutate_mock.side_effect = [initial_error_response] + [followup_error_response] * 1000000
+    with mock.patch.object(
+        data_table._instance._client.table_data_client, "mutate_rows"
+    ) as mutate_mock:
+        mutate_mock.side_effect = [initial_error_response] + [
+            followup_error_response
+        ] * 1000000
 
         row = data_table.direct_row(ROW_KEY)
         rows_to_delete.append(row)
@@ -343,14 +354,18 @@ def test_table_mutate_rows_retries_timeout(data_table, rows_to_delete):
     row_2 = data_table.direct_row(ROW_KEY_ALT)
     rows_to_delete.append(row_2)
 
-    retry = DEFAULT_RETRY.with_predicate(retries.if_exception_type(_BigtableRetryableError, InvalidArgument))
+    retry = DEFAULT_RETRY.with_predicate(
+        retries.if_exception_type(_BigtableRetryableError, InvalidArgument)
+    )
     _add_test_error_handler(retry)
     statuses = data_table.mutate_rows([row, row_2], retry=retry)
     assert statuses[0] is None
     assert statuses[1] is None
 
 
-def _populate_table(data_table, rows_to_delete, row_keys, columns=[COL_NAME1], cell_value=CELL_VAL1):
+def _populate_table(
+    data_table, rows_to_delete, row_keys, columns=[COL_NAME1], cell_value=CELL_VAL1
+):
     for row_key in row_keys:
         row = data_table.direct_row(row_key)
         for column in columns:
@@ -424,7 +439,12 @@ def test_table_mutate_rows_integers(data_table, rows_to_delete):
 
     # Check the contents
     row1_data = data_table.read_row(ROW_KEY)
-    assert int.from_bytes(row1_data.cells[COLUMN_FAMILY_ID1][COL_NAME1][0].value, byteorder="big") == INT_CELL_VAL
+    assert (
+        int.from_bytes(
+            row1_data.cells[COLUMN_FAMILY_ID1][COL_NAME1][0].value, byteorder="big"
+        )
+        == INT_CELL_VAL
+    )
 
 
 def test_table_mutate_rows_input_errors(data_table, rows_to_delete):
@@ -445,7 +465,7 @@ def test_table_mutate_rows_input_errors(data_table, rows_to_delete):
     # client library.
     for _ in range(0, _MAX_BULK_MUTATIONS + 1):
         row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL1)
-    
+
     with pytest.raises(TooManyMutationsError):
         data_table.mutate_rows([row])
 
@@ -674,11 +694,17 @@ def _assert_data_table_read_rows_retry_correct(rows_data):
     for row_num in range(0, 32):
         row = rows_data.rows[f"row_key_{row_num}".encode()]
         for col_num in range(0, 32):
-            assert row.cells[COLUMN_FAMILY_ID1][f"col_{col_num}".encode()][0].value == CELL_VAL_READ_ROWS_RETRY
+            assert (
+                row.cells[COLUMN_FAMILY_ID1][f"col_{col_num}".encode()][0].value
+                == CELL_VAL_READ_ROWS_RETRY
+            )
 
 
-def test_table_read_rows_retry_unretriable_error_establishing_stream(data_table_read_rows_with_error_injector):
+def test_table_read_rows_retry_unretriable_error_establishing_stream(
+    data_table_read_rows_with_error_injector,
+):
     from google.api_core import exceptions
+
     error_injector = data_table_read_rows_with_error_injector.error_injector
     error_injector.errors_to_inject = [
         error_injector.make_exception(StatusCode.ABORTED, fail_mid_stream=False)
@@ -688,10 +714,14 @@ def test_table_read_rows_retry_unretriable_error_establishing_stream(data_table_
         data_table_read_rows_with_error_injector.read_rows()
 
 
-def test_table_read_rows_retry_retriable_error_establishing_stream(data_table_read_rows_with_error_injector):
+def test_table_read_rows_retry_retriable_error_establishing_stream(
+    data_table_read_rows_with_error_injector,
+):
     error_injector = data_table_read_rows_with_error_injector.error_injector
     error_injector.errors_to_inject = [
-        error_injector.make_exception(StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False)
+        error_injector.make_exception(
+            StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False
+        )
     ] * 3
 
     rows_data = data_table_read_rows_with_error_injector.read_rows()
@@ -700,11 +730,16 @@ def test_table_read_rows_retry_retriable_error_establishing_stream(data_table_re
     _assert_data_table_read_rows_retry_correct(rows_data)
 
 
-def test_table_read_rows_retry_unretriable_error_mid_stream(data_table_read_rows_with_error_injector):
+def test_table_read_rows_retry_unretriable_error_mid_stream(
+    data_table_read_rows_with_error_injector,
+):
     from google.api_core import exceptions
+
     error_injector = data_table_read_rows_with_error_injector.error_injector
     error_injector.errors_to_inject = [
-        error_injector.make_exception(StatusCode.DATA_LOSS, fail_mid_stream=True, successes_before_fail=5)
+        error_injector.make_exception(
+            StatusCode.DATA_LOSS, fail_mid_stream=True, successes_before_fail=5
+        )
     ]
 
     rows_data = data_table_read_rows_with_error_injector.read_rows()
@@ -712,12 +747,20 @@ def test_table_read_rows_retry_unretriable_error_mid_stream(data_table_read_rows
         rows_data.consume_all()
 
 
-def test_table_read_rows_retry_retriable_errors_mid_stream(data_table_read_rows_with_error_injector):
+def test_table_read_rows_retry_retriable_errors_mid_stream(
+    data_table_read_rows_with_error_injector,
+):
     error_injector = data_table_read_rows_with_error_injector.error_injector
     error_injector.errors_to_inject = [
-        error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=4),
-        error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=0),
-        error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=0),
+        error_injector.make_exception(
+            StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=4
+        ),
+        error_injector.make_exception(
+            StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=0
+        ),
+        error_injector.make_exception(
+            StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=0
+        ),
     ]
 
     rows_data = data_table_read_rows_with_error_injector.read_rows()
@@ -726,13 +769,31 @@ def test_table_read_rows_retry_retriable_errors_mid_stream(data_table_read_rows_
     _assert_data_table_read_rows_retry_correct(rows_data)
 
 
-def test_table_read_rows_retry_retriable_internal_errors_mid_stream(data_table_read_rows_with_error_injector):
+def test_table_read_rows_retry_retriable_internal_errors_mid_stream(
+    data_table_read_rows_with_error_injector,
+):
     from google.cloud.bigtable.row_data import RETRYABLE_INTERNAL_ERROR_MESSAGES
+
     error_injector = data_table_read_rows_with_error_injector.error_injector
     error_injector.errors_to_inject = [
-        error_injector.make_exception(StatusCode.INTERNAL, message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0], fail_mid_stream=True, successes_before_fail=2),
-        error_injector.make_exception(StatusCode.INTERNAL, message=RETRYABLE_INTERNAL_ERROR_MESSAGES[1], fail_mid_stream=True, successes_before_fail=1),
-        error_injector.make_exception(StatusCode.INTERNAL, message=RETRYABLE_INTERNAL_ERROR_MESSAGES[2], fail_mid_stream=True, successes_before_fail=0),
+        error_injector.make_exception(
+            StatusCode.INTERNAL,
+            message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0],
+            fail_mid_stream=True,
+            successes_before_fail=2,
+        ),
+        error_injector.make_exception(
+            StatusCode.INTERNAL,
+            message=RETRYABLE_INTERNAL_ERROR_MESSAGES[1],
+            fail_mid_stream=True,
+            successes_before_fail=1,
+        ),
+        error_injector.make_exception(
+            StatusCode.INTERNAL,
+            message=RETRYABLE_INTERNAL_ERROR_MESSAGES[2],
+            fail_mid_stream=True,
+            successes_before_fail=0,
+        ),
     ]
 
     rows_data = data_table_read_rows_with_error_injector.read_rows()
@@ -741,11 +802,19 @@ def test_table_read_rows_retry_retriable_internal_errors_mid_stream(data_table_r
     _assert_data_table_read_rows_retry_correct(rows_data)
 
 
-def test_table_read_rows_retry_unretriable_internal_errors_mid_stream(data_table_read_rows_with_error_injector):
+def test_table_read_rows_retry_unretriable_internal_errors_mid_stream(
+    data_table_read_rows_with_error_injector,
+):
     from google.api_core import exceptions
+
     error_injector = data_table_read_rows_with_error_injector.error_injector
     error_injector.errors_to_inject = [
-        error_injector.make_exception(StatusCode.INTERNAL, message="Don't retry this at home!", fail_mid_stream=True, successes_before_fail=2),
+        error_injector.make_exception(
+            StatusCode.INTERNAL,
+            message="Don't retry this at home!",
+            fail_mid_stream=True,
+            successes_before_fail=2,
+        ),
     ]
 
     rows_data = data_table_read_rows_with_error_injector.read_rows()
@@ -753,13 +822,17 @@ def test_table_read_rows_retry_unretriable_internal_errors_mid_stream(data_table
         rows_data.consume_all()
 
 
-def test_table_read_rows_retry_retriable_error_mid_stream_unretriable_error_reestablishing_stream(data_table_read_rows_with_error_injector):
+def test_table_read_rows_retry_retriable_error_mid_stream_unretriable_error_reestablishing_stream(
+    data_table_read_rows_with_error_injector,
+):
     # Simulate a connection failure mid-stream into an unretriable error when trying to reconnect.
     from google.api_core import exceptions
 
     error_injector = data_table_read_rows_with_error_injector.error_injector
     error_injector.errors_to_inject = [
-        error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=5),
+        error_injector.make_exception(
+            StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=5
+        ),
         error_injector.make_exception(StatusCode.ABORTED, fail_mid_stream=False),
     ]
 
@@ -769,11 +842,15 @@ def test_table_read_rows_retry_retriable_error_mid_stream_unretriable_error_rees
         rows_data.consume_all()
 
 
-def test_table_read_rows_retry_retriable_error_mid_stream_retriable_error_reestablishing_stream(data_table_read_rows_with_error_injector):
+def test_table_read_rows_retry_retriable_error_mid_stream_retriable_error_reestablishing_stream(
+    data_table_read_rows_with_error_injector,
+):
     # Simulate a connection failure mid-stream into retriable errors when trying to reconnect.
     error_injector = data_table_read_rows_with_error_injector.error_injector
     error_injector.errors_to_inject = [
-        error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=5),
+        error_injector.make_exception(
+            StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=5
+        ),
         error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=False),
         error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=False),
         error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=False),
@@ -785,26 +862,45 @@ def test_table_read_rows_retry_retriable_error_mid_stream_retriable_error_reesta
     _assert_data_table_read_rows_retry_correct(rows_data)
 
 
-def test_table_read_rows_retry_timeout_mid_stream(data_table_read_rows_with_error_injector):
+def test_table_read_rows_retry_timeout_mid_stream(
+    data_table_read_rows_with_error_injector,
+):
     # Simulate a read timeout mid stream.
 
     from google.api_core import exceptions
-    from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS, RETRYABLE_INTERNAL_ERROR_MESSAGES
+    from google.cloud.bigtable.row_data import (
+        DEFAULT_RETRY_READ_ROWS,
+        RETRYABLE_INTERNAL_ERROR_MESSAGES,
+    )
 
     error_injector = data_table_read_rows_with_error_injector.error_injector
     error_injector.errors_to_inject = [
-        error_injector.make_exception(StatusCode.INTERNAL, message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0], fail_mid_stream=True, successes_before_fail=5),
+        error_injector.make_exception(
+            StatusCode.INTERNAL,
+            message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0],
+            fail_mid_stream=True,
+            successes_before_fail=5,
+        ),
     ] + [
-        error_injector.make_exception(StatusCode.INTERNAL, message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0], fail_mid_stream=True, successes_before_fail=0),
+        error_injector.make_exception(
+            StatusCode.INTERNAL,
+            message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0],
+            fail_mid_stream=True,
+            successes_before_fail=0,
+        ),
     ] * 20
 
     # Shorten the deadline so the timeout test is shorter.
-    rows_data = data_table_read_rows_with_error_injector.read_rows(retry=DEFAULT_RETRY_READ_ROWS.with_deadline(10.0))
+    rows_data = data_table_read_rows_with_error_injector.read_rows(
+        retry=DEFAULT_RETRY_READ_ROWS.with_deadline(10.0)
+    )
     with pytest.raises(exceptions.RetryError):
         rows_data.consume_all()
 
 
-def test_table_read_rows_retry_timeout_establishing_stream(data_table_read_rows_with_error_injector):
+def test_table_read_rows_retry_timeout_establishing_stream(
+    data_table_read_rows_with_error_injector,
+):
     # Simulate a read timeout when creating the stream.
 
     from google.api_core import exceptions
@@ -812,14 +908,20 @@ def test_table_read_rows_retry_timeout_establishing_stream(data_table_read_rows_
 
     error_injector = data_table_read_rows_with_error_injector.error_injector
     error_injector.errors_to_inject = [
-        error_injector.make_exception(StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False),
+        error_injector.make_exception(
+            StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False
+        ),
     ] + [
-        error_injector.make_exception(StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False),
+        error_injector.make_exception(
+            StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False
+        ),
     ] * 20
 
     # Shorten the deadline so the timeout test is shorter.
     with pytest.raises(exceptions.RetryError):
-        data_table_read_rows_with_error_injector.read_rows(retry=DEFAULT_RETRY_READ_ROWS.with_deadline(10.0))
+        data_table_read_rows_with_error_injector.read_rows(
+            retry=DEFAULT_RETRY_READ_ROWS.with_deadline(10.0)
+        )
 
 
 def test_table_check_and_mutate_rows(data_table, rows_to_delete):
@@ -834,7 +936,12 @@ def test_table_check_and_mutate_rows(data_table, rows_to_delete):
         b"col_pr_1",
         b"col_pr_2",
     ]
-    _populate_table(data_table, rows_to_delete, [true_mutation_row_key, false_mutation_row_key], columns=columns)
+    _populate_table(
+        data_table,
+        rows_to_delete,
+        [true_mutation_row_key, false_mutation_row_key],
+        columns=columns,
+    )
     true_row = data_table.conditional_row(true_mutation_row_key, PASS_ALL_FILTER)
     for column in columns:
         true_row.set_cell(COLUMN_FAMILY_ID1, column, CELL_VAL_TRUE, state=True)
@@ -852,12 +959,12 @@ def test_table_check_and_mutate_rows(data_table, rows_to_delete):
     row1_data = data_table.read_row(true_mutation_row_key)
     for column in columns:
         assert row1_data.cells[COLUMN_FAMILY_ID1][column][0].value == CELL_VAL_TRUE
-    
+
     row2_data = data_table.read_row(false_mutation_row_key)
     assert row2_data is None  # all cells should be deleted
 
 
-def test_table_append_row(data_table, rows_to_delete):    
+def test_table_append_row(data_table, rows_to_delete):
     row = data_table.append_row(ROW_KEY)
     rows_to_delete.append(data_table.direct_row(ROW_KEY))
 
@@ -873,11 +980,13 @@ def test_table_append_row(data_table, rows_to_delete):
 
     for _ in range(0, num_increments):
         row.increment_cell_value(COLUMN_FAMILY_ID1, int_col_name, 1)
-    
+
     row.commit()
-    
+
     row_data = data_table.read_row(ROW_KEY)
-    assert row_data.cells[COLUMN_FAMILY_ID1][int_col_name][0].value == num_increments.to_bytes(8, byteorder="big", signed=True)
+    assert row_data.cells[COLUMN_FAMILY_ID1][int_col_name][
+        0
+    ].value == num_increments.to_bytes(8, byteorder="big", signed=True)
     assert row_data.cells[COLUMN_FAMILY_ID1][str_col_name][0].value == b"foobarbaz"
 
 
@@ -909,42 +1018,42 @@ def test_table_direct_row_input_errors(data_table, rows_to_delete):
     # or bytes already.
     with pytest.raises(TypeError):
         row.set_cell(COLUMN_FAMILY_ID1, INT_COL_NAME, CELL_VAL1)
-    
+
     with pytest.raises(TypeError):
         row.delete_cell(COLUMN_FAMILY_ID1, INT_COL_NAME)
-    
+
     # Unicode for column name and value does not get converted to bytes because
     # internally we use to_bytes in ascii mode.
     with pytest.raises(UnicodeEncodeError):
         row.set_cell(COLUMN_FAMILY_ID1, JOY_EMOJI, CELL_VAL1)
-    
+
     with pytest.raises(UnicodeEncodeError):
         row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, JOY_EMOJI)
-    
+
     with pytest.raises(UnicodeEncodeError):
         row.delete_cell(COLUMN_FAMILY_ID1, JOY_EMOJI)
 
     # Various non int64s, we use struct to pack a Python int to bytes.
     with pytest.raises(struct.error):
         row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, OVERFLOW_INT_CELL_VAL)
-    
+
     with pytest.raises(struct.error):
         row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, OVERFLOW_INT_CELL_VAL2)
-    
+
     # Since floats aren't ints, they aren't converted to bytes via struct.pack,
     # but via _to_bytes, so you get a TypeError instead.
     with pytest.raises(TypeError):
         row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, FLOAT_CELL_VAL)
-    
+
     # Can't have more than MAX_MUTATIONS mutations, but only enforced after
     # a row.commit
     row.clear()
     for _ in range(0, MAX_MUTATIONS + 1):
         row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL1)
-    
+
     with pytest.raises(ValueError):
         row.commit()
-    
+
     # Not having any mutations gives a server error (InvalidArgument), not
     # enforced on the client side.
     row.clear()
@@ -969,18 +1078,18 @@ def test_table_conditional_row_input_errors(data_table, rows_to_delete):
     # or bytes already.
     with pytest.raises(TypeError):
         true_row.set_cell(COLUMN_FAMILY_ID1, INT_COL_NAME, CELL_VAL1)
-    
+
     with pytest.raises(TypeError):
         true_row.delete_cell(COLUMN_FAMILY_ID1, INT_COL_NAME)
-    
+
     # Unicode for column name and value does not get converted to bytes because
     # internally we use to_bytes in ascii mode.
     with pytest.raises(UnicodeEncodeError):
         true_row.set_cell(COLUMN_FAMILY_ID1, JOY_EMOJI, CELL_VAL1)
-    
+
     with pytest.raises(UnicodeEncodeError):
         true_row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, JOY_EMOJI)
-    
+
     with pytest.raises(UnicodeEncodeError):
         true_row.delete_cell(COLUMN_FAMILY_ID1, JOY_EMOJI)
 
@@ -1004,7 +1113,7 @@ def test_table_conditional_row_input_errors(data_table, rows_to_delete):
 
     with pytest.raises(ValueError):
         true_row.commit()
-    
+
     true_row.clear()
 
     # State could be anything, but it is evaluated to a boolean later.
@@ -1013,7 +1122,7 @@ def test_table_conditional_row_input_errors(data_table, rows_to_delete):
     true_row.commit()
 
     false_row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL1, state="")
-    false_row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL2, state="true_state")    
+    false_row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL2, state="true_state")
     false_row.commit()
 
     true_row_data = data_table.read_row(true_row.row_key)
@@ -1022,7 +1131,7 @@ def test_table_conditional_row_input_errors(data_table, rows_to_delete):
     false_row_data = data_table.read_row(false_row.row_key)
     assert false_row_data.cells[COLUMN_FAMILY_ID1][COL_NAME1][0].value == CELL_VAL1
 
-    # Not having any mutations is enforced client-side for conditional row; nothing happens. 
+    # Not having any mutations is enforced client-side for conditional row; nothing happens.
     true_row.clear()
     true_row.commit()
 
@@ -1040,7 +1149,7 @@ def test_table_append_row_input_errors(data_table, rows_to_delete):
     # Column names should be convertible to bytes (str or bytes)
     with pytest.raises(TypeError):
         row.append_cell_value(COLUMN_FAMILY_ID1, INT_COL_NAME, CELL_VAL1)
-    
+
     with pytest.raises(TypeError):
         row.increment_cell_value(COLUMN_FAMILY_ID1, INT_COL_NAME, 1)
 
@@ -1050,10 +1159,10 @@ def test_table_append_row_input_errors(data_table, rows_to_delete):
 
     with pytest.raises(UnicodeEncodeError):
         row.append_cell_value(COLUMN_FAMILY_ID1, COL_NAME1, JOY_EMOJI)
-    
+
     with pytest.raises(UnicodeEncodeError):
         row.increment_cell_value(COLUMN_FAMILY_ID1, JOY_EMOJI, 1)
-    
+
     # Non-integer cell values for increment_cell_value
     with pytest.raises(ValueError):
         row.increment_cell_value(COLUMN_FAMILY_ID1, COL_NAME1, OVERFLOW_INT_CELL_VAL)
@@ -1065,18 +1174,22 @@ def test_table_append_row_input_errors(data_table, rows_to_delete):
     row.commit()
 
     row_data = data_table.read_row(ROW_KEY)
-    assert row_data.cells[COLUMN_FAMILY_ID1][COL_NAME1][0].value == int(FLOAT_CELL_VAL).to_bytes(8, byteorder="big", signed=True)
-    assert row_data.cells[COLUMN_FAMILY_ID1][COL_NAME2][0].value == int(FLOAT_CELL_VAL2).to_bytes(8, byteorder="big", signed=True)
+    assert row_data.cells[COLUMN_FAMILY_ID1][COL_NAME1][0].value == int(
+        FLOAT_CELL_VAL
+    ).to_bytes(8, byteorder="big", signed=True)
+    assert row_data.cells[COLUMN_FAMILY_ID1][COL_NAME2][0].value == int(
+        FLOAT_CELL_VAL2
+    ).to_bytes(8, byteorder="big", signed=True)
 
     # Can't have more than MAX_MUTATIONS mutations, but only enforced after
     # a row.commit
     row.clear()
     for _ in range(0, MAX_MUTATIONS + 1):
         row.append_cell_value(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL1)
-    
+
     with pytest.raises(ValueError):
         row.commit()
-    
+
     # Not having any mutations gives a response of empty dict.
     row.clear()
     response = row.commit()
