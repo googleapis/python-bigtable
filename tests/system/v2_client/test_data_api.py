@@ -947,14 +947,14 @@ def test_table_check_and_mutate_rows(data_table, rows_to_delete):
         true_row.set_cell(COLUMN_FAMILY_ID1, column, CELL_VAL_TRUE, state=True)
         true_row.set_cell(COLUMN_FAMILY_ID1, column, CELL_VAL_FALSE, state=False)
     matched = true_row.commit()
-    assert matched == True
+    assert matched
 
     false_row = data_table.conditional_row(false_mutation_row_key, BLOCK_ALL_FILTER)
     for column in columns:
         false_row.set_cell(COLUMN_FAMILY_ID1, column, CELL_VAL_TRUE, state=True)
         false_row.delete_cell(COLUMN_FAMILY_ID1, column, state=False)
     matched = false_row.commit()
-    assert matched == False
+    assert not matched
 
     row1_data = data_table.read_row(true_mutation_row_key)
     for column in columns:
@@ -1140,7 +1140,6 @@ def test_table_conditional_row_input_errors(data_table, rows_to_delete):
 
 
 def test_table_append_row_input_errors(data_table, rows_to_delete):
-    from google.api_core.exceptions import InvalidArgument
     from google.cloud.bigtable.row import MAX_MUTATIONS
 
     row = data_table.append_row(ROW_KEY)
