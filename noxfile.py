@@ -28,7 +28,7 @@ import warnings
 import nox
 
 FLAKE8_VERSION = "flake8==6.1.0"
-BLACK_VERSION = "black[jupyter]==23.3.0"
+BLACK_VERSION = "black[jupyter]==23.7.0"
 ISORT_VERSION = "isort==5.11.0"
 LINT_PATHS = ["docs", "google", "tests", "noxfile.py", "setup.py"]
 
@@ -160,7 +160,7 @@ def mypy(session):
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint_setup_py(session):
     """Verify that setup.py is valid (including RST check)."""
-    session.install("docutils", "pygments")
+    session.install("setuptools", "docutils", "pygments")
     session.run("python", "setup.py", "check", "--restructuredtext", "--strict")
 
 
