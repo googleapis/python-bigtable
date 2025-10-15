@@ -990,7 +990,9 @@ def test_table_append_row(data_table, rows_to_delete):
     assert row_data.cells[COLUMN_FAMILY_ID1][str_col_name][0].value == b"foobarbaz"
 
 
-def test_table_sample_row_keys(data_table):
+def test_table_sample_row_keys(data_table, skip_on_emulator):
+    # Skip on emulator because it gives a random response.
+
     # sample_row_keys returns a generator
     response = list(data_table.sample_row_keys())
     previous_offset_bytes = 0
