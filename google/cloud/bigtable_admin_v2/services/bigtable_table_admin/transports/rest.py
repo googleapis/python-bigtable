@@ -117,6 +117,14 @@ class BigtableTableAdminRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
+            def pre_create_schema_bundle(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_create_schema_bundle(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
             def pre_create_table(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
@@ -138,6 +146,10 @@ class BigtableTableAdminRestInterceptor:
                 return request, metadata
 
             def pre_delete_backup(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def pre_delete_schema_bundle(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
 
@@ -185,6 +197,14 @@ class BigtableTableAdminRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
+            def pre_get_schema_bundle(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_get_schema_bundle(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
             def pre_get_snapshot(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
@@ -214,6 +234,14 @@ class BigtableTableAdminRestInterceptor:
                 return request, metadata
 
             def post_list_backups(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_list_schema_bundles(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_list_schema_bundles(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -297,6 +325,14 @@ class BigtableTableAdminRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
+            def pre_update_schema_bundle(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_update_schema_bundle(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
             def pre_update_table(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
@@ -306,7 +342,7 @@ class BigtableTableAdminRestInterceptor:
                 return response
 
         transport = BigtableTableAdminRestTransport(interceptor=MyCustomBigtableTableAdminInterceptor())
-        client = BigtableTableAdminClient(transport=transport)
+        client = BaseBigtableTableAdminClient(transport=transport)
 
 
     """
@@ -509,6 +545,55 @@ class BigtableTableAdminRestInterceptor:
         """
         return response, metadata
 
+    def pre_create_schema_bundle(
+        self,
+        request: bigtable_table_admin.CreateSchemaBundleRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.CreateSchemaBundleRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for create_schema_bundle
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableTableAdmin server.
+        """
+        return request, metadata
+
+    def post_create_schema_bundle(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
+        """Post-rpc interceptor for create_schema_bundle
+
+        DEPRECATED. Please use the `post_create_schema_bundle_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableTableAdmin server but before
+        it is returned to user code. This `post_create_schema_bundle` interceptor runs
+        before the `post_create_schema_bundle_with_metadata` interceptor.
+        """
+        return response
+
+    def post_create_schema_bundle_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for create_schema_bundle
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_create_schema_bundle_with_metadata`
+        interceptor in new development instead of the `post_create_schema_bundle` interceptor.
+        When both interceptors are used, this `post_create_schema_bundle_with_metadata` interceptor runs after the
+        `post_create_schema_bundle` interceptor. The (possibly modified) response returned by
+        `post_create_schema_bundle` will be passed to
+        `post_create_schema_bundle_with_metadata`.
+        """
+        return response, metadata
+
     def pre_create_table(
         self,
         request: bigtable_table_admin.CreateTableRequest,
@@ -628,6 +713,21 @@ class BigtableTableAdminRestInterceptor:
         Sequence[Tuple[str, Union[str, bytes]]],
     ]:
         """Pre-rpc interceptor for delete_backup
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableTableAdmin server.
+        """
+        return request, metadata
+
+    def pre_delete_schema_bundle(
+        self,
+        request: bigtable_table_admin.DeleteSchemaBundleRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.DeleteSchemaBundleRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for delete_schema_bundle
 
         Override in a subclass to manipulate the request or metadata
         before they are sent to the BigtableTableAdmin server.
@@ -869,6 +969,55 @@ class BigtableTableAdminRestInterceptor:
         """
         return response, metadata
 
+    def pre_get_schema_bundle(
+        self,
+        request: bigtable_table_admin.GetSchemaBundleRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.GetSchemaBundleRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for get_schema_bundle
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableTableAdmin server.
+        """
+        return request, metadata
+
+    def post_get_schema_bundle(
+        self, response: table.SchemaBundle
+    ) -> table.SchemaBundle:
+        """Post-rpc interceptor for get_schema_bundle
+
+        DEPRECATED. Please use the `post_get_schema_bundle_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableTableAdmin server but before
+        it is returned to user code. This `post_get_schema_bundle` interceptor runs
+        before the `post_get_schema_bundle_with_metadata` interceptor.
+        """
+        return response
+
+    def post_get_schema_bundle_with_metadata(
+        self,
+        response: table.SchemaBundle,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[table.SchemaBundle, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for get_schema_bundle
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_get_schema_bundle_with_metadata`
+        interceptor in new development instead of the `post_get_schema_bundle` interceptor.
+        When both interceptors are used, this `post_get_schema_bundle_with_metadata` interceptor runs after the
+        `post_get_schema_bundle` interceptor. The (possibly modified) response returned by
+        `post_get_schema_bundle` will be passed to
+        `post_get_schema_bundle_with_metadata`.
+        """
+        return response, metadata
+
     def pre_get_snapshot(
         self,
         request: bigtable_table_admin.GetSnapshotRequest,
@@ -1059,6 +1208,58 @@ class BigtableTableAdminRestInterceptor:
         `post_list_backups` interceptor. The (possibly modified) response returned by
         `post_list_backups` will be passed to
         `post_list_backups_with_metadata`.
+        """
+        return response, metadata
+
+    def pre_list_schema_bundles(
+        self,
+        request: bigtable_table_admin.ListSchemaBundlesRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListSchemaBundlesRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for list_schema_bundles
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableTableAdmin server.
+        """
+        return request, metadata
+
+    def post_list_schema_bundles(
+        self, response: bigtable_table_admin.ListSchemaBundlesResponse
+    ) -> bigtable_table_admin.ListSchemaBundlesResponse:
+        """Post-rpc interceptor for list_schema_bundles
+
+        DEPRECATED. Please use the `post_list_schema_bundles_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableTableAdmin server but before
+        it is returned to user code. This `post_list_schema_bundles` interceptor runs
+        before the `post_list_schema_bundles_with_metadata` interceptor.
+        """
+        return response
+
+    def post_list_schema_bundles_with_metadata(
+        self,
+        response: bigtable_table_admin.ListSchemaBundlesResponse,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.ListSchemaBundlesResponse,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Post-rpc interceptor for list_schema_bundles
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_list_schema_bundles_with_metadata`
+        interceptor in new development instead of the `post_list_schema_bundles` interceptor.
+        When both interceptors are used, this `post_list_schema_bundles_with_metadata` interceptor runs after the
+        `post_list_schema_bundles` interceptor. The (possibly modified) response returned by
+        `post_list_schema_bundles` will be passed to
+        `post_list_schema_bundles_with_metadata`.
         """
         return response, metadata
 
@@ -1548,6 +1749,55 @@ class BigtableTableAdminRestInterceptor:
         """
         return response, metadata
 
+    def pre_update_schema_bundle(
+        self,
+        request: bigtable_table_admin.UpdateSchemaBundleRequest,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[
+        bigtable_table_admin.UpdateSchemaBundleRequest,
+        Sequence[Tuple[str, Union[str, bytes]]],
+    ]:
+        """Pre-rpc interceptor for update_schema_bundle
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the BigtableTableAdmin server.
+        """
+        return request, metadata
+
+    def post_update_schema_bundle(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
+        """Post-rpc interceptor for update_schema_bundle
+
+        DEPRECATED. Please use the `post_update_schema_bundle_with_metadata`
+        interceptor instead.
+
+        Override in a subclass to read or manipulate the response
+        after it is returned by the BigtableTableAdmin server but before
+        it is returned to user code. This `post_update_schema_bundle` interceptor runs
+        before the `post_update_schema_bundle_with_metadata` interceptor.
+        """
+        return response
+
+    def post_update_schema_bundle_with_metadata(
+        self,
+        response: operations_pb2.Operation,
+        metadata: Sequence[Tuple[str, Union[str, bytes]]],
+    ) -> Tuple[operations_pb2.Operation, Sequence[Tuple[str, Union[str, bytes]]]]:
+        """Post-rpc interceptor for update_schema_bundle
+
+        Override in a subclass to read or manipulate the response or metadata after it
+        is returned by the BigtableTableAdmin server but before it is returned to user code.
+
+        We recommend only using this `post_update_schema_bundle_with_metadata`
+        interceptor in new development instead of the `post_update_schema_bundle` interceptor.
+        When both interceptors are used, this `post_update_schema_bundle_with_metadata` interceptor runs after the
+        `post_update_schema_bundle` interceptor. The (possibly modified) response returned by
+        `post_update_schema_bundle` will be passed to
+        `post_update_schema_bundle_with_metadata`.
+        """
+        return response, metadata
+
     def pre_update_table(
         self,
         request: bigtable_table_admin.UpdateTableRequest,
@@ -1837,7 +2087,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CheckConsistency",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.CheckConsistency",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CheckConsistency",
@@ -1888,7 +2138,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.check_consistency",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.check_consistency",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CheckConsistency",
@@ -1993,7 +2243,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CopyBackup",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.CopyBackup",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CopyBackup",
@@ -2040,7 +2290,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.copy_backup",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.copy_backup",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CopyBackup",
@@ -2148,7 +2398,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CreateAuthorizedView",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.CreateAuthorizedView",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CreateAuthorizedView",
@@ -2197,7 +2447,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.create_authorized_view",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.create_authorized_view",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CreateAuthorizedView",
@@ -2303,7 +2553,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CreateBackup",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.CreateBackup",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CreateBackup",
@@ -2350,10 +2600,167 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.create_backup",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.create_backup",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CreateBackup",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _CreateSchemaBundle(
+        _BaseBigtableTableAdminRestTransport._BaseCreateSchemaBundle,
+        BigtableTableAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableTableAdminRestTransport.CreateSchemaBundle")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_table_admin.CreateSchemaBundleRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> operations_pb2.Operation:
+            r"""Call the create schema bundle method over HTTP.
+
+            Args:
+                request (~.bigtable_table_admin.CreateSchemaBundleRequest):
+                    The request object. The request for
+                [CreateSchemaBundle][google.bigtable.admin.v2.BigtableTableAdmin.CreateSchemaBundle].
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.operations_pb2.Operation:
+                    This resource represents a
+                long-running operation that is the
+                result of a network API call.
+
+            """
+
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseCreateSchemaBundle._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_create_schema_bundle(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseCreateSchemaBundle._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseCreateSchemaBundle._get_request_body_json(
+                transcoded_request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableTableAdminRestTransport._BaseCreateSchemaBundle._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.CreateSchemaBundle",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CreateSchemaBundle",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableTableAdminRestTransport._CreateSchemaBundle._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                    body,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = operations_pb2.Operation()
+            json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_create_schema_bundle(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_create_schema_bundle_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.create_schema_bundle",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "CreateSchemaBundle",
                         "metadata": http_response["headers"],
                         "httpResponse": http_response,
                     },
@@ -2457,7 +2864,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CreateTable",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.CreateTable",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CreateTable",
@@ -2506,7 +2913,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.create_table",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.create_table",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CreateTable",
@@ -2622,7 +3029,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.CreateTableFromSnapshot",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.CreateTableFromSnapshot",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CreateTableFromSnapshot",
@@ -2671,7 +3078,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.create_table_from_snapshot",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.create_table_from_snapshot",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "CreateTableFromSnapshot",
@@ -2767,7 +3174,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.DeleteAuthorizedView",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.DeleteAuthorizedView",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "DeleteAuthorizedView",
@@ -2877,7 +3284,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.DeleteBackup",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.DeleteBackup",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "DeleteBackup",
@@ -2894,6 +3301,118 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                 self._session,
                 timeout,
                 transcoded_request,
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+    class _DeleteSchemaBundle(
+        _BaseBigtableTableAdminRestTransport._BaseDeleteSchemaBundle,
+        BigtableTableAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableTableAdminRestTransport.DeleteSchemaBundle")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_table_admin.DeleteSchemaBundleRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ):
+            r"""Call the delete schema bundle method over HTTP.
+
+            Args:
+                request (~.bigtable_table_admin.DeleteSchemaBundleRequest):
+                    The request object. The request for
+                [DeleteSchemaBundle][google.bigtable.admin.v2.BigtableTableAdmin.DeleteSchemaBundle].
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+            """
+
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseDeleteSchemaBundle._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_delete_schema_bundle(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseDeleteSchemaBundle._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableTableAdminRestTransport._BaseDeleteSchemaBundle._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.DeleteSchemaBundle",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "DeleteSchemaBundle",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableTableAdminRestTransport._DeleteSchemaBundle._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                )
             )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
@@ -2992,7 +3511,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.DeleteSnapshot",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.DeleteSnapshot",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "DeleteSnapshot",
@@ -3100,7 +3619,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.DeleteTable",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.DeleteTable",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "DeleteTable",
@@ -3213,7 +3732,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.DropRowRange",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.DropRowRange",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "DropRowRange",
@@ -3336,7 +3855,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GenerateConsistencyToken",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.GenerateConsistencyToken",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GenerateConsistencyToken",
@@ -3391,7 +3910,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.generate_consistency_token",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.generate_consistency_token",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GenerateConsistencyToken",
@@ -3497,7 +4016,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GetAuthorizedView",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.GetAuthorizedView",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GetAuthorizedView",
@@ -3545,7 +4064,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.get_authorized_view",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.get_authorized_view",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GetAuthorizedView",
@@ -3642,7 +4161,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GetBackup",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.GetBackup",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GetBackup",
@@ -3690,7 +4209,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.get_backup",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.get_backup",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GetBackup",
@@ -3867,7 +4386,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GetIamPolicy",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.GetIamPolicy",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GetIamPolicy",
@@ -3916,10 +4435,160 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.get_iam_policy",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.get_iam_policy",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GetIamPolicy",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _GetSchemaBundle(
+        _BaseBigtableTableAdminRestTransport._BaseGetSchemaBundle,
+        BigtableTableAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableTableAdminRestTransport.GetSchemaBundle")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_table_admin.GetSchemaBundleRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> table.SchemaBundle:
+            r"""Call the get schema bundle method over HTTP.
+
+            Args:
+                request (~.bigtable_table_admin.GetSchemaBundleRequest):
+                    The request object. The request for
+                [GetSchemaBundle][google.bigtable.admin.v2.BigtableTableAdmin.GetSchemaBundle].
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.table.SchemaBundle:
+                    A named collection of related
+                schemas.
+
+            """
+
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseGetSchemaBundle._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_get_schema_bundle(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseGetSchemaBundle._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableTableAdminRestTransport._BaseGetSchemaBundle._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.GetSchemaBundle",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetSchemaBundle",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = BigtableTableAdminRestTransport._GetSchemaBundle._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = table.SchemaBundle()
+            pb_resp = table.SchemaBundle.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_get_schema_bundle(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_get_schema_bundle_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = table.SchemaBundle.to_json(response)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.get_schema_bundle",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "GetSchemaBundle",
                         "metadata": http_response["headers"],
                         "httpResponse": http_response,
                     },
@@ -4034,7 +4703,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GetSnapshot",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.GetSnapshot",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GetSnapshot",
@@ -4082,7 +4751,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.get_snapshot",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.get_snapshot",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GetSnapshot",
@@ -4183,7 +4852,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.GetTable",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.GetTable",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GetTable",
@@ -4231,7 +4900,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.get_table",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.get_table",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "GetTable",
@@ -4333,7 +5002,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.ListAuthorizedViews",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.ListAuthorizedViews",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "ListAuthorizedViews",
@@ -4387,7 +5056,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.list_authorized_views",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.list_authorized_views",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "ListAuthorizedViews",
@@ -4487,7 +5156,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.ListBackups",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.ListBackups",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "ListBackups",
@@ -4537,10 +5206,162 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.list_backups",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.list_backups",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "ListBackups",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _ListSchemaBundles(
+        _BaseBigtableTableAdminRestTransport._BaseListSchemaBundles,
+        BigtableTableAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableTableAdminRestTransport.ListSchemaBundles")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_table_admin.ListSchemaBundlesRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> bigtable_table_admin.ListSchemaBundlesResponse:
+            r"""Call the list schema bundles method over HTTP.
+
+            Args:
+                request (~.bigtable_table_admin.ListSchemaBundlesRequest):
+                    The request object. The request for
+                [ListSchemaBundles][google.bigtable.admin.v2.BigtableTableAdmin.ListSchemaBundles].
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.bigtable_table_admin.ListSchemaBundlesResponse:
+                    The response for
+                [ListSchemaBundles][google.bigtable.admin.v2.BigtableTableAdmin.ListSchemaBundles].
+
+            """
+
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseListSchemaBundles._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_list_schema_bundles(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseListSchemaBundles._get_transcoded_request(
+                http_options, request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableTableAdminRestTransport._BaseListSchemaBundles._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = type(request).to_json(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.ListSchemaBundles",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ListSchemaBundles",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = BigtableTableAdminRestTransport._ListSchemaBundles._get_response(
+                self._host,
+                metadata,
+                query_params,
+                self._session,
+                timeout,
+                transcoded_request,
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = bigtable_table_admin.ListSchemaBundlesResponse()
+            pb_resp = bigtable_table_admin.ListSchemaBundlesResponse.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_list_schema_bundles(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_list_schema_bundles_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = (
+                        bigtable_table_admin.ListSchemaBundlesResponse.to_json(response)
+                    )
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.list_schema_bundles",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "ListSchemaBundles",
                         "metadata": http_response["headers"],
                         "httpResponse": http_response,
                     },
@@ -4651,7 +5472,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.ListSnapshots",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.ListSnapshots",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "ListSnapshots",
@@ -4701,7 +5522,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.list_snapshots",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.list_snapshots",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "ListSnapshots",
@@ -4800,7 +5621,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.ListTables",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.ListTables",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "ListTables",
@@ -4850,7 +5671,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.list_tables",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.list_tables",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "ListTables",
@@ -4959,7 +5780,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.ModifyColumnFamilies",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.ModifyColumnFamilies",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "ModifyColumnFamilies",
@@ -5010,7 +5831,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.modify_column_families",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.modify_column_families",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "ModifyColumnFamilies",
@@ -5116,7 +5937,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.RestoreTable",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.RestoreTable",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "RestoreTable",
@@ -5163,7 +5984,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.restore_table",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.restore_table",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "RestoreTable",
@@ -5340,7 +6161,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.SetIamPolicy",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.SetIamPolicy",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "SetIamPolicy",
@@ -5389,7 +6210,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.set_iam_policy",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.set_iam_policy",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "SetIamPolicy",
@@ -5502,7 +6323,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.SnapshotTable",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.SnapshotTable",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "SnapshotTable",
@@ -5549,7 +6370,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.snapshot_table",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.snapshot_table",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "SnapshotTable",
@@ -5653,7 +6474,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.TestIamPermissions",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.TestIamPermissions",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "TestIamPermissions",
@@ -5704,7 +6525,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.test_iam_permissions",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.test_iam_permissions",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "TestIamPermissions",
@@ -5810,7 +6631,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.UndeleteTable",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.UndeleteTable",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "UndeleteTable",
@@ -5857,7 +6678,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.undelete_table",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.undelete_table",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "UndeleteTable",
@@ -5965,7 +6786,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.UpdateAuthorizedView",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.UpdateAuthorizedView",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "UpdateAuthorizedView",
@@ -6014,7 +6835,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.update_authorized_view",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.update_authorized_view",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "UpdateAuthorizedView",
@@ -6117,7 +6938,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.UpdateBackup",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.UpdateBackup",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "UpdateBackup",
@@ -6166,10 +6987,167 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.update_backup",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.update_backup",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "UpdateBackup",
+                        "metadata": http_response["headers"],
+                        "httpResponse": http_response,
+                    },
+                )
+            return resp
+
+    class _UpdateSchemaBundle(
+        _BaseBigtableTableAdminRestTransport._BaseUpdateSchemaBundle,
+        BigtableTableAdminRestStub,
+    ):
+        def __hash__(self):
+            return hash("BigtableTableAdminRestTransport.UpdateSchemaBundle")
+
+        @staticmethod
+        def _get_response(
+            host,
+            metadata,
+            query_params,
+            session,
+            timeout,
+            transcoded_request,
+            body=None,
+        ):
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+            headers = dict(metadata)
+            headers["Content-Type"] = "application/json"
+            response = getattr(session, method)(
+                "{host}{uri}".format(host=host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+            )
+            return response
+
+        def __call__(
+            self,
+            request: bigtable_table_admin.UpdateSchemaBundleRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
+        ) -> operations_pb2.Operation:
+            r"""Call the update schema bundle method over HTTP.
+
+            Args:
+                request (~.bigtable_table_admin.UpdateSchemaBundleRequest):
+                    The request object. The request for
+                [UpdateSchemaBundle][google.bigtable.admin.v2.BigtableTableAdmin.UpdateSchemaBundle].
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, Union[str, bytes]]]): Key/value pairs which should be
+                    sent along with the request as metadata. Normally, each value must be of type `str`,
+                    but for metadata keys ending with the suffix `-bin`, the corresponding values must
+                    be of type `bytes`.
+
+            Returns:
+                ~.operations_pb2.Operation:
+                    This resource represents a
+                long-running operation that is the
+                result of a network API call.
+
+            """
+
+            http_options = (
+                _BaseBigtableTableAdminRestTransport._BaseUpdateSchemaBundle._get_http_options()
+            )
+
+            request, metadata = self._interceptor.pre_update_schema_bundle(
+                request, metadata
+            )
+            transcoded_request = _BaseBigtableTableAdminRestTransport._BaseUpdateSchemaBundle._get_transcoded_request(
+                http_options, request
+            )
+
+            body = _BaseBigtableTableAdminRestTransport._BaseUpdateSchemaBundle._get_request_body_json(
+                transcoded_request
+            )
+
+            # Jsonify the query params
+            query_params = _BaseBigtableTableAdminRestTransport._BaseUpdateSchemaBundle._get_query_params_json(
+                transcoded_request
+            )
+
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                request_url = "{host}{uri}".format(
+                    host=self._host, uri=transcoded_request["uri"]
+                )
+                method = transcoded_request["method"]
+                try:
+                    request_payload = json_format.MessageToJson(request)
+                except:
+                    request_payload = None
+                http_request = {
+                    "payload": request_payload,
+                    "requestMethod": method,
+                    "requestUrl": request_url,
+                    "headers": dict(metadata),
+                }
+                _LOGGER.debug(
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.UpdateSchemaBundle",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "UpdateSchemaBundle",
+                        "httpRequest": http_request,
+                        "metadata": http_request["headers"],
+                    },
+                )
+
+            # Send the request
+            response = (
+                BigtableTableAdminRestTransport._UpdateSchemaBundle._get_response(
+                    self._host,
+                    metadata,
+                    query_params,
+                    self._session,
+                    timeout,
+                    transcoded_request,
+                    body,
+                )
+            )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = operations_pb2.Operation()
+            json_format.Parse(response.content, resp, ignore_unknown_fields=True)
+
+            resp = self._interceptor.post_update_schema_bundle(resp)
+            response_metadata = [(k, str(v)) for k, v in response.headers.items()]
+            resp, _ = self._interceptor.post_update_schema_bundle_with_metadata(
+                resp, response_metadata
+            )
+            if CLIENT_LOGGING_SUPPORTED and _LOGGER.isEnabledFor(
+                logging.DEBUG
+            ):  # pragma: NO COVER
+                try:
+                    response_payload = json_format.MessageToJson(resp)
+                except:
+                    response_payload = None
+                http_response = {
+                    "payload": response_payload,
+                    "headers": dict(response.headers),
+                    "status": response.status_code,
+                }
+                _LOGGER.debug(
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.update_schema_bundle",
+                    extra={
+                        "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "rpcName": "UpdateSchemaBundle",
                         "metadata": http_response["headers"],
                         "httpResponse": http_response,
                     },
@@ -6272,7 +7250,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "headers": dict(metadata),
                 }
                 _LOGGER.debug(
-                    f"Sending request for google.bigtable.admin_v2.BigtableTableAdminClient.UpdateTable",
+                    f"Sending request for google.bigtable.admin_v2.BaseBigtableTableAdminClient.UpdateTable",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "UpdateTable",
@@ -6319,7 +7297,7 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
                     "status": response.status_code,
                 }
                 _LOGGER.debug(
-                    "Received response for google.bigtable.admin_v2.BigtableTableAdminClient.update_table",
+                    "Received response for google.bigtable.admin_v2.BaseBigtableTableAdminClient.update_table",
                     extra={
                         "serviceName": "google.bigtable.admin.v2.BigtableTableAdmin",
                         "rpcName": "UpdateTable",
@@ -6367,6 +7345,16 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
         return self._CreateBackup(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
+    def create_schema_bundle(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.CreateSchemaBundleRequest], operations_pb2.Operation
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._CreateSchemaBundle(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
     def create_table(
         self,
     ) -> Callable[[bigtable_table_admin.CreateTableRequest], gba_table.Table]:
@@ -6399,6 +7387,14 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._DeleteBackup(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def delete_schema_bundle(
+        self,
+    ) -> Callable[[bigtable_table_admin.DeleteSchemaBundleRequest], empty_pb2.Empty]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._DeleteSchemaBundle(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def delete_snapshot(
@@ -6462,6 +7458,14 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
         return self._GetIamPolicy(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
+    def get_schema_bundle(
+        self,
+    ) -> Callable[[bigtable_table_admin.GetSchemaBundleRequest], table.SchemaBundle]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._GetSchemaBundle(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
     def get_snapshot(
         self,
     ) -> Callable[[bigtable_table_admin.GetSnapshotRequest], table.Snapshot]:
@@ -6498,6 +7502,17 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._ListBackups(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def list_schema_bundles(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.ListSchemaBundlesRequest],
+        bigtable_table_admin.ListSchemaBundlesResponse,
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._ListSchemaBundles(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def list_snapshots(
@@ -6593,6 +7608,16 @@ class BigtableTableAdminRestTransport(_BaseBigtableTableAdminRestTransport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._UpdateBackup(self._session, self._host, self._interceptor)  # type: ignore
+
+    @property
+    def update_schema_bundle(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.UpdateSchemaBundleRequest], operations_pb2.Operation
+    ]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._UpdateSchemaBundle(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def update_table(

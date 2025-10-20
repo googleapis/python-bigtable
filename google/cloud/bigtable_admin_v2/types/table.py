@@ -20,6 +20,7 @@ from typing import MutableMapping, MutableSequence
 import proto  # type: ignore
 
 from google.cloud.bigtable_admin_v2.types import types
+from google.cloud.bigtable_admin_v2.utils import oneof_message
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
 from google.rpc import status_pb2  # type: ignore
@@ -39,6 +40,8 @@ __protobuf__ = proto.module(
         "Snapshot",
         "Backup",
         "BackupInfo",
+        "ProtoSchema",
+        "SchemaBundle",
     },
 )
 
@@ -179,21 +182,36 @@ class Table(proto.Message):
 
             For example, if \_key =
             "some_id#2024-04-30#\x00\x13\x00\xf3" with the following
-            schema: { fields { field_name: "id" type { string {
-            encoding: utf8_bytes {} } } } fields { field_name: "date"
-            type { string { encoding: utf8_bytes {} } } } fields {
-            field_name: "product_code" type { int64 { encoding:
-            big_endian_bytes {} } } } encoding { delimited_bytes {
-            delimiter: "#" } } }
+            schema:
 
-            | The decoded key parts would be: id = "some_id", date =
-              "2024-04-30", product_code = 1245427 The query "SELECT
-              \_key, product_code FROM table" will return two columns:
-              /------------------------------------------------------
-            | \| \_key \| product_code \| \|
-              --------------------------------------|--------------\| \|
-              "some_id#2024-04-30#\x00\x13\x00\xf3" \| 1245427 \|
-              ------------------------------------------------------/
+            .. code-block::
+
+                {
+                  fields {
+                    field_name: "id"
+                    type { string { encoding: utf8_bytes {} } }
+                  }
+                  fields {
+                    field_name: "date"
+                    type { string { encoding: utf8_bytes {} } }
+                  }
+                  fields {
+                    field_name: "product_code"
+                    type { int64 { encoding: big_endian_bytes {} } }
+                  }
+                  encoding { delimited_bytes { delimiter: "#" } }
+                }
+
+            The decoded key parts would be:
+            id = "some_id", date = "2024-04-30", product_code = 1245427
+            The query "SELECT \_key, product_code FROM table" will return
+            two columns:
+
+            +========================================+==============+
+            | \_key                                  | product_code |
+            +========================================+==============+
+            | "some_id#2024-04-30#\x00\x13\x00\xf3"  |    1245427   |
+            +----------------------------------------+--------------+
 
             The schema has the following invariants: (1) The decoded
             field values are order-preserved. For read, the field values
@@ -569,7 +587,7 @@ class ColumnFamily(proto.Message):
     )
 
 
-class GcRule(proto.Message):
+class GcRule(oneof_message.OneofMessage):
     r"""Rule for determining which cells to delete during garbage
     collection.
 
@@ -1022,6 +1040,74 @@ class BackupInfo(proto.Message):
     source_backup: str = proto.Field(
         proto.STRING,
         number=10,
+    )
+
+
+class ProtoSchema(proto.Message):
+    r"""Represents a protobuf schema.
+
+    Attributes:
+        proto_descriptors (bytes):
+            Required. Contains a protobuf-serialized
+            `google.protobuf.FileDescriptorSet <https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/descriptor.proto>`__,
+            which could include multiple proto files. To generate it,
+            `install <https://grpc.io/docs/protoc-installation/>`__ and
+            run ``protoc`` with ``--include_imports`` and
+            ``--descriptor_set_out``. For example, to generate for
+            moon/shot/app.proto, run
+
+            ::
+
+               $protoc  --proto_path=/app_path --proto_path=/lib_path \
+                        --include_imports \
+                        --descriptor_set_out=descriptors.pb \
+                        moon/shot/app.proto
+
+            For more details, see protobuffer `self
+            description <https://developers.google.com/protocol-buffers/docs/techniques#self-description>`__.
+    """
+
+    proto_descriptors: bytes = proto.Field(
+        proto.BYTES,
+        number=2,
+    )
+
+
+class SchemaBundle(proto.Message):
+    r"""A named collection of related schemas.
+
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
+    Attributes:
+        name (str):
+            Identifier. The unique name identifying this schema bundle.
+            Values are of the form
+            ``projects/{project}/instances/{instance}/tables/{table}/schemaBundles/{schema_bundle}``
+        proto_schema (google.cloud.bigtable_admin_v2.types.ProtoSchema):
+            Schema for Protobufs.
+
+            This field is a member of `oneof`_ ``type``.
+        etag (str):
+            Optional. The etag for this schema bundle.
+            This may be sent on update and delete requests
+            to ensure the client has an up-to-date value
+            before proceeding. The server returns an ABORTED
+            error on a mismatched etag.
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    proto_schema: "ProtoSchema" = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        oneof="type",
+        message="ProtoSchema",
+    )
+    etag: str = proto.Field(
+        proto.STRING,
+        number=3,
     )
 
 

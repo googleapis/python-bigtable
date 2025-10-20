@@ -49,6 +49,8 @@ from google.api_core import retry as retries
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import ServiceUnavailable
 from google.api_core.exceptions import Aborted
+from google.protobuf.message import Message
+from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 import google.auth.credentials
 import google.auth._default
 from google.api_core import client_options as client_options_lib
@@ -75,11 +77,12 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from typing import Iterable
 from grpc import insecure_channel
-from grpc import intercept_channel
 from google.cloud.bigtable_v2.services.bigtable.transports import (
     BigtableGrpcTransport as TransportType,
 )
+from google.cloud.bigtable_v2.services.bigtable import BigtableClient as GapicClient
 from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
+from google.cloud.bigtable.data._sync_autogen._swappable_channel import SwappableChannel
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -131,7 +134,6 @@ class BigtableDataClient(ClientWithProject):
         client_options = cast(
             Optional[client_options_lib.ClientOptions], client_options
         )
-        custom_channel = None
         self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
         if self._emulator_host is not None:
             warnings.warn(
@@ -139,7 +141,6 @@ class BigtableDataClient(ClientWithProject):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            custom_channel = insecure_channel(self._emulator_host)
             if credentials is None:
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
@@ -150,21 +151,29 @@ class BigtableDataClient(ClientWithProject):
             project=project,
             client_options=client_options,
         )
-        self._gapic_client = CrossSync._Sync_Impl.GapicClient(
+        self._gapic_client = GapicClient(
             credentials=credentials,
             client_options=client_options,
             client_info=self.client_info,
             transport=lambda *args, **kwargs: TransportType(
-                *args, **kwargs, channel=custom_channel
+                *args, **kwargs, channel=self._build_grpc_channel
             ),
         )
+        if (
+            credentials
+            and credentials.universe_domain != self.universe_domain
+            and (self._emulator_host is None)
+        ):
+            raise ValueError(
+                f"The configured universe domain ({self.universe_domain}) does not match the universe domain found in the credentials ({self._credentials.universe_domain}). If you haven't configured the universe domain explicitly, `googleapis.com` is the default."
+            )
         self._is_closed = CrossSync._Sync_Impl.Event()
         self.transport = cast(TransportType, self._gapic_client.transport)
         self._active_instances: Set[_WarmedInstanceKey] = set()
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
         self._channel_refresh_task: CrossSync._Sync_Impl.Task[None] | None = None
-        self._executor = (
+        self._executor: concurrent.futures.ThreadPoolExecutor | None = (
             concurrent.futures.ThreadPoolExecutor()
             if not CrossSync._Sync_Impl.is_async
             else None
@@ -178,6 +187,41 @@ class BigtableDataClient(ClientWithProject):
                     RuntimeWarning,
                     stacklevel=2,
                 )
+
+    def _build_grpc_channel(self, *args, **kwargs) -> SwappableChannel:
+        """This method is called by the gapic transport to create a grpc channel.
+
+        The init arguments passed down are captured in a partial used by SwappableChannel
+        to create new channel instances in the future, as part of the channel refresh logic
+
+        Emulators always use an inseucre channel
+
+        Args:
+          - *args: positional arguments passed by the gapic layer to create a new channel with
+          - **kwargs: keyword arguments passed by the gapic layer to create a new channel with
+        Returns:
+          a custom wrapped swappable channel"""
+        if self._emulator_host is not None:
+            create_channel_fn = partial(insecure_channel, self._emulator_host)
+        else:
+            create_channel_fn = partial(TransportType.create_channel, *args, **kwargs)
+        return SwappableChannel(create_channel_fn)
+
+    @property
+    def universe_domain(self) -> str:
+        """Return the universe domain used by the client instance.
+
+        Returns:
+            str: The universe domain used by the client instance."""
+        return self._gapic_client.universe_domain
+
+    @property
+    def api_endpoint(self) -> str:
+        """Return the API endpoint used by the client instance.
+
+        Returns:
+            str: The API endpoint used by the client instance."""
+        return self._gapic_client.api_endpoint
 
     @staticmethod
     def _client_version() -> str:
@@ -255,6 +299,11 @@ class BigtableDataClient(ClientWithProject):
         )
         return [r or None for r in result_list]
 
+    def _invalidate_channel_stubs(self):
+        """Helper to reset the cached stubs. Needed when changing out the grpc channel"""
+        self.transport._stubs = {}
+        self.transport._prep_wrapped_messages(self.client_info)
+
     def _manage_channel(
         self,
         refresh_interval_min: float = 60 * 35,
@@ -277,12 +326,16 @@ class BigtableDataClient(ClientWithProject):
                 between `refresh_interval_min` and `refresh_interval_max`
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds"""
+        if not isinstance(self.transport.grpc_channel, SwappableChannel):
+            warnings.warn("Channel does not support auto-refresh.")
+            return
+        super_channel: SwappableChannel = self.transport.grpc_channel
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
         next_sleep = max(first_refresh - time.monotonic(), 0)
         if next_sleep > 0:
-            self._ping_and_warm_instances(channel=self.transport.grpc_channel)
+            self._ping_and_warm_instances(channel=super_channel)
         while not self._is_closed.is_set():
             CrossSync._Sync_Impl.event_wait(
                 self._is_closed, next_sleep, async_break_early=False
@@ -290,14 +343,10 @@ class BigtableDataClient(ClientWithProject):
             if self._is_closed.is_set():
                 break
             start_timestamp = time.monotonic()
-            old_channel = self.transport.grpc_channel
-            new_channel = self.transport.create_channel()
-            new_channel = intercept_channel(new_channel, self.transport._interceptor)
+            new_channel = super_channel.create_channel()
             self._ping_and_warm_instances(channel=new_channel)
-            self.transport._grpc_channel = new_channel
-            self.transport._logged_channel = new_channel
-            self.transport._stubs = {}
-            self.transport._prep_wrapped_messages(self.client_info)
+            old_channel = super_channel.swap_channel(new_channel)
+            self._invalidate_channel_stubs()
             if grace_period:
                 self._is_closed.wait(grace_period)
             old_channel.close()
@@ -305,7 +354,7 @@ class BigtableDataClient(ClientWithProject):
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
 
     def _register_instance(
-        self, instance_id: str, owner: _DataApiTarget | ExecuteQueryIterator
+        self, instance_id: str, app_profile_id: Optional[str], owner_id: int
     ) -> None:
         """Registers an instance with the client, and warms the channel for the instance
         The client will periodically refresh grpc channel used to make
@@ -314,12 +363,14 @@ class BigtableDataClient(ClientWithProject):
 
         Args:
           instance_id: id of the instance to register.
-          owner: table that owns the instance. Owners will be tracked in
+          app_profile_id: id of the app profile calling the instance.
+          owner_id: integer id of the object owning the instance. Owners will be tracked in
               _instance_owners, and instances will only be unregistered when all
-              owners call _remove_instance_registration"""
+              owners call _remove_instance_registration. Can be obtained by calling
+              `id` identity funcion, using `id(owner)`"""
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        instance_key = _WarmedInstanceKey(instance_name, owner.app_profile_id)
-        self._instance_owners.setdefault(instance_key, set()).add(id(owner))
+        instance_key = _WarmedInstanceKey(instance_name, app_profile_id)
+        self._instance_owners.setdefault(instance_key, set()).add(owner_id)
         if instance_key not in self._active_instances:
             self._active_instances.add(instance_key)
             if self._channel_refresh_task:
@@ -328,7 +379,7 @@ class BigtableDataClient(ClientWithProject):
                 self._start_background_channel_refresh()
 
     def _remove_instance_registration(
-        self, instance_id: str, owner: _DataApiTarget | ExecuteQueryIterator
+        self, instance_id: str, app_profile_id: Optional[str], owner_id: int
     ) -> bool:
         """Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
@@ -337,16 +388,16 @@ class BigtableDataClient(ClientWithProject):
 
         Args:
             instance_id: id of the instance to remove
-            owner: table that owns the instance. Owners will be tracked in
-              _instance_owners, and instances will only be unregistered when all
-              owners call _remove_instance_registration
+            app_profile_id: id of the app profile calling the instance.
+            owner_id: integer id of the object owning the instance. Can be
+                obtained by the `id` identity funcion, using `id(owner)`.
         Returns:
             bool: True if instance was removed, else False"""
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        instance_key = _WarmedInstanceKey(instance_name, owner.app_profile_id)
+        instance_key = _WarmedInstanceKey(instance_name, app_profile_id)
         owner_list = self._instance_owners.get(instance_key, set())
         try:
-            owner_list.remove(id(owner))
+            owner_list.remove(owner_id)
             if len(owner_list) == 0:
                 self._active_instances.remove(instance_key)
             return True
@@ -461,6 +512,7 @@ class BigtableDataClient(ClientWithProject):
             DeadlineExceeded,
             ServiceUnavailable,
         ),
+        column_info: dict[str, Message | EnumTypeWrapper] | None = None,
     ) -> "ExecuteQueryIterator":
         """Executes an SQL query on an instance.
         Returns an iterator to asynchronously stream back columns from selected rows.
@@ -508,6 +560,62 @@ class BigtableDataClient(ClientWithProject):
                 If None, defaults to prepare_operation_timeout.
             prepare_retryable_errors: a list of errors that will be retried if encountered during prepareQuery.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+            column_info: (Optional) A dictionary mapping column names to Protobuf message classes or EnumTypeWrapper objects.
+                This dictionary provides the necessary type information for deserializing PROTO and
+                ENUM column values from the query results. When an entry is provided
+                for a PROTO or ENUM column, the client library will attempt to deserialize the raw data.
+
+                    - For PROTO columns: The value in the dictionary should be the
+                      Protobuf Message class (e.g., ``my_pb2.MyMessage``).
+                    - For ENUM columns: The value should be the Protobuf EnumTypeWrapper
+                      object (e.g., ``my_pb2.MyEnum``).
+
+                Example::
+
+                    import my_pb2
+
+                    column_info = {
+                        "my_proto_column": my_pb2.MyMessage,
+                        "my_enum_column": my_pb2.MyEnum
+                    }
+
+                If ``column_info`` is not provided, or if a specific column name is not found
+                in the dictionary:
+
+                    - PROTO columns will be returned as raw bytes.
+                    - ENUM columns will be returned as integers.
+
+                Note for Nested PROTO or ENUM Fields:
+
+                    To specify types for PROTO or ENUM fields within STRUCTs or MAPs, use a dot-separated
+                    path from the top-level column name.
+
+                        - For STRUCTs: ``struct_column_name.field_name``
+                        - For MAPs: ``map_column_name.key`` or ``map_column_name.value`` to specify types
+                          for the map keys or values, respectively.
+
+                    Example::
+
+                        import my_pb2
+
+                        column_info = {
+                            # Top-level column
+                            "my_proto_column": my_pb2.MyMessage,
+                            "my_enum_column": my_pb2.MyEnum,
+
+                            # Nested field in a STRUCT column named 'my_struct'
+                            "my_struct.nested_proto_field": my_pb2.OtherMessage,
+                            "my_struct.nested_enum_field": my_pb2.AnotherEnum,
+
+                            # Nested field in a MAP column named 'my_map'
+                            "my_map.key": my_pb2.MapKeyEnum, # If map keys were enums
+                            "my_map.value": my_pb2.MapValueMessage,
+
+                            # PROTO field inside a STRUCT, where the STRUCT is the value in a MAP column
+                            "struct_map.value.nested_proto_field": my_pb2.DeeplyNestedProto,
+                            "struct_map.value.nested_enum_field": my_pb2.DeeplyNestedEnum
+                        }
+
         Returns:
             ExecuteQueryIterator: an asynchronous iterator that yields rows returned by the query
         Raises:
@@ -517,6 +625,7 @@ class BigtableDataClient(ClientWithProject):
             google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
             google.cloud.bigtable.data.exceptions.ParameterTypeInferenceFailed: Raised if
                 a parameter is passed without an explicit type, and the type cannot be infered
+            google.protobuf.message.DecodeError: raised if the deserialization of a PROTO/ENUM value fails.
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         converted_param_types = _to_param_types(parameters, parameter_types)
@@ -568,6 +677,7 @@ class BigtableDataClient(ClientWithProject):
             attempt_timeout,
             operation_timeout,
             retryable_excs=retryable_excs,
+            column_info=column_info,
         )
 
     def __enter__(self):
@@ -670,27 +780,36 @@ class _DataApiTarget(abc.ABC):
         self.table_name = self.client._gapic_client.table_path(
             self.client.project, instance_id, table_id
         )
-        self.app_profile_id = app_profile_id
-        self.default_operation_timeout = default_operation_timeout
-        self.default_attempt_timeout = default_attempt_timeout
-        self.default_read_rows_operation_timeout = default_read_rows_operation_timeout
-        self.default_read_rows_attempt_timeout = default_read_rows_attempt_timeout
-        self.default_mutate_rows_operation_timeout = (
+        self.app_profile_id: str | None = app_profile_id
+        self.default_operation_timeout: float = default_operation_timeout
+        self.default_attempt_timeout: float | None = default_attempt_timeout
+        self.default_read_rows_operation_timeout: float = (
+            default_read_rows_operation_timeout
+        )
+        self.default_read_rows_attempt_timeout: float | None = (
+            default_read_rows_attempt_timeout
+        )
+        self.default_mutate_rows_operation_timeout: float = (
             default_mutate_rows_operation_timeout
         )
-        self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
-        self.default_read_rows_retryable_errors = (
+        self.default_mutate_rows_attempt_timeout: float | None = (
+            default_mutate_rows_attempt_timeout
+        )
+        self.default_read_rows_retryable_errors: Sequence[type[Exception]] = (
             default_read_rows_retryable_errors or ()
         )
-        self.default_mutate_rows_retryable_errors = (
+        self.default_mutate_rows_retryable_errors: Sequence[type[Exception]] = (
             default_mutate_rows_retryable_errors or ()
         )
-        self.default_retryable_errors = default_retryable_errors or ()
+        self.default_retryable_errors: Sequence[type[Exception]] = (
+            default_retryable_errors or ()
+        )
         try:
             self._register_instance_future = CrossSync._Sync_Impl.create_task(
                 self.client._register_instance,
                 self.instance_id,
-                self,
+                self.app_profile_id,
+                id(self),
                 sync_executor=self.client._executor,
             )
         except RuntimeError as e:
@@ -1344,7 +1463,9 @@ class _DataApiTarget(abc.ABC):
         """Called to close the Table instance and release any resources held by it."""
         if self._register_instance_future:
             self._register_instance_future.cancel()
-        self.client._remove_instance_registration(self.instance_id, self)
+        self.client._remove_instance_registration(
+            self.instance_id, self.app_profile_id, id(self)
+        )
 
     def __enter__(self):
         """Implement async context manager protocol
