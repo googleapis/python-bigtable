@@ -56,15 +56,14 @@ BLOCK_ALL_FILTER = row_filters.BlockAllFilter(True)
 READ_ROWS_METHOD_NAME = "/google.bigtable.v2.Bigtable/ReadRows"
 
 
-class SelectiveMethodsErrorInjector(UnaryStreamClientInterceptor):
+class ReadRowsErrorInjector(UnaryStreamClientInterceptor):
+    """An error injector that can be configured to raise errors for the ReadRows method.
+    
+    The error injector is configured to inject errors off the self.errors_to_inject queue.
+    Exceptions can be configured to arise either during stream initialization or in the middle
+    of a stream.
+    """
     def __init__(self):
-        # As long as there are more items on this list, the items on the list
-        # are as follows:
-        #
-        # 1. None = behave as normal
-        # 2. errors are raised.
-        #
-        # This is to inject errors mid stream after a bunch of normal behavior.
         self.errors_to_inject = []
 
     @staticmethod
@@ -159,10 +158,14 @@ def rows_to_delete():
         row.commit()
 
 
-@pytest.fixture(scope="function")
-def data_table_read_rows_retry_tests(data_table, rows_to_delete):
+@pytest.fixture(scope="class")
+def data_table_read_rows_retry_tests(data_table):
     row_keys = [f"row_key_{i}".encode() for i in range(0, 32)]
     columns = [f"col_{i}".encode() for i in range(0, 32)]
+
+    # Need to add this here as a class level teardown since rows_to_delete
+    # is a function level fixture.
+    rows_to_delete = []
 
     _populate_table(
         data_table, rows_to_delete, row_keys, columns, CELL_VAL_READ_ROWS_RETRY
@@ -170,25 +173,10 @@ def data_table_read_rows_retry_tests(data_table, rows_to_delete):
 
     yield data_table
 
-
-@pytest.fixture(scope="function")
-def data_table_read_rows_with_error_injector(data_table_read_rows_retry_tests):
-    data_client = data_table_read_rows_retry_tests._instance._client.table_data_client
-    error_injector = SelectiveMethodsErrorInjector()
-    old_logged_channel = data_client.transport._logged_channel
-    data_client.transport._logged_channel = intercept_channel(
-        old_logged_channel, error_injector
-    )
-    data_table_read_rows_retry_tests.error_injector = error_injector
-    data_client.transport._stubs = {}
-    data_client.transport._prep_wrapped_messages(None)
-
-    yield data_table_read_rows_retry_tests
-
-    del data_table_read_rows_retry_tests.error_injector
-    data_client.transport._logged_channel = old_logged_channel
-    data_client.transport._stubs = {}
-    data_client.transport._prep_wrapped_messages(None)
+    for row in rows_to_delete:
+        row.clear()
+        row.delete()
+        row.commit()
 
 
 def test_table_read_rows_filter_millis(data_table):
@@ -232,6 +220,7 @@ def test_table_mutate_rows(data_table, rows_to_delete):
 
 
 def _add_test_error_handler(retry):
+    """Overwrites the current on_error function to assert that backoff values are within expected bounds."""
     import time
 
     curr_time = time.monotonic()
@@ -699,229 +688,249 @@ def _assert_data_table_read_rows_retry_correct(rows_data):
                 == CELL_VAL_READ_ROWS_RETRY
             )
 
-
-def test_table_read_rows_retry_unretriable_error_establishing_stream(
-    data_table_read_rows_with_error_injector,
-):
-    from google.api_core import exceptions
-
-    error_injector = data_table_read_rows_with_error_injector.error_injector
-    error_injector.errors_to_inject = [
-        error_injector.make_exception(StatusCode.ABORTED, fail_mid_stream=False)
-    ]
-
-    with pytest.raises(exceptions.Aborted):
-        data_table_read_rows_with_error_injector.read_rows()
-
-
-def test_table_read_rows_retry_retriable_error_establishing_stream(
-    data_table_read_rows_with_error_injector,
-):
-    error_injector = data_table_read_rows_with_error_injector.error_injector
-    error_injector.errors_to_inject = [
-        error_injector.make_exception(
-            StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False
+@pytest.mark.usefixtures("data_table_read_rows_retry_tests")
+class TestTableReadRowsWithRetry:
+    @pytest.fixture(scope="function")
+    def data_table_read_rows_with_error_injector(self, data_table_read_rows_retry_tests):
+        data_client = data_table_read_rows_retry_tests._instance._client.table_data_client
+        error_injector = ReadRowsErrorInjector()
+        old_logged_channel = data_client.transport._logged_channel
+        data_client.transport._logged_channel = intercept_channel(
+            old_logged_channel, error_injector
         )
-    ] * 3
+        data_table_read_rows_retry_tests.error_injector = error_injector
+        data_client.transport._stubs = {}
+        data_client.transport._prep_wrapped_messages(None)
 
-    rows_data = data_table_read_rows_with_error_injector.read_rows()
-    rows_data.consume_all()
+        yield data_table_read_rows_retry_tests
 
-    _assert_data_table_read_rows_retry_correct(rows_data)
+        del data_table_read_rows_retry_tests.error_injector
+        data_client.transport._logged_channel = old_logged_channel
+        data_client.transport._stubs = {}
+        data_client.transport._prep_wrapped_messages(None)
+
+    def test_table_read_rows_retry_unretriable_error_establishing_stream(
+        self, data_table_read_rows_with_error_injector,
+    ):
+        from google.api_core import exceptions
+
+        error_injector = data_table_read_rows_with_error_injector.error_injector
+        error_injector.errors_to_inject = [
+            error_injector.make_exception(StatusCode.ABORTED, fail_mid_stream=False)
+        ]
+
+        with pytest.raises(exceptions.Aborted):
+            data_table_read_rows_with_error_injector.read_rows()
 
 
-def test_table_read_rows_retry_unretriable_error_mid_stream(
-    data_table_read_rows_with_error_injector,
-):
-    from google.api_core import exceptions
+    def test_table_read_rows_retry_retriable_error_establishing_stream(
+        self, data_table_read_rows_with_error_injector,
+    ):
+        error_injector = data_table_read_rows_with_error_injector.error_injector
+        error_injector.errors_to_inject = [
+            error_injector.make_exception(
+                StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False
+            )
+        ] * 3
 
-    error_injector = data_table_read_rows_with_error_injector.error_injector
-    error_injector.errors_to_inject = [
-        error_injector.make_exception(
-            StatusCode.DATA_LOSS, fail_mid_stream=True, successes_before_fail=5
+        rows_data = data_table_read_rows_with_error_injector.read_rows()
+        rows_data.consume_all()
+
+        _assert_data_table_read_rows_retry_correct(rows_data)
+
+
+    def test_table_read_rows_retry_unretriable_error_mid_stream(
+        self, data_table_read_rows_with_error_injector,
+    ):
+        from google.api_core import exceptions
+
+        error_injector = data_table_read_rows_with_error_injector.error_injector
+        error_injector.errors_to_inject = [
+            error_injector.make_exception(
+                StatusCode.DATA_LOSS, fail_mid_stream=True, successes_before_fail=5
+            )
+        ]
+
+        rows_data = data_table_read_rows_with_error_injector.read_rows()
+        with pytest.raises(exceptions.DataLoss):
+            rows_data.consume_all()
+
+
+    def test_table_read_rows_retry_retriable_errors_mid_stream(
+        self, data_table_read_rows_with_error_injector,
+    ):
+        error_injector = data_table_read_rows_with_error_injector.error_injector
+        error_injector.errors_to_inject = [
+            error_injector.make_exception(
+                StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=4
+            ),
+            error_injector.make_exception(
+                StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=0
+            ),
+            error_injector.make_exception(
+                StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=0
+            ),
+        ]
+
+        rows_data = data_table_read_rows_with_error_injector.read_rows()
+        rows_data.consume_all()
+
+        _assert_data_table_read_rows_retry_correct(rows_data)
+
+
+    def test_table_read_rows_retry_retriable_internal_errors_mid_stream(
+        self, data_table_read_rows_with_error_injector,
+    ):
+        from google.cloud.bigtable.row_data import RETRYABLE_INTERNAL_ERROR_MESSAGES
+
+        error_injector = data_table_read_rows_with_error_injector.error_injector
+        error_injector.errors_to_inject = [
+            error_injector.make_exception(
+                StatusCode.INTERNAL,
+                message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0],
+                fail_mid_stream=True,
+                successes_before_fail=2,
+            ),
+            error_injector.make_exception(
+                StatusCode.INTERNAL,
+                message=RETRYABLE_INTERNAL_ERROR_MESSAGES[1],
+                fail_mid_stream=True,
+                successes_before_fail=1,
+            ),
+            error_injector.make_exception(
+                StatusCode.INTERNAL,
+                message=RETRYABLE_INTERNAL_ERROR_MESSAGES[2],
+                fail_mid_stream=True,
+                successes_before_fail=0,
+            ),
+        ]
+
+        rows_data = data_table_read_rows_with_error_injector.read_rows()
+        rows_data.consume_all()
+
+        _assert_data_table_read_rows_retry_correct(rows_data)
+
+
+    def test_table_read_rows_retry_unretriable_internal_errors_mid_stream(
+        self, data_table_read_rows_with_error_injector,
+    ):
+        from google.api_core import exceptions
+
+        error_injector = data_table_read_rows_with_error_injector.error_injector
+        error_injector.errors_to_inject = [
+            error_injector.make_exception(
+                StatusCode.INTERNAL,
+                message="Don't retry this at home!",
+                fail_mid_stream=True,
+                successes_before_fail=2,
+            ),
+        ]
+
+        rows_data = data_table_read_rows_with_error_injector.read_rows()
+        with pytest.raises(exceptions.InternalServerError):
+            rows_data.consume_all()
+
+
+    def test_table_read_rows_retry_retriable_error_mid_stream_unretriable_error_reestablishing_stream(
+        self, data_table_read_rows_with_error_injector,
+    ):
+        # Simulate a connection failure mid-stream into an unretriable error when trying to reconnect.
+        from google.api_core import exceptions
+
+        error_injector = data_table_read_rows_with_error_injector.error_injector
+        error_injector.errors_to_inject = [
+            error_injector.make_exception(
+                StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=5
+            ),
+            error_injector.make_exception(StatusCode.ABORTED, fail_mid_stream=False),
+        ]
+
+        rows_data = data_table_read_rows_with_error_injector.read_rows()
+
+        with pytest.raises(exceptions.Aborted):
+            rows_data.consume_all()
+
+
+    def test_table_read_rows_retry_retriable_error_mid_stream_retriable_error_reestablishing_stream(
+        self, data_table_read_rows_with_error_injector,
+    ):
+        # Simulate a connection failure mid-stream into retriable errors when trying to reconnect.
+        error_injector = data_table_read_rows_with_error_injector.error_injector
+        error_injector.errors_to_inject = [
+            error_injector.make_exception(
+                StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=5
+            ),
+            error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=False),
+            error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=False),
+            error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=False),
+        ]
+
+        rows_data = data_table_read_rows_with_error_injector.read_rows()
+        rows_data.consume_all()
+
+        _assert_data_table_read_rows_retry_correct(rows_data)
+
+
+    def test_table_read_rows_retry_timeout_mid_stream(
+        self, data_table_read_rows_with_error_injector,
+    ):
+        # Simulate a read timeout mid stream.
+
+        from google.api_core import exceptions
+        from google.cloud.bigtable.row_data import (
+            DEFAULT_RETRY_READ_ROWS,
+            RETRYABLE_INTERNAL_ERROR_MESSAGES,
         )
-    ]
 
-    rows_data = data_table_read_rows_with_error_injector.read_rows()
-    with pytest.raises(exceptions.DataLoss):
-        rows_data.consume_all()
+        error_injector = data_table_read_rows_with_error_injector.error_injector
+        error_injector.errors_to_inject = [
+            error_injector.make_exception(
+                StatusCode.INTERNAL,
+                message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0],
+                fail_mid_stream=True,
+                successes_before_fail=5,
+            ),
+        ] + [
+            error_injector.make_exception(
+                StatusCode.INTERNAL,
+                message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0],
+                fail_mid_stream=True,
+                successes_before_fail=0,
+            ),
+        ] * 20
 
-
-def test_table_read_rows_retry_retriable_errors_mid_stream(
-    data_table_read_rows_with_error_injector,
-):
-    error_injector = data_table_read_rows_with_error_injector.error_injector
-    error_injector.errors_to_inject = [
-        error_injector.make_exception(
-            StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=4
-        ),
-        error_injector.make_exception(
-            StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=0
-        ),
-        error_injector.make_exception(
-            StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=0
-        ),
-    ]
-
-    rows_data = data_table_read_rows_with_error_injector.read_rows()
-    rows_data.consume_all()
-
-    _assert_data_table_read_rows_retry_correct(rows_data)
-
-
-def test_table_read_rows_retry_retriable_internal_errors_mid_stream(
-    data_table_read_rows_with_error_injector,
-):
-    from google.cloud.bigtable.row_data import RETRYABLE_INTERNAL_ERROR_MESSAGES
-
-    error_injector = data_table_read_rows_with_error_injector.error_injector
-    error_injector.errors_to_inject = [
-        error_injector.make_exception(
-            StatusCode.INTERNAL,
-            message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0],
-            fail_mid_stream=True,
-            successes_before_fail=2,
-        ),
-        error_injector.make_exception(
-            StatusCode.INTERNAL,
-            message=RETRYABLE_INTERNAL_ERROR_MESSAGES[1],
-            fail_mid_stream=True,
-            successes_before_fail=1,
-        ),
-        error_injector.make_exception(
-            StatusCode.INTERNAL,
-            message=RETRYABLE_INTERNAL_ERROR_MESSAGES[2],
-            fail_mid_stream=True,
-            successes_before_fail=0,
-        ),
-    ]
-
-    rows_data = data_table_read_rows_with_error_injector.read_rows()
-    rows_data.consume_all()
-
-    _assert_data_table_read_rows_retry_correct(rows_data)
-
-
-def test_table_read_rows_retry_unretriable_internal_errors_mid_stream(
-    data_table_read_rows_with_error_injector,
-):
-    from google.api_core import exceptions
-
-    error_injector = data_table_read_rows_with_error_injector.error_injector
-    error_injector.errors_to_inject = [
-        error_injector.make_exception(
-            StatusCode.INTERNAL,
-            message="Don't retry this at home!",
-            fail_mid_stream=True,
-            successes_before_fail=2,
-        ),
-    ]
-
-    rows_data = data_table_read_rows_with_error_injector.read_rows()
-    with pytest.raises(exceptions.InternalServerError):
-        rows_data.consume_all()
-
-
-def test_table_read_rows_retry_retriable_error_mid_stream_unretriable_error_reestablishing_stream(
-    data_table_read_rows_with_error_injector,
-):
-    # Simulate a connection failure mid-stream into an unretriable error when trying to reconnect.
-    from google.api_core import exceptions
-
-    error_injector = data_table_read_rows_with_error_injector.error_injector
-    error_injector.errors_to_inject = [
-        error_injector.make_exception(
-            StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=5
-        ),
-        error_injector.make_exception(StatusCode.ABORTED, fail_mid_stream=False),
-    ]
-
-    rows_data = data_table_read_rows_with_error_injector.read_rows()
-
-    with pytest.raises(exceptions.Aborted):
-        rows_data.consume_all()
-
-
-def test_table_read_rows_retry_retriable_error_mid_stream_retriable_error_reestablishing_stream(
-    data_table_read_rows_with_error_injector,
-):
-    # Simulate a connection failure mid-stream into retriable errors when trying to reconnect.
-    error_injector = data_table_read_rows_with_error_injector.error_injector
-    error_injector.errors_to_inject = [
-        error_injector.make_exception(
-            StatusCode.UNAVAILABLE, fail_mid_stream=True, successes_before_fail=5
-        ),
-        error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=False),
-        error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=False),
-        error_injector.make_exception(StatusCode.UNAVAILABLE, fail_mid_stream=False),
-    ]
-
-    rows_data = data_table_read_rows_with_error_injector.read_rows()
-    rows_data.consume_all()
-
-    _assert_data_table_read_rows_retry_correct(rows_data)
-
-
-def test_table_read_rows_retry_timeout_mid_stream(
-    data_table_read_rows_with_error_injector,
-):
-    # Simulate a read timeout mid stream.
-
-    from google.api_core import exceptions
-    from google.cloud.bigtable.row_data import (
-        DEFAULT_RETRY_READ_ROWS,
-        RETRYABLE_INTERNAL_ERROR_MESSAGES,
-    )
-
-    error_injector = data_table_read_rows_with_error_injector.error_injector
-    error_injector.errors_to_inject = [
-        error_injector.make_exception(
-            StatusCode.INTERNAL,
-            message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0],
-            fail_mid_stream=True,
-            successes_before_fail=5,
-        ),
-    ] + [
-        error_injector.make_exception(
-            StatusCode.INTERNAL,
-            message=RETRYABLE_INTERNAL_ERROR_MESSAGES[0],
-            fail_mid_stream=True,
-            successes_before_fail=0,
-        ),
-    ] * 20
-
-    # Shorten the deadline so the timeout test is shorter.
-    rows_data = data_table_read_rows_with_error_injector.read_rows(
-        retry=DEFAULT_RETRY_READ_ROWS.with_deadline(10.0)
-    )
-    with pytest.raises(exceptions.RetryError):
-        rows_data.consume_all()
-
-
-def test_table_read_rows_retry_timeout_establishing_stream(
-    data_table_read_rows_with_error_injector,
-):
-    # Simulate a read timeout when creating the stream.
-
-    from google.api_core import exceptions
-    from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
-
-    error_injector = data_table_read_rows_with_error_injector.error_injector
-    error_injector.errors_to_inject = [
-        error_injector.make_exception(
-            StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False
-        ),
-    ] + [
-        error_injector.make_exception(
-            StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False
-        ),
-    ] * 20
-
-    # Shorten the deadline so the timeout test is shorter.
-    with pytest.raises(exceptions.RetryError):
-        data_table_read_rows_with_error_injector.read_rows(
+        # Shorten the deadline so the timeout test is shorter.
+        rows_data = data_table_read_rows_with_error_injector.read_rows(
             retry=DEFAULT_RETRY_READ_ROWS.with_deadline(10.0)
         )
+        with pytest.raises(exceptions.RetryError):
+            rows_data.consume_all()
+
+
+    def test_table_read_rows_retry_timeout_establishing_stream(
+        self, data_table_read_rows_with_error_injector,
+    ):
+        # Simulate a read timeout when creating the stream.
+
+        from google.api_core import exceptions
+        from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
+
+        error_injector = data_table_read_rows_with_error_injector.error_injector
+        error_injector.errors_to_inject = [
+            error_injector.make_exception(
+                StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False
+            ),
+        ] + [
+            error_injector.make_exception(
+                StatusCode.DEADLINE_EXCEEDED, fail_mid_stream=False
+            ),
+        ] * 20
+
+        # Shorten the deadline so the timeout test is shorter.
+        with pytest.raises(exceptions.RetryError):
+            data_table_read_rows_with_error_injector.read_rows(
+                retry=DEFAULT_RETRY_READ_ROWS.with_deadline(10.0)
+            )
 
 
 def test_table_check_and_mutate_rows(data_table, rows_to_delete):
