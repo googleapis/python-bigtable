@@ -61,7 +61,8 @@ class ReadRowsErrorInjector(UnaryStreamClientInterceptor):
     
     The error injector is configured to inject errors off the self.errors_to_inject queue.
     Exceptions can be configured to arise either during stream initialization or in the middle
-    of a stream.
+    of a stream. If no errors are in the error injection queue, the ReadRows RPC call will behave
+    normally.
     """
     def __init__(self):
         self.errors_to_inject = []
