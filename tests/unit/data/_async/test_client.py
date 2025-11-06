@@ -26,6 +26,7 @@ from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.api_core import exceptions as core_exceptions
+from google.api_core import client_options
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data.mutations import DeleteAllFromRow
@@ -51,13 +52,21 @@ from tests.unit.data.execute_query.sql_helpers import (
 if CrossSync.is_async:
     from google.api_core import grpc_helpers_async
     from google.cloud.bigtable.data._async.client import TableAsync
+    from google.cloud.bigtable.data._async._swappable_channel import (
+        AsyncSwappableChannel,
+    )
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers_async)
+    CrossSync.add_mapping("SwappableChannel", AsyncSwappableChannel)
 else:
     from google.api_core import grpc_helpers
     from google.cloud.bigtable.data._sync_autogen.client import Table  # noqa: F401
+    from google.cloud.bigtable.data._sync_autogen._swappable_channel import (
+        SwappableChannel,
+    )
 
     CrossSync.add_mapping("grpc_helpers", grpc_helpers)
+    CrossSync.add_mapping("SwappableChannel", SwappableChannel)
 
 __CROSS_SYNC_OUTPUT__ = "tests.unit.data._sync_autogen.test_client"
 
@@ -228,6 +237,7 @@ class TestBigtableDataClientAsync:
             client, "_ping_and_warm_instances", CrossSync.Mock()
         ) as ping_and_warm:
             client._emulator_host = None
+            client.transport._grpc_channel = CrossSync.SwappableChannel(mock.Mock)
             client._start_background_channel_refresh()
             assert client._channel_refresh_task is not None
             assert isinstance(client._channel_refresh_task, CrossSync.Task)
@@ -383,44 +393,31 @@ class TestBigtableDataClientAsync:
         """
         _manage channel should call ping and warm internally
         """
-        import time
         import threading
 
-        if CrossSync.is_async:
-            from google.cloud.bigtable_v2.services.bigtable.transports.grpc_asyncio import (
-                _LoggingClientAIOInterceptor as Interceptor,
-            )
-        else:
-            from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
-                _LoggingClientInterceptor as Interceptor,
-            )
-
-        client_mock = mock.Mock()
-        client_mock.transport._interceptor = Interceptor()
-        client_mock._is_closed.is_set.return_value = False
-        client_mock._channel_init_time = time.monotonic()
-        orig_channel = client_mock.transport.grpc_channel
+        client = self._make_client(project="project-id", use_emulator=True)
+        orig_channel = client.transport.grpc_channel
         # should ping an warm all new channels, and old channels if sleeping
         sleep_tuple = (
             (asyncio, "sleep") if CrossSync.is_async else (threading.Event, "wait")
         )
-        with mock.patch.object(*sleep_tuple):
-            # stop process after close is called
-            orig_channel.close.side_effect = asyncio.CancelledError
-            ping_and_warm = client_mock._ping_and_warm_instances = CrossSync.Mock()
+        with mock.patch.object(*sleep_tuple) as sleep_mock:
+            # stop process after loop
+            sleep_mock.side_effect = [None, asyncio.CancelledError]
+            ping_and_warm = client._ping_and_warm_instances = CrossSync.Mock()
             # should ping and warm old channel then new if sleep > 0
             try:
-                await self._get_target_class()._manage_channel(client_mock, 10)
+                await client._manage_channel(10)
             except asyncio.CancelledError:
                 pass
             # should have called at loop start, and after replacement
             assert ping_and_warm.call_count == 2
             # should have replaced channel once
-            assert client_mock.transport._grpc_channel != orig_channel
+            assert client.transport.grpc_channel._channel != orig_channel
             # make sure new and old channels were warmed
             called_with = [call[1]["channel"] for call in ping_and_warm.call_args_list]
             assert orig_channel in called_with
-            assert client_mock.transport.grpc_channel in called_with
+            assert client.transport.grpc_channel._channel in called_with
 
     @CrossSync.pytest
     @pytest.mark.parametrize(
@@ -438,8 +435,6 @@ class TestBigtableDataClientAsync:
         import time
         import random
 
-        channel = mock.Mock()
-        channel.close = CrossSync.Mock()
         with mock.patch.object(random, "uniform") as uniform:
             uniform.side_effect = lambda min_, max_: min_
             with mock.patch.object(time, "time") as time_mock:
@@ -448,8 +443,7 @@ class TestBigtableDataClientAsync:
                     sleep.side_effect = [None for i in range(num_cycles - 1)] + [
                         asyncio.CancelledError
                     ]
-                    client = self._make_client(project="project-id")
-                    client.transport._grpc_channel = channel
+                    client = self._make_client(project="project-id", use_emulator=True)
                     with mock.patch.object(
                         client.transport, "create_channel", CrossSync.Mock
                     ):
@@ -505,26 +499,27 @@ class TestBigtableDataClientAsync:
         expected_refresh = 0.5
         grpc_lib = grpc.aio if CrossSync.is_async else grpc
         new_channel = grpc_lib.insecure_channel("localhost:8080")
+        create_channel_mock = mock.Mock()
+        create_channel_mock.return_value = new_channel
+        refreshable_channel = CrossSync.SwappableChannel(create_channel_mock)
 
         with mock.patch.object(CrossSync, "event_wait") as sleep:
             sleep.side_effect = [None for i in range(num_cycles)] + [RuntimeError]
-            with mock.patch.object(
-                CrossSync.grpc_helpers, "create_channel"
-            ) as create_channel:
-                create_channel.return_value = new_channel
-                client = self._make_client(project="project-id")
-                create_channel.reset_mock()
-                try:
-                    await client._manage_channel(
-                        refresh_interval_min=expected_refresh,
-                        refresh_interval_max=expected_refresh,
-                        grace_period=0,
-                    )
-                except RuntimeError:
-                    pass
-                assert sleep.call_count == num_cycles + 1
-                assert create_channel.call_count == num_cycles
-            await client.close()
+            client = self._make_client(project="project-id")
+            client.transport._grpc_channel = refreshable_channel
+            create_channel_mock.reset_mock()
+            sleep.reset_mock()
+            try:
+                await client._manage_channel(
+                    refresh_interval_min=expected_refresh,
+                    refresh_interval_max=expected_refresh,
+                    grace_period=0,
+                )
+            except RuntimeError:
+                pass
+            assert sleep.call_count == num_cycles + 1
+            assert create_channel_mock.call_count == num_cycles
+        await client.close()
 
     @CrossSync.pytest
     async def test__register_instance(self):
@@ -542,7 +537,7 @@ class TestBigtableDataClientAsync:
         client_mock._ping_and_warm_instances = CrossSync.Mock()
         table_mock = mock.Mock()
         await self._get_target_class()._register_instance(
-            client_mock, "instance-1", table_mock
+            client_mock, "instance-1", table_mock.app_profile_id, id(table_mock)
         )
         # first call should start background refresh
         assert client_mock._start_background_channel_refresh.call_count == 1
@@ -560,7 +555,7 @@ class TestBigtableDataClientAsync:
         # next call should not call _start_background_channel_refresh again
         table_mock2 = mock.Mock()
         await self._get_target_class()._register_instance(
-            client_mock, "instance-2", table_mock2
+            client_mock, "instance-2", table_mock2.app_profile_id, id(table_mock2)
         )
         assert client_mock._start_background_channel_refresh.call_count == 1
         assert (
@@ -612,7 +607,7 @@ class TestBigtableDataClientAsync:
         )
         # fake first registration
         await self._get_target_class()._register_instance(
-            client_mock, "instance-1", table_mock
+            client_mock, "instance-1", table_mock.app_profile_id, id(table_mock)
         )
         assert len(active_instances) == 1
         assert expected_key == tuple(list(active_instances)[0])
@@ -622,7 +617,7 @@ class TestBigtableDataClientAsync:
         assert client_mock._ping_and_warm_instances.call_count == 1
         # next call should do nothing
         await self._get_target_class()._register_instance(
-            client_mock, "instance-1", table_mock
+            client_mock, "instance-1", table_mock.app_profile_id, id(table_mock)
         )
         assert len(active_instances) == 1
         assert expected_key == tuple(list(active_instances)[0])
@@ -664,7 +659,7 @@ class TestBigtableDataClientAsync:
         for instance, profile in insert_instances:
             table_mock.app_profile_id = profile
             await self._get_target_class()._register_instance(
-                client_mock, instance, table_mock
+                client_mock, instance, profile, id(table_mock)
             )
         assert len(active_instances) == len(expected_active)
         assert len(instance_owners) == len(expected_owner_keys)
@@ -687,8 +682,8 @@ class TestBigtableDataClientAsync:
     async def test__remove_instance_registration(self):
         client = self._make_client(project="project-id")
         table = mock.Mock()
-        await client._register_instance("instance-1", table)
-        await client._register_instance("instance-2", table)
+        await client._register_instance("instance-1", table.app_profile_id, id(table))
+        await client._register_instance("instance-2", table.app_profile_id, id(table))
         assert len(client._active_instances) == 2
         assert len(client._instance_owners.keys()) == 2
         instance_1_path = client._gapic_client.instance_path(
@@ -703,13 +698,15 @@ class TestBigtableDataClientAsync:
         assert list(client._instance_owners[instance_1_key])[0] == id(table)
         assert len(client._instance_owners[instance_2_key]) == 1
         assert list(client._instance_owners[instance_2_key])[0] == id(table)
-        success = await client._remove_instance_registration("instance-1", table)
+        success = client._remove_instance_registration(
+            "instance-1", table.app_profile_id, id(table)
+        )
         assert success
         assert len(client._active_instances) == 1
         assert len(client._instance_owners[instance_1_key]) == 0
         assert len(client._instance_owners[instance_2_key]) == 1
         assert client._active_instances == {instance_2_key}
-        success = await client._remove_instance_registration("fake-key", table)
+        success = client._remove_instance_registration("fake-key", "profile", id(table))
         assert not success
         assert len(client._active_instances) == 1
         await client.close()
@@ -1038,6 +1035,97 @@ class TestBigtableDataClientAsync:
         assert client.project == "project-id"
         assert client._channel_refresh_task is None
 
+    @CrossSync.pytest
+    async def test_default_universe_domain(self):
+        """
+        When not passed, universe_domain should default to googleapis.com
+        """
+        async with self._make_client(project="project-id", credentials=None) as client:
+            assert client.universe_domain == "googleapis.com"
+            assert client.api_endpoint == "bigtable.googleapis.com"
+
+    @CrossSync.pytest
+    async def test_custom_universe_domain(self):
+        """test with a customized universe domain value and emulator enabled"""
+        universe_domain = "test-universe.test"
+        options = client_options.ClientOptions(universe_domain=universe_domain)
+        async with self._make_client(
+            project="project_id",
+            client_options=options,
+            use_emulator=True,
+            credentials=None,
+        ) as client:
+            assert client.universe_domain == universe_domain
+            assert client.api_endpoint == f"bigtable.{universe_domain}"
+
+    @CrossSync.pytest
+    async def test_configured_universe_domain_matches_GDU(self):
+        """that configured universe domain succeeds with matched GDU credentials."""
+        universe_domain = "googleapis.com"
+        options = client_options.ClientOptions(universe_domain=universe_domain)
+        async with self._make_client(
+            project="project_id", client_options=options, credentials=None
+        ) as client:
+            assert client.universe_domain == "googleapis.com"
+            assert client.api_endpoint == "bigtable.googleapis.com"
+
+    @CrossSync.pytest
+    async def test_credential_universe_domain_matches_GDU(self):
+        """Test with credentials"""
+        creds = AnonymousCredentials()
+        creds._universe_domain = "googleapis.com"
+        async with self._make_client(project="project_id", credentials=creds) as client:
+            assert client.universe_domain == "googleapis.com"
+            assert client.api_endpoint == "bigtable.googleapis.com"
+
+    @CrossSync.pytest
+    async def test_anomynous_credential_universe_domain(self):
+        """Anomynopus credentials should use default universe domain"""
+        creds = AnonymousCredentials()
+        async with self._make_client(project="project_id", credentials=creds) as client:
+            assert client.universe_domain == "googleapis.com"
+            assert client.api_endpoint == "bigtable.googleapis.com"
+
+    @CrossSync.pytest
+    async def test_configured_universe_domain_mismatched_credentials(self):
+        """Test that configured universe domain errors with mismatched universe
+        domain credentials.
+        """
+        universe_domain = "test-universe.test"
+        options = client_options.ClientOptions(universe_domain=universe_domain)
+        creds = AnonymousCredentials()
+        creds._universe_domain = "different-universe"
+        with pytest.raises(ValueError) as exc:
+            self._make_client(
+                project="project_id",
+                client_options=options,
+                use_emulator=False,
+                credentials=creds,
+            )
+        err_msg = (
+            f"The configured universe domain ({universe_domain}) does "
+            "not match the universe domain found in the credentials "
+            f"({creds.universe_domain}). If you haven't "
+            "configured the universe domain explicitly, `googleapis.com` "
+            "is the default."
+        )
+        assert exc.value.args[0] == err_msg
+
+    @CrossSync.pytest
+    async def test_configured_universe_domain_matches_credentials(self):
+        """Test that configured universe domain succeeds with matching universe
+        domain credentials.
+        """
+        universe_domain = "test-universe.test"
+        options = client_options.ClientOptions(universe_domain=universe_domain)
+        creds = AnonymousCredentials()
+        creds._universe_domain = universe_domain
+        async with self._make_client(
+            project="project_id", credentials=creds, client_options=options
+        ) as client:
+            assert client.universe_domain == universe_domain
+            assert client.api_endpoint == f"bigtable.{universe_domain}"
+
 
 @CrossSync.convert_class("TestTable", add_mapping_for_name="TestTable")
 class TestTableAsync:
@@ -1358,19 +1446,12 @@ class TestTableAsync:
         # expect x-goog-request-params tag
         assert metadata[0][0] == "x-goog-request-params"
         routing_str = metadata[0][1]
-        assert self._expected_routing_header(table) in routing_str
+        assert f"table_name={table.table_name}" in routing_str
         if include_app_profile:
             assert "app_profile_id=profile" in routing_str
         else:
             # empty app_profile_id should send empty string
             assert "app_profile_id=" in routing_str
-
-    @staticmethod
-    def _expected_routing_header(table):
-        """
-        the expected routing header for this _ApiSurface type
-        """
-        return f"table_name={table.table_name}"
 
 
 @CrossSync.convert_class(
@@ -1398,13 +1479,6 @@ class TestAuthorizedViewsAsync(CrossSync.TestTable):
         return self._get_target_class()(
             client, instance_id, table_id, view_id, app_profile_id, **kwargs
         )
-
-    @staticmethod
-    def _expected_routing_header(view):
-        """
-        the expected routing header for this _ApiSurface type
-        """
-        return f"authorized_view_name={view.authorized_view_name}"
 
     @CrossSync.pytest
     async def test_ctor(self):

@@ -1037,7 +1037,7 @@ class Table(object):
                             and `backup_id` parameters even of such specified.
 
         :return: An instance of
-             :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`.
+             :class:`~google.api_core.operation.Operation`.
 
         :raises: google.api_core.exceptions.AlreadyExists: If the table
                  already exists.
@@ -1055,7 +1055,7 @@ class Table(object):
                 cluster=cluster_id,
                 backup=backup_id,
             )
-        return api.restore_table(
+        return api._restore_table(
             request={
                 "parent": self._instance.name,
                 "table_id": new_table_id,

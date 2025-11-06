@@ -816,7 +816,7 @@ def _list_tables_helper(table_name=None):
     instance_api = client._instance_admin_client = _make_instance_admin_api()
     instance_api.instance_path.return_value = "projects/project/instances/instance-id"
     table_api = client._table_admin_client = mock.create_autospec(
-        BigtableTableAdminClient
+        BaseBigtableTableAdminClient
     )
     if table_name is None:
         table_name = TABLE_NAME

@@ -357,7 +357,7 @@ def _create_test_helper(gc_rule=None):
         + table_id
     )
 
-    api = mock.create_autospec(BigtableTableAdminClient)
+    api = mock.create_autospec(BaseBigtableTableAdminClient)
 
     credentials = _make_credentials()
     client = _make_client(project=project_id, credentials=credentials, admin=True)
@@ -428,7 +428,7 @@ def _update_test_helper(gc_rule=None):
         + table_id
     )
 
-    api = mock.create_autospec(BigtableTableAdminClient)
+    api = mock.create_autospec(BaseBigtableTableAdminClient)
     credentials = _make_credentials()
     client = _make_client(project=project_id, credentials=credentials, admin=True)
     table = _Table(table_name, client=client)
@@ -499,7 +499,7 @@ def test_column_family_delete():
         + table_id
     )
 
-    api = mock.create_autospec(BigtableTableAdminClient)
+    api = mock.create_autospec(BaseBigtableTableAdminClient)
     credentials = _make_credentials()
     client = _make_client(project=project_id, credentials=credentials, admin=True)
     table = _Table(table_name, client=client)

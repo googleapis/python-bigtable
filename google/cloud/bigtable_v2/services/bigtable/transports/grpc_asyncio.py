@@ -290,7 +290,6 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
             always_use_jwt_access=always_use_jwt_access,
             api_audience=api_audience,
         )
-
         if not self._grpc_channel:
             # initialize with the provided callable or the default channel
             channel_init = channel or type(self).create_channel
@@ -552,10 +551,11 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         r"""Return a callable for the generate initial change stream
         partitions method over gRPC.
 
-        NOTE: This API is intended to be used by Apache Beam BigtableIO.
         Returns the current list of partitions that make up the table's
         change stream. The union of partitions will cover the entire
         keyspace. Partitions can be read with ``ReadChangeStream``.
+        NOTE: This API is only intended to be used by Apache Beam
+        BigtableIO.
 
         Returns:
             Callable[[~.GenerateInitialChangeStreamPartitionsRequest],
@@ -585,10 +585,11 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
     ]:
         r"""Return a callable for the read change stream method over gRPC.
 
-        NOTE: This API is intended to be used by Apache Beam
-        BigtableIO. Reads changes from a table's change stream.
-        Changes will reflect both user-initiated mutations and
-        mutations that are caused by garbage collection.
+        Reads changes from a table's change stream. Changes
+        will reflect both user-initiated mutations and mutations
+        that are caused by garbage collection.
+        NOTE: This API is only intended to be used by Apache
+        Beam BigtableIO.
 
         Returns:
             Callable[[~.ReadChangeStreamRequest],

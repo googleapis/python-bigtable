@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO: Add the async client after owlbot changes.
-
 from .async_client import BigtableTableAdminAsyncClient
 from .client import BigtableTableAdminClient
 

@@ -260,7 +260,7 @@ if __name__ == "__main__":
     ]
     add_sections(toc_path, custom_sections)
     # Remove the Bigtable section, since it has duplicated data
-    remove_sections(toc_path, ["Bigtable"])
+    remove_sections(toc_path, ["Bigtable", "Bigtable Admin V2"])
     # run validation to make sure yaml is structured as we expect
     validate_toc(
         toc_file_path=toc_path,

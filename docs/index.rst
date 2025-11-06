@@ -11,7 +11,6 @@ Client Types
    classic_client/usage
    admin_client/admin_client_usage
 
-
 Changelog
 ---------
 

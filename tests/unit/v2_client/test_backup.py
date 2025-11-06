@@ -735,7 +735,7 @@ def test_backup_restore_w_grpc_error():
 
     client = _Client()
     api = client.table_admin_client = _make_table_admin_client()
-    api.restore_table.side_effect = Unknown("testing")
+    api._restore_table.side_effect = Unknown("testing")
 
     timestamp = _make_timestamp()
     backup = _make_backup(
@@ -749,7 +749,7 @@ def test_backup_restore_w_grpc_error():
     with pytest.raises(GoogleAPICallError):
         backup.restore(TABLE_ID)
 
-    api.restore_table.assert_called_once_with(
+    api._restore_table.assert_called_once_with(
         request={"parent": INSTANCE_NAME, "table_id": TABLE_ID, "backup": BACKUP_NAME}
     )
 
@@ -772,7 +772,7 @@ def _restore_helper(instance_id=None, instance_name=None):
     op_future = object()
     client = _Client()
     api = client.table_admin_client = _make_table_admin_client()
-    api.restore_table.return_value = op_future
+    api._restore_table.return_value = op_future
 
     timestamp = _make_timestamp()
     backup = _make_backup(
@@ -787,14 +787,14 @@ def _restore_helper(instance_id=None, instance_name=None):
     assert backup._cluster == CLUSTER_ID
     assert future is op_future
 
-    api.restore_table.assert_called_once_with(
+    api._restore_table.assert_called_once_with(
         request={
             "parent": instance_name or INSTANCE_NAME,
             "table_id": TABLE_ID,
             "backup": BACKUP_NAME,
         }
     )
-    api.restore_table.reset_mock()
+    api._restore_table.reset_mock()
 
 
 def test_backup_restore_default():
