@@ -23,8 +23,8 @@ from google.rpc import status_pb2, code_pb2
 
 from google.api_core import operation, exceptions
 from google.api_core.operations_v1 import operations_client
-from google.cloud.bigtable.admin_v2.types import bigtable_table_admin, table
-from google.cloud.bigtable.admin_v2.overlay.types import restore_table
+from google.cloud.bigtable.admin.types import bigtable_table_admin, table
+from google.cloud.bigtable.admin.overlay.types import restore_table
 
 import pytest
 

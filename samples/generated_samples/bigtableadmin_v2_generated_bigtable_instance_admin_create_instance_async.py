@@ -31,18 +31,18 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud.bigtable import admin
 
 
 async def sample_create_instance():
     # Create a client
-    client = admin_v2.BigtableInstanceAdminAsyncClient()
+    client = admin.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
-    instance = admin_v2.Instance()
+    instance = admin.Instance()
     instance.display_name = "display_name_value"
 
-    request = admin_v2.CreateInstanceRequest(
+    request = admin.CreateInstanceRequest(
         parent="parent_value",
         instance_id="instance_id_value",
         instance=instance,

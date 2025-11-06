@@ -19,8 +19,8 @@ try:
 except ImportError:  # pragma: NO COVER
     import mock
 
-from google.cloud.bigtable.admin_v2.overlay.types import consistency
-from google.cloud.bigtable.admin_v2.types import bigtable_table_admin
+from google.cloud.bigtable.admin.overlay.types import consistency
+from google.cloud.bigtable.admin.types import bigtable_table_admin
 
 import pytest
 

@@ -254,7 +254,7 @@ if __name__ == "__main__":
             toc_file_path=toc_path,
             section_name="Bigtable",
             title="Admin Client",
-            uid_prefix="google.cloud.bigtable.admin_v2",
+            uid_prefix="google.cloud.bigtable.admin",
         ),
         TocSection(dir_name="classic_client", index_file_name="usage.rst"),
     ]

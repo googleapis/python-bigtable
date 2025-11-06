@@ -15,7 +15,7 @@
 #
 import proto
 
-from google.cloud.bigtable.admin_v2.utils import oneof_message
+from google.cloud.bigtable.admin.utils import oneof_message
 
 __protobuf__ = proto.module(
     package="test.oneof.v1",

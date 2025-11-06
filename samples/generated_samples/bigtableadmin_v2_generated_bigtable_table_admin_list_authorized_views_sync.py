@@ -31,15 +31,15 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud.bigtable import admin
 
 
 def sample_list_authorized_views():
     # Create a client
-    client = admin_v2.BigtableTableAdminClient()
+    client = admin.BigtableTableAdminClient()
 
     # Initialize request argument(s)
-    request = admin_v2.ListAuthorizedViewsRequest(
+    request = admin.ListAuthorizedViewsRequest(
         parent="parent_value",
     )
 

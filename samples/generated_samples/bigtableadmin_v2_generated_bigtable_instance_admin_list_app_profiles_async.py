@@ -31,15 +31,15 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud.bigtable import admin
 
 
 async def sample_list_app_profiles():
     # Create a client
-    client = admin_v2.BigtableInstanceAdminAsyncClient()
+    client = admin.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
-    request = admin_v2.ListAppProfilesRequest(
+    request = admin.ListAppProfilesRequest(
         parent="parent_value",
     )
 

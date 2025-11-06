@@ -24,13 +24,13 @@ from google.api_core import exceptions
 from google.api_core import gapic_v1
 from google.api_core import retry as retries
 from google.auth.credentials import AnonymousCredentials
-from google.cloud.bigtable.admin_v2.services.bigtable_table_admin import transports
-from google.cloud.bigtable.admin_v2.types import bigtable_table_admin
-from google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin.async_client import (
+from google.cloud.bigtable.admin.services.bigtable_table_admin import transports
+from google.cloud.bigtable.admin.types import bigtable_table_admin
+from google.cloud.bigtable.admin.overlay.services.bigtable_table_admin.async_client import (
     BigtableTableAdminAsyncClient,
     DEFAULT_CLIENT_INFO,
 )
-from google.cloud.bigtable.admin_v2.overlay.types import (
+from google.cloud.bigtable.admin.overlay.types import (
     async_restore_table,
     wait_for_consistency_request,
 )

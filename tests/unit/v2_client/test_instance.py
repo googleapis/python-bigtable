@@ -54,7 +54,7 @@ def _make_client(*args, **kwargs):
 
 
 def _make_instance_admin_api():
-    from google.cloud.bigtable.admin_v2.services.bigtable_instance_admin import (
+    from google.cloud.bigtable.admin.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
 
@@ -103,7 +103,7 @@ def test_instance_constructor_non_default():
 
 
 def test_instance__update_from_pb_success():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin.types import instance as data_v2_pb2
     from google.cloud.bigtable import enums
 
     instance_type = data_v2_pb2.Instance.Type.PRODUCTION
@@ -128,7 +128,7 @@ def test_instance__update_from_pb_success():
 
 
 def test_instance__update_from_pb_success_defaults():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin.types import instance as data_v2_pb2
     from google.cloud.bigtable import enums
 
     instance_pb = data_v2_pb2.Instance(display_name=DISPLAY_NAME)
@@ -144,7 +144,7 @@ def test_instance__update_from_pb_success_defaults():
 
 
 def test_instance__update_from_pb_wo_display_name():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin.types import instance as data_v2_pb2
 
     instance_pb = data_v2_pb2.Instance()
     instance = _make_instance(None, None)
@@ -155,7 +155,7 @@ def test_instance__update_from_pb_wo_display_name():
 
 
 def test_instance_from_pb_success():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin.types import instance as data_v2_pb2
     from google.cloud.bigtable import enums
     from google.cloud.bigtable.instance import Instance
 
@@ -183,7 +183,7 @@ def test_instance_from_pb_success():
 
 
 def test_instance_from_pb_bad_instance_name():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin.types import instance as data_v2_pb2
     from google.cloud.bigtable.instance import Instance
 
     instance_name = "INCORRECT_FORMAT"
@@ -194,7 +194,7 @@ def test_instance_from_pb_bad_instance_name():
 
 
 def test_instance_from_pb_project_mistmatch():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin.types import instance as data_v2_pb2
     from google.cloud.bigtable.instance import Instance
 
     ALT_PROJECT = "ALT_PROJECT"
@@ -272,10 +272,10 @@ def _instance_api_response_for_create():
     from google.longrunning import operations_pb2
     from google.protobuf.any_pb2 import Any
     from google.cloud._helpers import _datetime_to_pb_timestamp
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable.admin.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
-    from google.cloud.bigtable.admin_v2.types import instance
+    from google.cloud.bigtable.admin.types import instance
 
     NOW = datetime.datetime.utcnow()
     NOW_PB = _datetime_to_pb_timestamp(NOW)
@@ -305,8 +305,8 @@ def _instance_api_response_for_create():
 
 def test_instance_create():
     from google.cloud.bigtable import enums
-    from google.cloud.bigtable.admin_v2.types import Instance
-    from google.cloud.bigtable.admin_v2.types import Cluster
+    from google.cloud.bigtable.admin.types import Instance
+    from google.cloud.bigtable.admin.types import Cluster
     import warnings
 
     credentials = _make_credentials()
@@ -355,8 +355,8 @@ def test_instance_create():
 def test_instance_create_w_clusters():
     from google.cloud.bigtable import enums
     from google.cloud.bigtable.cluster import Cluster
-    from google.cloud.bigtable.admin_v2.types import Cluster as cluster_pb
-    from google.cloud.bigtable.admin_v2.types import Instance as instance_pb
+    from google.cloud.bigtable.admin.types import Cluster as cluster_pb
+    from google.cloud.bigtable.admin.types import Instance as instance_pb
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -421,7 +421,7 @@ def test_instance_create_w_clusters():
 
 
 def test_instance_exists_hit():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin.types import instance as data_v2_pb2
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -472,7 +472,7 @@ def test_instance_exists_w_error():
 
 
 def test_instance_reload():
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin.types import instance as data_v2_pb2
     from google.cloud.bigtable import enums
 
     DISPLAY_NAME = "hey-hi-hello"
@@ -498,10 +498,10 @@ def _instance_api_response_for_update():
     from google.longrunning import operations_pb2
     from google.protobuf.any_pb2 import Any
     from google.cloud._helpers import _datetime_to_pb_timestamp
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable.admin.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
-    from google.cloud.bigtable.admin_v2.types import instance
+    from google.cloud.bigtable.admin.types import instance
 
     NOW = datetime.datetime.utcnow()
     NOW_PB = _datetime_to_pb_timestamp(NOW)
@@ -529,7 +529,7 @@ def _instance_api_response_for_update():
 def test_instance_update():
     from google.cloud.bigtable import enums
     from google.protobuf import field_mask_pb2
-    from google.cloud.bigtable.admin_v2.types import Instance
+    from google.cloud.bigtable.admin.types import Instance
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -562,7 +562,7 @@ def test_instance_update():
 
 def test_instance_update_empty():
     from google.protobuf import field_mask_pb2
-    from google.cloud.bigtable.admin_v2.types import Instance
+    from google.cloud.bigtable.admin.types import Instance
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -745,10 +745,10 @@ def test_instance_cluster_factory():
 
 
 def test_instance_list_clusters():
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable.admin.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin.types import instance as data_v2_pb2
     from google.cloud.bigtable.instance import Instance
     from google.cloud.bigtable.instance import Cluster
 
@@ -801,11 +801,11 @@ def test_instance_table_factory():
 
 
 def _list_tables_helper(table_name=None):
-    from google.cloud.bigtable.admin_v2.types import table as table_data_v2_pb2
-    from google.cloud.bigtable.admin_v2.types import (
+    from google.cloud.bigtable.admin.types import table as table_data_v2_pb2
+    from google.cloud.bigtable.admin.types import (
         bigtable_table_admin as table_messages_v1_pb2,
     )
-    from google.cloud.bigtable.admin_v2.overlay.services.bigtable_table_admin import (
+    from google.cloud.bigtable.admin.overlay.services.bigtable_table_admin import (
         BigtableTableAdminClient,
     )
 
@@ -889,7 +889,7 @@ def test_instance_app_profile_factory():
 def test_instance_list_app_profiles():
     from google.api_core.page_iterator import Iterator
     from google.api_core.page_iterator import Page
-    from google.cloud.bigtable.admin_v2.types import instance as data_v2_pb2
+    from google.cloud.bigtable.admin.types import instance as data_v2_pb2
     from google.cloud.bigtable.app_profile import AppProfile
 
     class _Iterator(Iterator):

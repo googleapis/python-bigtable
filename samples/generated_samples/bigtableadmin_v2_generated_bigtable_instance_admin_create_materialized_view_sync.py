@@ -31,18 +31,18 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud.bigtable import admin
 
 
 def sample_create_materialized_view():
     # Create a client
-    client = admin_v2.BigtableInstanceAdminClient()
+    client = admin.BigtableInstanceAdminClient()
 
     # Initialize request argument(s)
-    materialized_view = admin_v2.MaterializedView()
+    materialized_view = admin.MaterializedView()
     materialized_view.query = "query_value"
 
-    request = admin_v2.CreateMaterializedViewRequest(
+    request = admin.CreateMaterializedViewRequest(
         parent="parent_value",
         materialized_view_id="materialized_view_id_value",
         materialized_view=materialized_view,

@@ -31,18 +31,18 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud.bigtable import admin
 
 
 def sample_update_schema_bundle():
     # Create a client
-    client = admin_v2.BigtableTableAdminClient()
+    client = admin.BigtableTableAdminClient()
 
     # Initialize request argument(s)
-    schema_bundle = admin_v2.SchemaBundle()
+    schema_bundle = admin.SchemaBundle()
     schema_bundle.proto_schema.proto_descriptors = b'proto_descriptors_blob'
 
-    request = admin_v2.UpdateSchemaBundleRequest(
+    request = admin.UpdateSchemaBundleRequest(
         schema_bundle=schema_bundle,
     )
 

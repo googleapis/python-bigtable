@@ -18,17 +18,17 @@ import sys
 import importlib
 import pkgutil
 
-import google.cloud.bigtable.admin_v2
+import google.cloud.bigtable.admin
 
-# Alias all subpackages of google.cloud.bigtable.admin_v2 to
+# Alias all subpackages of google.cloud.bigtable.admin to
 # corresponding subpackages of google.cloud.bigtable_admin_v2.
 
-_NEW_PATH = "google.cloud.bigtable.admin_v2"
-sys.modules[__name__] = google.cloud.bigtable.admin_v2
+_NEW_PATH = "google.cloud.bigtable.admin"
+sys.modules[__name__] = google.cloud.bigtable.admin
 
 # iterate and import all submodules to populate sys.modules
 for _, name, _ in pkgutil.walk_packages(
-    path=google.cloud.bigtable.admin_v2.__path__,
+    path=google.cloud.bigtable.admin.__path__,
     prefix=_NEW_PATH + ".",
 ):
     mod = importlib.import_module(name)

@@ -14,7 +14,7 @@
 
 from typing import Tuple
 
-from google.cloud.bigtable import admin_v2
+from google.cloud.bigtable import admin
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from google.cloud.bigtable.data import mutations, read_rows_query
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
@@ -68,7 +68,7 @@ async def data_client(admin_overlay_project_id):
 )
 @CrossSync.pytest_fixture(scope="session")
 async def table_admin_client(admin_overlay_project_id):
-    async with admin_v2.BigtableTableAdminAsyncClient(
+    async with admin.BigtableTableAdminAsyncClient(
         client_options={
             "quota_project_id": admin_overlay_project_id,
         }
@@ -81,7 +81,7 @@ async def table_admin_client(admin_overlay_project_id):
 )
 @CrossSync.pytest_fixture(scope="session")
 async def instance_admin_client(admin_overlay_project_id):
-    async with admin_v2.BigtableInstanceAdminAsyncClient(
+    async with admin.BigtableInstanceAdminAsyncClient(
         client_options={
             "quota_project_id": admin_overlay_project_id,
         }
@@ -120,9 +120,9 @@ async def create_instance(
     data_client,
     project_id,
     instances_to_delete,
-    storage_type=admin_v2.StorageType.HDD,
+    storage_type=admin.StorageType.HDD,
     cluster_locations=DEFAULT_CLUSTER_LOCATIONS,
-) -> Tuple[admin_v2.Instance, admin_v2.Table]:
+) -> Tuple[admin.Instance, admin.Table]:
     """
     Creates a new Bigtable instance with the specified project_id, storage type, and cluster locations.
 
@@ -135,7 +135,7 @@ async def create_instance(
     instance_id = generate_unique_suffix(INSTANCE_PREFIX)
 
     for idx, location in enumerate(cluster_locations):
-        clusters[location] = admin_v2.Cluster(
+        clusters[location] = admin.Cluster(
             name=instance_admin_client.cluster_path(
                 project_id, instance_id, f"{instance_id}-{idx}"
             ),
@@ -146,14 +146,14 @@ async def create_instance(
     # Instance and cluster creation are currently unsupported in the Bigtable emulator
     if os.getenv(BIGTABLE_EMULATOR):
         # All we need for system tests so far is the instance name.
-        instance = admin_v2.Instance(
+        instance = admin.Instance(
             name=instance_admin_client.instance_path(project_id, instance_id),
         )
     else:
-        create_instance_request = admin_v2.CreateInstanceRequest(
+        create_instance_request = admin.CreateInstanceRequest(
             parent=instance_admin_client.common_project_path(project_id),
             instance_id=instance_id,
-            instance=admin_v2.Instance(
+            instance=admin.Instance(
                 display_name=instance_id[
                     :30
                 ],  # truncate to 30 characters because of character limit
@@ -166,12 +166,12 @@ async def create_instance(
         instances_to_delete.append(instance)
 
     # Create a table within the instance
-    create_table_request = admin_v2.CreateTableRequest(
+    create_table_request = admin.CreateTableRequest(
         parent=instance_admin_client.instance_path(project_id, instance_id),
         table_id=TEST_TABLE_NAME,
-        table=admin_v2.Table(
+        table=admin.Table(
             column_families={
-                TEST_COLUMMN_FAMILY_NAME: admin_v2.ColumnFamily(),
+                TEST_COLUMMN_FAMILY_NAME: admin.ColumnFamily(),
             }
         ),
     )
@@ -220,7 +220,7 @@ async def populate_table(table_admin_client, data_client, instance, table, cell_
 @CrossSync.convert
 async def create_backup(
     instance_admin_client, table_admin_client, instance, table, backups_to_delete
-) -> admin_v2.Backup:
+) -> admin.Backup:
     """
     Creates a backup of the given table under the given instance.
 
@@ -237,10 +237,10 @@ async def create_backup(
 
     # Create the backup
     operation = await table_admin_client.create_backup(
-        admin_v2.CreateBackupRequest(
+        admin.CreateBackupRequest(
             parent=cluster_name,
             backup_id=backup_id,
-            backup=admin_v2.Backup(
+            backup=admin.Backup(
                 name=f"{cluster_name}/backups/{backup_id}",
                 source_table=table.name,
                 expire_time=datetime.now() + timedelta(hours=7),
@@ -286,8 +286,8 @@ async def assert_table_cell_value_equal_to(
 @pytest.mark.parametrize(
     "second_instance_storage_type,expect_optimize_operation",
     [
-        (admin_v2.StorageType.HDD, False),
-        (admin_v2.StorageType.SSD, True),
+        (admin.StorageType.HDD, False),
+        (admin.StorageType.SSD, True),
     ],
 )
 async def test_optimize_restored_table(
@@ -309,7 +309,7 @@ async def test_optimize_restored_table(
         data_client,
         admin_overlay_project_id,
         instances_to_delete,
-        admin_v2.StorageType.HDD,
+        admin.StorageType.HDD,
     )
 
     instance_to_restore, _ = await create_instance(
@@ -331,14 +331,14 @@ async def test_optimize_restored_table(
 
     # Restore to other instance
     restore_operation = await table_admin_client.restore_table(
-        admin_v2.RestoreTableRequest(
+        admin.RestoreTableRequest(
             parent=instance_to_restore.name,
             table_id=TEST_BACKUP_TABLE_NAME,
             backup=backup.name,
         )
     )
 
-    assert isinstance(restore_operation, admin_v2.AsyncRestoreTableOperation)
+    assert isinstance(restore_operation, admin.AsyncRestoreTableOperation)
     restored_table = await restore_operation.result()
 
     optimize_operation = await restore_operation.optimize_restored_table_operation()
@@ -385,9 +385,9 @@ async def test_wait_for_consistency(
         table_admin_client, data_client, instance, table, NEW_CELL_VALUE
     )
 
-    wait_for_consistency_request = admin_v2.WaitForConsistencyRequest(
+    wait_for_consistency_request = admin.WaitForConsistencyRequest(
         name=table.name,
-        standard_read_remote_writes=admin_v2.StandardReadRemoteWrites(),
+        standard_read_remote_writes=admin.StandardReadRemoteWrites(),
     )
     await table_admin_client.wait_for_consistency(wait_for_consistency_request)
     await assert_table_cell_value_equal_to(

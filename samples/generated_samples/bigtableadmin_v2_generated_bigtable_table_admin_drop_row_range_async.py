@@ -31,15 +31,15 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud.bigtable import admin_v2
+from google.cloud.bigtable import admin
 
 
 async def sample_drop_row_range():
     # Create a client
-    client = admin_v2.BigtableTableAdminAsyncClient()
+    client = admin.BigtableTableAdminAsyncClient()
 
     # Initialize request argument(s)
-    request = admin_v2.DropRowRangeRequest(
+    request = admin.DropRowRangeRequest(
         row_key_prefix=b'row_key_prefix_blob',
         name="name_value",
     )
