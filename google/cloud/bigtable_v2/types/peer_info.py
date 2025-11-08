@@ -21,9 +21,9 @@ import proto  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.v2',
+    package="google.bigtable.v2",
     manifest={
-        'PeerInfo',
+        "PeerInfo",
     },
 )
 
@@ -51,6 +51,7 @@ class PeerInfo(proto.Message):
         transport_type (google.cloud.bigtable_v2.types.PeerInfo.TransportType):
 
     """
+
     class TransportType(proto.Enum):
         r"""The transport type that the client used to connect to this
         peer.
