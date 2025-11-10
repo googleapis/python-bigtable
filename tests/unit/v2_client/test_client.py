@@ -455,7 +455,7 @@ def test_client_table_admin_client_not_initialized_w_admin_flag():
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
 
     table_admin_client = client.table_admin_client
-    assert isinstance(table_admin_client, BaseBigtableTableAdminClient)
+    assert isinstance(table_admin_client, BigtableTableAdminClient)
     assert client._table_admin_client is table_admin_client
 
 
@@ -472,7 +472,7 @@ def test_client_table_admin_client_not_initialized_w_client_info():
     )
 
     table_admin_client = client.table_admin_client
-    assert isinstance(table_admin_client, BaseBigtableTableAdminClient)
+    assert isinstance(table_admin_client, BigtableTableAdminClient)
     assert client._client_info is client_info
     assert client._table_admin_client is table_admin_client
 

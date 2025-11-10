@@ -349,7 +349,7 @@ def _make_table_api():
         client as bigtable_table_admin,
     )
 
-    return mock.create_autospec(bigtable_table_admin.BaseBigtableTableAdminClient)
+    return mock.create_autospec(bigtable_table_admin.BigtableTableAdminClient)
 
 
 def _create_table_helper(split_keys=[], column_families={}):
