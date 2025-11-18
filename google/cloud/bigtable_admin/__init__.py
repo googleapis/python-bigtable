@@ -18,7 +18,7 @@
 # only an import alias for objects in google.cloud.bigtable_admin_v2.
 # We maintain that surface here.
 
-from google.cloud.bigtable.admin import *
+from google.cloud.bigtable.admin import *   # noqa: F401,F403
 import google.cloud.bigtable.admin
 
 __all__ = google.cloud.bigtable.admin.__all__
