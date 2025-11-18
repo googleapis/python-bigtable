@@ -52,7 +52,7 @@ from google.cloud.bigtable.admin.services.bigtable_table_admin.transports.base i
 )
 from google.cloud.bigtable.admin.overlay.types import (
     consistency,
-    restore_table,
+    restore_table as restore_table_lro,
     wait_for_consistency_request,
 )
 
@@ -141,7 +141,7 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, Union[str, bytes]]] = (),
-    ) -> restore_table.RestoreTableOperation:
+    ) -> restore_table_lro.RestoreTableOperation:
         r"""Create a new table by restoring from a completed backup. The
         returned table :class:`long-running operation
         <google.cloud.bigtable.admin.overlay.types.restore_table.RestoreTableOperation>`
@@ -223,7 +223,7 @@ class BigtableTableAdminClient(base_client.BaseBigtableTableAdminClient):
             metadata=metadata,
         )
 
-        restore_table_operation = restore_table.RestoreTableOperation(
+        restore_table_operation = restore_table_lro.RestoreTableOperation(
             self._transport.operations_client, operation
         )
         return restore_table_operation
