@@ -26,46 +26,6 @@ from synthtool.sources import templates
 
 common = gcp.CommonTemplates()
 
-# This is a customized version of the s.get_staging_dirs() function from synthtool to
-# cater for copying 2 different folders from googleapis-gen
-# which are bigtable and bigtable/admin.
-# Source https://github.com/googleapis/synthtool/blob/master/synthtool/transforms.py#L280
-def get_staging_dirs(
-    default_version: Optional[str] = None, sub_directory: Optional[str] = None
-) -> List[Path]:
-    """Returns the list of directories, one per version, copied from
-    https://github.com/googleapis/googleapis-gen. Will return in lexical sorting
-    order with the exception of the default_version which will be last (if specified).
-
-    Args:
-      default_version (str): the default version of the API. The directory for this version
-        will be the last item in the returned list if specified.
-      sub_directory (str): if a `sub_directory` is provided, only the directories within the
-        specified `sub_directory` will be returned.
-
-    Returns: the empty list if no file were copied.
-    """
-
-    staging = Path("owl-bot-staging")
-
-    if sub_directory:
-        staging /= sub_directory
-
-    if staging.is_dir():
-        # Collect the subdirectories of the staging directory.
-        versions = [v.name for v in staging.iterdir() if v.is_dir()]
-        # Reorder the versions so the default version always comes last.
-        versions = [v for v in versions if v != default_version]
-        versions.sort()
-        if default_version is not None:
-            versions += [default_version]
-        dirs = [staging / v for v in versions]
-        for dir in dirs:
-            s._tracked_paths.add(dir)
-        return dirs
-    else:
-        return []
-
 # This library ships clients for two different APIs,
 # BigTable and BigTable Admin
 bigtable_default_version = "v2"
@@ -80,16 +40,52 @@ is_fresh_admin_copy = False
 is_fresh_admin_v2_copy = False
 is_fresh_admin_docs_copy = False
 
-for library in get_staging_dirs(bigtable_default_version, "bigtable"):
-    s.move(library / "google/cloud/bigtable_v2", excludes=["**/gapic_version.py"])
+for library in s.get_staging_dirs(bigtable_default_version):
+    # ----------------------------------------------------------------------------
+    # Always supply app_profile_id in routing headers: https://github.com/googleapis/python-bigtable/pull/1109
+    # TODO: remove after backend no longer requires empty strings
+    # ----------------------------------------------------------------------------
+    for file in ["async_client.py", "client.py"]:
+        s.replace(
+            library / f"google/cloud/bigtable_v2/services/bigtable/{file}",
+            "if request.app_profile_id:",
+            "if True:  # always attach app_profile_id, even if empty string"
+        )
+    # fix tests
+    s.replace(
+        library / "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+        'assert \(\n\s*gapic_v1\.routing_header\.to_grpc_metadata\(expected_headers\) in kw\["metadata"\]\n.*',
+        """
+            # assert the expected headers are present, in any order
+            routing_string =  next(iter([m[1] for m in kw["metadata"] if m[0] == 'x-goog-request-params']))
+            assert all([f"{k}={v}" in routing_string for k,v in expected_headers.items()])
+        """
+    )
+    s.replace(
+        library / "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+        'expected_headers = {"name": "projects/sample1/instances/sample2"}',
+        'expected_headers = {"name": "projects/sample1/instances/sample2", "app_profile_id": ""}'
+    )
+    s.replace(
+        library / "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+        """expected_headers = \{
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        \}""",
+        """expected_headers = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "app_profile_id": ""
+        }"""
+    )
+
+    s.move(library / "google/cloud/bigtable_v2")
     s.move(library / "tests")
     s.move(library / "scripts")
 
-for library in get_staging_dirs(bigtable_admin_default_version, "bigtable_admin"):
+for library in s.get_staging_dirs(bigtable_admin_default_version):
     is_fresh_admin_copy = \
-        s.move(library / "google/cloud/bigtable_admin", excludes=["**/gapic_version.py"])
+        s.move(library / "google/cloud/bigtable_admin")
     is_fresh_admin_v2_copy = \
-        s.move(library / "google/cloud/bigtable_admin_v2", excludes=["**/gapic_version.py"])
+        s.move(library / "google/cloud/bigtable_admin_v2")
     s.move(library / "tests")
     s.move(library / "samples")
     s.move(library / "scripts")
@@ -114,48 +110,7 @@ templated_files = common.py_library(
     default_python_version="3.13",
 )
 
-s.move(templated_files, excludes=[".coveragerc", "README.rst", ".github/release-please.yml", "noxfile.py", "renovate.json"])
-
-
-# ----------------------------------------------------------------------------
-# Always supply app_profile_id in routing headers: https://github.com/googleapis/python-bigtable/pull/1109
-# TODO: remove after backend no longer requires empty strings
-# ----------------------------------------------------------------------------
-for file in ["async_client.py", "client.py"]:
-    s.replace(
-        f"google/cloud/bigtable_v2/services/bigtable/{file}",
-        "if request.app_profile_id:",
-        "if True:  # always attach app_profile_id, even if empty string"
-    )
-# fix tests
-s.replace(
-    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
-    'assert \(\n\s*gapic_v1\.routing_header\.to_grpc_metadata\(expected_headers\) in kw\["metadata"\]\n.*',
-    """
-        # assert the expected headers are present, in any order
-        routing_string =  next(iter([m[1] for m in kw["metadata"] if m[0] == 'x-goog-request-params']))
-        assert all([f"{k}={v}" in routing_string for k,v in expected_headers.items()])
-    """
-)
-s.replace(
-    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
-    'expected_headers = {"name": "projects/sample1/instances/sample2"}',
-    'expected_headers = {"name": "projects/sample1/instances/sample2", "app_profile_id": ""}'
-)
-s.replace(
-    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
-    """
-        expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3"
-        }
-    """,
-    """
-        expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
-            "app_profile_id": ""
-        }
-    """
-)
+s.move(templated_files, excludes=[".coveragerc", "README.rst", ".github/**", ".kokoro/**", "noxfile.py", "renovate.json"])
 
 # ----------------------------------------------------------------------------
 # Samples templates
