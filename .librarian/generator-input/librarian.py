@@ -26,11 +26,6 @@ from synthtool.sources import templates
 
 common = gcp.CommonTemplates()
 
-# This library ships clients for two different APIs,
-# BigTable and BigTable Admin
-bigtable_default_version = "v2"
-bigtable_admin_default_version = "v2"
-
 # These flags are needed because certain post-processing operations
 # append things after a certain line of text, and can infinitely loop
 # in a Github PR. We use these flags to only do those operations
@@ -40,48 +35,8 @@ is_fresh_admin_copy = False
 is_fresh_admin_v2_copy = False
 is_fresh_admin_docs_copy = False
 
-for library in s.get_staging_dirs(bigtable_default_version):
-    # ----------------------------------------------------------------------------
-    # Always supply app_profile_id in routing headers: https://github.com/googleapis/python-bigtable/pull/1109
-    # TODO: remove after backend no longer requires empty strings
-    # ----------------------------------------------------------------------------
-    for file in ["async_client.py", "client.py"]:
-        s.replace(
-            library / f"google/cloud/bigtable_v2/services/bigtable/{file}",
-            "if request.app_profile_id:",
-            "if True:  # always attach app_profile_id, even if empty string"
-        )
-    # fix tests
-    s.replace(
-        library / "tests/unit/gapic/bigtable_v2/test_bigtable.py",
-        'assert \(\n\s*gapic_v1\.routing_header\.to_grpc_metadata\(expected_headers\) in kw\["metadata"\]\n.*',
-        """
-            # assert the expected headers are present, in any order
-            routing_string =  next(iter([m[1] for m in kw["metadata"] if m[0] == 'x-goog-request-params']))
-            assert all([f"{k}={v}" in routing_string for k,v in expected_headers.items()])
-        """
-    )
-    s.replace(
-        library / "tests/unit/gapic/bigtable_v2/test_bigtable.py",
-        'expected_headers = {"name": "projects/sample1/instances/sample2"}',
-        'expected_headers = {"name": "projects/sample1/instances/sample2", "app_profile_id": ""}'
-    )
-    s.replace(
-        library / "tests/unit/gapic/bigtable_v2/test_bigtable.py",
-        """expected_headers = \{
-            "table_name": "projects/sample1/instances/sample2/tables/sample3"
-        \}""",
-        """expected_headers = {
-            "table_name": "projects/sample1/instances/sample2/tables/sample3",
-            "app_profile_id": ""
-        }"""
-    )
-
+for library in s.get_staging_dirs("v2"):
     s.move(library / "google/cloud/bigtable_v2")
-    s.move(library / "tests")
-    s.move(library / "scripts")
-
-for library in s.get_staging_dirs(bigtable_admin_default_version):
     is_fresh_admin_copy = \
         s.move(library / "google/cloud/bigtable_admin")
     is_fresh_admin_v2_copy = \
@@ -112,20 +67,57 @@ templated_files = common.py_library(
 
 s.move(templated_files, excludes=[".coveragerc", "README.rst", ".github/**", ".kokoro/**", "noxfile.py", "renovate.json"])
 
+
+s.shell.run(["nox", "-s", "blacken"], hide_output=False)
+
+# ----------------------------------------------------------------------------
+# Always supply app_profile_id in routing headers: https://github.com/googleapis/python-bigtable/pull/1109
+# TODO: remove after backend no longer requires empty strings
+# ----------------------------------------------------------------------------
+for file in ["async_client.py", "client.py"]:
+    s.replace(
+        f"google/cloud/bigtable_v2/services/bigtable/{file}",
+        "if request.app_profile_id:",
+        "if True:  # always attach app_profile_id, even if empty string"
+    )
+# fix tests
+s.replace(
+    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+    'assert \(\n\s*gapic_v1\.routing_header\.to_grpc_metadata\(expected_headers\) in kw\["metadata"\]\n.*',
+    """# assert the expected headers are present, in any order
+        routing_string = next(
+            iter([m[1] for m in kw["metadata"] if m[0] == "x-goog-request-params"])
+        )
+        assert all([f"{k}={v}" in routing_string for k, v in expected_headers.items()])"""
+)
+s.replace(
+    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+    'expected_headers = {"name": "projects/sample1/instances/sample2"}',
+    """expected_headers = {
+            "name": "projects/sample1/instances/sample2",
+            "app_profile_id": "",
+        }"""
+)
+s.replace(
+    "tests/unit/gapic/bigtable_v2/test_bigtable.py",
+    """
+        expected_headers = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+""",
+    """
+        expected_headers = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3",
+            "app_profile_id": "",
+        }
+"""
+)
+
 # ----------------------------------------------------------------------------
 # Samples templates
 # ----------------------------------------------------------------------------
 
 python.py_samples(skip_readmes=True)
-
-s.replace(
-    "samples/beam/noxfile.py",
-    """INSTALL_LIBRARY_FROM_SOURCE \= os.environ.get\("INSTALL_LIBRARY_FROM_SOURCE", False\) in \(
-    "True",
-    "true",
-\)""",
-    """# todo(kolea2): temporary workaround to install pinned dep version
-INSTALL_LIBRARY_FROM_SOURCE = False""")
 
 # --------------------------------------------------------------------------
 # Admin Overlay work
@@ -144,9 +136,8 @@ def add_overlay_to_init_py(init_py_location, import_statements, should_add):
 
 add_overlay_to_init_py(
     "google/cloud/bigtable_admin_v2/__init__.py",
-    """from .overlay import *  # noqa: F403
-__all__ += overlay.__all__  # noqa: F405
-""",
+    """from .overlay import *  # noqa: F403\n
+__all__ += overlay.__all__  # noqa: F405""",
     is_fresh_admin_v2_copy,
 )
 
@@ -155,8 +146,7 @@ add_overlay_to_init_py(
     """import google.cloud.bigtable_admin_v2.overlay  # noqa: F401
 from google.cloud.bigtable_admin_v2.overlay import *  # noqa: F401, F403
 
-__all__ += google.cloud.bigtable_admin_v2.overlay.__all__
-""",
+__all__ += google.cloud.bigtable_admin_v2.overlay.__all__""",
     is_fresh_admin_copy,
 )
 
@@ -274,5 +264,3 @@ from google.cloud.bigtable_admin_v2.utils import oneof_message""",
         r"class GcRule\(proto\.Message\)\:",
         "class GcRule(oneof_message.OneofMessage):",
     )
-
-s.shell.run(["nox", "-s", "blacken"], hide_output=False)

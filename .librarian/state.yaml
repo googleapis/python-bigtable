@@ -2,7 +2,7 @@ image: us-central1-docker.pkg.dev/cloud-sdk-librarian-prod/images-prod/python-li
 libraries:
   - id: google-cloud-bigtable
     version: 2.34.0
-    last_generated_commit: 5400ccce473c439885bd6bf2924fd242271bfcab
+    last_generated_commit: a17b84add8318f780fcc8a027815d5fee644b9f7
     apis:
       - path: google/bigtable/v2
         service_config: bigtable_v2.yaml
