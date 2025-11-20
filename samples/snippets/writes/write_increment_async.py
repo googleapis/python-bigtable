@@ -7,7 +7,8 @@ async def write_increment_async(project_id, instance_id, table_id):
     """Increments a value in a Bigtable table using the async client."""
     async with BigtableDataClientAsync(project=project_id) as client:
         table = client.get_table(instance_id, table_id)
-        row_key = "unique_device_ids_1"
+        # Define the row key as a byte string
+        row_key = b"unique_device_ids_1"
         try:
             async with table.mutations_batcher() as batcher:
                 # The AddToCell mutation increments the value of a cell.
@@ -17,10 +18,10 @@ async def write_increment_async(project_id, instance_id, table_id):
                     qualifier="odometer",
                     value=32304
                 )
-                await batcher.append(RowMutationEntry(row_key.encode("utf-8"), [reading]))
+                await batcher.append(RowMutationEntry(row_key, [reading]))
+            print(f"Successfully incremented row {row_key.decode('utf-8')}.")
         except MutationsExceptionGroup as e:
-            # MutationsExceptionGroup contains a FailedMutationEntryError for
-            # each mutation that failed.
+            print(f"Failed to increment row {row_key.decode('utf-8')}")
             for sub_exception in e.exceptions:
                 failed_entry: RowMutationEntry = sub_exception.entry
                 cause: Exception = sub_exception.__cause__
