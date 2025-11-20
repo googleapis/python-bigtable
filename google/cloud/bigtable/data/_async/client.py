@@ -64,7 +64,6 @@ from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 import google.auth.credentials
 import google.auth._default
 from google.api_core import client_options as client_options_lib
-from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data.row import Row
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
@@ -133,6 +132,7 @@ if TYPE_CHECKING:
 
 
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.client"
+_DEFAULT_BIGTABLE_EMULATOR_CLIENT = "google-cloud-bigtable-emulator"
 
 
 @CrossSync.convert_class(
@@ -185,7 +185,7 @@ class BigtableDataClientAsync(ClientWithProject):
         if "pool_size" in kwargs:
             warnings.warn("pool_size no longer supported")
         # set up client info headers for veneer library
-        self.client_info = DEFAULT_CLIENT_INFO
+        self.client_info = kwargs.get("client_info") or DEFAULT_CLIENT_INFO
         self.client_info.client_library_version = self._client_version()
         # parse client options
         if type(client_options) is dict:
@@ -236,6 +236,9 @@ class BigtableDataClientAsync(ClientWithProject):
                 "is the default."
             )
         self._is_closed = CrossSync.Event()
+        self._disable_background_channel_refresh = bool(
+            kwargs.get("disable_background_channel_refresh", False)
+        )
         self.transport = cast(TransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[_WarmedInstanceKey] = set()
@@ -329,6 +332,7 @@ class BigtableDataClientAsync(ClientWithProject):
             not self._channel_refresh_task
             and not self._emulator_host
             and not self._is_closed.is_set()
+            and not self._disable_background_channel_refresh
         ):
             # raise error if not in an event loop in async client
             CrossSync.verify_async_event_loop()

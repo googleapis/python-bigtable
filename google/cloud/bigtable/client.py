@@ -54,6 +54,11 @@ from google.cloud.bigtable_admin_v2.types import instance
 from google.cloud.bigtable.cluster import _CLUSTER_NAME_RE
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 
+from google.cloud.bigtable.data import BigtableDataClient
+from google.cloud.bigtable.data._sync_autogen.client import (
+    _DEFAULT_BIGTABLE_EMULATOR_CLIENT,
+)
+
 
 INSTANCE_TYPE_PRODUCTION = instance.Instance.Type.PRODUCTION
 INSTANCE_TYPE_DEVELOPMENT = instance.Instance.Type.DEVELOPMENT
@@ -66,7 +71,6 @@ DATA_SCOPE = "https://www.googleapis.com/auth/bigtable.data"
 READ_ONLY_SCOPE = "https://www.googleapis.com/auth/bigtable.data.readonly"
 """Scope for reading table data."""
 
-_DEFAULT_BIGTABLE_EMULATOR_CLIENT = "google-cloud-bigtable-emulator"
 _GRPC_CHANNEL_OPTIONS = (
     ("grpc.max_send_message_length", -1),
     ("grpc.max_receive_message_length", -1),
@@ -146,6 +150,7 @@ class Client(ClientWithProject):
     _table_data_client = None
     _table_admin_client = None
     _instance_admin_client = None
+    _new_table_data_client = None
 
     def __init__(
         self,
@@ -368,6 +373,23 @@ class Client(ClientWithProject):
             )
             self._instance_admin_client = klass(self)
         return self._instance_admin_client
+
+    @property
+    def new_table_data_client(self):
+        """Getter for the new Data Table API.
+
+        TODO: Replace table_data_client with this implementation
+        when shimming legacy client is finished.
+        """
+        if self._new_table_data_client is None:
+            self._new_table_data_client = BigtableDataClient(
+                project=self.project,
+                credentials=self._credentials,
+                client_options=self._client_options,
+                client_info=self._client_info,
+                disable_background_channel_refresh=True,
+            )
+        return self._new_table_data_client
 
     def instance(self, instance_id, display_name=None, instance_type=None, labels=None):
         """Factory to create a instance associated with this client.
