@@ -4,6 +4,22 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.35.0](https://github.com/googleapis/python-bigtable/compare/v2.34.0...v2.35.0) (2025-11-20)
+
+
+### Features
+
+* add basic interceptor to client (#1206) ([6561cfac605ba7c5b3f750c3bdca9108e517ba77](https://github.com/googleapis/python-bigtable/commit/6561cfac605ba7c5b3f750c3bdca9108e517ba77))
+* add PeerInfo proto in Bigtable API ([72dfdc440c22db0f4c372e6f11a9f7dc83fed350](https://github.com/googleapis/python-bigtable/commit/72dfdc440c22db0f4c372e6f11a9f7dc83fed350))
+* Add Type API updates needed to support structured keys in materialized views ([72dfdc440c22db0f4c372e6f11a9f7dc83fed350](https://github.com/googleapis/python-bigtable/commit/72dfdc440c22db0f4c372e6f11a9f7dc83fed350))
+* Add encodings for STRUCT and the Timestamp type ([72dfdc440c22db0f4c372e6f11a9f7dc83fed350](https://github.com/googleapis/python-bigtable/commit/72dfdc440c22db0f4c372e6f11a9f7dc83fed350))
+
+
+### Bug Fixes
+
+* Add ReadRows/SampleRowKeys bindings for materialized views ([72dfdc440c22db0f4c372e6f11a9f7dc83fed350](https://github.com/googleapis/python-bigtable/commit/72dfdc440c22db0f4c372e6f11a9f7dc83fed350))
+* Deprecate credentials_file argument ([72dfdc440c22db0f4c372e6f11a9f7dc83fed350](https://github.com/googleapis/python-bigtable/commit/72dfdc440c22db0f4c372e6f11a9f7dc83fed350))
+
 ## [2.34.0](https://github.com/googleapis/python-bigtable/compare/v2.33.0...v2.34.0) (2025-10-16)
 
 
