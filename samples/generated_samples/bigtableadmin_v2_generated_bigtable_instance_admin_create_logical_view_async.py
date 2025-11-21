@@ -31,18 +31,18 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud import bigtable_admin_v2
+from google.cloud.bigtable import admin
 
 
 async def sample_create_logical_view():
     # Create a client
-    client = bigtable_admin_v2.BigtableInstanceAdminAsyncClient()
+    client = admin.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
-    logical_view = bigtable_admin_v2.LogicalView()
+    logical_view = admin.LogicalView()
     logical_view.query = "query_value"
 
-    request = bigtable_admin_v2.CreateLogicalViewRequest(
+    request = admin.CreateLogicalViewRequest(
         parent="parent_value",
         logical_view_id="logical_view_id_value",
         logical_view=logical_view,

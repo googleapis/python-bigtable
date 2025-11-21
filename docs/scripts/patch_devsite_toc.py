@@ -252,9 +252,9 @@ if __name__ == "__main__":
         TocSection(dir_name="data_client", index_file_name="data_client_usage.rst"),
         UIDFilteredTocSection(
             toc_file_path=toc_path,
-            section_name="Bigtable Admin V2",
+            section_name="Bigtable",
             title="Admin Client",
-            uid_prefix="google.cloud.bigtable_admin_v2",
+            uid_prefix="google.cloud.bigtable.admin",
         ),
         TocSection(dir_name="classic_client", index_file_name="usage.rst"),
     ]
