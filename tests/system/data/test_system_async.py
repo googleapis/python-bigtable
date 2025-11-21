@@ -266,18 +266,19 @@ class TestSystemAsync:
     @CrossSync.pytest
     async def test_channel_refresh(self, table_id, instance_id, temp_rows):
         """
-        change grpc channel to refresh after 1 second. Schedule a read_rows call after refresh,
+        change grpc channel to refresh after 0.1 second. Schedule a read_rows call after refresh,
         to ensure new channel works
         """
         await temp_rows.add_row(b"row_key_1")
         await temp_rows.add_row(b"row_key_2")
         client = self._make_client()
         # start custom refresh task
+        client._channel_refresh_task.cancel()
         try:
             client._channel_refresh_task = CrossSync.create_task(
                 client._manage_channel,
-                refresh_interval_min=1,
-                refresh_interval_max=1,
+                refresh_interval_min=0.25,
+                refresh_interval_max=0.25,
                 sync_executor=client._executor,
             )
             # let task run
@@ -287,7 +288,7 @@ class TestSystemAsync:
                 channel_wrapper = client.transport.grpc_channel
                 first_channel = channel_wrapper._channel
                 assert len(rows) == 2
-                await CrossSync.sleep(2)
+                await CrossSync.sleep(0.5)
                 rows_after_refresh = await table.read_rows({})
                 assert len(rows_after_refresh) == 2
                 assert client.transport.grpc_channel is channel_wrapper
