@@ -162,7 +162,7 @@ class MutationsBatcher:
     - when batcher is closed or destroyed
 
     Args:
-        table: table or autrhorized_view used to preform rpc calls
+        target: table or authorized_view used to preform rpc calls
         flush_interval: Automatically flush every flush_interval seconds.
             If None, no time-based flushing is performed.
         flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
@@ -181,7 +181,7 @@ class MutationsBatcher:
 
     def __init__(
         self,
-        table: TargetType,
+        target: TargetType,
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
@@ -194,13 +194,13 @@ class MutationsBatcher:
         | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
     ):
         (self._operation_timeout, self._attempt_timeout) = _get_timeouts(
-            batch_operation_timeout, batch_attempt_timeout, table
+            batch_operation_timeout, batch_attempt_timeout, target
         )
         self._retryable_errors: list[type[Exception]] = _get_retryable_errors(
-            batch_retryable_errors, table
+            batch_retryable_errors, target
         )
         self._closed = CrossSync._Sync_Impl.Event()
-        self._target = table
+        self._target = target
         self._staged_entries: list[RowMutationEntry] = []
         (self._staged_count, self._staged_bytes) = (0, 0)
         self._flow_control = CrossSync._Sync_Impl._FlowControl(
@@ -319,7 +319,7 @@ class MutationsBatcher:
         Args:
             batch: list of RowMutationEntry objects to send to server
             timeout: timeout in seconds. Used as operation_timeout and attempt_timeout.
-                If not given, will use table defaults
+                If not given, will use target defaults
         Returns:
             list[FailedMutationEntryError]:
                 list of FailedMutationEntryError objects for mutations that failed.
