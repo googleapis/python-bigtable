@@ -312,6 +312,36 @@ class TestSystemAsync:
             await client.close()
 
     @CrossSync.pytest
+    async def test_channel_refresh_stress_test(self, table_id, instance_id, temp_rows):
+        """
+        While swapping channels, consistently hit it with reads. Make sure no failures are found
+        """
+        import time
+        await temp_rows.add_row(b"test_row")
+        client = self._make_client()
+        client._channel_refresh_task.cancel()
+        try:
+            # swap channels frequently, with large grace windows
+            client._channel_refresh_task = CrossSync.create_task(
+                client._manage_channel,
+                refresh_interval_min=0.1,
+                refresh_interval_max=0.1,
+                grace_period=0.2,
+                sync_executor=client._executor,
+            )
+
+            # hit channels with frequent requests
+            end_time = time.monotonic() + 1
+            async with client.get_table(instance_id, table_id) as table:
+                while time.monotonic() < end_time:
+                    # we expect a CancelledError if a channel is closed before completion
+                    rows = await table.read_rows({})
+                    assert len(rows) == 1
+                    await CrossSync.yield_to_event_loop()
+        finally:
+            await client.close()
+
+    @CrossSync.pytest
     @pytest.mark.usefixtures("target")
     @CrossSync.Retry(
         predicate=retry.if_exception_type(ClientError), initial=1, maximum=5
