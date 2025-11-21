@@ -271,10 +271,9 @@ class TestSystemAsync:
         """
         await temp_rows.add_row(b"row_key_1")
         await temp_rows.add_row(b"row_key_2")
-        client = self._make_client()
-        # start custom refresh task
-        client._channel_refresh_task.cancel()
-        try:
+        async with self._make_client() as client:
+            # start custom refresh task
+            client._channel_refresh_task.cancel()
             client._channel_refresh_task = CrossSync.create_task(
                 client._manage_channel,
                 refresh_interval_min=0.25,
@@ -308,8 +307,6 @@ class TestSystemAsync:
                         client.transport._logged_channel._interceptor, GapicInterceptor
                     )
                     assert updated_channel._interceptor == client._metrics_interceptor
-        finally:
-            await client.close()
 
     @CrossSync.pytest
     async def test_channel_refresh_stress_test(self, table_id, instance_id, temp_rows):
@@ -318,9 +315,8 @@ class TestSystemAsync:
         """
         import time
         await temp_rows.add_row(b"test_row")
-        client = self._make_client()
-        client._channel_refresh_task.cancel()
-        try:
+        async with self._make_client() as client:
+            client._channel_refresh_task.cancel()
             # swap channels frequently, with large grace windows
             client._channel_refresh_task = CrossSync.create_task(
                 client._manage_channel,
@@ -338,8 +334,6 @@ class TestSystemAsync:
                     rows = await table.read_rows({})
                     assert len(rows) == 1
                     await CrossSync.yield_to_event_loop()
-        finally:
-            await client.close()
 
     @CrossSync.pytest
     @pytest.mark.usefixtures("target")
