@@ -221,16 +221,16 @@ class TestSystem:
         reason="emulator mode doesn't refresh channel",
     )
     def test_channel_refresh(self, table_id, instance_id, temp_rows):
-        """change grpc channel to refresh after 1 second. Schedule a read_rows call after refresh,
-        to ensure new channel works"""
+        """change grpc channel to refresh quickly, then schedule a read_rows call after refresh
+        to ensure new channel is in place and works"""
         temp_rows.add_row(b"row_key_1")
         temp_rows.add_row(b"row_key_2")
-        client = self._make_client()
-        try:
+        with self._make_client() as client:
+            client._channel_refresh_task.cancel()
             client._channel_refresh_task = CrossSync._Sync_Impl.create_task(
                 client._manage_channel,
-                refresh_interval_min=1,
-                refresh_interval_max=1,
+                refresh_interval_min=0.25,
+                refresh_interval_max=0.25,
                 sync_executor=client._executor,
             )
             CrossSync._Sync_Impl.yield_to_event_loop()
@@ -239,7 +239,7 @@ class TestSystem:
                 channel_wrapper = client.transport.grpc_channel
                 first_channel = channel_wrapper._channel
                 assert len(rows) == 2
-                CrossSync._Sync_Impl.sleep(2)
+                CrossSync._Sync_Impl.sleep(0.5)
                 rows_after_refresh = table.read_rows({})
                 assert len(rows_after_refresh) == 2
                 assert client.transport.grpc_channel is channel_wrapper
@@ -249,8 +249,27 @@ class TestSystem:
                     client.transport._logged_channel._interceptor, GapicInterceptor
                 )
                 assert updated_channel._interceptor == client._metrics_interceptor
-        finally:
-            client.close()
+
+    def test_channel_refresh_stress_test(self, table_id, instance_id, temp_rows):
+        """While swapping channels, consistently hit it with reads. Make sure no failures are found"""
+        import time
+
+        temp_rows.add_row(b"test_row")
+        with self._make_client() as client:
+            client._channel_refresh_task.cancel()
+            client._channel_refresh_task = CrossSync._Sync_Impl.create_task(
+                client._manage_channel,
+                refresh_interval_min=0.1,
+                refresh_interval_max=0.1,
+                grace_period=0.2,
+                sync_executor=client._executor,
+            )
+            end_time = time.monotonic() + 1
+            with client.get_table(instance_id, table_id) as table:
+                while time.monotonic() < end_time:
+                    rows = table.read_rows({})
+                    assert len(rows) == 1
+                    CrossSync._Sync_Impl.yield_to_event_loop()
 
     @pytest.mark.usefixtures("target")
     @CrossSync._Sync_Impl.Retry(
