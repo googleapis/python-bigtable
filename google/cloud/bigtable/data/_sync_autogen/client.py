@@ -74,6 +74,7 @@ from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
+from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from typing import Iterable
 from grpc import insecure_channel
@@ -820,6 +821,7 @@ class _DataApiTarget(abc.ABC):
         self.default_retryable_errors: Sequence[type[Exception]] = (
             default_retryable_errors or ()
         )
+        self._metrics = BigtableClientSideMetricsController()
         try:
             self._register_instance_future = CrossSync._Sync_Impl.create_task(
                 self.client._register_instance,
@@ -1477,6 +1479,7 @@ class _DataApiTarget(abc.ABC):
 
     def close(self):
         """Called to close the Table instance and release any resources held by it."""
+        self._metrics.close()
         if self._register_instance_future:
             self._register_instance_future.cancel()
         self.client._remove_instance_registration(
