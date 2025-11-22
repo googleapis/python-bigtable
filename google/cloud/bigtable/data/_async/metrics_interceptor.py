@@ -37,15 +37,15 @@ else:
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.metrics_interceptor"
 
 
-def _with_operation_from_metadata(func):
+def _with_active_operation(func):
     """
-    Decorator for interceptor methods to extract the active operation
-    from metadata and pass it to the decorated function.
+    Decorator for interceptor methods to extract the active operation associated with the
+    in-scope contextvars, and pass it to the decorated function.
     """
 
     @wraps(func)
     def wrapper(self, continuation, client_call_details, request):
-        operation: "ActiveOperationMetric" | None = ActiveOperationMetric.get_active()
+        operation: "ActiveOperationMetric" | None = ActiveOperationMetric.from_context()
 
         if operation:
             # start a new attempt if not started
@@ -97,7 +97,7 @@ class AsyncBigtableMetricsInterceptor(
     """
 
     @CrossSync.convert
-    @_with_operation_from_metadata
+    @_with_active_operation
     async def intercept_unary_unary(
         self, operation, continuation, client_call_details, request
     ):
@@ -120,7 +120,7 @@ class AsyncBigtableMetricsInterceptor(
                 operation.add_response_metadata(metadata)
 
     @CrossSync.convert
-    @_with_operation_from_metadata
+    @_with_active_operation
     async def intercept_unary_stream(
         self, operation, continuation, client_call_details, request
     ):

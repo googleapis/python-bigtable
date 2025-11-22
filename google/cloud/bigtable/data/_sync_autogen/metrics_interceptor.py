@@ -26,13 +26,13 @@ from grpc import UnaryUnaryClientInterceptor
 from grpc import UnaryStreamClientInterceptor
 
 
-def _with_operation_from_metadata(func):
-    """Decorator for interceptor methods to extract the active operation
-    from metadata and pass it to the decorated function."""
+def _with_active_operation(func):
+    """Decorator for interceptor methods to extract the active operation associated with the
+    in-scope contextvars, and pass it to the decorated function."""
 
     @wraps(func)
     def wrapper(self, continuation, client_call_details, request):
-        operation: "ActiveOperationMetric" | None = ActiveOperationMetric.get_active()
+        operation: "ActiveOperationMetric" | None = ActiveOperationMetric.from_context()
         if operation:
             if (
                 operation.state == OperationState.CREATED
@@ -63,7 +63,7 @@ class BigtableMetricsInterceptor(
     An async gRPC interceptor to add client metadata and print server metadata.
     """
 
-    @_with_operation_from_metadata
+    @_with_active_operation
     def intercept_unary_unary(
         self, operation, continuation, client_call_details, request
     ):
@@ -83,7 +83,7 @@ class BigtableMetricsInterceptor(
             if metadata is not None:
                 operation.add_response_metadata(metadata)
 
-    @_with_operation_from_metadata
+    @_with_active_operation
     def intercept_unary_stream(
         self, operation, continuation, client_call_details, request
     ):

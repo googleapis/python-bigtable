@@ -177,7 +177,13 @@ class ActiveOperationMetric:
     ] = contextvars.ContextVar("active_operation_context")
 
     @classmethod
-    def get_active(cls):
+    def from_context(cls) -> ActiveOperationMetric | None:
+        """
+        Reads the active operation saved to contextvars
+
+        This is meant to be called by grpc interceptor to grab a reference to
+        the active attempt reference at the start of an rpc
+        """
         return cls._active_operation_context.get(None)
 
     @property
@@ -193,6 +199,9 @@ class ActiveOperationMetric:
             return OperationState.ACTIVE_ATTEMPT
 
     def __post_init__(self):
+        """
+        Save new instances to contextvars on init
+        """
         self._active_operation_context.set(self)
 
     def start(self) -> None:
@@ -205,6 +214,7 @@ class ActiveOperationMetric:
         if self.state != OperationState.CREATED:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
         self.start_time_ns = time.monotonic_ns()
+        # set as active operation in contextvars
         self._active_operation_context.set(self)
 
     def start_attempt(self) -> ActiveAttemptMetric | None:
@@ -220,6 +230,7 @@ class ActiveOperationMetric:
             return self._handle_error(
                 INVALID_STATE_ERROR.format("start_attempt", self.state)
             )
+        # set as active operation in contextvars
         self._active_operation_context.set(self)
 
         try:
