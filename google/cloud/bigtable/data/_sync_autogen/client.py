@@ -49,6 +49,8 @@ from google.api_core import retry as retries
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import ServiceUnavailable
 from google.api_core.exceptions import Aborted
+from google.protobuf.message import Message
+from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 import google.auth.credentials
 import google.auth._default
 from google.api_core import client_options as client_options_lib
@@ -86,7 +88,7 @@ from google.cloud.bigtable.data._sync_autogen._swappable_channel import (
     SwappableChannel as SwappableChannelType,
 )
 from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
-    BigtableMetricsInterceptor as MetricInterceptorType,
+    BigtableMetricsInterceptor as MetricsInterceptorType,
 )
 
 if TYPE_CHECKING:
@@ -150,7 +152,7 @@ class BigtableDataClient(ClientWithProject):
                 credentials = google.auth.credentials.AnonymousCredentials()
             if project is None:
                 project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
-        self._metrics_interceptor = MetricInterceptorType()
+        self._metrics_interceptor = MetricsInterceptorType()
         ClientWithProject.__init__(
             self,
             credentials=credentials,
@@ -212,12 +214,13 @@ class BigtableDataClient(ClientWithProject):
             create_channel_fn = partial(insecure_channel, self._emulator_host)
         else:
 
-            def create_channel_fn():
+            def sync_create_channel_fn():
                 return intercept_channel(
                     TransportType.create_channel(*args, **kwargs),
                     self._metrics_interceptor,
                 )
 
+            create_channel_fn = sync_create_channel_fn
         new_channel = SwappableChannelType(create_channel_fn)
         return new_channel
 
@@ -368,7 +371,7 @@ class BigtableDataClient(ClientWithProject):
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
 
     def _register_instance(
-        self, instance_id: str, owner: _DataApiTarget | ExecuteQueryIterator
+        self, instance_id: str, app_profile_id: Optional[str], owner_id: int
     ) -> None:
         """Registers an instance with the client, and warms the channel for the instance
         The client will periodically refresh grpc channel used to make
@@ -377,12 +380,14 @@ class BigtableDataClient(ClientWithProject):
 
         Args:
           instance_id: id of the instance to register.
-          owner: table that owns the instance. Owners will be tracked in
+          app_profile_id: id of the app profile calling the instance.
+          owner_id: integer id of the object owning the instance. Owners will be tracked in
               _instance_owners, and instances will only be unregistered when all
-              owners call _remove_instance_registration"""
+              owners call _remove_instance_registration. Can be obtained by calling
+              `id` identity funcion, using `id(owner)`"""
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        instance_key = _WarmedInstanceKey(instance_name, owner.app_profile_id)
-        self._instance_owners.setdefault(instance_key, set()).add(id(owner))
+        instance_key = _WarmedInstanceKey(instance_name, app_profile_id)
+        self._instance_owners.setdefault(instance_key, set()).add(owner_id)
         if instance_key not in self._active_instances:
             self._active_instances.add(instance_key)
             if self._channel_refresh_task:
@@ -391,7 +396,7 @@ class BigtableDataClient(ClientWithProject):
                 self._start_background_channel_refresh()
 
     def _remove_instance_registration(
-        self, instance_id: str, owner: _DataApiTarget | ExecuteQueryIterator
+        self, instance_id: str, app_profile_id: Optional[str], owner_id: int
     ) -> bool:
         """Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
@@ -400,16 +405,16 @@ class BigtableDataClient(ClientWithProject):
 
         Args:
             instance_id: id of the instance to remove
-            owner: table that owns the instance. Owners will be tracked in
-              _instance_owners, and instances will only be unregistered when all
-              owners call _remove_instance_registration
+            app_profile_id: id of the app profile calling the instance.
+            owner_id: integer id of the object owning the instance. Can be
+                obtained by the `id` identity funcion, using `id(owner)`.
         Returns:
             bool: True if instance was removed, else False"""
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        instance_key = _WarmedInstanceKey(instance_name, owner.app_profile_id)
+        instance_key = _WarmedInstanceKey(instance_name, app_profile_id)
         owner_list = self._instance_owners.get(instance_key, set())
         try:
-            owner_list.remove(id(owner))
+            owner_list.remove(owner_id)
             if len(owner_list) == 0:
                 self._active_instances.remove(instance_key)
             return True
@@ -524,6 +529,7 @@ class BigtableDataClient(ClientWithProject):
             DeadlineExceeded,
             ServiceUnavailable,
         ),
+        column_info: dict[str, Message | EnumTypeWrapper] | None = None,
     ) -> "ExecuteQueryIterator":
         """Executes an SQL query on an instance.
         Returns an iterator to asynchronously stream back columns from selected rows.
@@ -571,6 +577,62 @@ class BigtableDataClient(ClientWithProject):
                 If None, defaults to prepare_operation_timeout.
             prepare_retryable_errors: a list of errors that will be retried if encountered during prepareQuery.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+            column_info: (Optional) A dictionary mapping column names to Protobuf message classes or EnumTypeWrapper objects.
+                This dictionary provides the necessary type information for deserializing PROTO and
+                ENUM column values from the query results. When an entry is provided
+                for a PROTO or ENUM column, the client library will attempt to deserialize the raw data.
+
+                    - For PROTO columns: The value in the dictionary should be the
+                      Protobuf Message class (e.g., ``my_pb2.MyMessage``).
+                    - For ENUM columns: The value should be the Protobuf EnumTypeWrapper
+                      object (e.g., ``my_pb2.MyEnum``).
+
+                Example::
+
+                    import my_pb2
+
+                    column_info = {
+                        "my_proto_column": my_pb2.MyMessage,
+                        "my_enum_column": my_pb2.MyEnum
+                    }
+
+                If ``column_info`` is not provided, or if a specific column name is not found
+                in the dictionary:
+
+                    - PROTO columns will be returned as raw bytes.
+                    - ENUM columns will be returned as integers.
+
+                Note for Nested PROTO or ENUM Fields:
+
+                    To specify types for PROTO or ENUM fields within STRUCTs or MAPs, use a dot-separated
+                    path from the top-level column name.
+
+                        - For STRUCTs: ``struct_column_name.field_name``
+                        - For MAPs: ``map_column_name.key`` or ``map_column_name.value`` to specify types
+                          for the map keys or values, respectively.
+
+                    Example::
+
+                        import my_pb2
+
+                        column_info = {
+                            # Top-level column
+                            "my_proto_column": my_pb2.MyMessage,
+                            "my_enum_column": my_pb2.MyEnum,
+
+                            # Nested field in a STRUCT column named 'my_struct'
+                            "my_struct.nested_proto_field": my_pb2.OtherMessage,
+                            "my_struct.nested_enum_field": my_pb2.AnotherEnum,
+
+                            # Nested field in a MAP column named 'my_map'
+                            "my_map.key": my_pb2.MapKeyEnum, # If map keys were enums
+                            "my_map.value": my_pb2.MapValueMessage,
+
+                            # PROTO field inside a STRUCT, where the STRUCT is the value in a MAP column
+                            "struct_map.value.nested_proto_field": my_pb2.DeeplyNestedProto,
+                            "struct_map.value.nested_enum_field": my_pb2.DeeplyNestedEnum
+                        }
+
         Returns:
             ExecuteQueryIterator: an asynchronous iterator that yields rows returned by the query
         Raises:
@@ -580,6 +642,7 @@ class BigtableDataClient(ClientWithProject):
             google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
             google.cloud.bigtable.data.exceptions.ParameterTypeInferenceFailed: Raised if
                 a parameter is passed without an explicit type, and the type cannot be infered
+            google.protobuf.message.DecodeError: raised if the deserialization of a PROTO/ENUM value fails.
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         converted_param_types = _to_param_types(parameters, parameter_types)
@@ -631,6 +694,7 @@ class BigtableDataClient(ClientWithProject):
             attempt_timeout,
             operation_timeout,
             retryable_excs=retryable_excs,
+            column_info=column_info,
         )
 
     def __enter__(self):
@@ -762,7 +826,8 @@ class _DataApiTarget(abc.ABC):
             self._register_instance_future = CrossSync._Sync_Impl.create_task(
                 self.client._register_instance,
                 self.instance_id,
-                self,
+                self.app_profile_id,
+                id(self),
                 sync_executor=self.client._executor,
             )
         except RuntimeError as e:
@@ -1417,7 +1482,9 @@ class _DataApiTarget(abc.ABC):
         self._metrics.close()
         if self._register_instance_future:
             self._register_instance_future.cancel()
-        self.client._remove_instance_registration(self.instance_id, self)
+        self.client._remove_instance_registration(
+            self.instance_id, self.app_profile_id, id(self)
+        )
 
     def __enter__(self):
         """Implement async context manager protocol
