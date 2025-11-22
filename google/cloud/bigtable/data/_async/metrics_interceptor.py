@@ -45,7 +45,7 @@ def _with_active_operation(func):
 
     @wraps(func)
     def wrapper(self, continuation, client_call_details, request):
-        operation: "ActiveOperationMetric" | None = ActiveOperationMetric.from_context()
+        operation: ActiveOperationMetric | None = ActiveOperationMetric.from_context()
 
         if operation:
             # start a new attempt if not started

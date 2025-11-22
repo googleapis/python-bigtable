@@ -178,13 +178,25 @@ class ActiveOperationMetric:
 
     @classmethod
     def from_context(cls) -> ActiveOperationMetric | None:
-        """
-        Reads the active operation saved to contextvars
+        """Retrieves the active operation from the current execution context.
 
-        This is meant to be called by grpc interceptor to grab a reference to
-        the active attempt reference at the start of an rpc
+        Because execution within a context is sequential, this guarantees
+        retrieval of the single, unique operation, isolated from other
+        concurrent RPCs.
+
+        Note:
+            This is intended to be called by gRPC interceptors at the start
+            of an RPC.
+
+        Returns:
+            ActiveOperationMetric: The current active operation.
+            None: If no operation is set, or if the current operation is
+            already in the `COMPLETED` state.
         """
-        return cls._active_operation_context.get(None)
+        op = cls._active_operation_context.get(None)
+        if op and op.state == OperationState.COMPLETED:
+            return None
+        return op
 
     @property
     def state(self) -> OperationState:
