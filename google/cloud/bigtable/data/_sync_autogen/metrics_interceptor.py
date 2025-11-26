@@ -102,7 +102,7 @@ class BigtableMetricsInterceptor(
 
     @staticmethod
     def _streaming_generator_wrapper(operation, call):
-        """Wrapped generator to be returned by intercept_unary_stream"""
+        """Wrapped generator to be returned by intercept_unary_stream."""
         has_first_response = (
             operation.first_response_latency_ns is not None
             or operation.op_type != OperationType.READ_ROWS

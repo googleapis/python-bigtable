@@ -134,6 +134,7 @@ class AsyncBigtableMetricsInterceptor(
                 operation, await continuation(client_call_details, request)
             )
         except Exception as rpc_error:
+            # handle errors while intializing stream
             metadata = await _get_metadata(rpc_error)
             if metadata is not None:
                 operation.add_response_metadata(metadata)
@@ -143,7 +144,7 @@ class AsyncBigtableMetricsInterceptor(
     @CrossSync.convert
     async def _streaming_generator_wrapper(operation, call):
         """
-        Wrapped generator to be returned by intercept_unary_stream
+        Wrapped generator to be returned by intercept_unary_stream.
         """
         # only track has_first response for READ_ROWS
         has_first_response = (
