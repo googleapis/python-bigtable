@@ -33,7 +33,7 @@ else:
     from grpc import UnaryStreamClientInterceptor
 
 
-__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.metrics_interceptor"
+__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._metrics._sync_autogen.metrics_interceptor"
 
 
 def _with_active_operation(func):

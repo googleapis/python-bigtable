@@ -87,7 +87,7 @@ from google.cloud.bigtable.data._sync_autogen.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._sync_autogen._swappable_channel import (
     SwappableChannel as SwappableChannelType,
 )
-from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
+from google.cloud.bigtable.data._metrics._sync_autogen.metrics_interceptor import (
     BigtableMetricsInterceptor as MetricsInterceptorType,
 )
 

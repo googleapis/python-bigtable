@@ -26,7 +26,7 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
+from google.cloud.bigtable.data._metrics._sync_autogen.metrics_interceptor import (
     BigtableMetricsInterceptor,
 )
 

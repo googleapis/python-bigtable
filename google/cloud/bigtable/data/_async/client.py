@@ -103,7 +103,7 @@ if CrossSync.is_async:
     from google.cloud.bigtable.data._async._swappable_channel import (
         AsyncSwappableChannel as SwappableChannelType,
     )
-    from google.cloud.bigtable.data._async.metrics_interceptor import (
+    from google.cloud.bigtable.data._metrics._async.metrics_interceptor import (
         AsyncBigtableMetricsInterceptor as MetricsInterceptorType,
     )
 else:
@@ -116,7 +116,7 @@ else:
     from google.cloud.bigtable.data._sync_autogen._swappable_channel import (  # noqa: F401
         SwappableChannel as SwappableChannelType,
     )
-    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (  # noqa: F401
+    from google.cloud.bigtable.data._metrics._sync_autogen.metrics_interceptor import (  # noqa: F401
         BigtableMetricsInterceptor as MetricsInterceptorType,
     )
 

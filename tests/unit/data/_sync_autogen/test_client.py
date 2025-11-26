@@ -47,7 +47,7 @@ from tests.unit.data.execute_query.sql_helpers import (
 )
 from google.api_core import grpc_helpers
 from google.cloud.bigtable.data._sync_autogen._swappable_channel import SwappableChannel
-from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (
+from google.cloud.bigtable.data._metrics._sync_autogen.metrics_interceptor import (
     BigtableMetricsInterceptor,
 )
 
