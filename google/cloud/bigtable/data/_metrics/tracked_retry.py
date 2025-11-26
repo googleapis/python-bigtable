@@ -11,19 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import AsyncIterable, Awaitable, Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from grpc import StatusCode
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core.retry import RetryFailureReason
-from google.cloud.bigtable.data._exceptions import _MutateRowsIncomplete
+from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics import OperationState
-
-from google.cloud.bigtable.data._cross_sync import CrossSync
-
-__CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._metrics._sync_autogen.tracked_retry"
 
 
 ExceptionFactoryType = Callable[
@@ -32,7 +28,7 @@ ExceptionFactoryType = Callable[
 ]
 
 
-def _track_retryable_error(operation) -> Callable[Exception, None]:
+def _track_retryable_error(operation) -> Callable[[Exception], None]:
     """
     Used as input to api_core.Retry classes, to track when retryable errors are encountered
 
@@ -103,11 +99,11 @@ def _track_terminal_error(
 def tracked_retry(
     *,
     retry_fn: Callable,
-    operation: ActiveOperationMetric, **kwargs),
-    **kwargs
+    operation: ActiveOperationMetric,
+    **kwargs,
 ):
     """
-    Wrapper for retry_rarget or retry_target_stream, which injects methods to 
+    Wrapper for retry_rarget or retry_target_stream, which injects methods to
     track the lifecycle of the retry using the provided ActiveOperationMetric
     """
     in_exception_factory = kwargs.get("exception_factory", _retry_exception_factory)
