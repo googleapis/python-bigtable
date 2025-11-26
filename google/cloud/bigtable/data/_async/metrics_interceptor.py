@@ -21,7 +21,6 @@ from functools import wraps
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import OperationState
 from google.cloud.bigtable.data._metrics.data_model import OperationType
-from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
