@@ -27,11 +27,11 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 if CrossSync.is_async:
-    from google.cloud.bigtable.data._metrics._async.metrics_interceptor import (
+    from google.cloud.bigtable.data._async.metrics_interceptor import (
         AsyncBigtableMetricsInterceptor,
     )
 else:
-    from google.cloud.bigtable.data._metrics._sync_autogen.metrics_interceptor import (  # noqa: F401
+    from google.cloud.bigtable.data._sync_autogen.metrics_interceptor import (  # noqa: F401
         BigtableMetricsInterceptor,
     )
 
