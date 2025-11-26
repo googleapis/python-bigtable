@@ -21,7 +21,6 @@ from functools import wraps
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import OperationState
 from google.cloud.bigtable.data._metrics.data_model import OperationType
-from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from grpc import UnaryUnaryClientInterceptor
 from grpc import UnaryStreamClientInterceptor
 
@@ -57,7 +56,7 @@ def _get_metadata(source) -> dict[str, str | bytes] | None:
 
 
 class BigtableMetricsInterceptor(
-    UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor, MetricsHandler
+    UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor
 ):
     """
     An async gRPC interceptor to add client metadata and print server metadata.
