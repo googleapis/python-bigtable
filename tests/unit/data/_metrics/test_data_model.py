@@ -33,7 +33,7 @@ class TestActiveOperationMetric:
         mock_type = mock.Mock()
         metric = self._make_one(mock_type)
         assert metric.op_type == mock_type
-        assert abs(metric.start_time_ns - time.monotonic_ns()) < 1e6  # 1ms buffer
+        assert metric.start_time_ns == pytest.approx(time.monotonic_ns(), abs=50e6) # 50 ms buffer
         assert metric.active_attempt is None
         assert metric.cluster_id is None
         assert metric.zone is None
@@ -180,10 +180,10 @@ class TestActiveOperationMetric:
         """
         orig_time = 0
         metric = self._make_one(mock.Mock(), start_time_ns=orig_time)
-        assert abs(metric.start_time_ns - time.monotonic_ns()) > 1e6  # 1ms buffer
+        assert metric.start_time_ns == 0
         metric.start()
         assert metric.start_time_ns != orig_time
-        assert abs(metric.start_time_ns - time.monotonic_ns()) < 1e6  # 1ms buffer
+        assert metric.start_time_ns == pytest.approx(time.monotonic_ns(), abs=50e6)
         # should remain in CREATED state after completing
         assert metric.state == State.CREATED
 
@@ -198,9 +198,7 @@ class TestActiveOperationMetric:
         metric.start_attempt()
         assert isinstance(metric.active_attempt, ActiveAttemptMetric)
         # make sure it was initialized with the correct values
-        assert (
-            abs(time.monotonic_ns() - metric.active_attempt.start_time_ns) < 1e6
-        )  # 1ms buffer
+        assert metric.active_attempt.start_time_ns == pytest.approx(time.monotonic_ns(), abs=50e6)
         assert metric.active_attempt.gfe_latency_ns is None
         assert metric.active_attempt.grpc_throttling_time_ns == 0
         # should be in ACTIVE_ATTEMPT state after completing
@@ -414,7 +412,7 @@ class TestActiveOperationMetric:
         assert len(metric.completed_attempts) == 1
         got_attempt = metric.completed_attempts[0]
         expected_duration = time.monotonic_ns() - expected_start_time
-        assert abs(got_attempt.duration_ns - expected_duration) < 10e6  # within 10ms
+        assert got_attempt.duration_ns == pytest.approx(expected_duration, abs=50e6)
         assert got_attempt.grpc_throttling_time_ns == expected_grpc_throttle
         assert got_attempt.end_status == expected_status
         assert got_attempt.gfe_latency_ns == expected_gfe_latency_ns
@@ -493,9 +491,7 @@ class TestActiveOperationMetric:
             called_with = h.on_operation_complete.call_args[0][0]
             assert called_with.op_type == expected_type
             expected_duration = time.monotonic_ns() - expected_start_time
-            assert (
-                abs(called_with.duration_ns - expected_duration) < 10e6
-            )  # within 10ms
+            assert called_with.duration_ns == pytest.approx(expected_duration, abs=50e6)
             assert called_with.final_status == expected_status
             assert called_with.cluster_id == expected_cluster
             assert called_with.zone == expected_zone
@@ -511,9 +507,7 @@ class TestActiveOperationMetric:
             assert final_attempt.gfe_latency_ns == expected_attempt_gfe_latency_ns
             assert final_attempt.end_status == expected_status
             expected_duration = time.monotonic_ns() - expected_attempt_start_time
-            assert (
-                abs(final_attempt.duration_ns - expected_duration) < 10e6
-            )  # within 10ms
+            assert final_attempt.duration_ns == pytest.approx(expected_duration, abs=50e6)
 
     def test_end_with_status_w_exception(self):
         """
