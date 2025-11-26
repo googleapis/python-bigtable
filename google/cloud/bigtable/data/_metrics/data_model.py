@@ -128,7 +128,7 @@ class ActiveAttemptMetric:
     """
 
     # keep monotonic timestamps for active attempts
-    start_time_ns: int = field(default_factory=time.monotonic_ns)
+    start_time_ns: int = field(default_factory=lambda: time.monotonic_ns())
     # the time taken by the backend, in nanoseconds. Taken from response header
     gfe_latency_ns: int | None = None
     # time waiting on user to process the response, in nanoseconds
@@ -157,7 +157,7 @@ class ActiveOperationMetric:
         )
     )
     # keep monotonic timestamps for active operations
-    start_time_ns: int = field(default_factory=time.monotonic_ns)
+    start_time_ns: int = field(default_factory=lambda: time.monotonic_ns())
     active_attempt: ActiveAttemptMetric | None = None
     cluster_id: str | None = None
     zone: str | None = None
