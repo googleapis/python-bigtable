@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import time
 import pytest
 import mock
 
@@ -198,8 +197,6 @@ class TestActiveOperationMetric:
         """
         calling start_attempt should create a new emptu atempt metric
         """
-        from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
-
         from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
 
         expected_timestamp = 123456789
