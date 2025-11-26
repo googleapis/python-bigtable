@@ -100,13 +100,20 @@ def _track_terminal_error(
     return wrapper
 
 
-@CrossSync.convert
-async def tracked_retry_stream(operation: ActiveOperationMetric, **kwargs):
+def tracked_retry(
+    *,
+    retry_fn: Callable,
+    operation: ActiveOperationMetric, **kwargs),
+    **kwargs
+):
+    """
+    Wrapper for retry_rarget or retry_target_stream, which injects methods to 
+    track the lifecycle of the retry using the provided ActiveOperationMetric
+    """
     in_exception_factory = kwargs.get("exception_factory", _retry_exception_factory)
-    return CrossSync.retry_target_stream(
+    return retry_fn(
         timeout=operation.backoff_generator,
         on_error=_track_retryable_error(operation),
         exception_factory=_track_terminal_error(operation, in_exception_factory),
         **kwargs,
     )
-
