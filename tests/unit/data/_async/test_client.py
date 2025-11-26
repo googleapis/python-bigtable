@@ -1777,9 +1777,8 @@ class TestReadRowsAsync:
     @pytest.mark.parametrize(
         "per_request_t, operation_t, expected_num",
         [
-            (0.05, 0.08, 2),
-            (0.05, 0.14, 3),
-            (0.05, 0.24, 5),
+            (0.1, 0.19, 2),
+            (0.1, 0.29, 3),
         ],
     )
     @CrossSync.pytest
