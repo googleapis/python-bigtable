@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, TypeVar
 
 from grpc import StatusCode
 from google.api_core.exceptions import GoogleAPICallError
@@ -22,13 +22,18 @@ from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics import OperationState
 
 
+T = TypeVar("T")
+
+
 ExceptionFactoryType = Callable[
     [List[Exception], RetryFailureReason, Optional[float]],
     Tuple[Exception, Optional[Exception]],
 ]
 
 
-def _track_retryable_error(operation) -> Callable[[Exception], None]:
+def _track_retryable_error(
+    operation: ActiveOperationMetric,
+) -> Callable[[Exception], None]:
     """
     Used as input to api_core.Retry classes, to track when retryable errors are encountered
 
@@ -57,7 +62,7 @@ def _track_retryable_error(operation) -> Callable[[Exception], None]:
 
 
 def _track_terminal_error(
-    operation, exception_factory: ExceptionFactoryType
+    operation: ActiveOperationMetric, exception_factory: ExceptionFactoryType
 ) -> ExceptionFactoryType:
     """
     Used as input to api_core.Retry classes, to track when terminal errors are encountered
@@ -89,7 +94,7 @@ def _track_terminal_error(
         ):
             # record ending attempt for timeout failures
             attempt_exc = exc_list[-1]
-            operation.track_retryable_error(attempt_exc)
+            _track_retryable_error(operation)(attempt_exc)
         operation.end_with_status(source_exc)
         return source_exc, cause_exc
 
@@ -98,10 +103,10 @@ def _track_terminal_error(
 
 def tracked_retry(
     *,
-    retry_fn: Callable,
+    retry_fn: Callable[..., T],
     operation: ActiveOperationMetric,
     **kwargs,
-):
+) -> T:
     """
     Wrapper for retry_rarget or retry_target_stream, which injects methods to
     track the lifecycle of the retry using the provided ActiveOperationMetric
