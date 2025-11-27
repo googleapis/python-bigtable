@@ -11,6 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Methods for instrumenting an google.api_core.retry.retry_target or
+google.api_core.retry.retry_target_stream method
+
+`tracked_retry` will intercept `on_error` and `exception_factory`
+methods to update the associated ActiveOperationMetric when exceptions
+are encountered through the retryable rpc.
+"""
+
 from typing import Callable, List, Optional, Tuple, TypeVar
 
 from grpc import StatusCode
