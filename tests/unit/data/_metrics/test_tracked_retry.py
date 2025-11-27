@@ -207,15 +207,19 @@ class TestTrackedRetry:
                     arg=1,
                 )
 
-    @pytest.mark.parametrize("fn_name,type_verifier", [
-        ("retry_target", callable),
-        ("retry_target_stream", inspect.isgenerator),
-        ("retry_target_async", inspect.iscoroutine),
-        ("retry_target_stream_async", inspect.isasyncgen),
-    ])
+    @pytest.mark.parametrize(
+        "fn_name,type_verifier",
+        [
+            ("retry_target", callable),
+            ("retry_target_stream", inspect.isgenerator),
+            ("retry_target_async", inspect.iscoroutine),
+            ("retry_target_stream_async", inspect.isasyncgen),
+        ],
+    )
     def test_wrapping_api_core(self, fn_name, type_verifier):
         """Test building tracked retry from different supported retry functions"""
         from google.cloud.bigtable.data._metrics import ActiveOperationMetric
+
         operation = ActiveOperationMetric("type")
         fn = getattr(retry_module, fn_name)
         tracked_retry = self._call_fut(
@@ -223,7 +227,6 @@ class TestTrackedRetry:
             operation=operation,
             target=mock.Mock(),
             timeout=None,
-            predicate=lambda x: False
+            predicate=lambda x: False,
         )
         assert type_verifier(tracked_retry)
-
