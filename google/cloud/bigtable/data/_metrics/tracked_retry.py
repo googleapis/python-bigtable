@@ -81,7 +81,7 @@ def _track_terminal_error(
     """
 
     def wrapper(
-        exc_list: list[Exception],
+        exc_list: List[Exception],
         reason: RetryFailureReason,
         timeout_val: float | None,
     ) -> tuple[Exception, Exception | None]:
