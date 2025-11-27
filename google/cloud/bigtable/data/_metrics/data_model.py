@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable, ClassVar, List, Tuple, Optional, cast, TYPE_CHECKING
+from typing import ClassVar, Tuple, cast, TYPE_CHECKING
 
 import time
 import re
@@ -29,12 +29,9 @@ from grpc import StatusCode
 from grpc import RpcError
 from grpc.aio import AioRpcError
 
-from google.api_core.exceptions import GoogleAPICallError
-from google.api_core.retry import RetryFailureReason
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
 from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
-from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.protobuf.message import DecodeError
 
 if TYPE_CHECKING:
@@ -53,11 +50,6 @@ SERVER_TIMING_METADATA_KEY = "server-timing"
 SERVER_TIMING_REGEX = re.compile(r".*gfet4t7;\s*dur=(\d+\.?\d*).*")
 
 INVALID_STATE_ERROR = "Invalid state for {}: {}"
-
-ExceptionFactoryType = Callable[
-    [List[Exception], RetryFailureReason, Optional[float]],
-    Tuple[Exception, Optional[Exception]],
-]
 
 
 class OperationType(Enum):
@@ -128,7 +120,7 @@ class ActiveAttemptMetric:
     """
 
     # keep monotonic timestamps for active attempts
-    start_time_ns: int = field(default_factory=time.monotonic_ns)
+    start_time_ns: int = field(default_factory=lambda: time.monotonic_ns())
     # the time taken by the backend, in nanoseconds. Taken from response header
     gfe_latency_ns: int | None = None
     # time waiting on user to process the response, in nanoseconds
@@ -157,7 +149,7 @@ class ActiveOperationMetric:
         )
     )
     # keep monotonic timestamps for active operations
-    start_time_ns: int = field(default_factory=time.monotonic_ns)
+    start_time_ns: int = field(default_factory=lambda: time.monotonic_ns())
     active_attempt: ActiveAttemptMetric | None = None
     cluster_id: str | None = None
     zone: str | None = None
@@ -177,8 +169,26 @@ class ActiveOperationMetric:
     ] = contextvars.ContextVar("active_operation_context")
 
     @classmethod
-    def get_active(cls):
-        return cls._active_operation_context.get(None)
+    def from_context(cls) -> ActiveOperationMetric | None:
+        """Retrieves the active operation from the current execution context.
+
+        Because execution within a context is sequential, this guarantees
+        retrieval of the single, unique operation, isolated from other
+        concurrent RPCs.
+
+        Note:
+            This is intended to be called by gRPC interceptors at the start
+            of an RPC.
+
+        Returns:
+            ActiveOperationMetric: The current active operation.
+            None: If no operation is set, or if the current operation is
+            already in the `COMPLETED` state.
+        """
+        op = cls._active_operation_context.get(None)
+        if op and op.state == OperationState.COMPLETED:
+            return None
+        return op
 
     @property
     def state(self) -> OperationState:
@@ -193,6 +203,9 @@ class ActiveOperationMetric:
             return OperationState.ACTIVE_ATTEMPT
 
     def __post_init__(self):
+        """
+        Save new instances to contextvars on init
+        """
         self._active_operation_context.set(self)
 
     def start(self) -> None:
@@ -205,6 +218,7 @@ class ActiveOperationMetric:
         if self.state != OperationState.CREATED:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
         self.start_time_ns = time.monotonic_ns()
+        # set as active operation in contextvars
         self._active_operation_context.set(self)
 
     def start_attempt(self) -> ActiveAttemptMetric | None:
@@ -220,6 +234,7 @@ class ActiveOperationMetric:
             return self._handle_error(
                 INVALID_STATE_ERROR.format("start_attempt", self.state)
             )
+        # set as active operation in contextvars
         self._active_operation_context.set(self)
 
         try:
@@ -398,69 +413,6 @@ class ActiveOperationMetric:
         if isinstance(exc, AioRpcError) or isinstance(exc, RpcError):
             return exc.code()
         return StatusCode.UNKNOWN
-
-    def track_retryable_error(self, exc: Exception) -> None:
-        """
-        Used as input to api_core.Retry classes, to track when retryable errors are encountered
-
-        Should be passed as on_error callback
-        """
-        try:
-            # record metadata from failed rpc
-            if isinstance(exc, GoogleAPICallError) and exc.errors:
-                rpc_error = exc.errors[-1]
-                metadata = list(rpc_error.trailing_metadata()) + list(
-                    rpc_error.initial_metadata()
-                )
-                self.add_response_metadata({k: v for k, v in metadata})
-        except Exception:
-            # ignore errors in metadata collection
-            pass
-        if isinstance(exc, _MutateRowsIncomplete):
-            # _MutateRowsIncomplete represents a successful rpc with some failed mutations
-            # mark the attempt as successful
-            self.end_attempt_with_status(StatusCode.OK)
-        else:
-            self.end_attempt_with_status(exc)
-
-    def track_terminal_error(
-        self, exception_factory: ExceptionFactoryType
-    ) -> ExceptionFactoryType:
-        """
-        Used as input to api_core.Retry classes, to track when terminal errors are encountered
-
-        Should be used as a wrapper over an exception_factory callback
-        """
-
-        def wrapper(
-            exc_list: list[Exception],
-            reason: RetryFailureReason,
-            timeout_val: float | None,
-        ) -> tuple[Exception, Exception | None]:
-            source_exc, cause_exc = exception_factory(exc_list, reason, timeout_val)
-            try:
-                # record metadata from failed rpc
-                if isinstance(source_exc, GoogleAPICallError) and source_exc.errors:
-                    rpc_error = source_exc.errors[-1]
-                    metadata = list(rpc_error.trailing_metadata()) + list(
-                        rpc_error.initial_metadata()
-                    )
-                    self.add_response_metadata({k: v for k, v in metadata})
-            except Exception:
-                # ignore errors in metadata collection
-                pass
-            if (
-                reason == RetryFailureReason.TIMEOUT
-                and self.state == OperationState.ACTIVE_ATTEMPT
-                and exc_list
-            ):
-                # record ending attempt for timeout failures
-                attempt_exc = exc_list[-1]
-                self.track_retryable_error(attempt_exc)
-            self.end_with_status(source_exc)
-            return source_exc, cause_exc
-
-        return wrapper
 
     @staticmethod
     def _handle_error(message: str) -> None:

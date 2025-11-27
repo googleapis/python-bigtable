@@ -26,7 +26,7 @@ sys.path.append(script_path)
 
 @pytest.fixture(scope="session")
 def event_loop():
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
     yield loop
     loop.stop()
     loop.close()

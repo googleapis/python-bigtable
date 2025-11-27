@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import time
 import pytest
 import mock
 
@@ -26,14 +25,17 @@ class TestActiveOperationMetric:
 
         return ActiveOperationMetric(*args, **kwargs)
 
-    def test_ctor_defaults(self):
+    @mock.patch("time.monotonic_ns")
+    def test_ctor_defaults(self, mock_monotonic_ns):
         """
         create an instance with default values
         """
+        expected_timestamp = 123456789
+        mock_monotonic_ns.return_value = expected_timestamp
         mock_type = mock.Mock()
         metric = self._make_one(mock_type)
         assert metric.op_type == mock_type
-        assert abs(metric.start_time_ns - time.monotonic_ns()) < 1e6  # 1ms buffer
+        assert metric.start_time_ns == expected_timestamp
         assert metric.active_attempt is None
         assert metric.cluster_id is None
         assert metric.zone is None
@@ -174,33 +176,37 @@ class TestActiveOperationMetric:
                     == f"Invalid state for {error_method_name}: {state}"
                 )
 
-    def test_start(self):
+    @mock.patch("time.monotonic_ns")
+    def test_start(self, mock_monotonic_ns):
         """
         calling start op operation should reset start_time
         """
+        expected_timestamp = 123456789
+        mock_monotonic_ns.return_value = expected_timestamp
         orig_time = 0
         metric = self._make_one(mock.Mock(), start_time_ns=orig_time)
-        assert abs(metric.start_time_ns - time.monotonic_ns()) > 1e6  # 1ms buffer
+        assert metric.start_time_ns == 0
         metric.start()
         assert metric.start_time_ns != orig_time
-        assert abs(metric.start_time_ns - time.monotonic_ns()) < 1e6  # 1ms buffer
+        assert metric.start_time_ns == expected_timestamp
         # should remain in CREATED state after completing
         assert metric.state == State.CREATED
 
-    def test_start_attempt(self):
+    @mock.patch("time.monotonic_ns")
+    def test_start_attempt(self, mock_monotonic_ns):
         """
         calling start_attempt should create a new emptu atempt metric
         """
         from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
 
+        expected_timestamp = 123456789
+        mock_monotonic_ns.return_value = expected_timestamp
         metric = self._make_one(mock.Mock())
         assert metric.active_attempt is None
         metric.start_attempt()
         assert isinstance(metric.active_attempt, ActiveAttemptMetric)
         # make sure it was initialized with the correct values
-        assert (
-            abs(time.monotonic_ns() - metric.active_attempt.start_time_ns) < 1e6
-        )  # 1ms buffer
+        assert metric.active_attempt.start_time_ns == expected_timestamp
         assert metric.active_attempt.gfe_latency_ns is None
         assert metric.active_attempt.grpc_throttling_time_ns == 0
         # should be in ACTIVE_ATTEMPT state after completing
@@ -385,7 +391,8 @@ class TestActiveOperationMetric:
             assert metric.cluster_id is None
             assert metric.zone is None
 
-    def test_end_attempt_with_status(self):
+    @mock.patch("time.monotonic_ns")
+    def test_end_attempt_with_status(self, mock_monotonic_ns):
         """
         ending the attempt should:
         - add one to completed_attempts
@@ -393,6 +400,8 @@ class TestActiveOperationMetric:
         - update state
         - notify handlers
         """
+        expected_mock_time = 123456789
+        mock_monotonic_ns.return_value = expected_mock_time
         expected_start_time = 1
         expected_status = object()
         expected_gfe_latency_ns = 5
@@ -413,8 +422,8 @@ class TestActiveOperationMetric:
         metric.end_attempt_with_status(expected_status)
         assert len(metric.completed_attempts) == 1
         got_attempt = metric.completed_attempts[0]
-        expected_duration = time.monotonic_ns() - expected_start_time
-        assert abs(got_attempt.duration_ns - expected_duration) < 10e6  # within 10ms
+        expected_duration = expected_mock_time - expected_start_time
+        assert got_attempt.duration_ns == expected_duration
         assert got_attempt.grpc_throttling_time_ns == expected_grpc_throttle
         assert got_attempt.end_status == expected_status
         assert got_attempt.gfe_latency_ns == expected_gfe_latency_ns
@@ -445,7 +454,8 @@ class TestActiveOperationMetric:
             assert mock_exc_to_status.call_args[0][0] == input_status
             assert metric.completed_attempts[0].end_status == expected_status
 
-    def test_end_with_status(self):
+    @mock.patch("time.monotonic_ns")
+    def test_end_with_status(self, mock_monotonic_ns):
         """
         ending the operation should:
         - end active attempt
@@ -454,6 +464,8 @@ class TestActiveOperationMetric:
         """
         from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
 
+        expected_mock_time = 123456789
+        mock_monotonic_ns.return_value = expected_mock_time
         expected_attempt_start_time = 0
         expected_attempt_gfe_latency_ns = 5
         expected_flow_time = 16
@@ -492,10 +504,8 @@ class TestActiveOperationMetric:
             assert len(h.on_operation_complete.call_args[0]) == 1
             called_with = h.on_operation_complete.call_args[0][0]
             assert called_with.op_type == expected_type
-            expected_duration = time.monotonic_ns() - expected_start_time
-            assert (
-                abs(called_with.duration_ns - expected_duration) < 10e6
-            )  # within 10ms
+            expected_duration = expected_mock_time - expected_start_time
+            assert called_with.duration_ns == expected_duration
             assert called_with.final_status == expected_status
             assert called_with.cluster_id == expected_cluster
             assert called_with.zone == expected_zone
@@ -510,10 +520,8 @@ class TestActiveOperationMetric:
             final_attempt = called_with.completed_attempts[0]
             assert final_attempt.gfe_latency_ns == expected_attempt_gfe_latency_ns
             assert final_attempt.end_status == expected_status
-            expected_duration = time.monotonic_ns() - expected_attempt_start_time
-            assert (
-                abs(final_attempt.duration_ns - expected_duration) < 10e6
-            )  # within 10ms
+            expected_duration = expected_mock_time - expected_attempt_start_time
+            assert final_attempt.duration_ns == expected_duration
 
     def test_end_with_status_w_exception(self):
         """

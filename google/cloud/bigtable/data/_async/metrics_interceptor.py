@@ -10,7 +10,7 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License
+# limitations under the License.
 from __future__ import annotations
 
 from typing import Sequence
@@ -21,7 +21,6 @@ from functools import wraps
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import OperationState
 from google.cloud.bigtable.data._metrics.data_model import OperationType
-from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -37,15 +36,15 @@ else:
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.metrics_interceptor"
 
 
-def _with_operation_from_metadata(func):
+def _with_active_operation(func):
     """
-    Decorator for interceptor methods to extract the active operation
-    from metadata and pass it to the decorated function.
+    Decorator for interceptor methods to extract the active operation associated with the
+    in-scope contextvars, and pass it to the decorated function.
     """
 
     @wraps(func)
     def wrapper(self, continuation, client_call_details, request):
-        operation: "ActiveOperationMetric" | None = ActiveOperationMetric.get_active()
+        operation: ActiveOperationMetric | None = ActiveOperationMetric.from_context()
 
         if operation:
             # start a new attempt if not started
@@ -90,10 +89,10 @@ async def _get_metadata(source) -> dict[str, str | bytes] | None:
 
 @CrossSync.convert_class(sync_name="BigtableMetricsInterceptor")
 class AsyncBigtableMetricsInterceptor(
-    UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor, MetricsHandler
+    UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor
 ):
     @CrossSync.convert
-    @_with_operation_from_metadata
+    @_with_active_operation
     async def intercept_unary_unary(
         self, operation, continuation, client_call_details, request
     ):
@@ -116,7 +115,7 @@ class AsyncBigtableMetricsInterceptor(
                 operation.add_response_metadata(metadata)
 
     @CrossSync.convert
-    @_with_operation_from_metadata
+    @_with_active_operation
     async def intercept_unary_stream(
         self, operation, continuation, client_call_details, request
     ):
@@ -131,6 +130,7 @@ class AsyncBigtableMetricsInterceptor(
                 operation, await continuation(client_call_details, request)
             )
         except Exception as rpc_error:
+            # handle errors while intializing stream
             metadata = await _get_metadata(rpc_error)
             if metadata is not None:
                 operation.add_response_metadata(metadata)
@@ -140,7 +140,7 @@ class AsyncBigtableMetricsInterceptor(
     @CrossSync.convert
     async def _streaming_generator_wrapper(operation, call):
         """
-        Wrapped generator to be returned by intercept_unary_stream
+        Wrapped generator to be returned by intercept_unary_stream.
         """
         # only track has_first response for READ_ROWS
         has_first_response = (
