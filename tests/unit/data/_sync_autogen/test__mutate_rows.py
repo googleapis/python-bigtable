@@ -19,6 +19,7 @@ import pytest
 from google.cloud.bigtable_v2.types import MutateRowsResponse
 from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.mutations import DeleteAllFromRow
+from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 from google.rpc import status_pb2
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import Forbidden
@@ -45,6 +46,9 @@ class TestMutateRowsOperation:
             kwargs["attempt_timeout"] = kwargs.pop("attempt_timeout", 0.1)
             kwargs["retryable_exceptions"] = kwargs.pop("retryable_exceptions", ())
             kwargs["mutation_entries"] = kwargs.pop("mutation_entries", [])
+            kwargs["metric"] = kwargs.pop(
+                "metric", ActiveOperationMetric("MUTATE_ROWS")
+            )
         return self._target_class()(*args, **kwargs)
 
     def _make_mutation(self, count=1, size=1):
@@ -84,6 +88,7 @@ class TestMutateRowsOperation:
         entries = [self._make_mutation(), self._make_mutation()]
         operation_timeout = 0.05
         attempt_timeout = 0.01
+        metric = mock.Mock()
         retryable_exceptions = ()
         instance = self._make_one(
             client,
@@ -91,6 +96,7 @@ class TestMutateRowsOperation:
             entries,
             operation_timeout,
             attempt_timeout,
+            metric,
             retryable_exceptions,
         )
         assert client.mutate_rows.call_count == 0
@@ -106,6 +112,7 @@ class TestMutateRowsOperation:
         assert instance.is_retryable(RuntimeError("")) is False
         assert instance.remaining_indices == list(range(len(entries)))
         assert instance.errors == {}
+        assert instance._operation_metric == metric
 
     def test_ctor_too_many_entries(self):
         """should raise an error if an operation is created with more than 100,000 entries"""
@@ -120,7 +127,9 @@ class TestMutateRowsOperation:
         operation_timeout = 0.05
         attempt_timeout = 0.01
         with pytest.raises(ValueError) as e:
-            self._make_one(client, table, entries, operation_timeout, attempt_timeout)
+            self._make_one(
+                client, table, entries, operation_timeout, attempt_timeout, mock.Mock()
+            )
         assert "mutate_rows requests can contain at most 100000 mutations" in str(
             e.value
         )
@@ -130,6 +139,7 @@ class TestMutateRowsOperation:
         """Test successful case of mutate_rows_operation"""
         client = mock.Mock()
         table = mock.Mock()
+        metric = ActiveOperationMetric("MUTATE_ROWS")
         entries = [self._make_mutation(), self._make_mutation()]
         operation_timeout = 0.05
         cls = self._target_class()
@@ -137,7 +147,7 @@ class TestMutateRowsOperation:
             f"{cls.__module__}.{cls.__name__}._run_attempt", CrossSync._Sync_Impl.Mock()
         ) as attempt_mock:
             instance = self._make_one(
-                client, table, entries, operation_timeout, operation_timeout
+                client, table, entries, operation_timeout, operation_timeout, metric
             )
             instance.start()
             assert attempt_mock.call_count == 1
@@ -148,6 +158,7 @@ class TestMutateRowsOperation:
         client = CrossSync._Sync_Impl.Mock()
         table = mock.Mock()
         table._request_path = {"table_name": "table"}
+        metric = ActiveOperationMetric("MUTATE_ROWS")
         table.app_profile_id = None
         entries = [self._make_mutation(), self._make_mutation()]
         operation_timeout = 0.05
@@ -156,7 +167,7 @@ class TestMutateRowsOperation:
         found_exc = None
         try:
             instance = self._make_one(
-                client, table, entries, operation_timeout, operation_timeout
+                client, table, entries, operation_timeout, operation_timeout, metric
             )
             instance._run_attempt()
         except Exception as e:
@@ -175,6 +186,7 @@ class TestMutateRowsOperation:
 
         client = mock.Mock()
         table = mock.Mock()
+        metric = ActiveOperationMetric("MUTATE_ROWS")
         entries = [self._make_mutation(), self._make_mutation()]
         operation_timeout = 0.05
         expected_cause = exc_type("abort")
@@ -185,7 +197,7 @@ class TestMutateRowsOperation:
             found_exc = None
             try:
                 instance = self._make_one(
-                    client, table, entries, operation_timeout, operation_timeout
+                    client, table, entries, operation_timeout, operation_timeout, metric
                 )
                 instance.start()
             except MutationsExceptionGroup as e:
@@ -202,6 +214,7 @@ class TestMutateRowsOperation:
         """If an exception fails but eventually passes, it should not raise an exception"""
         client = mock.Mock()
         table = mock.Mock()
+        metric = ActiveOperationMetric("MUTATE_ROWS")
         entries = [self._make_mutation()]
         operation_timeout = 1
         expected_cause = exc_type("retry")
@@ -216,6 +229,7 @@ class TestMutateRowsOperation:
                 entries,
                 operation_timeout,
                 operation_timeout,
+                metric,
                 retryable_exceptions=(exc_type,),
             )
             instance.start()
@@ -229,6 +243,7 @@ class TestMutateRowsOperation:
 
         client = mock.Mock()
         table = mock.Mock()
+        metric = ActiveOperationMetric("MUTATE_ROWS")
         entries = [self._make_mutation()]
         operation_timeout = 0.05
         with mock.patch.object(
@@ -238,7 +253,7 @@ class TestMutateRowsOperation:
             found_exc = None
             try:
                 instance = self._make_one(
-                    client, table, entries, operation_timeout, operation_timeout
+                    client, table, entries, operation_timeout, operation_timeout, metric
                 )
                 instance.start()
             except MutationsExceptionGroup as e:
