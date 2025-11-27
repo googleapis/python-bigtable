@@ -1069,8 +1069,8 @@ class TestMutationsBatcher:
                     predicate_builder_mock.assert_called_once_with(
                         *expected_retryables, _MutateRowsIncomplete
                     )
-                    retry_call_args = retry_fn_mock.call_args_list[0].args
-                    assert retry_call_args[1] is expected_predicate
+                    retry_call_kwargs = retry_fn_mock.call_args_list[0].kwargs
+                    assert retry_call_kwargs["predicate"] is expected_predicate
 
     def test_large_batch_write(self):
         """Test that a large batch of mutations can be written"""

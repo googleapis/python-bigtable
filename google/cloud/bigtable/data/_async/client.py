@@ -89,6 +89,7 @@ from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
 from google.cloud.bigtable.data._metrics import OperationType
+from google.cloud.bigtable.data._metrics import tracked_retry
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
 
@@ -1448,15 +1449,12 @@ class _DataApiTargetAsync(abc.ABC):
                 )
                 return [(s.row_key, s.offset_bytes) async for s in results]
 
-            return await CrossSync.retry_target(
-                execute_rpc,
-                predicate,
-                operation_metric.backoff_generator,
-                operation_timeout,
-                exception_factory=operation_metric.track_terminal_error(
-                    _retry_exception_factory
-                ),
-                on_error=operation_metric.track_retryable_error,
+            return await tracked_retry(
+                retry_fn=CrossSync.retry_target,
+                operation=operation_metric,
+                target=execute_rpc,
+                predicate=predicate,
+                timeout=operation_timeout,
             )
 
     @CrossSync.convert(replace_symbols={"MutationsBatcherAsync": "MutationsBatcher"})
@@ -1584,15 +1582,12 @@ class _DataApiTargetAsync(abc.ABC):
                 timeout=attempt_timeout,
                 retry=None,
             )
-            return await CrossSync.retry_target(
-                target,
-                predicate,
-                operation_metric.backoff_generator,
-                operation_timeout,
-                exception_factory=operation_metric.track_terminal_error(
-                    _retry_exception_factory
-                ),
-                on_error=operation_metric.track_retryable_error,
+            return await tracked_retry(
+                retry_fn=CrossSync.retry_target,
+                operation=operation_metric,
+                target=target,
+                predicate=predicate,
+                timeout=operation_timeout,
             )
 
     @CrossSync.convert

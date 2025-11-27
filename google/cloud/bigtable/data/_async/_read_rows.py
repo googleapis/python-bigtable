@@ -32,7 +32,7 @@ from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import _ResetRow
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import _retry_exception_factory
+from google.cloud.bigtable.data._metrics import tracked_retry
 
 from google.api_core import retry as retries
 
@@ -118,15 +118,12 @@ class _ReadRowsOperationAsync:
         Yields:
             Row: The next row in the stream
         """
-        return CrossSync.retry_target_stream(
-            self._read_rows_attempt,
-            self._predicate,
-            self._operation_metric.backoff_generator,
-            self.operation_timeout,
-            exception_factory=self._operation_metric.track_terminal_error(
-                _retry_exception_factory
-            ),
-            on_error=self._operation_metric.track_retryable_error,
+        return tracked_retry(
+            retry_fn=CrossSync.retry_target_stream,
+            operation=self._operation_metric,
+            target=self._read_rows_attempt,
+            predicate=self._predicate,
+            timeout=self.operation_timeout,
         )
 
     def _read_rows_attempt(self) -> CrossSync.Iterable[Row]:

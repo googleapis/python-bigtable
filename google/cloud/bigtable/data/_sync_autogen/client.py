@@ -76,6 +76,7 @@ from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
 from google.cloud.bigtable.data._metrics import OperationType
+from google.cloud.bigtable.data._metrics import tracked_retry
 from google.cloud.bigtable.data._cross_sync import CrossSync
 from typing import Iterable
 from grpc import insecure_channel
@@ -1196,15 +1197,12 @@ class _DataApiTarget(abc.ABC):
                 )
                 return [(s.row_key, s.offset_bytes) for s in results]
 
-            return CrossSync._Sync_Impl.retry_target(
-                execute_rpc,
-                predicate,
-                operation_metric.backoff_generator,
-                operation_timeout,
-                exception_factory=operation_metric.track_terminal_error(
-                    _retry_exception_factory
-                ),
-                on_error=operation_metric.track_retryable_error,
+            return tracked_retry(
+                retry_fn=CrossSync._Sync_Impl.retry_target,
+                operation=operation_metric,
+                target=execute_rpc,
+                predicate=predicate,
+                timeout=operation_timeout,
             )
 
     def mutations_batcher(
@@ -1322,15 +1320,12 @@ class _DataApiTarget(abc.ABC):
                 timeout=attempt_timeout,
                 retry=None,
             )
-            return CrossSync._Sync_Impl.retry_target(
-                target,
-                predicate,
-                operation_metric.backoff_generator,
-                operation_timeout,
-                exception_factory=operation_metric.track_terminal_error(
-                    _retry_exception_factory
-                ),
-                on_error=operation_metric.track_retryable_error,
+            return tracked_retry(
+                retry_fn=CrossSync._Sync_Impl.retry_target,
+                operation=operation_metric,
+                target=target,
+                predicate=predicate,
+                timeout=operation_timeout,
             )
 
     def bulk_mutate_rows(

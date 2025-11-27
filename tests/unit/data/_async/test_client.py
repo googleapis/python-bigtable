@@ -1400,9 +1400,9 @@ class TestTableAsync:
                     predicate_builder_mock.assert_called_once_with(
                         *expected_retryables, *extra_retryables
                     )
-                    retry_call_args = retry_fn_mock.call_args_list[0].args
+                    retry_call_kwargs = retry_fn_mock.call_args_list[0].kwargs
                     # output of if_exception_type should be sent in to retry constructor
-                    assert retry_call_args[1] is expected_predicate
+                    assert retry_call_kwargs["predicate"] is expected_predicate
 
     @pytest.mark.parametrize(
         "fn_name,fn_args,gapic_fn",

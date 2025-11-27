@@ -22,7 +22,7 @@ from google.api_core import retry as retries
 import google.cloud.bigtable_v2.types.bigtable as types_pb
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import _retry_exception_factory
+from google.cloud.bigtable.data._metrics import tracked_retry
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 from google.cloud.bigtable.data.mutations import _EntryWithProto
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -79,13 +79,12 @@ class _MutateRowsOperation:
         self.is_retryable = retries.if_exception_type(
             *retryable_exceptions, bt_exceptions._MutateRowsIncomplete
         )
-        self._operation = lambda: CrossSync._Sync_Impl.retry_target(
-            self._run_attempt,
-            self.is_retryable,
-            metric.backoff_generator,
-            operation_timeout,
-            exception_factory=metric.track_terminal_error(_retry_exception_factory),
-            on_error=metric.track_retryable_error,
+        self._operation = lambda: tracked_retry(
+            retry_fn=CrossSync._Sync_Impl.retry_target,
+            operation=metric,
+            target=self._run_attempt,
+            predicate=self.is_retryable,
+            timeout=operation_timeout,
         )
         self.timeout_generator = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
