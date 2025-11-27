@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable, ClassVar, List, Tuple, Optional, cast, TYPE_CHECKING
+from typing import ClassVar, Tuple, cast, TYPE_CHECKING
 
 import time
 import re
@@ -29,12 +29,9 @@ from grpc import StatusCode
 from grpc import RpcError
 from grpc.aio import AioRpcError
 
-from google.api_core.exceptions import GoogleAPICallError
-from google.api_core.retry import RetryFailureReason
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
 from google.cloud.bigtable.data._helpers import TrackedBackoffGenerator
-from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.protobuf.message import DecodeError
 
 if TYPE_CHECKING:
