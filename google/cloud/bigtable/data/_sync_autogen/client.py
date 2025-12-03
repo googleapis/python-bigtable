@@ -54,7 +54,6 @@ from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 import google.auth.credentials
 import google.auth._default
 from google.api_core import client_options as client_options_lib
-from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data.row import Row
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
@@ -93,6 +92,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (
         ExecuteQueryIterator,
     )
+_DEFAULT_BIGTABLE_EMULATOR_CLIENT = "google-cloud-bigtable-emulator"
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("DataClient")
@@ -127,7 +127,7 @@ class BigtableDataClient(ClientWithProject):
         """
         if "pool_size" in kwargs:
             warnings.warn("pool_size no longer supported")
-        self.client_info = DEFAULT_CLIENT_INFO
+        self.client_info = kwargs.get("client_info") or DEFAULT_CLIENT_INFO
         self.client_info.client_library_version = self._client_version()
         if type(client_options) is dict:
             client_options = client_options_lib.from_dict(client_options)
@@ -168,6 +168,9 @@ class BigtableDataClient(ClientWithProject):
                 f"The configured universe domain ({self.universe_domain}) does not match the universe domain found in the credentials ({self._credentials.universe_domain}). If you haven't configured the universe domain explicitly, `googleapis.com` is the default."
             )
         self._is_closed = CrossSync._Sync_Impl.Event()
+        self._disable_background_channel_refresh = bool(
+            kwargs.get("disable_background_channel_refresh", False)
+        )
         self.transport = cast(TransportType, self._gapic_client.transport)
         self._active_instances: Set[_WarmedInstanceKey] = set()
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
@@ -238,6 +241,7 @@ class BigtableDataClient(ClientWithProject):
             not self._channel_refresh_task
             and (not self._emulator_host)
             and (not self._is_closed.is_set())
+            and (not self._disable_background_channel_refresh)
         ):
             CrossSync._Sync_Impl.verify_async_event_loop()
             self._channel_refresh_task = CrossSync._Sync_Impl.create_task(
