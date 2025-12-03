@@ -31,15 +31,15 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud import bigtable_admin_v2
+from google.cloud.bigtable import admin
 
 
 async def sample_list_snapshots():
     # Create a client
-    client = bigtable_admin_v2.BigtableTableAdminAsyncClient()
+    client = admin.BigtableTableAdminAsyncClient()
 
     # Initialize request argument(s)
-    request = bigtable_admin_v2.ListSnapshotsRequest(
+    request = admin.ListSnapshotsRequest(
         parent="parent_value",
     )
 

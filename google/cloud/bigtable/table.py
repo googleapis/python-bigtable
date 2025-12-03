@@ -47,9 +47,9 @@ from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.row_set import RowRange
 from google.cloud.bigtable import enums
 from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
-from google.cloud.bigtable_admin_v2 import BaseBigtableTableAdminClient
-from google.cloud.bigtable_admin_v2.types import table as admin_messages_v2_pb2
-from google.cloud.bigtable_admin_v2.types import (
+from google.cloud.bigtable.admin import BigtableTableAdminClient
+from google.cloud.bigtable.admin.types import table as admin_messages_v2_pb2
+from google.cloud.bigtable.admin.types import (
     bigtable_table_admin as table_admin_messages_v2_pb2,
 )
 
@@ -990,7 +990,7 @@ class Table(object):
         if filter_:
             backups_filter = "({}) AND ({})".format(backups_filter, filter_)
 
-        parent = BaseBigtableTableAdminClient.cluster_path(
+        parent = BigtableTableAdminClient.cluster_path(
             project=self._instance._client.project,
             instance=self._instance.instance_id,
             cluster=cluster_id,
@@ -1049,7 +1049,7 @@ class Table(object):
         """
         api = self._instance._client.table_admin_client
         if not backup_name:
-            backup_name = BaseBigtableTableAdminClient.backup_path(
+            backup_name = BigtableTableAdminClient.backup_path(
                 project=self._instance._client.project,
                 instance=self._instance.instance_id,
                 cluster=cluster_id,

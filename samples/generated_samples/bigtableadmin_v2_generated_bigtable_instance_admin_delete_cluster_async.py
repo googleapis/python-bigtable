@@ -31,15 +31,15 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud import bigtable_admin_v2
+from google.cloud.bigtable import admin
 
 
 async def sample_delete_cluster():
     # Create a client
-    client = bigtable_admin_v2.BigtableInstanceAdminAsyncClient()
+    client = admin.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
-    request = bigtable_admin_v2.DeleteClusterRequest(
+    request = admin.DeleteClusterRequest(
         name="name_value",
     )
 
