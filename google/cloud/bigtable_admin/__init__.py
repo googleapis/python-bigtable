@@ -15,7 +15,7 @@
 #
 
 # There are no subpackages exported from google.cloud.bigtable_admin,
-# only an import alias for objects in google.cloud.bigtable_admin_v2.
+# only an import alias for objects in google.cloud.bigtable.admin.
 # We maintain that surface here.
 
 from google.cloud.bigtable.admin import *  # noqa: F401,F403
