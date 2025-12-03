@@ -14,11 +14,23 @@
 # limitations under the License.
 #
 
-# There are no subpackages exported from google.cloud.bigtable_admin,
-# only an import alias for objects in google.cloud.bigtable.admin.
-# We maintain that surface here.
+import sys
+import importlib
+import pkgutil
 
-from google.cloud.bigtable.admin import *  # noqa: F401,F403
 import google.cloud.bigtable.admin
 
-__all__ = google.cloud.bigtable.admin.__all__
+# Alias all subpackages of google.cloud.bigtable.admin to
+# corresponding subpackages of google.cloud.bigtable_admin_v2.
+
+_NEW_PATH = "google.cloud.bigtable.admin"
+sys.modules[__name__] = google.cloud.bigtable.admin
+
+# iterate and import all submodules to populate sys.modules
+for _, name, _ in pkgutil.walk_packages(
+    path=google.cloud.bigtable.admin.__path__,
+    prefix=_NEW_PATH + ".",
+):
+    mod = importlib.import_module(name)
+    alias = name.replace(_NEW_PATH, __name__, 1)
+    sys.modules[alias] = mod
