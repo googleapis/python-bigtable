@@ -58,10 +58,6 @@ def _get_metadata(source) -> dict[str, str | bytes] | None:
 class BigtableMetricsInterceptor(
     UnaryUnaryClientInterceptor, UnaryStreamClientInterceptor
 ):
-    """
-    An async gRPC interceptor to add client metadata and print server metadata.
-    """
-
     @_with_active_operation
     def intercept_unary_unary(
         self, operation, continuation, client_call_details, request
