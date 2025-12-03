@@ -19,6 +19,7 @@ google.api_core.retry.retry_target_stream method
 methods to update the associated ActiveOperationMetric when exceptions
 are encountered through the retryable rpc.
 """
+from __future__ import annotations
 
 from typing import Callable, List, Optional, Tuple, TypeVar
 
