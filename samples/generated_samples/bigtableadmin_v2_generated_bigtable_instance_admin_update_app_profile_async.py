@@ -31,18 +31,18 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud import bigtable_admin_v2
+from google.cloud.bigtable import admin
 
 
 async def sample_update_app_profile():
     # Create a client
-    client = bigtable_admin_v2.BigtableInstanceAdminAsyncClient()
+    client = admin.BigtableInstanceAdminAsyncClient()
 
     # Initialize request argument(s)
-    app_profile = bigtable_admin_v2.AppProfile()
+    app_profile = admin.AppProfile()
     app_profile.priority = "PRIORITY_HIGH"
 
-    request = bigtable_admin_v2.UpdateAppProfileRequest(
+    request = admin.UpdateAppProfileRequest(
         app_profile=app_profile,
     )
 

@@ -35,12 +35,12 @@ from google.api_core.gapic_v1 import client_info as client_info_lib
 from google.auth.credentials import AnonymousCredentials  # type: ignore
 
 from google.cloud import bigtable_v2
-from google.cloud import bigtable_admin_v2
+from google.cloud.bigtable import admin
 from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport
-from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.transports import (
+from google.cloud.bigtable.admin.services.bigtable_instance_admin.transports import (
     BigtableInstanceAdminGrpcTransport,
 )
-from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports import (
+from google.cloud.bigtable.admin.services.bigtable_table_admin.transports import (
     BigtableTableAdminGrpcTransport,
 )
 
@@ -50,7 +50,7 @@ from google.cloud.bigtable.cluster import Cluster
 
 from google.cloud.client import ClientWithProject  # type: ignore
 
-from google.cloud.bigtable_admin_v2.types import instance
+from google.cloud.bigtable.admin.types import instance
 from google.cloud.bigtable.cluster import _CLUSTER_NAME_RE
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 
@@ -325,11 +325,11 @@ class Client(ClientWithProject):
                 raise ValueError("Client is not an admin client.")
 
             transport = self._create_gapic_client_channel(
-                bigtable_admin_v2.BaseBigtableTableAdminClient,
+                admin.BigtableTableAdminClient,
                 BigtableTableAdminGrpcTransport,
             )
             klass = _create_gapic_client(
-                bigtable_admin_v2.BaseBigtableTableAdminClient,
+                admin.BigtableTableAdminClient,
                 client_options=self._admin_client_options,
                 transport=transport,
             )
@@ -358,11 +358,11 @@ class Client(ClientWithProject):
                 raise ValueError("Client is not an admin client.")
 
             transport = self._create_gapic_client_channel(
-                bigtable_admin_v2.BigtableInstanceAdminClient,
+                admin.BigtableInstanceAdminClient,
                 BigtableInstanceAdminGrpcTransport,
             )
             klass = _create_gapic_client(
-                bigtable_admin_v2.BigtableInstanceAdminClient,
+                admin.BigtableInstanceAdminClient,
                 client_options=self._admin_client_options,
                 transport=transport,
             )

@@ -31,15 +31,15 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud import bigtable_admin_v2
+from google.cloud.bigtable import admin
 
 
 def sample_create_table():
     # Create a client
-    client = bigtable_admin_v2.BigtableTableAdminClient()
+    client = admin.BigtableTableAdminClient()
 
     # Initialize request argument(s)
-    request = bigtable_admin_v2.CreateTableRequest(
+    request = admin.CreateTableRequest(
         parent="parent_value",
         table_id="table_id_value",
     )
