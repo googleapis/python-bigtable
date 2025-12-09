@@ -72,6 +72,7 @@ from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT, _align_timeouts
 from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
+from google.cloud.bigtable.data._helpers import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data._helpers import _get_error_type
@@ -132,7 +133,6 @@ if TYPE_CHECKING:
 
 
 __CROSS_SYNC_OUTPUT__ = "google.cloud.bigtable.data._sync_autogen.client"
-_DEFAULT_BIGTABLE_EMULATOR_CLIENT = "google-cloud-bigtable-emulator"
 
 
 @CrossSync.convert_class(

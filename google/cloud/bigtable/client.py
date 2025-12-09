@@ -53,7 +53,7 @@ from google.cloud.bigtable.cluster import _CLUSTER_NAME_RE
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 
 from google.cloud.bigtable.data import BigtableDataClient
-from google.cloud.bigtable.data._sync_autogen.client import (
+from google.cloud.bigtable.data._helpers import (
     _DEFAULT_BIGTABLE_EMULATOR_CLIENT,
 )
 

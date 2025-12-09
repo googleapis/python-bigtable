@@ -61,6 +61,7 @@ from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT, _align_timeouts
 from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
+from google.cloud.bigtable.data._helpers import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data._helpers import _get_error_type
@@ -92,7 +93,6 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.execute_query._sync_autogen.execute_query_iterator import (
         ExecuteQueryIterator,
     )
-_DEFAULT_BIGTABLE_EMULATOR_CLIENT = "google-cloud-bigtable-emulator"
 
 
 @CrossSync._Sync_Impl.add_mapping_decorator("DataClient")
