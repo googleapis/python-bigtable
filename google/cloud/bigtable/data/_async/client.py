@@ -242,6 +242,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 "is the default."
             )
         self._is_closed = CrossSync.Event()
+        # Private argument, for internal use only
         self._disable_background_channel_refresh = bool(
             kwargs.get("_disable_background_channel_refresh", False)
         )
