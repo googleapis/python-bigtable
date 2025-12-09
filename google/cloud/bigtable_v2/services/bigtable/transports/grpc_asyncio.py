@@ -35,7 +35,7 @@ from grpc.experimental import aio  # type: ignore
 
 from google.cloud.bigtable_v2.types import bigtable
 from .base import BigtableTransport, DEFAULT_CLIENT_INFO
-from .grpc import BigtableGrpcTransport
+from .grpc import BigtableGrpcTransport, GRPC_CLIENT_OPTIONS
 
 try:
     from google.api_core import client_logging  # type: ignore
@@ -162,6 +162,9 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         Returns:
             aio.Channel: A gRPC AsyncIO channel object.
         """
+
+        if "options" not in kwargs:
+            kwargs["options"] = GRPC_CLIENT_OPTIONS
 
         return grpc_helpers_async.create_channel(
             host,
@@ -306,10 +309,6 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
                 scopes=self._scopes,
                 ssl_credentials=self._ssl_channel_credentials,
                 quota_project_id=quota_project_id,
-                options=[
-                    ("grpc.max_send_message_length", -1),
-                    ("grpc.max_receive_message_length", -1),
-                ],
             )
 
         self._interceptor = _LoggingClientAIOInterceptor()

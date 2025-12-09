@@ -42,6 +42,11 @@ except ImportError:  # pragma: NO COVER
 
 _LOGGER = std_logging.getLogger(__name__)
 
+# Allow for large rows in responses.
+GRPC_CLIENT_OPTIONS = [
+    ("grpc.max_send_message_length", -1),
+    ("grpc.max_receive_message_length", -1),
+]
 
 class _LoggingClientInterceptor(grpc.UnaryUnaryClientInterceptor):  # pragma: NO COVER
     def intercept_unary_unary(self, continuation, client_call_details, request):
@@ -256,10 +261,6 @@ class BigtableGrpcTransport(BigtableTransport):
                 scopes=self._scopes,
                 ssl_credentials=self._ssl_channel_credentials,
                 quota_project_id=quota_project_id,
-                options=[
-                    ("grpc.max_send_message_length", -1),
-                    ("grpc.max_receive_message_length", -1),
-                ],
             )
 
         self._interceptor = _LoggingClientInterceptor()
@@ -307,6 +308,9 @@ class BigtableGrpcTransport(BigtableTransport):
               and ``credentials_file`` are passed.
         """
 
+        if "options" not in kwargs:
+            kwargs["options"] = GRPC_CLIENT_OPTIONS
+
         return grpc_helpers.create_channel(
             host,
             credentials=credentials,
@@ -315,6 +319,7 @@ class BigtableGrpcTransport(BigtableTransport):
             default_scopes=cls.AUTH_SCOPES,
             scopes=scopes,
             default_host=cls.DEFAULT_HOST,
+            options=GRPC_CLIENT_OPTIONS,
             **kwargs,
         )
 
