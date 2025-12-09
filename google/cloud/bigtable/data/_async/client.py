@@ -184,9 +184,15 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         if "pool_size" in kwargs:
             warnings.warn("pool_size no longer supported")
-        # set up client info headers for veneer library
-        self.client_info = kwargs.get("client_info") or DEFAULT_CLIENT_INFO
-        self.client_info.client_library_version = self._client_version()
+        if "_client_info" in kwargs:
+            # use client_info passed in from legacy client. For internal use only, for the legacy
+            # client shim.
+            self.client_info = kwargs["_client_info"]
+        else:
+            # set up client info headers for veneer library.
+            self.client_info = kwargs.get("_client_info", DEFAULT_CLIENT_INFO)
+            self.client_info.client_library_version = self._client_version()
+
         # parse client options
         if type(client_options) is dict:
             client_options = client_options_lib.from_dict(client_options)
@@ -237,7 +243,7 @@ class BigtableDataClientAsync(ClientWithProject):
             )
         self._is_closed = CrossSync.Event()
         self._disable_background_channel_refresh = bool(
-            kwargs.get("disable_background_channel_refresh", False)
+            kwargs.get("_disable_background_channel_refresh", False)
         )
         self.transport = cast(TransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh

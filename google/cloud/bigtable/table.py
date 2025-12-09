@@ -132,6 +132,15 @@ class Table(object):
         self._app_profile_id = app_profile_id
         self.mutation_timeout = mutation_timeout
 
+        self._table_impl = (
+            self._instance._client._data_client.get_table(
+                self._instance.instance_id,
+                self.table_id,
+            )
+            if self._instance
+            else None
+        )
+
     @property
     def name(self):
         """Table name used in requests.

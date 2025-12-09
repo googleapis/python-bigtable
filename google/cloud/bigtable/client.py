@@ -34,9 +34,7 @@ import grpc  # type: ignore
 from google.api_core.gapic_v1 import client_info as client_info_lib
 from google.auth.credentials import AnonymousCredentials  # type: ignore
 
-from google.cloud import bigtable_v2
 from google.cloud import bigtable_admin_v2
-from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport
 from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.transports import (
     BigtableInstanceAdminGrpcTransport,
 )
@@ -150,7 +148,6 @@ class Client(ClientWithProject):
     _table_data_client = None
     _table_admin_client = None
     _instance_admin_client = None
-    _new_table_data_client = None
 
     def __init__(
         self,
@@ -295,18 +292,7 @@ class Client(ClientWithProject):
         :rtype: :class:`.bigtable_v2.BigtableClient`
         :returns: A BigtableClient object.
         """
-        if self._table_data_client is None:
-            transport = self._create_gapic_client_channel(
-                bigtable_v2.BigtableClient,
-                BigtableGrpcTransport,
-            )
-            klass = _create_gapic_client(
-                bigtable_v2.BigtableClient,
-                client_options=self._client_options,
-                transport=transport,
-            )
-            self._table_data_client = klass(self)
-        return self._table_data_client
+        return self._data_client._gapic_client
 
     @property
     def table_admin_client(self):
@@ -375,21 +361,17 @@ class Client(ClientWithProject):
         return self._instance_admin_client
 
     @property
-    def new_table_data_client(self):
-        """Getter for the new Data Table API.
-
-        TODO: Replace table_data_client with this implementation
-        when shimming legacy client is finished.
-        """
-        if self._new_table_data_client is None:
-            self._new_table_data_client = BigtableDataClient(
+    def _data_client(self):
+        """Getter for the new Data Table API."""
+        if self._table_data_client is None:
+            self._table_data_client = BigtableDataClient(
                 project=self.project,
                 credentials=self._credentials,
                 client_options=self._client_options,
-                client_info=self._client_info,
-                disable_background_channel_refresh=True,
+                _client_info=self._client_info,
+                _disable_background_channel_refresh=True,
             )
-        return self._new_table_data_client
+        return self._table_data_client
 
     def instance(self, instance_id, display_name=None, instance_type=None, labels=None):
         """Factory to create a instance associated with this client.

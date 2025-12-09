@@ -127,8 +127,11 @@ class BigtableDataClient(ClientWithProject):
         """
         if "pool_size" in kwargs:
             warnings.warn("pool_size no longer supported")
-        self.client_info = kwargs.get("client_info") or DEFAULT_CLIENT_INFO
-        self.client_info.client_library_version = self._client_version()
+        if "_client_info" in kwargs:
+            self.client_info = kwargs["_client_info"]
+        else:
+            self.client_info = kwargs.get("_client_info", DEFAULT_CLIENT_INFO)
+            self.client_info.client_library_version = self._client_version()
         if type(client_options) is dict:
             client_options = client_options_lib.from_dict(client_options)
         client_options = cast(
@@ -169,7 +172,7 @@ class BigtableDataClient(ClientWithProject):
             )
         self._is_closed = CrossSync._Sync_Impl.Event()
         self._disable_background_channel_refresh = bool(
-            kwargs.get("disable_background_channel_refresh", False)
+            kwargs.get("_disable_background_channel_refresh", False)
         )
         self.transport = cast(TransportType, self._gapic_client.transport)
         self._active_instances: Set[_WarmedInstanceKey] = set()

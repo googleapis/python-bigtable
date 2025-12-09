@@ -141,7 +141,6 @@ class TestBigtableDataClient:
     def test_ctor_client_info(self):
         from google.api_core import client_options as client_options_lib
         from google.api_core.gapic_v1.client_info import ClientInfo
-        import copy
 
         project = "project-id"
         credentials = AnonymousCredentials()
@@ -155,9 +154,9 @@ class TestBigtableDataClient:
                 self._make_client(
                     project=project,
                     credentials=credentials,
-                    client_info=client_info,
                     client_options=options_parsed,
                     use_emulator=False,
+                    _client_info=client_info,
                 )
             except TypeError:
                 pass
@@ -165,18 +164,7 @@ class TestBigtableDataClient:
             kwargs = bigtable_client_init.call_args[1]
             assert kwargs["credentials"] == credentials
             assert kwargs["client_options"] == options_parsed
-            expected_client_info = copy.copy(client_info)
-            expected_client_info.client_library_version = (
-                CrossSync._Sync_Impl.DataClient._client_version()
-            )
-            assert (
-                kwargs["client_info"].to_user_agent()
-                == expected_client_info.to_user_agent()
-            )
-            assert (
-                kwargs["client_info"].to_grpc_metadata()
-                == expected_client_info.to_grpc_metadata()
-            )
+        kwargs["client_info"] == client_info
 
     def test_ctor_dict_options(self):
         from google.api_core.client_options import ClientOptions
@@ -252,17 +240,18 @@ class TestBigtableDataClient:
 
     def test__start_background_channel_refresh_disable_refresh(self):
         client = self._make_client(
-            project="project-id", disable_background_channel_refresh=True
+            project="project-id", _disable_background_channel_refresh=True
         )
         with mock.patch.object(
             client, "_ping_and_warm_instances", CrossSync._Sync_Impl.Mock()
-        ):
+        ) as ping_and_warm:
             client._emulator_host = None
             client.transport._grpc_channel = CrossSync._Sync_Impl.SwappableChannel(
                 mock.Mock
             )
             client._start_background_channel_refresh()
             assert client._channel_refresh_task is None
+            ping_and_warm.assert_not_called()
 
     def test__ping_and_warm_instances(self):
         """test ping and warm with mocked asyncio.gather"""
