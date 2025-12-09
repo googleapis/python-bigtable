@@ -16,10 +16,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.create_app_profile",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.create_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateAppProfile",
           "service": {
@@ -31,7 +31,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateAppProfileRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateAppProfileRequest"
           },
           {
             "name": "parent",
@@ -43,7 +43,7 @@
           },
           {
             "name": "app_profile",
-            "type": "google.cloud.bigtable_admin_v2.types.AppProfile"
+            "type": "google.cloud.bigtable.admin.types.AppProfile"
           },
           {
             "name": "retry",
@@ -58,7 +58,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.AppProfile",
+        "resultType": "google.cloud.bigtable.admin.types.AppProfile",
         "shortName": "create_app_profile"
       },
       "description": "Sample for CreateAppProfile",
@@ -104,10 +104,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.create_app_profile",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.create_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateAppProfile",
           "service": {
@@ -119,7 +119,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateAppProfileRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateAppProfileRequest"
           },
           {
             "name": "parent",
@@ -131,7 +131,7 @@
           },
           {
             "name": "app_profile",
-            "type": "google.cloud.bigtable_admin_v2.types.AppProfile"
+            "type": "google.cloud.bigtable.admin.types.AppProfile"
           },
           {
             "name": "retry",
@@ -146,7 +146,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.AppProfile",
+        "resultType": "google.cloud.bigtable.admin.types.AppProfile",
         "shortName": "create_app_profile"
       },
       "description": "Sample for CreateAppProfile",
@@ -193,10 +193,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.create_cluster",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.create_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateCluster",
           "service": {
@@ -208,7 +208,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateClusterRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateClusterRequest"
           },
           {
             "name": "parent",
@@ -220,7 +220,7 @@
           },
           {
             "name": "cluster",
-            "type": "google.cloud.bigtable_admin_v2.types.Cluster"
+            "type": "google.cloud.bigtable.admin.types.Cluster"
           },
           {
             "name": "retry",
@@ -281,10 +281,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.create_cluster",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.create_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateCluster",
           "service": {
@@ -296,7 +296,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateClusterRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateClusterRequest"
           },
           {
             "name": "parent",
@@ -308,7 +308,7 @@
           },
           {
             "name": "cluster",
-            "type": "google.cloud.bigtable_admin_v2.types.Cluster"
+            "type": "google.cloud.bigtable.admin.types.Cluster"
           },
           {
             "name": "retry",
@@ -370,10 +370,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.create_instance",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.create_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateInstance",
           "service": {
@@ -385,7 +385,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateInstanceRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateInstanceRequest"
           },
           {
             "name": "parent",
@@ -397,11 +397,11 @@
           },
           {
             "name": "instance",
-            "type": "google.cloud.bigtable_admin_v2.types.Instance"
+            "type": "google.cloud.bigtable.admin.types.Instance"
           },
           {
             "name": "clusters",
-            "type": "MutableMapping[str, google.cloud.bigtable_admin_v2.types.Cluster]"
+            "type": "MutableMapping[str, google.cloud.bigtable.admin.types.Cluster]"
           },
           {
             "name": "retry",
@@ -462,10 +462,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.create_instance",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.create_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateInstance",
           "service": {
@@ -477,7 +477,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateInstanceRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateInstanceRequest"
           },
           {
             "name": "parent",
@@ -489,11 +489,11 @@
           },
           {
             "name": "instance",
-            "type": "google.cloud.bigtable_admin_v2.types.Instance"
+            "type": "google.cloud.bigtable.admin.types.Instance"
           },
           {
             "name": "clusters",
-            "type": "MutableMapping[str, google.cloud.bigtable_admin_v2.types.Cluster]"
+            "type": "MutableMapping[str, google.cloud.bigtable.admin.types.Cluster]"
           },
           {
             "name": "retry",
@@ -555,10 +555,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.create_logical_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.create_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateLogicalView",
           "service": {
@@ -570,7 +570,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateLogicalViewRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateLogicalViewRequest"
           },
           {
             "name": "parent",
@@ -578,7 +578,7 @@
           },
           {
             "name": "logical_view",
-            "type": "google.cloud.bigtable_admin_v2.types.LogicalView"
+            "type": "google.cloud.bigtable.admin.types.LogicalView"
           },
           {
             "name": "logical_view_id",
@@ -643,10 +643,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.create_logical_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.create_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateLogicalView",
           "service": {
@@ -658,7 +658,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateLogicalViewRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateLogicalViewRequest"
           },
           {
             "name": "parent",
@@ -666,7 +666,7 @@
           },
           {
             "name": "logical_view",
-            "type": "google.cloud.bigtable_admin_v2.types.LogicalView"
+            "type": "google.cloud.bigtable.admin.types.LogicalView"
           },
           {
             "name": "logical_view_id",
@@ -732,10 +732,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.create_materialized_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.create_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateMaterializedView",
           "service": {
@@ -747,7 +747,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateMaterializedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateMaterializedViewRequest"
           },
           {
             "name": "parent",
@@ -755,7 +755,7 @@
           },
           {
             "name": "materialized_view",
-            "type": "google.cloud.bigtable_admin_v2.types.MaterializedView"
+            "type": "google.cloud.bigtable.admin.types.MaterializedView"
           },
           {
             "name": "materialized_view_id",
@@ -820,10 +820,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.create_materialized_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.create_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.CreateMaterializedView",
           "service": {
@@ -835,7 +835,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateMaterializedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateMaterializedViewRequest"
           },
           {
             "name": "parent",
@@ -843,7 +843,7 @@
           },
           {
             "name": "materialized_view",
-            "type": "google.cloud.bigtable_admin_v2.types.MaterializedView"
+            "type": "google.cloud.bigtable.admin.types.MaterializedView"
           },
           {
             "name": "materialized_view_id",
@@ -909,10 +909,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.delete_app_profile",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.delete_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteAppProfile",
           "service": {
@@ -924,7 +924,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteAppProfileRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteAppProfileRequest"
           },
           {
             "name": "name",
@@ -990,10 +990,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.delete_app_profile",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.delete_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteAppProfile",
           "service": {
@@ -1005,7 +1005,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteAppProfileRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteAppProfileRequest"
           },
           {
             "name": "name",
@@ -1072,10 +1072,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.delete_cluster",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.delete_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteCluster",
           "service": {
@@ -1087,7 +1087,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteClusterRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteClusterRequest"
           },
           {
             "name": "name",
@@ -1149,10 +1149,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.delete_cluster",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.delete_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteCluster",
           "service": {
@@ -1164,7 +1164,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteClusterRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteClusterRequest"
           },
           {
             "name": "name",
@@ -1227,10 +1227,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.delete_instance",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.delete_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteInstance",
           "service": {
@@ -1242,7 +1242,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteInstanceRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteInstanceRequest"
           },
           {
             "name": "name",
@@ -1304,10 +1304,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.delete_instance",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.delete_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteInstance",
           "service": {
@@ -1319,7 +1319,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteInstanceRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteInstanceRequest"
           },
           {
             "name": "name",
@@ -1382,10 +1382,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.delete_logical_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.delete_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteLogicalView",
           "service": {
@@ -1397,7 +1397,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteLogicalViewRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteLogicalViewRequest"
           },
           {
             "name": "name",
@@ -1459,10 +1459,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.delete_logical_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.delete_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteLogicalView",
           "service": {
@@ -1474,7 +1474,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteLogicalViewRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteLogicalViewRequest"
           },
           {
             "name": "name",
@@ -1537,10 +1537,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.delete_materialized_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.delete_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteMaterializedView",
           "service": {
@@ -1552,7 +1552,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteMaterializedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteMaterializedViewRequest"
           },
           {
             "name": "name",
@@ -1614,10 +1614,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.delete_materialized_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.delete_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.DeleteMaterializedView",
           "service": {
@@ -1629,7 +1629,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteMaterializedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteMaterializedViewRequest"
           },
           {
             "name": "name",
@@ -1692,10 +1692,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.get_app_profile",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.get_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetAppProfile",
           "service": {
@@ -1707,7 +1707,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetAppProfileRequest"
+            "type": "google.cloud.bigtable.admin.types.GetAppProfileRequest"
           },
           {
             "name": "name",
@@ -1726,7 +1726,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.AppProfile",
+        "resultType": "google.cloud.bigtable.admin.types.AppProfile",
         "shortName": "get_app_profile"
       },
       "description": "Sample for GetAppProfile",
@@ -1772,10 +1772,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.get_app_profile",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.get_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetAppProfile",
           "service": {
@@ -1787,7 +1787,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetAppProfileRequest"
+            "type": "google.cloud.bigtable.admin.types.GetAppProfileRequest"
           },
           {
             "name": "name",
@@ -1806,7 +1806,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.AppProfile",
+        "resultType": "google.cloud.bigtable.admin.types.AppProfile",
         "shortName": "get_app_profile"
       },
       "description": "Sample for GetAppProfile",
@@ -1853,10 +1853,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.get_cluster",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.get_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetCluster",
           "service": {
@@ -1868,7 +1868,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetClusterRequest"
+            "type": "google.cloud.bigtable.admin.types.GetClusterRequest"
           },
           {
             "name": "name",
@@ -1887,7 +1887,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Cluster",
+        "resultType": "google.cloud.bigtable.admin.types.Cluster",
         "shortName": "get_cluster"
       },
       "description": "Sample for GetCluster",
@@ -1933,10 +1933,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.get_cluster",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.get_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetCluster",
           "service": {
@@ -1948,7 +1948,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetClusterRequest"
+            "type": "google.cloud.bigtable.admin.types.GetClusterRequest"
           },
           {
             "name": "name",
@@ -1967,7 +1967,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Cluster",
+        "resultType": "google.cloud.bigtable.admin.types.Cluster",
         "shortName": "get_cluster"
       },
       "description": "Sample for GetCluster",
@@ -2014,10 +2014,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.get_iam_policy",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.get_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetIamPolicy",
           "service": {
@@ -2094,10 +2094,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.get_iam_policy",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.get_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetIamPolicy",
           "service": {
@@ -2175,10 +2175,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.get_instance",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.get_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetInstance",
           "service": {
@@ -2190,7 +2190,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetInstanceRequest"
+            "type": "google.cloud.bigtable.admin.types.GetInstanceRequest"
           },
           {
             "name": "name",
@@ -2209,7 +2209,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Instance",
+        "resultType": "google.cloud.bigtable.admin.types.Instance",
         "shortName": "get_instance"
       },
       "description": "Sample for GetInstance",
@@ -2255,10 +2255,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.get_instance",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.get_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetInstance",
           "service": {
@@ -2270,7 +2270,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetInstanceRequest"
+            "type": "google.cloud.bigtable.admin.types.GetInstanceRequest"
           },
           {
             "name": "name",
@@ -2289,7 +2289,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Instance",
+        "resultType": "google.cloud.bigtable.admin.types.Instance",
         "shortName": "get_instance"
       },
       "description": "Sample for GetInstance",
@@ -2336,10 +2336,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.get_logical_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.get_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetLogicalView",
           "service": {
@@ -2351,7 +2351,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetLogicalViewRequest"
+            "type": "google.cloud.bigtable.admin.types.GetLogicalViewRequest"
           },
           {
             "name": "name",
@@ -2370,7 +2370,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.LogicalView",
+        "resultType": "google.cloud.bigtable.admin.types.LogicalView",
         "shortName": "get_logical_view"
       },
       "description": "Sample for GetLogicalView",
@@ -2416,10 +2416,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.get_logical_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.get_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetLogicalView",
           "service": {
@@ -2431,7 +2431,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetLogicalViewRequest"
+            "type": "google.cloud.bigtable.admin.types.GetLogicalViewRequest"
           },
           {
             "name": "name",
@@ -2450,7 +2450,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.LogicalView",
+        "resultType": "google.cloud.bigtable.admin.types.LogicalView",
         "shortName": "get_logical_view"
       },
       "description": "Sample for GetLogicalView",
@@ -2497,10 +2497,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.get_materialized_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.get_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetMaterializedView",
           "service": {
@@ -2512,7 +2512,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetMaterializedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.GetMaterializedViewRequest"
           },
           {
             "name": "name",
@@ -2531,7 +2531,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.MaterializedView",
+        "resultType": "google.cloud.bigtable.admin.types.MaterializedView",
         "shortName": "get_materialized_view"
       },
       "description": "Sample for GetMaterializedView",
@@ -2577,10 +2577,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.get_materialized_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.get_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.GetMaterializedView",
           "service": {
@@ -2592,7 +2592,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetMaterializedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.GetMaterializedViewRequest"
           },
           {
             "name": "name",
@@ -2611,7 +2611,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.MaterializedView",
+        "resultType": "google.cloud.bigtable.admin.types.MaterializedView",
         "shortName": "get_materialized_view"
       },
       "description": "Sample for GetMaterializedView",
@@ -2658,10 +2658,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.list_app_profiles",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.list_app_profiles",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListAppProfiles",
           "service": {
@@ -2673,7 +2673,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest"
+            "type": "google.cloud.bigtable.admin.types.ListAppProfilesRequest"
           },
           {
             "name": "parent",
@@ -2692,7 +2692,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListAppProfilesAsyncPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_instance_admin.pagers.ListAppProfilesAsyncPager",
         "shortName": "list_app_profiles"
       },
       "description": "Sample for ListAppProfiles",
@@ -2738,10 +2738,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.list_app_profiles",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.list_app_profiles",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListAppProfiles",
           "service": {
@@ -2753,7 +2753,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest"
+            "type": "google.cloud.bigtable.admin.types.ListAppProfilesRequest"
           },
           {
             "name": "parent",
@@ -2772,7 +2772,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListAppProfilesPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_instance_admin.pagers.ListAppProfilesPager",
         "shortName": "list_app_profiles"
       },
       "description": "Sample for ListAppProfiles",
@@ -2819,10 +2819,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.list_clusters",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.list_clusters",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListClusters",
           "service": {
@@ -2834,7 +2834,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListClustersRequest"
+            "type": "google.cloud.bigtable.admin.types.ListClustersRequest"
           },
           {
             "name": "parent",
@@ -2853,7 +2853,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.ListClustersResponse",
+        "resultType": "google.cloud.bigtable.admin.types.ListClustersResponse",
         "shortName": "list_clusters"
       },
       "description": "Sample for ListClusters",
@@ -2899,10 +2899,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.list_clusters",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.list_clusters",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListClusters",
           "service": {
@@ -2914,7 +2914,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListClustersRequest"
+            "type": "google.cloud.bigtable.admin.types.ListClustersRequest"
           },
           {
             "name": "parent",
@@ -2933,7 +2933,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.ListClustersResponse",
+        "resultType": "google.cloud.bigtable.admin.types.ListClustersResponse",
         "shortName": "list_clusters"
       },
       "description": "Sample for ListClusters",
@@ -2980,10 +2980,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.list_hot_tablets",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.list_hot_tablets",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListHotTablets",
           "service": {
@@ -2995,7 +2995,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListHotTabletsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListHotTabletsRequest"
           },
           {
             "name": "parent",
@@ -3014,7 +3014,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListHotTabletsAsyncPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_instance_admin.pagers.ListHotTabletsAsyncPager",
         "shortName": "list_hot_tablets"
       },
       "description": "Sample for ListHotTablets",
@@ -3060,10 +3060,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.list_hot_tablets",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.list_hot_tablets",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListHotTablets",
           "service": {
@@ -3075,7 +3075,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListHotTabletsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListHotTabletsRequest"
           },
           {
             "name": "parent",
@@ -3094,7 +3094,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListHotTabletsPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_instance_admin.pagers.ListHotTabletsPager",
         "shortName": "list_hot_tablets"
       },
       "description": "Sample for ListHotTablets",
@@ -3141,10 +3141,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.list_instances",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.list_instances",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListInstances",
           "service": {
@@ -3156,7 +3156,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListInstancesRequest"
+            "type": "google.cloud.bigtable.admin.types.ListInstancesRequest"
           },
           {
             "name": "parent",
@@ -3175,7 +3175,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.ListInstancesResponse",
+        "resultType": "google.cloud.bigtable.admin.types.ListInstancesResponse",
         "shortName": "list_instances"
       },
       "description": "Sample for ListInstances",
@@ -3221,10 +3221,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.list_instances",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.list_instances",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListInstances",
           "service": {
@@ -3236,7 +3236,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListInstancesRequest"
+            "type": "google.cloud.bigtable.admin.types.ListInstancesRequest"
           },
           {
             "name": "parent",
@@ -3255,7 +3255,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.ListInstancesResponse",
+        "resultType": "google.cloud.bigtable.admin.types.ListInstancesResponse",
         "shortName": "list_instances"
       },
       "description": "Sample for ListInstances",
@@ -3302,10 +3302,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.list_logical_views",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.list_logical_views",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListLogicalViews",
           "service": {
@@ -3317,7 +3317,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListLogicalViewsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListLogicalViewsRequest"
           },
           {
             "name": "parent",
@@ -3336,7 +3336,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListLogicalViewsAsyncPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_instance_admin.pagers.ListLogicalViewsAsyncPager",
         "shortName": "list_logical_views"
       },
       "description": "Sample for ListLogicalViews",
@@ -3382,10 +3382,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.list_logical_views",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.list_logical_views",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListLogicalViews",
           "service": {
@@ -3397,7 +3397,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListLogicalViewsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListLogicalViewsRequest"
           },
           {
             "name": "parent",
@@ -3416,7 +3416,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListLogicalViewsPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_instance_admin.pagers.ListLogicalViewsPager",
         "shortName": "list_logical_views"
       },
       "description": "Sample for ListLogicalViews",
@@ -3463,10 +3463,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.list_materialized_views",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.list_materialized_views",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListMaterializedViews",
           "service": {
@@ -3478,7 +3478,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListMaterializedViewsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListMaterializedViewsRequest"
           },
           {
             "name": "parent",
@@ -3497,7 +3497,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListMaterializedViewsAsyncPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_instance_admin.pagers.ListMaterializedViewsAsyncPager",
         "shortName": "list_materialized_views"
       },
       "description": "Sample for ListMaterializedViews",
@@ -3543,10 +3543,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.list_materialized_views",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.list_materialized_views",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.ListMaterializedViews",
           "service": {
@@ -3558,7 +3558,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListMaterializedViewsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListMaterializedViewsRequest"
           },
           {
             "name": "parent",
@@ -3577,7 +3577,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListMaterializedViewsPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_instance_admin.pagers.ListMaterializedViewsPager",
         "shortName": "list_materialized_views"
       },
       "description": "Sample for ListMaterializedViews",
@@ -3624,10 +3624,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.partial_update_cluster",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.partial_update_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.PartialUpdateCluster",
           "service": {
@@ -3639,11 +3639,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.PartialUpdateClusterRequest"
+            "type": "google.cloud.bigtable.admin.types.PartialUpdateClusterRequest"
           },
           {
             "name": "cluster",
-            "type": "google.cloud.bigtable_admin_v2.types.Cluster"
+            "type": "google.cloud.bigtable.admin.types.Cluster"
           },
           {
             "name": "update_mask",
@@ -3708,10 +3708,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.partial_update_cluster",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.partial_update_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.PartialUpdateCluster",
           "service": {
@@ -3723,11 +3723,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.PartialUpdateClusterRequest"
+            "type": "google.cloud.bigtable.admin.types.PartialUpdateClusterRequest"
           },
           {
             "name": "cluster",
-            "type": "google.cloud.bigtable_admin_v2.types.Cluster"
+            "type": "google.cloud.bigtable.admin.types.Cluster"
           },
           {
             "name": "update_mask",
@@ -3793,10 +3793,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.partial_update_instance",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.partial_update_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.PartialUpdateInstance",
           "service": {
@@ -3808,11 +3808,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest"
+            "type": "google.cloud.bigtable.admin.types.PartialUpdateInstanceRequest"
           },
           {
             "name": "instance",
-            "type": "google.cloud.bigtable_admin_v2.types.Instance"
+            "type": "google.cloud.bigtable.admin.types.Instance"
           },
           {
             "name": "update_mask",
@@ -3877,10 +3877,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.partial_update_instance",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.partial_update_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.PartialUpdateInstance",
           "service": {
@@ -3892,11 +3892,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest"
+            "type": "google.cloud.bigtable.admin.types.PartialUpdateInstanceRequest"
           },
           {
             "name": "instance",
-            "type": "google.cloud.bigtable_admin_v2.types.Instance"
+            "type": "google.cloud.bigtable.admin.types.Instance"
           },
           {
             "name": "update_mask",
@@ -3962,10 +3962,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.set_iam_policy",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.set_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.SetIamPolicy",
           "service": {
@@ -4042,10 +4042,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.set_iam_policy",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.set_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.SetIamPolicy",
           "service": {
@@ -4123,10 +4123,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.test_iam_permissions",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.test_iam_permissions",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.TestIamPermissions",
           "service": {
@@ -4207,10 +4207,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.test_iam_permissions",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.test_iam_permissions",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.TestIamPermissions",
           "service": {
@@ -4292,10 +4292,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.update_app_profile",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.update_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateAppProfile",
           "service": {
@@ -4307,11 +4307,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateAppProfileRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateAppProfileRequest"
           },
           {
             "name": "app_profile",
-            "type": "google.cloud.bigtable_admin_v2.types.AppProfile"
+            "type": "google.cloud.bigtable.admin.types.AppProfile"
           },
           {
             "name": "update_mask",
@@ -4376,10 +4376,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.update_app_profile",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.update_app_profile",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateAppProfile",
           "service": {
@@ -4391,11 +4391,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateAppProfileRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateAppProfileRequest"
           },
           {
             "name": "app_profile",
-            "type": "google.cloud.bigtable_admin_v2.types.AppProfile"
+            "type": "google.cloud.bigtable.admin.types.AppProfile"
           },
           {
             "name": "update_mask",
@@ -4461,10 +4461,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.update_cluster",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.update_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateCluster",
           "service": {
@@ -4476,7 +4476,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.Cluster"
+            "type": "google.cloud.bigtable.admin.types.Cluster"
           },
           {
             "name": "retry",
@@ -4537,10 +4537,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.update_cluster",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.update_cluster",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateCluster",
           "service": {
@@ -4552,7 +4552,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.Cluster"
+            "type": "google.cloud.bigtable.admin.types.Cluster"
           },
           {
             "name": "retry",
@@ -4614,10 +4614,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.update_instance",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.update_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateInstance",
           "service": {
@@ -4629,7 +4629,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.Instance"
+            "type": "google.cloud.bigtable.admin.types.Instance"
           },
           {
             "name": "retry",
@@ -4644,7 +4644,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Instance",
+        "resultType": "google.cloud.bigtable.admin.types.Instance",
         "shortName": "update_instance"
       },
       "description": "Sample for UpdateInstance",
@@ -4690,10 +4690,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.update_instance",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.update_instance",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateInstance",
           "service": {
@@ -4705,7 +4705,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.Instance"
+            "type": "google.cloud.bigtable.admin.types.Instance"
           },
           {
             "name": "retry",
@@ -4720,7 +4720,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Instance",
+        "resultType": "google.cloud.bigtable.admin.types.Instance",
         "shortName": "update_instance"
       },
       "description": "Sample for UpdateInstance",
@@ -4767,10 +4767,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.update_logical_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.update_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateLogicalView",
           "service": {
@@ -4782,11 +4782,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateLogicalViewRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateLogicalViewRequest"
           },
           {
             "name": "logical_view",
-            "type": "google.cloud.bigtable_admin_v2.types.LogicalView"
+            "type": "google.cloud.bigtable.admin.types.LogicalView"
           },
           {
             "name": "update_mask",
@@ -4851,10 +4851,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.update_logical_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.update_logical_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateLogicalView",
           "service": {
@@ -4866,11 +4866,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateLogicalViewRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateLogicalViewRequest"
           },
           {
             "name": "logical_view",
-            "type": "google.cloud.bigtable_admin_v2.types.LogicalView"
+            "type": "google.cloud.bigtable.admin.types.LogicalView"
           },
           {
             "name": "update_mask",
@@ -4936,10 +4936,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient",
           "shortName": "BigtableInstanceAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminAsyncClient.update_materialized_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminAsyncClient.update_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateMaterializedView",
           "service": {
@@ -4951,11 +4951,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateMaterializedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateMaterializedViewRequest"
           },
           {
             "name": "materialized_view",
-            "type": "google.cloud.bigtable_admin_v2.types.MaterializedView"
+            "type": "google.cloud.bigtable.admin.types.MaterializedView"
           },
           {
             "name": "update_mask",
@@ -5020,10 +5020,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient",
           "shortName": "BigtableInstanceAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BigtableInstanceAdminClient.update_materialized_view",
+        "fullName": "google.cloud.bigtable.admin.BigtableInstanceAdminClient.update_materialized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableInstanceAdmin.UpdateMaterializedView",
           "service": {
@@ -5035,11 +5035,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateMaterializedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateMaterializedViewRequest"
           },
           {
             "name": "materialized_view",
-            "type": "google.cloud.bigtable_admin_v2.types.MaterializedView"
+            "type": "google.cloud.bigtable.admin.types.MaterializedView"
           },
           {
             "name": "update_mask",
@@ -5105,10 +5105,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.check_consistency",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.check_consistency",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency",
           "service": {
@@ -5120,7 +5120,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CheckConsistencyRequest"
+            "type": "google.cloud.bigtable.admin.types.CheckConsistencyRequest"
           },
           {
             "name": "name",
@@ -5143,7 +5143,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.CheckConsistencyResponse",
+        "resultType": "google.cloud.bigtable.admin.types.CheckConsistencyResponse",
         "shortName": "check_consistency"
       },
       "description": "Sample for CheckConsistency",
@@ -5189,10 +5189,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.check_consistency",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.check_consistency",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency",
           "service": {
@@ -5204,7 +5204,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CheckConsistencyRequest"
+            "type": "google.cloud.bigtable.admin.types.CheckConsistencyRequest"
           },
           {
             "name": "name",
@@ -5227,7 +5227,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.CheckConsistencyResponse",
+        "resultType": "google.cloud.bigtable.admin.types.CheckConsistencyResponse",
         "shortName": "check_consistency"
       },
       "description": "Sample for CheckConsistency",
@@ -5274,10 +5274,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.copy_backup",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.copy_backup",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CopyBackup",
           "service": {
@@ -5289,7 +5289,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CopyBackupRequest"
+            "type": "google.cloud.bigtable.admin.types.CopyBackupRequest"
           },
           {
             "name": "parent",
@@ -5366,10 +5366,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.copy_backup",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.copy_backup",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CopyBackup",
           "service": {
@@ -5381,7 +5381,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CopyBackupRequest"
+            "type": "google.cloud.bigtable.admin.types.CopyBackupRequest"
           },
           {
             "name": "parent",
@@ -5459,10 +5459,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.create_authorized_view",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.create_authorized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CreateAuthorizedView",
           "service": {
@@ -5474,7 +5474,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateAuthorizedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateAuthorizedViewRequest"
           },
           {
             "name": "parent",
@@ -5482,7 +5482,7 @@
           },
           {
             "name": "authorized_view",
-            "type": "google.cloud.bigtable_admin_v2.types.AuthorizedView"
+            "type": "google.cloud.bigtable.admin.types.AuthorizedView"
           },
           {
             "name": "authorized_view_id",
@@ -5547,10 +5547,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.create_authorized_view",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.create_authorized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CreateAuthorizedView",
           "service": {
@@ -5562,7 +5562,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateAuthorizedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateAuthorizedViewRequest"
           },
           {
             "name": "parent",
@@ -5570,7 +5570,7 @@
           },
           {
             "name": "authorized_view",
-            "type": "google.cloud.bigtable_admin_v2.types.AuthorizedView"
+            "type": "google.cloud.bigtable.admin.types.AuthorizedView"
           },
           {
             "name": "authorized_view_id",
@@ -5636,10 +5636,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.create_backup",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.create_backup",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup",
           "service": {
@@ -5651,7 +5651,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateBackupRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateBackupRequest"
           },
           {
             "name": "parent",
@@ -5663,7 +5663,7 @@
           },
           {
             "name": "backup",
-            "type": "google.cloud.bigtable_admin_v2.types.Backup"
+            "type": "google.cloud.bigtable.admin.types.Backup"
           },
           {
             "name": "retry",
@@ -5724,10 +5724,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.create_backup",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.create_backup",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup",
           "service": {
@@ -5739,7 +5739,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateBackupRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateBackupRequest"
           },
           {
             "name": "parent",
@@ -5751,7 +5751,7 @@
           },
           {
             "name": "backup",
-            "type": "google.cloud.bigtable_admin_v2.types.Backup"
+            "type": "google.cloud.bigtable.admin.types.Backup"
           },
           {
             "name": "retry",
@@ -5813,10 +5813,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.create_schema_bundle",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.create_schema_bundle",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CreateSchemaBundle",
           "service": {
@@ -5828,7 +5828,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateSchemaBundleRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateSchemaBundleRequest"
           },
           {
             "name": "parent",
@@ -5840,7 +5840,7 @@
           },
           {
             "name": "schema_bundle",
-            "type": "google.cloud.bigtable_admin_v2.types.SchemaBundle"
+            "type": "google.cloud.bigtable.admin.types.SchemaBundle"
           },
           {
             "name": "retry",
@@ -5901,10 +5901,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.create_schema_bundle",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.create_schema_bundle",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CreateSchemaBundle",
           "service": {
@@ -5916,7 +5916,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateSchemaBundleRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateSchemaBundleRequest"
           },
           {
             "name": "parent",
@@ -5928,7 +5928,7 @@
           },
           {
             "name": "schema_bundle",
-            "type": "google.cloud.bigtable_admin_v2.types.SchemaBundle"
+            "type": "google.cloud.bigtable.admin.types.SchemaBundle"
           },
           {
             "name": "retry",
@@ -5990,10 +5990,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.create_table_from_snapshot",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.create_table_from_snapshot",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot",
           "service": {
@@ -6005,7 +6005,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateTableFromSnapshotRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateTableFromSnapshotRequest"
           },
           {
             "name": "parent",
@@ -6078,10 +6078,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.create_table_from_snapshot",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.create_table_from_snapshot",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot",
           "service": {
@@ -6093,7 +6093,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateTableFromSnapshotRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateTableFromSnapshotRequest"
           },
           {
             "name": "parent",
@@ -6167,10 +6167,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.create_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.create_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CreateTable",
           "service": {
@@ -6182,7 +6182,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateTableRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateTableRequest"
           },
           {
             "name": "parent",
@@ -6194,7 +6194,7 @@
           },
           {
             "name": "table",
-            "type": "google.cloud.bigtable_admin_v2.types.Table"
+            "type": "google.cloud.bigtable.admin.types.Table"
           },
           {
             "name": "retry",
@@ -6209,7 +6209,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Table",
+        "resultType": "google.cloud.bigtable.admin.types.Table",
         "shortName": "create_table"
       },
       "description": "Sample for CreateTable",
@@ -6255,10 +6255,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.create_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.create_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.CreateTable",
           "service": {
@@ -6270,7 +6270,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.CreateTableRequest"
+            "type": "google.cloud.bigtable.admin.types.CreateTableRequest"
           },
           {
             "name": "parent",
@@ -6282,7 +6282,7 @@
           },
           {
             "name": "table",
-            "type": "google.cloud.bigtable_admin_v2.types.Table"
+            "type": "google.cloud.bigtable.admin.types.Table"
           },
           {
             "name": "retry",
@@ -6297,7 +6297,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Table",
+        "resultType": "google.cloud.bigtable.admin.types.Table",
         "shortName": "create_table"
       },
       "description": "Sample for CreateTable",
@@ -6344,10 +6344,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.delete_authorized_view",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.delete_authorized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DeleteAuthorizedView",
           "service": {
@@ -6359,7 +6359,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteAuthorizedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteAuthorizedViewRequest"
           },
           {
             "name": "name",
@@ -6421,10 +6421,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.delete_authorized_view",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.delete_authorized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DeleteAuthorizedView",
           "service": {
@@ -6436,7 +6436,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteAuthorizedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteAuthorizedViewRequest"
           },
           {
             "name": "name",
@@ -6499,10 +6499,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.delete_backup",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.delete_backup",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DeleteBackup",
           "service": {
@@ -6514,7 +6514,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteBackupRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteBackupRequest"
           },
           {
             "name": "name",
@@ -6576,10 +6576,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.delete_backup",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.delete_backup",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DeleteBackup",
           "service": {
@@ -6591,7 +6591,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteBackupRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteBackupRequest"
           },
           {
             "name": "name",
@@ -6654,10 +6654,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.delete_schema_bundle",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.delete_schema_bundle",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DeleteSchemaBundle",
           "service": {
@@ -6669,7 +6669,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteSchemaBundleRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteSchemaBundleRequest"
           },
           {
             "name": "name",
@@ -6731,10 +6731,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.delete_schema_bundle",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.delete_schema_bundle",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DeleteSchemaBundle",
           "service": {
@@ -6746,7 +6746,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteSchemaBundleRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteSchemaBundleRequest"
           },
           {
             "name": "name",
@@ -6809,10 +6809,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.delete_snapshot",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.delete_snapshot",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot",
           "service": {
@@ -6824,7 +6824,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteSnapshotRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteSnapshotRequest"
           },
           {
             "name": "name",
@@ -6886,10 +6886,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.delete_snapshot",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.delete_snapshot",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot",
           "service": {
@@ -6901,7 +6901,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteSnapshotRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteSnapshotRequest"
           },
           {
             "name": "name",
@@ -6964,10 +6964,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.delete_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.delete_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable",
           "service": {
@@ -6979,7 +6979,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteTableRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteTableRequest"
           },
           {
             "name": "name",
@@ -7041,10 +7041,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.delete_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.delete_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable",
           "service": {
@@ -7056,7 +7056,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DeleteTableRequest"
+            "type": "google.cloud.bigtable.admin.types.DeleteTableRequest"
           },
           {
             "name": "name",
@@ -7119,10 +7119,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.drop_row_range",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.drop_row_range",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange",
           "service": {
@@ -7134,7 +7134,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DropRowRangeRequest"
+            "type": "google.cloud.bigtable.admin.types.DropRowRangeRequest"
           },
           {
             "name": "retry",
@@ -7192,10 +7192,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.drop_row_range",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.drop_row_range",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange",
           "service": {
@@ -7207,7 +7207,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.DropRowRangeRequest"
+            "type": "google.cloud.bigtable.admin.types.DropRowRangeRequest"
           },
           {
             "name": "retry",
@@ -7266,10 +7266,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.generate_consistency_token",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.generate_consistency_token",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken",
           "service": {
@@ -7281,7 +7281,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GenerateConsistencyTokenRequest"
+            "type": "google.cloud.bigtable.admin.types.GenerateConsistencyTokenRequest"
           },
           {
             "name": "name",
@@ -7300,7 +7300,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.GenerateConsistencyTokenResponse",
+        "resultType": "google.cloud.bigtable.admin.types.GenerateConsistencyTokenResponse",
         "shortName": "generate_consistency_token"
       },
       "description": "Sample for GenerateConsistencyToken",
@@ -7346,10 +7346,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.generate_consistency_token",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.generate_consistency_token",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken",
           "service": {
@@ -7361,7 +7361,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GenerateConsistencyTokenRequest"
+            "type": "google.cloud.bigtable.admin.types.GenerateConsistencyTokenRequest"
           },
           {
             "name": "name",
@@ -7380,7 +7380,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.GenerateConsistencyTokenResponse",
+        "resultType": "google.cloud.bigtable.admin.types.GenerateConsistencyTokenResponse",
         "shortName": "generate_consistency_token"
       },
       "description": "Sample for GenerateConsistencyToken",
@@ -7427,10 +7427,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.get_authorized_view",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.get_authorized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetAuthorizedView",
           "service": {
@@ -7442,7 +7442,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetAuthorizedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.GetAuthorizedViewRequest"
           },
           {
             "name": "name",
@@ -7461,7 +7461,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.AuthorizedView",
+        "resultType": "google.cloud.bigtable.admin.types.AuthorizedView",
         "shortName": "get_authorized_view"
       },
       "description": "Sample for GetAuthorizedView",
@@ -7507,10 +7507,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.get_authorized_view",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.get_authorized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetAuthorizedView",
           "service": {
@@ -7522,7 +7522,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetAuthorizedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.GetAuthorizedViewRequest"
           },
           {
             "name": "name",
@@ -7541,7 +7541,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.AuthorizedView",
+        "resultType": "google.cloud.bigtable.admin.types.AuthorizedView",
         "shortName": "get_authorized_view"
       },
       "description": "Sample for GetAuthorizedView",
@@ -7588,10 +7588,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.get_backup",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.get_backup",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetBackup",
           "service": {
@@ -7603,7 +7603,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetBackupRequest"
+            "type": "google.cloud.bigtable.admin.types.GetBackupRequest"
           },
           {
             "name": "name",
@@ -7622,7 +7622,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Backup",
+        "resultType": "google.cloud.bigtable.admin.types.Backup",
         "shortName": "get_backup"
       },
       "description": "Sample for GetBackup",
@@ -7668,10 +7668,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.get_backup",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.get_backup",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetBackup",
           "service": {
@@ -7683,7 +7683,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetBackupRequest"
+            "type": "google.cloud.bigtable.admin.types.GetBackupRequest"
           },
           {
             "name": "name",
@@ -7702,7 +7702,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Backup",
+        "resultType": "google.cloud.bigtable.admin.types.Backup",
         "shortName": "get_backup"
       },
       "description": "Sample for GetBackup",
@@ -7749,10 +7749,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.get_iam_policy",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.get_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetIamPolicy",
           "service": {
@@ -7829,10 +7829,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.get_iam_policy",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.get_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetIamPolicy",
           "service": {
@@ -7910,10 +7910,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.get_schema_bundle",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.get_schema_bundle",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetSchemaBundle",
           "service": {
@@ -7925,7 +7925,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetSchemaBundleRequest"
+            "type": "google.cloud.bigtable.admin.types.GetSchemaBundleRequest"
           },
           {
             "name": "name",
@@ -7944,7 +7944,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.SchemaBundle",
+        "resultType": "google.cloud.bigtable.admin.types.SchemaBundle",
         "shortName": "get_schema_bundle"
       },
       "description": "Sample for GetSchemaBundle",
@@ -7990,10 +7990,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.get_schema_bundle",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.get_schema_bundle",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetSchemaBundle",
           "service": {
@@ -8005,7 +8005,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetSchemaBundleRequest"
+            "type": "google.cloud.bigtable.admin.types.GetSchemaBundleRequest"
           },
           {
             "name": "name",
@@ -8024,7 +8024,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.SchemaBundle",
+        "resultType": "google.cloud.bigtable.admin.types.SchemaBundle",
         "shortName": "get_schema_bundle"
       },
       "description": "Sample for GetSchemaBundle",
@@ -8071,10 +8071,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.get_snapshot",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.get_snapshot",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot",
           "service": {
@@ -8086,7 +8086,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetSnapshotRequest"
+            "type": "google.cloud.bigtable.admin.types.GetSnapshotRequest"
           },
           {
             "name": "name",
@@ -8105,7 +8105,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Snapshot",
+        "resultType": "google.cloud.bigtable.admin.types.Snapshot",
         "shortName": "get_snapshot"
       },
       "description": "Sample for GetSnapshot",
@@ -8151,10 +8151,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.get_snapshot",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.get_snapshot",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot",
           "service": {
@@ -8166,7 +8166,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetSnapshotRequest"
+            "type": "google.cloud.bigtable.admin.types.GetSnapshotRequest"
           },
           {
             "name": "name",
@@ -8185,7 +8185,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Snapshot",
+        "resultType": "google.cloud.bigtable.admin.types.Snapshot",
         "shortName": "get_snapshot"
       },
       "description": "Sample for GetSnapshot",
@@ -8232,10 +8232,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.get_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.get_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetTable",
           "service": {
@@ -8247,7 +8247,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetTableRequest"
+            "type": "google.cloud.bigtable.admin.types.GetTableRequest"
           },
           {
             "name": "name",
@@ -8266,7 +8266,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Table",
+        "resultType": "google.cloud.bigtable.admin.types.Table",
         "shortName": "get_table"
       },
       "description": "Sample for GetTable",
@@ -8312,10 +8312,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.get_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.get_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.GetTable",
           "service": {
@@ -8327,7 +8327,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.GetTableRequest"
+            "type": "google.cloud.bigtable.admin.types.GetTableRequest"
           },
           {
             "name": "name",
@@ -8346,7 +8346,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Table",
+        "resultType": "google.cloud.bigtable.admin.types.Table",
         "shortName": "get_table"
       },
       "description": "Sample for GetTable",
@@ -8393,10 +8393,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.list_authorized_views",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.list_authorized_views",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews",
           "service": {
@@ -8408,7 +8408,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListAuthorizedViewsRequest"
           },
           {
             "name": "parent",
@@ -8427,7 +8427,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListAuthorizedViewsAsyncPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListAuthorizedViewsAsyncPager",
         "shortName": "list_authorized_views"
       },
       "description": "Sample for ListAuthorizedViews",
@@ -8473,10 +8473,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.list_authorized_views",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.list_authorized_views",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews",
           "service": {
@@ -8488,7 +8488,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListAuthorizedViewsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListAuthorizedViewsRequest"
           },
           {
             "name": "parent",
@@ -8507,7 +8507,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListAuthorizedViewsPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListAuthorizedViewsPager",
         "shortName": "list_authorized_views"
       },
       "description": "Sample for ListAuthorizedViews",
@@ -8554,10 +8554,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.list_backups",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.list_backups",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ListBackups",
           "service": {
@@ -8569,7 +8569,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListBackupsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListBackupsRequest"
           },
           {
             "name": "parent",
@@ -8588,7 +8588,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListBackupsAsyncPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListBackupsAsyncPager",
         "shortName": "list_backups"
       },
       "description": "Sample for ListBackups",
@@ -8634,10 +8634,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.list_backups",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.list_backups",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ListBackups",
           "service": {
@@ -8649,7 +8649,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListBackupsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListBackupsRequest"
           },
           {
             "name": "parent",
@@ -8668,7 +8668,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListBackupsPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListBackupsPager",
         "shortName": "list_backups"
       },
       "description": "Sample for ListBackups",
@@ -8715,10 +8715,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.list_schema_bundles",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.list_schema_bundles",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ListSchemaBundles",
           "service": {
@@ -8730,7 +8730,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListSchemaBundlesRequest"
+            "type": "google.cloud.bigtable.admin.types.ListSchemaBundlesRequest"
           },
           {
             "name": "parent",
@@ -8749,7 +8749,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListSchemaBundlesAsyncPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListSchemaBundlesAsyncPager",
         "shortName": "list_schema_bundles"
       },
       "description": "Sample for ListSchemaBundles",
@@ -8795,10 +8795,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.list_schema_bundles",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.list_schema_bundles",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ListSchemaBundles",
           "service": {
@@ -8810,7 +8810,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListSchemaBundlesRequest"
+            "type": "google.cloud.bigtable.admin.types.ListSchemaBundlesRequest"
           },
           {
             "name": "parent",
@@ -8829,7 +8829,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListSchemaBundlesPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListSchemaBundlesPager",
         "shortName": "list_schema_bundles"
       },
       "description": "Sample for ListSchemaBundles",
@@ -8876,10 +8876,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.list_snapshots",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.list_snapshots",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots",
           "service": {
@@ -8891,7 +8891,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListSnapshotsRequest"
           },
           {
             "name": "parent",
@@ -8910,7 +8910,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListSnapshotsAsyncPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListSnapshotsAsyncPager",
         "shortName": "list_snapshots"
       },
       "description": "Sample for ListSnapshots",
@@ -8956,10 +8956,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.list_snapshots",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.list_snapshots",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots",
           "service": {
@@ -8971,7 +8971,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest"
+            "type": "google.cloud.bigtable.admin.types.ListSnapshotsRequest"
           },
           {
             "name": "parent",
@@ -8990,7 +8990,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListSnapshotsPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListSnapshotsPager",
         "shortName": "list_snapshots"
       },
       "description": "Sample for ListSnapshots",
@@ -9037,10 +9037,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.list_tables",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.list_tables",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ListTables",
           "service": {
@@ -9052,7 +9052,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListTablesRequest"
+            "type": "google.cloud.bigtable.admin.types.ListTablesRequest"
           },
           {
             "name": "parent",
@@ -9071,7 +9071,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListTablesAsyncPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListTablesAsyncPager",
         "shortName": "list_tables"
       },
       "description": "Sample for ListTables",
@@ -9117,10 +9117,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.list_tables",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.list_tables",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ListTables",
           "service": {
@@ -9132,7 +9132,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ListTablesRequest"
+            "type": "google.cloud.bigtable.admin.types.ListTablesRequest"
           },
           {
             "name": "parent",
@@ -9151,7 +9151,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListTablesPager",
+        "resultType": "google.cloud.bigtable.admin.services.bigtable_table_admin.pagers.ListTablesPager",
         "shortName": "list_tables"
       },
       "description": "Sample for ListTables",
@@ -9198,10 +9198,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.modify_column_families",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.modify_column_families",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies",
           "service": {
@@ -9213,7 +9213,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest"
+            "type": "google.cloud.bigtable.admin.types.ModifyColumnFamiliesRequest"
           },
           {
             "name": "name",
@@ -9221,7 +9221,7 @@
           },
           {
             "name": "modifications",
-            "type": "MutableSequence[google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest.Modification]"
+            "type": "MutableSequence[google.cloud.bigtable.admin.types.ModifyColumnFamiliesRequest.Modification]"
           },
           {
             "name": "retry",
@@ -9236,7 +9236,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Table",
+        "resultType": "google.cloud.bigtable.admin.types.Table",
         "shortName": "modify_column_families"
       },
       "description": "Sample for ModifyColumnFamilies",
@@ -9282,10 +9282,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.modify_column_families",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.modify_column_families",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies",
           "service": {
@@ -9297,7 +9297,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest"
+            "type": "google.cloud.bigtable.admin.types.ModifyColumnFamiliesRequest"
           },
           {
             "name": "name",
@@ -9305,7 +9305,7 @@
           },
           {
             "name": "modifications",
-            "type": "MutableSequence[google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest.Modification]"
+            "type": "MutableSequence[google.cloud.bigtable.admin.types.ModifyColumnFamiliesRequest.Modification]"
           },
           {
             "name": "retry",
@@ -9320,7 +9320,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Table",
+        "resultType": "google.cloud.bigtable.admin.types.Table",
         "shortName": "modify_column_families"
       },
       "description": "Sample for ModifyColumnFamilies",
@@ -9367,10 +9367,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient._restore_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient._restore_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable",
           "service": {
@@ -9382,7 +9382,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.RestoreTableRequest"
+            "type": "google.cloud.bigtable.admin.types.RestoreTableRequest"
           },
           {
             "name": "retry",
@@ -9443,10 +9443,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient._restore_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient._restore_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable",
           "service": {
@@ -9458,7 +9458,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.RestoreTableRequest"
+            "type": "google.cloud.bigtable.admin.types.RestoreTableRequest"
           },
           {
             "name": "retry",
@@ -9520,10 +9520,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.set_iam_policy",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.set_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.SetIamPolicy",
           "service": {
@@ -9600,10 +9600,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.set_iam_policy",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.set_iam_policy",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.SetIamPolicy",
           "service": {
@@ -9681,10 +9681,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.snapshot_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.snapshot_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable",
           "service": {
@@ -9696,7 +9696,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.SnapshotTableRequest"
+            "type": "google.cloud.bigtable.admin.types.SnapshotTableRequest"
           },
           {
             "name": "name",
@@ -9773,10 +9773,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.snapshot_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.snapshot_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable",
           "service": {
@@ -9788,7 +9788,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.SnapshotTableRequest"
+            "type": "google.cloud.bigtable.admin.types.SnapshotTableRequest"
           },
           {
             "name": "name",
@@ -9866,10 +9866,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.test_iam_permissions",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.test_iam_permissions",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.TestIamPermissions",
           "service": {
@@ -9950,10 +9950,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.test_iam_permissions",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.test_iam_permissions",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.TestIamPermissions",
           "service": {
@@ -10035,10 +10035,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.undelete_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.undelete_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable",
           "service": {
@@ -10050,7 +10050,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UndeleteTableRequest"
+            "type": "google.cloud.bigtable.admin.types.UndeleteTableRequest"
           },
           {
             "name": "name",
@@ -10115,10 +10115,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.undelete_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.undelete_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable",
           "service": {
@@ -10130,7 +10130,7 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UndeleteTableRequest"
+            "type": "google.cloud.bigtable.admin.types.UndeleteTableRequest"
           },
           {
             "name": "name",
@@ -10196,10 +10196,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.update_authorized_view",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.update_authorized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.UpdateAuthorizedView",
           "service": {
@@ -10211,11 +10211,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateAuthorizedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateAuthorizedViewRequest"
           },
           {
             "name": "authorized_view",
-            "type": "google.cloud.bigtable_admin_v2.types.AuthorizedView"
+            "type": "google.cloud.bigtable.admin.types.AuthorizedView"
           },
           {
             "name": "update_mask",
@@ -10280,10 +10280,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.update_authorized_view",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.update_authorized_view",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.UpdateAuthorizedView",
           "service": {
@@ -10295,11 +10295,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateAuthorizedViewRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateAuthorizedViewRequest"
           },
           {
             "name": "authorized_view",
-            "type": "google.cloud.bigtable_admin_v2.types.AuthorizedView"
+            "type": "google.cloud.bigtable.admin.types.AuthorizedView"
           },
           {
             "name": "update_mask",
@@ -10365,10 +10365,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.update_backup",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.update_backup",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup",
           "service": {
@@ -10380,11 +10380,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateBackupRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateBackupRequest"
           },
           {
             "name": "backup",
-            "type": "google.cloud.bigtable_admin_v2.types.Backup"
+            "type": "google.cloud.bigtable.admin.types.Backup"
           },
           {
             "name": "update_mask",
@@ -10403,7 +10403,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Backup",
+        "resultType": "google.cloud.bigtable.admin.types.Backup",
         "shortName": "update_backup"
       },
       "description": "Sample for UpdateBackup",
@@ -10449,10 +10449,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.update_backup",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.update_backup",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup",
           "service": {
@@ -10464,11 +10464,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateBackupRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateBackupRequest"
           },
           {
             "name": "backup",
-            "type": "google.cloud.bigtable_admin_v2.types.Backup"
+            "type": "google.cloud.bigtable.admin.types.Backup"
           },
           {
             "name": "update_mask",
@@ -10487,7 +10487,7 @@
             "type": "Sequence[Tuple[str, Union[str, bytes]]]"
           }
         ],
-        "resultType": "google.cloud.bigtable_admin_v2.types.Backup",
+        "resultType": "google.cloud.bigtable.admin.types.Backup",
         "shortName": "update_backup"
       },
       "description": "Sample for UpdateBackup",
@@ -10534,10 +10534,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.update_schema_bundle",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.update_schema_bundle",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.UpdateSchemaBundle",
           "service": {
@@ -10549,11 +10549,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateSchemaBundleRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateSchemaBundleRequest"
           },
           {
             "name": "schema_bundle",
-            "type": "google.cloud.bigtable_admin_v2.types.SchemaBundle"
+            "type": "google.cloud.bigtable.admin.types.SchemaBundle"
           },
           {
             "name": "update_mask",
@@ -10618,10 +10618,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.update_schema_bundle",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.update_schema_bundle",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.UpdateSchemaBundle",
           "service": {
@@ -10633,11 +10633,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateSchemaBundleRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateSchemaBundleRequest"
           },
           {
             "name": "schema_bundle",
-            "type": "google.cloud.bigtable_admin_v2.types.SchemaBundle"
+            "type": "google.cloud.bigtable.admin.types.SchemaBundle"
           },
           {
             "name": "update_mask",
@@ -10703,10 +10703,10 @@
       "clientMethod": {
         "async": true,
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient",
           "shortName": "BaseBigtableTableAdminAsyncClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminAsyncClient.update_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminAsyncClient.update_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable",
           "service": {
@@ -10718,11 +10718,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateTableRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateTableRequest"
           },
           {
             "name": "table",
-            "type": "google.cloud.bigtable_admin_v2.types.Table"
+            "type": "google.cloud.bigtable.admin.types.Table"
           },
           {
             "name": "update_mask",
@@ -10787,10 +10787,10 @@
       "canonical": true,
       "clientMethod": {
         "client": {
-          "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient",
+          "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient",
           "shortName": "BaseBigtableTableAdminClient"
         },
-        "fullName": "google.cloud.bigtable_admin_v2.BaseBigtableTableAdminClient.update_table",
+        "fullName": "google.cloud.bigtable.admin.BaseBigtableTableAdminClient.update_table",
         "method": {
           "fullName": "google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable",
           "service": {
@@ -10802,11 +10802,11 @@
         "parameters": [
           {
             "name": "request",
-            "type": "google.cloud.bigtable_admin_v2.types.UpdateTableRequest"
+            "type": "google.cloud.bigtable.admin.types.UpdateTableRequest"
           },
           {
             "name": "table",
-            "type": "google.cloud.bigtable_admin_v2.types.Table"
+            "type": "google.cloud.bigtable.admin.types.Table"
           },
           {
             "name": "update_mask",

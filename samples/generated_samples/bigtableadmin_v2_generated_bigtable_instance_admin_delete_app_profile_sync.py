@@ -31,15 +31,15 @@
 # - It may require specifying regional endpoints when creating the service
 #   client as shown in:
 #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-from google.cloud import bigtable_admin_v2
+from google.cloud.bigtable import admin
 
 
 def sample_delete_app_profile():
     # Create a client
-    client = bigtable_admin_v2.BigtableInstanceAdminClient()
+    client = admin.BigtableInstanceAdminClient()
 
     # Initialize request argument(s)
-    request = bigtable_admin_v2.DeleteAppProfileRequest(
+    request = admin.DeleteAppProfileRequest(
         name="name_value",
         ignore_warnings=True,
     )

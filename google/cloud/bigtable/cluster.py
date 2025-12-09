@@ -16,7 +16,7 @@
 
 
 import re
-from google.cloud.bigtable_admin_v2.types import instance
+from google.cloud.bigtable.admin.types import instance
 from google.api_core.exceptions import NotFound
 from google.protobuf import field_mask_pb2
 

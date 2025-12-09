@@ -254,21 +254,21 @@ class TestMutationsBatcher:
     def _get_target_class(self):
         return CrossSync._Sync_Impl.MutationsBatcher
 
-    def _make_one(self, table=None, **kwargs):
+    def _make_one(self, target=None, **kwargs):
         from google.api_core.exceptions import DeadlineExceeded
         from google.api_core.exceptions import ServiceUnavailable
 
-        if table is None:
-            table = mock.Mock()
-            table._request_path = {"table_name": "table"}
-            table.app_profile_id = None
-            table.default_mutate_rows_operation_timeout = 10
-            table.default_mutate_rows_attempt_timeout = 10
-            table.default_mutate_rows_retryable_errors = (
+        if target is None:
+            target = mock.Mock()
+            target._request_path = {"table_name": "table"}
+            target.app_profile_id = None
+            target.default_mutate_rows_operation_timeout = 10
+            target.default_mutate_rows_attempt_timeout = 10
+            target.default_mutate_rows_retryable_errors = (
                 DeadlineExceeded,
                 ServiceUnavailable,
             )
-        return self._get_target_class()(table, **kwargs)
+        return self._get_target_class()(target, **kwargs)
 
     @staticmethod
     def _make_mutation(count=1, size=1):
@@ -283,12 +283,12 @@ class TestMutationsBatcher:
             "_timer_routine",
             return_value=CrossSync._Sync_Impl.Future(),
         ) as flush_timer_mock:
-            table = mock.Mock()
-            table.default_mutate_rows_operation_timeout = 10
-            table.default_mutate_rows_attempt_timeout = 8
-            table.default_mutate_rows_retryable_errors = [Exception]
-            with self._make_one(table) as instance:
-                assert instance._target == table
+            target = mock.Mock()
+            target.default_mutate_rows_operation_timeout = 10
+            target.default_mutate_rows_attempt_timeout = 8
+            target.default_mutate_rows_retryable_errors = [Exception]
+            with self._make_one(target) as instance:
+                assert instance._target == target
                 assert instance.closed is False
                 assert instance._flush_jobs == set()
                 assert len(instance._staged_entries) == 0
@@ -303,15 +303,15 @@ class TestMutationsBatcher:
                 assert instance._entries_processed_since_last_raise == 0
                 assert (
                     instance._operation_timeout
-                    == table.default_mutate_rows_operation_timeout
+                    == target.default_mutate_rows_operation_timeout
                 )
                 assert (
                     instance._attempt_timeout
-                    == table.default_mutate_rows_attempt_timeout
+                    == target.default_mutate_rows_attempt_timeout
                 )
                 assert (
                     instance._retryable_errors
-                    == table.default_mutate_rows_retryable_errors
+                    == target.default_mutate_rows_retryable_errors
                 )
                 CrossSync._Sync_Impl.yield_to_event_loop()
                 assert flush_timer_mock.call_count == 1
@@ -325,7 +325,7 @@ class TestMutationsBatcher:
             "_timer_routine",
             return_value=CrossSync._Sync_Impl.Future(),
         ) as flush_timer_mock:
-            table = mock.Mock()
+            target = mock.Mock()
             flush_interval = 20
             flush_limit_count = 17
             flush_limit_bytes = 19
@@ -335,7 +335,7 @@ class TestMutationsBatcher:
             attempt_timeout = 2
             retryable_errors = [Exception]
             with self._make_one(
-                table,
+                target,
                 flush_interval=flush_interval,
                 flush_limit_mutation_count=flush_limit_count,
                 flush_limit_bytes=flush_limit_bytes,
@@ -345,7 +345,7 @@ class TestMutationsBatcher:
                 batch_attempt_timeout=attempt_timeout,
                 batch_retryable_errors=retryable_errors,
             ) as instance:
-                assert instance._target == table
+                assert instance._target == target
                 assert instance.closed is False
                 assert instance._flush_jobs == set()
                 assert len(instance._staged_entries) == 0
@@ -378,20 +378,20 @@ class TestMutationsBatcher:
             "_timer_routine",
             return_value=CrossSync._Sync_Impl.Future(),
         ) as flush_timer_mock:
-            table = mock.Mock()
-            table.default_mutate_rows_operation_timeout = 10
-            table.default_mutate_rows_attempt_timeout = 8
-            table.default_mutate_rows_retryable_errors = ()
+            target = mock.Mock()
+            target.default_mutate_rows_operation_timeout = 10
+            target.default_mutate_rows_attempt_timeout = 8
+            target.default_mutate_rows_retryable_errors = ()
             flush_interval = None
             flush_limit_count = None
             flush_limit_bytes = None
             with self._make_one(
-                table,
+                target,
                 flush_interval=flush_interval,
                 flush_limit_mutation_count=flush_limit_count,
                 flush_limit_bytes=flush_limit_bytes,
             ) as instance:
-                assert instance._target == table
+                assert instance._target == target
                 assert instance.closed is False
                 assert instance._staged_entries == []
                 assert len(instance._oldest_exceptions) == 0
@@ -428,7 +428,7 @@ class TestMutationsBatcher:
         batcher_init_signature = dict(
             inspect.signature(self._get_target_class()).parameters
         )
-        batcher_init_signature.pop("table")
+        batcher_init_signature.pop("target")
         assert len(get_batcher_signature.keys()) == len(batcher_init_signature.keys())
         assert len(get_batcher_signature) == 8
         assert set(get_batcher_signature.keys()) == set(batcher_init_signature.keys())
