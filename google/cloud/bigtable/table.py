@@ -132,9 +132,11 @@ class Table(object):
         self._app_profile_id = app_profile_id
         self.mutation_timeout = mutation_timeout
 
-        # Lazily initialize the table shim to avoid causing constructor errors for instance=None
-        # that don't exist in the original implementation.
-        self._table_impl = None
+        self._table_impl = self._instance._client._veneer_data_client.get_table(
+            self._instance.instance_id,
+            self.table_id,
+            app_profile_id=self._app_profile_id,
+        )
 
     @property
     def name(self):
@@ -165,18 +167,6 @@ class Table(object):
         return table_client.table_path(
             project=project, instance=instance_id, table=self.table_id
         )
-
-    @property
-    def _veneer_data_table(self):
-        """Getter for the data client table representation of this object."""
-        if self._table_impl is None:
-            self._table_impl = self._instance._client._veneer_data_client.get_table(
-                self._instance.instance_id,
-                self.table_id,
-                app_profile_id=self._app_profile_id,
-            )
-
-        return self._table_impl
 
     def get_iam_policy(self):
         """Gets the IAM access control policy for this table.
