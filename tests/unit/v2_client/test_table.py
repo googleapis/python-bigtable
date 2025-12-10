@@ -183,7 +183,9 @@ def test_table_constructor_defaults():
     assert table.mutation_timeout is None
     assert table._app_profile_id is None
     assert table._table_impl == _veneer_data_client.get_table.return_value
-    _veneer_data_client.get_table.assert_called_once_with(INSTANCE_ID, TABLE_ID, app_profile_id=None)
+    _veneer_data_client.get_table.assert_called_once_with(
+        INSTANCE_ID, TABLE_ID, app_profile_id=None
+    )
 
 
 def test_table_constructor_explicit():

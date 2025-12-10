@@ -184,11 +184,9 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         if "pool_size" in kwargs:
             warnings.warn("pool_size no longer supported")
-        
+
         # Private argument, for internal use only
-        self._is_legacy_client = bool(
-            kwargs.get("_is_legacy_client", False)
-        )
+        self._is_legacy_client = bool(kwargs.get("_is_legacy_client", False))
 
         # set up client info headers for veneer library. _client_info is for internal use only,
         # for the legacy client shim.
