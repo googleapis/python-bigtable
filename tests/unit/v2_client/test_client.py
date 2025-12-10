@@ -397,13 +397,13 @@ def test_client_data_client_not_initialized():
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials)
 
-    data_client = client._data_client
-    assert isinstance(data_client, BigtableDataClient)
-    assert client._data_client is data_client
-    assert client._data_client._disable_background_channel_refresh
+    veneer_data_client = client._veneer_data_client
+    assert isinstance(veneer_data_client, BigtableDataClient)
+    assert client._veneer_data_client is veneer_data_client
+    assert client._veneer_data_client._is_legacy_client
 
 
-def test_client_data_client_not_initialized_w_client_info():
+def test_client_veneer_data_client_not_initialized_w_client_info():
     from google.api_core.gapic_v1.client_info import ClientInfo
 
     credentials = _make_credentials()
@@ -411,15 +411,15 @@ def test_client_data_client_not_initialized_w_client_info():
     client = _make_client(
         project=PROJECT, credentials=credentials, client_info=client_info
     )
-    data_client = client._data_client
+    data_client = client._veneer_data_client
 
     assert client._client_info is client_info
-    assert client._data_client is data_client
-    assert client._data_client.client_info is client_info
-    assert client._data_client._disable_background_channel_refresh
+    assert client._veneer_data_client is data_client
+    assert client._veneer_data_client.client_info is client_info
+    assert client._veneer_data_client._is_legacy_client
 
 
-def test_client_data_client_not_initialized_w_client_options():
+def test_client_veneer_data_client_not_initialized_w_client_options():
     from google.api_core.client_options import ClientOptions
 
     credentials = _make_credentials()
@@ -428,18 +428,18 @@ def test_client_data_client_not_initialized_w_client_options():
         project=PROJECT, credentials=credentials, client_options=client_options
     )
 
-    data_client = client._data_client
-    assert client._data_client is data_client
-    assert client._data_client._disable_background_channel_refresh
-    assert client._data_client._gapic_client._client_options == client_options
+    data_client = client._veneer_data_client
+    assert client._veneer_data_client is data_client
+    assert client._veneer_data_client._is_legacy_client
+    assert client._veneer_data_client._gapic_client._client_options == client_options
 
 
-def test_client_data_client_initialized():
+def test_client_veneer_data_client_initialized():
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
 
     already = client._table_data_client = object()
-    assert client._data_client is already
+    assert client._veneer_data_client is already
 
 
 def test_client_data_gapic_client_not_initialized():

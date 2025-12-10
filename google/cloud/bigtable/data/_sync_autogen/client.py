@@ -127,11 +127,9 @@ class BigtableDataClient(ClientWithProject):
         """
         if "pool_size" in kwargs:
             warnings.warn("pool_size no longer supported")
-        if "_client_info" in kwargs:
-            self.client_info = kwargs["_client_info"]
-        else:
-            self.client_info = kwargs.get("_client_info", DEFAULT_CLIENT_INFO)
-            self.client_info.client_library_version = self._client_version()
+        self._is_legacy_client = bool(kwargs.get("_is_legacy_client", False))
+        self.client_info = kwargs.get("_client_info", DEFAULT_CLIENT_INFO)
+        self.client_info.client_library_version = self._client_version()
         if type(client_options) is dict:
             client_options = client_options_lib.from_dict(client_options)
         client_options = cast(
@@ -171,9 +169,6 @@ class BigtableDataClient(ClientWithProject):
                 f"The configured universe domain ({self.universe_domain}) does not match the universe domain found in the credentials ({self._credentials.universe_domain}). If you haven't configured the universe domain explicitly, `googleapis.com` is the default."
             )
         self._is_closed = CrossSync._Sync_Impl.Event()
-        self._disable_background_channel_refresh = bool(
-            kwargs.get("_disable_background_channel_refresh", False)
-        )
         self.transport = cast(TransportType, self._gapic_client.transport)
         self._active_instances: Set[_WarmedInstanceKey] = set()
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
@@ -229,10 +224,11 @@ class BigtableDataClient(ClientWithProject):
             str: The API endpoint used by the client instance."""
         return self._gapic_client.api_endpoint
 
-    @staticmethod
-    def _client_version() -> str:
+    def _client_version(self) -> str:
         """Helper function to return the client version string for this client"""
         version_str = f"{google.cloud.bigtable.__version__}-data"
+        if self._is_legacy_client:
+            version_str += "-shim"
         return version_str
 
     def _start_background_channel_refresh(self) -> None:
@@ -244,7 +240,7 @@ class BigtableDataClient(ClientWithProject):
             not self._channel_refresh_task
             and (not self._emulator_host)
             and (not self._is_closed.is_set())
-            and (not self._disable_background_channel_refresh)
+            and (not self._is_legacy_client)
         ):
             CrossSync._Sync_Impl.verify_async_event_loop()
             self._channel_refresh_task = CrossSync._Sync_Impl.create_task(

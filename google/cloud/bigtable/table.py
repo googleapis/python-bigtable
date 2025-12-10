@@ -132,10 +132,13 @@ class Table(object):
         self._app_profile_id = app_profile_id
         self.mutation_timeout = mutation_timeout
 
+        # TODO: Figure out which value to use for mutation_timeout after looking at how
+        # mutation_timeout is used in this class.
         self._table_impl = (
-            self._instance._client._data_client.get_table(
+            self._instance._client._veneer_data_client.get_table(
                 self._instance.instance_id,
                 self.table_id,
+                app_profile_id=app_profile_id,
             )
             if self._instance
             else None

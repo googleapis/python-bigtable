@@ -292,7 +292,7 @@ class Client(ClientWithProject):
         :rtype: :class:`.bigtable_v2.BigtableClient`
         :returns: A BigtableClient object.
         """
-        return self._data_client._gapic_client
+        return self._veneer_data_client._gapic_client
 
     @property
     def table_admin_client(self):
@@ -361,7 +361,7 @@ class Client(ClientWithProject):
         return self._instance_admin_client
 
     @property
-    def _data_client(self):
+    def _veneer_data_client(self):
         """Getter for the new Data Table API."""
         if self._table_data_client is None:
             self._table_data_client = BigtableDataClient(
@@ -369,7 +369,7 @@ class Client(ClientWithProject):
                 credentials=self._credentials,
                 client_options=self._client_options,
                 _client_info=self._client_info,
-                _disable_background_channel_refresh=True,
+                _is_legacy_client=True,
             )
         return self._table_data_client
 

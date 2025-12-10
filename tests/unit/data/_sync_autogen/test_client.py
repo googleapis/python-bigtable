@@ -89,6 +89,7 @@ class TestBigtableDataClient:
 
     def test_ctor_super_inits(self):
         from google.cloud.client import ClientWithProject
+        from google.cloud.bigtable import __version__ as bigtable_version
         from google.api_core import client_options as client_options_lib
         from google.cloud.bigtable_v2.services.bigtable.transports.base import (
             DEFAULT_CLIENT_INFO,
@@ -122,7 +123,9 @@ class TestBigtableDataClient:
                 assert kwargs["client_options"] == options_parsed
                 expected_client_info = copy.copy(DEFAULT_CLIENT_INFO)
                 expected_client_info.client_library_version = (
-                    CrossSync._Sync_Impl.DataClient._client_version()
+                    f"{bigtable_version}-data"
+                    if not CrossSync._Sync_Impl.is_async
+                    else f"{bigtable_version}-data-async"
                 )
                 assert (
                     kwargs["client_info"].to_user_agent()
@@ -138,9 +141,11 @@ class TestBigtableDataClient:
                 assert kwargs["credentials"] == credentials
                 assert kwargs["client_options"] == options_parsed
 
-    def test_ctor_client_info(self):
+    def test_ctor_legacy_client(self):
         from google.api_core import client_options as client_options_lib
         from google.api_core.gapic_v1.client_info import ClientInfo
+        from google.cloud.bigtable import __version__ as bigtable_version
+        import copy
 
         project = "project-id"
         credentials = AnonymousCredentials()
@@ -157,6 +162,7 @@ class TestBigtableDataClient:
                     client_options=options_parsed,
                     use_emulator=False,
                     _client_info=client_info,
+                    _is_legacy_client=True,
                 )
             except TypeError:
                 pass
@@ -164,7 +170,20 @@ class TestBigtableDataClient:
             kwargs = bigtable_client_init.call_args[1]
             assert kwargs["credentials"] == credentials
             assert kwargs["client_options"] == options_parsed
-        kwargs["client_info"] == client_info
+            expected_client_info = copy.copy(client_info)
+            expected_client_info.client_library_version = (
+                f"{bigtable_version}-data-shim"
+                if not CrossSync._Sync_Impl.is_async
+                else f"{bigtable_version}-data-shim-async"
+            )
+            assert (
+                kwargs["client_info"].to_user_agent()
+                == expected_client_info.to_user_agent()
+            )
+            assert (
+                kwargs["client_info"].to_grpc_metadata()
+                == expected_client_info.to_grpc_metadata()
+            )
 
     def test_ctor_dict_options(self):
         from google.api_core.client_options import ClientOptions
@@ -238,10 +257,8 @@ class TestBigtableDataClient:
             assert ping_and_warm.call_count == 1
             client.close()
 
-    def test__start_background_channel_refresh_disable_refresh(self):
-        client = self._make_client(
-            project="project-id", _disable_background_channel_refresh=True
-        )
+    def test__start_background_channel_refresh_legacy_client(self):
+        client = self._make_client(project="project-id", _is_legacy_client=True)
         with mock.patch.object(
             client, "_ping_and_warm_instances", CrossSync._Sync_Impl.Mock()
         ) as ping_and_warm:

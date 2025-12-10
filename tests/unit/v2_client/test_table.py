@@ -163,12 +163,12 @@ def _make_table(*args, **kwargs):
 
 def test_table_constructor_defaults():
     table_data_client = mock.Mock(spec=["table_path"])
-    _data_client = mock.Mock()
+    _veneer_data_client = mock.Mock()
     client = mock.Mock(
         project=PROJECT_ID,
         table_data_client=table_data_client,
-        _data_client=_data_client,
-        spec=["project", "table_data_client", "_data_client"],
+        _veneer_data_client=_veneer_data_client,
+        spec=["project", "table_data_client", "_veneer_data_client"],
     )
     instance = mock.Mock(
         _client=client,
@@ -182,18 +182,18 @@ def test_table_constructor_defaults():
     assert table._instance is instance
     assert table.mutation_timeout is None
     assert table._app_profile_id is None
-    assert table._table_impl == _data_client.get_table.return_value
-    _data_client.get_table.assert_called_once_with(INSTANCE_ID, TABLE_ID)
+    assert table._table_impl == _veneer_data_client.get_table.return_value
+    _veneer_data_client.get_table.assert_called_once_with(INSTANCE_ID, TABLE_ID, app_profile_id=None)
 
 
 def test_table_constructor_explicit():
     table_data_client = mock.Mock(spec=["table_path"])
-    _data_client = mock.Mock()
+    _veneer_data_client = mock.Mock()
     client = mock.Mock(
         project=PROJECT_ID,
         table_data_client=table_data_client,
-        _data_client=_data_client,
-        spec=["project", "table_data_client", "_data_client"],
+        _veneer_data_client=_veneer_data_client,
+        spec=["project", "table_data_client", "_veneer_data_client"],
     )
     instance = mock.Mock(
         _client=client,
@@ -214,18 +214,22 @@ def test_table_constructor_explicit():
     assert table._instance is instance
     assert table.mutation_timeout == mutation_timeout
     assert table._app_profile_id == app_profile_id
-    assert table._table_impl == _data_client.get_table.return_value
-    _data_client.get_table.assert_called_once_with(INSTANCE_ID, TABLE_ID)
+    assert table._table_impl == _veneer_data_client.get_table.return_value
+    _veneer_data_client.get_table.assert_called_once_with(
+        INSTANCE_ID,
+        TABLE_ID,
+        app_profile_id=app_profile_id,
+    )
 
 
 def test_table_name():
     table_data_client = mock.Mock(spec=["table_path"])
-    _data_client = mock.Mock()
+    _veneer_data_client = mock.Mock()
     client = mock.Mock(
         project=PROJECT_ID,
         table_data_client=table_data_client,
-        _data_client=_data_client,
-        spec=["project", "table_data_client", "_data_client"],
+        _veneer_data_client=_veneer_data_client,
+        spec=["project", "table_data_client", "_veneer_data_client"],
     )
     instance = mock.Mock(
         _client=client,
