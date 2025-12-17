@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import os
+import uuid
 
 import backoff
 from google.api_core.exceptions import DeadlineExceeded
 import pytest
-import uuid
 
+from .write_increment_async import write_increment_async
 from .write_batch import write_batch
 from .write_conditionally import write_conditional
 from .write_increment import write_increment
@@ -71,3 +73,11 @@ def test_writes(capsys, table_id):
     _write_batch()
     out, _ = capsys.readouterr()
     assert "Successfully wrote 2 rows" in out
+
+    @backoff.on_exception(backoff.expo, DeadlineExceeded, max_time=60)
+    def _write_increment_async():
+        asyncio.run(write_increment_async(PROJECT, BIGTABLE_INSTANCE, table_id))
+
+    _write_increment_async()
+    out, _ = capsys.readouterr()
+    assert "Successfully incremented row" in out
