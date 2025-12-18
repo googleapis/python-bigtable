@@ -185,13 +185,13 @@ class BigtableDataClientAsync(ClientWithProject):
         if "pool_size" in kwargs:
             warnings.warn("pool_size no longer supported")
 
-        # Private argument, for internal use only
-        self._is_legacy_client = bool(kwargs.get("_is_legacy_client", False))
-
         # set up client info headers for veneer library. _client_info is for internal use only,
         # for the legacy client shim.
-        self.client_info = kwargs.get("_client_info", DEFAULT_CLIENT_INFO)
-        self.client_info.client_library_version = self._client_version()
+        if kwargs.get("_client_info"):
+            self.client_info = kwargs["_client_info"]
+        else:
+            self.client_info = DEFAULT_CLIENT_INFO
+            self.client_info.client_library_version = self._client_version()
 
         # parse client options
         if type(client_options) is dict:
@@ -242,6 +242,8 @@ class BigtableDataClientAsync(ClientWithProject):
                 "is the default."
             )
         self._is_closed = CrossSync.Event()
+        # Private argument, for internal use only
+        self._disable_background_refresh = bool(kwargs.get("_disable_background_refresh", False))
         self.transport = cast(TransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[_WarmedInstanceKey] = set()
@@ -306,13 +308,12 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         return self._gapic_client.api_endpoint
 
-    def _client_version(self) -> str:
+    @staticmethod
+    def _client_version() -> str:
         """
         Helper function to return the client version string for this client
         """
         version_str = f"{google.cloud.bigtable.__version__}-data"
-        if self._is_legacy_client:
-            version_str += "-shim"
         if CrossSync.is_async:
             version_str += "-async"
         return version_str
@@ -336,7 +337,7 @@ class BigtableDataClientAsync(ClientWithProject):
             not self._channel_refresh_task
             and not self._emulator_host
             and not self._is_closed.is_set()
-            and not self._is_legacy_client
+            and not self._disable_background_refresh
         ):
             # raise error if not in an event loop in async client
             CrossSync.verify_async_event_loop()

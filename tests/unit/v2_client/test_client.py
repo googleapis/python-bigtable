@@ -391,32 +391,44 @@ def test_client_project_path():
     assert client.project_path == project_name
 
 
-def test_client_data_client_not_initialized():
+def test_client_veneer_data_client_not_initialized():
     from google.cloud.bigtable.data import BigtableDataClient
+    from google.cloud.bigtable import __version__
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials)
 
-    veneer_data_client = client._veneer_data_client
-    assert isinstance(veneer_data_client, BigtableDataClient)
-    assert client._veneer_data_client is veneer_data_client
-    assert client._veneer_data_client._is_legacy_client
+    with mock.patch("copy.copy") as copy_mock:
+        data_client = client._veneer_data_client
+
+        assert isinstance(data_client, BigtableDataClient)
+        assert client._table_data_client is data_client
+
+    assert client._table_data_client._disable_background_refresh
+    assert client._table_data_client.client_info.client_library_version == f"{__version__}-data-shim"
+    copy_mock.assert_called_once_with(client._client_info)
 
 
 def test_client_veneer_data_client_not_initialized_w_client_info():
     from google.api_core.gapic_v1.client_info import ClientInfo
+    from google.cloud.bigtable import __version__
 
     credentials = _make_credentials()
     client_info = ClientInfo(gapic_version="1.2.3", user_agent="test-client-")
     client = _make_client(
         project=PROJECT, credentials=credentials, client_info=client_info
     )
-    data_client = client._veneer_data_client
+
+    with mock.patch("copy.copy") as copy_mock:
+        data_client = client._veneer_data_client
+
+        assert client._table_data_client is data_client
 
     assert client._client_info is client_info
-    assert client._veneer_data_client is data_client
-    assert client._veneer_data_client.client_info is client_info
-    assert client._veneer_data_client._is_legacy_client
+    assert client._table_data_client.client_info is copy_mock.return_value
+    assert client._table_data_client._disable_background_refresh
+    assert client._table_data_client.client_info.client_library_version == f"{__version__}-data-shim"
+    copy_mock.assert_called_once_with(client_info)
 
 
 def test_client_veneer_data_client_not_initialized_w_client_options():
@@ -429,9 +441,9 @@ def test_client_veneer_data_client_not_initialized_w_client_options():
     )
 
     data_client = client._veneer_data_client
-    assert client._veneer_data_client is data_client
-    assert client._veneer_data_client._is_legacy_client
-    assert client._veneer_data_client._gapic_client._client_options == client_options
+    assert client._table_data_client is data_client
+    assert client._table_data_client._disable_background_refresh
+    assert client._table_data_client._gapic_client._client_options == client_options
 
 
 def test_client_veneer_data_client_initialized():
@@ -462,10 +474,27 @@ def test_client_data_gapic_client_not_initialized_w_client_info():
         project=PROJECT, credentials=credentials, client_info=client_info
     )
 
-    table_data_client = client.table_data_client
+    mock_gapic_client = mock.MagicMock(spec=BigtableClient)
+    mock_gapic_client.universe_domain = BigtableClient._DEFAULT_UNIVERSE
+
+    with mock.patch(
+        "google.cloud.bigtable.data._sync_autogen.client.GapicClient",
+        return_value=mock_gapic_client,
+    ) as gapic_mock:
+        with mock.patch("copy.copy") as copy_mock:
+            table_data_client = client.table_data_client
+
     assert isinstance(table_data_client, BigtableClient)
     assert client._client_info is client_info
     assert client._table_data_client._gapic_client is table_data_client
+
+    copy_mock.assert_called_once_with(client._client_info)
+    gapic_mock.assert_called_once_with(
+        client_info=copy_mock.return_value,
+        credentials=mock.ANY,
+        transport=mock.ANY,
+        client_options=mock.ANY,
+    )
 
 
 def test_client_data_gapic_client_not_initialized_w_client_options():
@@ -484,13 +513,13 @@ def test_client_data_gapic_client_not_initialized_w_client_options():
     with mock.patch(
         "google.cloud.bigtable.data._sync_autogen.client.GapicClient",
         return_value=mock_gapic_client,
-    ) as mocked:
+    ) as gapic_mock:
         table_data_client = client.table_data_client
 
     assert client._table_data_client._gapic_client is table_data_client
 
-    mocked.assert_called_once_with(
-        client_info=client._client_info,
+    gapic_mock.assert_called_once_with(
+        client_info=mock.ANY,
         credentials=mock.ANY,
         transport=mock.ANY,
         client_options=client_options,

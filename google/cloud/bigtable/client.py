@@ -27,6 +27,7 @@ In the hierarchy of API concepts
 * a :class:`~google.cloud.bigtable.table.Table` owns a
   :class:`~google.cloud.bigtable.row.Row` (and all the cells in the row)
 """
+import copy
 import os
 import warnings
 import grpc  # type: ignore
@@ -364,12 +365,14 @@ class Client(ClientWithProject):
     def _veneer_data_client(self):
         """Getter for the new Data Table API."""
         if self._table_data_client is None:
+            client_info = copy.copy(self._client_info)
+            client_info.client_library_version = f"{bigtable.__version__}-data-shim"
             self._table_data_client = BigtableDataClient(
                 project=self.project,
                 credentials=self._credentials,
                 client_options=self._client_options,
-                _client_info=self._client_info,
-                _is_legacy_client=True,
+                _client_info=client_info,
+                _disable_background_refresh=True,
             )
         return self._table_data_client
 

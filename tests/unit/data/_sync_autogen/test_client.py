@@ -144,8 +144,6 @@ class TestBigtableDataClient:
     def test_ctor_legacy_client(self):
         from google.api_core import client_options as client_options_lib
         from google.api_core.gapic_v1.client_info import ClientInfo
-        from google.cloud.bigtable import __version__ as bigtable_version
-        import copy
 
         project = "project-id"
         credentials = AnonymousCredentials()
@@ -156,34 +154,22 @@ class TestBigtableDataClient:
             CrossSync._Sync_Impl.GapicClient, "__init__"
         ) as bigtable_client_init:
             try:
-                self._make_client(
+                client = self._make_client(
                     project=project,
                     credentials=credentials,
                     client_options=options_parsed,
                     use_emulator=False,
                     _client_info=client_info,
-                    _is_legacy_client=True,
+                    _disable_background_refresh=True,
                 )
+                assert client._disable_background_refresh
+                assert client.client_info is client_info
             except TypeError:
                 pass
             assert bigtable_client_init.call_count == 1
             kwargs = bigtable_client_init.call_args[1]
             assert kwargs["credentials"] == credentials
             assert kwargs["client_options"] == options_parsed
-            expected_client_info = copy.copy(client_info)
-            expected_client_info.client_library_version = (
-                f"{bigtable_version}-data-shim"
-                if not CrossSync._Sync_Impl.is_async
-                else f"{bigtable_version}-data-shim-async"
-            )
-            assert (
-                kwargs["client_info"].to_user_agent()
-                == expected_client_info.to_user_agent()
-            )
-            assert (
-                kwargs["client_info"].to_grpc_metadata()
-                == expected_client_info.to_grpc_metadata()
-            )
 
     def test_ctor_dict_options(self):
         from google.api_core.client_options import ClientOptions
@@ -257,8 +243,10 @@ class TestBigtableDataClient:
             assert ping_and_warm.call_count == 1
             client.close()
 
-    def test__start_background_channel_refresh_legacy_client(self):
-        client = self._make_client(project="project-id", _is_legacy_client=True)
+    def test__start_background_channel_refresh_disable_background_refresh(self):
+        client = self._make_client(
+            project="project-id", _disable_background_refresh=True
+        )
         with mock.patch.object(
             client, "_ping_and_warm_instances", CrossSync._Sync_Impl.Mock()
         ) as ping_and_warm:

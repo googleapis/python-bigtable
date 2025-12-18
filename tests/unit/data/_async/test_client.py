@@ -181,7 +181,6 @@ class TestBigtableDataClientAsync:
         from google.api_core import client_options as client_options_lib
         from google.api_core.gapic_v1.client_info import ClientInfo
         from google.cloud.bigtable import __version__ as bigtable_version
-        import copy
 
         project = "project-id"
         credentials = AnonymousCredentials()
@@ -192,14 +191,17 @@ class TestBigtableDataClientAsync:
             CrossSync.GapicClient, "__init__"
         ) as bigtable_client_init:
             try:
-                self._make_client(
+                client = self._make_client(
                     project=project,
                     credentials=credentials,
                     client_options=options_parsed,
                     use_emulator=False,
                     _client_info=client_info,
-                    _is_legacy_client=True,
+                    _disable_background_refresh=True,
                 )
+
+                assert client._disable_background_refresh
+                assert client.client_info is client_info
             except TypeError:
                 pass
 
@@ -208,21 +210,6 @@ class TestBigtableDataClientAsync:
             kwargs = bigtable_client_init.call_args[1]
             assert kwargs["credentials"] == credentials
             assert kwargs["client_options"] == options_parsed
-
-            expected_client_info = copy.copy(client_info)
-            expected_client_info.client_library_version = (
-                f"{bigtable_version}-data-shim"
-                if not CrossSync.is_async
-                else f"{bigtable_version}-data-shim-async"
-            )
-            assert (
-                kwargs["client_info"].to_user_agent()
-                == expected_client_info.to_user_agent()
-            )
-            assert (
-                kwargs["client_info"].to_grpc_metadata()
-                == expected_client_info.to_grpc_metadata()
-            )
 
     @CrossSync.pytest
     async def test_ctor_dict_options(self):
@@ -316,10 +303,10 @@ class TestBigtableDataClientAsync:
             await client.close()
 
     @CrossSync.pytest
-    async def test__start_background_channel_refresh_legacy_client(self):
+    async def test__start_background_channel_refresh_disable_background_refresh(self):
         client = self._make_client(
             project="project-id",
-            _is_legacy_client=True,
+            _disable_background_refresh=True,
         )
         # should create background tasks for each channel
         with mock.patch.object(
