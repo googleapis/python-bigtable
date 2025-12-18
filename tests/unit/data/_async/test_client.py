@@ -180,7 +180,6 @@ class TestBigtableDataClientAsync:
     async def test_ctor_legacy_client(self):
         from google.api_core import client_options as client_options_lib
         from google.api_core.gapic_v1.client_info import ClientInfo
-        from google.cloud.bigtable import __version__ as bigtable_version
 
         project = "project-id"
         credentials = AnonymousCredentials()

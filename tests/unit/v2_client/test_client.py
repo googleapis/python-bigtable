@@ -405,7 +405,10 @@ def test_client_veneer_data_client_not_initialized():
         assert client._table_data_client is data_client
 
     assert client._table_data_client._disable_background_refresh
-    assert client._table_data_client.client_info.client_library_version == f"{__version__}-data-shim"
+    assert (
+        client._table_data_client.client_info.client_library_version
+        == f"{__version__}-data-shim"
+    )
     copy_mock.assert_called_once_with(client._client_info)
 
 
@@ -427,7 +430,10 @@ def test_client_veneer_data_client_not_initialized_w_client_info():
     assert client._client_info is client_info
     assert client._table_data_client.client_info is copy_mock.return_value
     assert client._table_data_client._disable_background_refresh
-    assert client._table_data_client.client_info.client_library_version == f"{__version__}-data-shim"
+    assert (
+        client._table_data_client.client_info.client_library_version
+        == f"{__version__}-data-shim"
+    )
     copy_mock.assert_called_once_with(client_info)
 
 

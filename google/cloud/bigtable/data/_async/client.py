@@ -243,7 +243,9 @@ class BigtableDataClientAsync(ClientWithProject):
             )
         self._is_closed = CrossSync.Event()
         # Private argument, for internal use only
-        self._disable_background_refresh = bool(kwargs.get("_disable_background_refresh", False))
+        self._disable_background_refresh = bool(
+            kwargs.get("_disable_background_refresh", False)
+        )
         self.transport = cast(TransportType, self._gapic_client.transport)
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[_WarmedInstanceKey] = set()
