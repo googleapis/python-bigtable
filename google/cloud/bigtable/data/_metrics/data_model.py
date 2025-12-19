@@ -42,7 +42,7 @@ LOGGER = logging.getLogger(__name__)
 
 # default values for zone and cluster data, if not captured
 DEFAULT_ZONE = "global"
-DEFAULT_CLUSTER_ID = "unspecified"
+DEFAULT_CLUSTER_ID = "<unspecified>"
 
 # keys for parsing metadata blobs
 BIGTABLE_METADATA_KEY = "x-goog-ext-425905942-bin"
