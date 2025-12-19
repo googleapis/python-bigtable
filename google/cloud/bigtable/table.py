@@ -782,12 +782,12 @@ class Table(object):
                   or by casting to a :class:`list` and can be cancelled by
                   calling ``cancel()``.
         """
-        data_client = self._instance._client.table_data_client
-        response_iterator = data_client.sample_row_keys(
-            request={"table_name": self.name, "app_profile_id": self._app_profile_id}
+        return (
+            data_messages_v2_pb2.SampleRowKeysResponse(
+                row_key=row_key, offset_bytes=offset_bytes
+            )
+            for row_key, offset_bytes in self._table_impl.sample_row_keys()
         )
-
-        return response_iterator
 
     def truncate(self, timeout=None):
         """Truncate the table

@@ -1202,18 +1202,31 @@ def test_table_yield_rows_with_row_set():
 
 
 def test_table_sample_row_keys():
+    from google.cloud.bigtable_v2 import SampleRowKeysResponse
+
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
+    data_api = _make_data_api(client)
     instance = client.instance(instance_id=INSTANCE_ID)
     table = _make_table(TABLE_ID, instance)
-    response_iterator = object()
 
-    gapic_api = _make_gapic_api(client)
-    gapic_api.sample_row_keys.return_value = [response_iterator]
+    data_api.get_table.return_value.sample_row_keys.return_value = [
+        (b"row-1", 1),
+        (b"row-2", 2),
+        (b"row-3", 3),
+        (b"", 5),
+    ]
 
-    result = table.sample_row_keys()
+    expected_sample_row_keys = [
+        SampleRowKeysResponse(row_key=b"row-1", offset_bytes=1),
+        SampleRowKeysResponse(row_key=b"row-2", offset_bytes=2),
+        SampleRowKeysResponse(row_key=b"row-3", offset_bytes=3),
+        SampleRowKeysResponse(row_key=b"", offset_bytes=5),
+    ]
 
-    assert result[0] == response_iterator
+    result = list(table.sample_row_keys())
+
+    assert result == expected_sample_row_keys
 
 
 def test_table_truncate():
