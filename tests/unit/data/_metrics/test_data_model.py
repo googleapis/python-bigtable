@@ -271,7 +271,10 @@ class TestActiveOperationMetric:
         cls = type(self._make_one(mock.Mock()))
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
             metric = self._make_one(
-                mock.Mock(), cluster_id=start_cluster, zone=start_zone, state=State.ACTIVE_ATTEMPT
+                mock.Mock(),
+                cluster_id=start_cluster,
+                zone=start_zone,
+                state=State.ACTIVE_ATTEMPT,
             )
             metric.active_attempt = mock.Mock()
             metric.active_attempt.gfe_latency_ns = None
@@ -391,7 +394,6 @@ class TestActiveOperationMetric:
         expected_gfe_latency_ns = 5
         expected_app_blocking = 12
         expected_backoff = 2
-        expected_grpc_throttle = 3
         handlers = [mock.Mock(), mock.Mock()]
 
         metric = self._make_one(mock.Mock(), handlers=handlers)
@@ -450,7 +452,10 @@ class TestActiveOperationMetric:
             metric.end_attempt_with_status(mock.Mock())
 
             assert mock_handle_error.call_count == 1
-            assert "received negative value for duration" in mock_handle_error.call_args[0][0]
+            assert (
+                "received negative value for duration"
+                in mock_handle_error.call_args[0][0]
+            )
             assert metric.completed_attempts[0].duration_ns == 0
 
     @mock.patch("time.monotonic_ns")
@@ -479,7 +484,10 @@ class TestActiveOperationMetric:
 
         handlers = [mock.Mock(), mock.Mock()]
         metric = self._make_one(
-            expected_type, handlers=handlers, start_time_ns=expected_start_time, state=State.ACTIVE_ATTEMPT
+            expected_type,
+            handlers=handlers,
+            start_time_ns=expected_start_time,
+            state=State.ACTIVE_ATTEMPT,
         )
         metric.cluster_id = expected_cluster
         metric.zone = expected_zone
@@ -534,7 +542,10 @@ class TestActiveOperationMetric:
             metric.end_with_status(mock.Mock())
 
             assert mock_handle_error.call_count == 1
-            assert "received negative value for duration" in mock_handle_error.call_args[0][0]
+            assert (
+                "received negative value for duration"
+                in mock_handle_error.call_args[0][0]
+            )
             final_op = metric.handlers[0].on_operation_complete.call_args[0][0]
             assert final_op.duration_ns == 0
 

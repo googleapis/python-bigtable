@@ -65,20 +65,20 @@ class OperationType(Enum):
 class OperationState(Enum):
     """Enum for the state of the active operation.
 
-       ┌───────────┐
-       │  CREATED  │
-       └─────┬─────┘
-             │
-             ▼
-      ┌▶ ACTIVE_ATTEMPT ───┐
-      │      │             │
-      │      ▼             │
-      └─ BETWEEN_ATTEMPTS  │
-             │             │
-             ▼             ▼
-       ┌───────────┐       │
-       │ COMPLETED │ ◀─────┘
-       └───────────┘
+     ┌───────────┐
+     │  CREATED  │
+     └─────┬─────┘
+           │
+           ▼
+    ┌▶ ACTIVE_ATTEMPT ───┐
+    │      │             │
+    │      ▼             │
+    └─ BETWEEN_ATTEMPTS  │
+           │             │
+           ▼             ▼
+     ┌───────────┐       │
+     │ COMPLETED │ ◀─────┘
+     └───────────┘
     """
 
     CREATED = 0
@@ -329,7 +329,9 @@ class ActiveOperationMetric:
             )
         if isinstance(status, BaseException):
             status = self._exc_to_status(status)
-        duration_ns = self._ensure_positive(time.monotonic_ns() - self.active_attempt.start_time_ns, "duration")
+        duration_ns = self._ensure_positive(
+            time.monotonic_ns() - self.active_attempt.start_time_ns, "duration"
+        )
         complete_attempt = CompletedAttemptMetric(
             duration_ns=duration_ns,
             end_status=status,
@@ -365,7 +367,9 @@ class ActiveOperationMetric:
         )
         if self.state == OperationState.ACTIVE_ATTEMPT:
             self.end_attempt_with_status(final_status)
-        duration_ns = self._ensure_positive(time.monotonic_ns() - self.start_time_ns, "duration")
+        duration_ns = self._ensure_positive(
+            time.monotonic_ns() - self.start_time_ns, "duration"
+        )
         finalized = CompletedOperationMetric(
             op_type=self.op_type,
             completed_attempts=self.completed_attempts,
@@ -430,7 +434,7 @@ class ActiveOperationMetric:
         full_message = f"Error in Bigtable Metrics: {message}"
         LOGGER.warning(full_message)
 
-    def _ensure_positive(self, value:int, field_name:str) -> int:
+    def _ensure_positive(self, value: int, field_name: str) -> int:
         """
         Helper to replace negative value with 0, and record an error
         """
