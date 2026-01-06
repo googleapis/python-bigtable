@@ -332,8 +332,9 @@ class ActiveOperationMetric:
             )
         if isinstance(status, BaseException):
             status = self._exc_to_status(status)
+        duration_ns = self._ensure_positive(time.monotonic_ns() - self.active_attempt.start_time_ns, "duration")
         complete_attempt = CompletedAttemptMetric(
-            duration_ns=time.monotonic_ns() - self.active_attempt.start_time_ns,
+            duration_ns=duration_ns,
             end_status=status,
             gfe_latency_ns=self.active_attempt.gfe_latency_ns,
             application_blocking_time_ns=self.active_attempt.application_blocking_time_ns,
@@ -367,12 +368,12 @@ class ActiveOperationMetric:
         )
         if self.state == OperationState.ACTIVE_ATTEMPT:
             self.end_attempt_with_status(final_status)
-        self.state = OperationState.COMPLETED
+        duration_ns = self._ensure_positive(time.monotonic_ns() - self.start_time_ns, "duration")
         finalized = CompletedOperationMetric(
             op_type=self.op_type,
             uuid=self.uuid,
             completed_attempts=self.completed_attempts,
-            duration_ns=time.monotonic_ns() - self.start_time_ns,
+            duration_ns=duration_ns,
             final_status=final_status,
             cluster_id=self.cluster_id or DEFAULT_CLUSTER_ID,
             zone=self.zone or DEFAULT_ZONE,
@@ -380,6 +381,7 @@ class ActiveOperationMetric:
             first_response_latency_ns=self.first_response_latency_ns,
             flow_throttling_time_ns=self.flow_throttling_time_ns,
         )
+        self.state = OperationState.COMPLETED
         for handler in self.handlers:
             handler.on_operation_complete(finalized)
 
@@ -431,6 +433,15 @@ class ActiveOperationMetric:
         """
         full_message = f"Error in Bigtable Metrics: {message}"
         LOGGER.warning(full_message)
+
+    def _ensure_positive(self, value:int, field_name:str) -> int:
+        """
+        Helper to replace negative value with 0, and record an error
+        """
+        if value < 0:
+            self._handle_error(f"received negative value for {field_name}: {value}")
+            return 0
+        return value
 
     def __enter__(self):
         """

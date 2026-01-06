@@ -437,6 +437,23 @@ class TestActiveOperationMetric:
             assert metric.completed_attempts[0].end_status == expected_status
 
     @mock.patch("time.monotonic_ns")
+    def test_end_attempt_with_negative_duration_ns(self, mock_monotonic_ns):
+        """
+        If duration_ns is negative, it should be set to 0 and _handle_error should be called
+        """
+        cls = type(self._make_one(mock.Mock()))
+        with mock.patch.object(cls, "_handle_error") as mock_handle_error:
+            metric = self._make_one(mock.Mock())
+            metric.start_attempt()
+            metric.active_attempt.start_time_ns = 100
+            mock_monotonic_ns.return_value = 50  # Simulate time going backwards
+            metric.end_attempt_with_status(mock.Mock())
+
+            assert mock_handle_error.call_count == 1
+            assert "received negative value for duration" in mock_handle_error.call_args[0][0]
+            assert metric.completed_attempts[0].duration_ns == 0
+
+    @mock.patch("time.monotonic_ns")
     def test_end_with_status(self, mock_monotonic_ns):
         """
         ending the operation should:
@@ -503,6 +520,23 @@ class TestActiveOperationMetric:
             assert final_attempt.end_status == expected_status
             expected_duration = expected_mock_time - expected_attempt_start_time
             assert final_attempt.duration_ns == expected_duration
+
+    @mock.patch("time.monotonic_ns")
+    def test_end_with_negative_duration_ns(self, mock_monotonic_ns):
+        """
+        If operation duration_ns is negative, it should be set to 0 and _handle_error should be called
+        """
+        cls = type(self._make_one(mock.Mock()))
+        with mock.patch.object(cls, "_handle_error") as mock_handle_error:
+            metric = self._make_one(mock.Mock(), handlers=[mock.Mock()])
+            metric.start_time_ns = 100
+            mock_monotonic_ns.return_value = 50  # Simulate time going backwards
+            metric.end_with_status(mock.Mock())
+
+            assert mock_handle_error.call_count == 1
+            assert "received negative value for duration" in mock_handle_error.call_args[0][0]
+            final_op = metric.handlers[0].on_operation_complete.call_args[0][0]
+            assert final_op.duration_ns == 0
 
     def test_end_with_status_w_exception(self):
         """
