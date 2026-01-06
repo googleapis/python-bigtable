@@ -18,7 +18,6 @@ from typing import ClassVar, Tuple, cast, TYPE_CHECKING
 import time
 import re
 import logging
-import uuid
 import contextvars
 
 from enum import Enum
@@ -116,7 +115,6 @@ class CompletedOperationMetric:
     """
 
     op_type: OperationType
-    uuid: str
     duration_ns: int
     completed_attempts: list[CompletedAttemptMetric]
     final_status: StatusCode
@@ -153,7 +151,6 @@ class ActiveOperationMetric:
     """
 
     op_type: OperationType
-    uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     state: OperationState = OperationState.CREATED
     # create a default backoff generator, initialized with standard default backoff values
     backoff_generator: TrackedBackoffGenerator = field(
@@ -371,7 +368,6 @@ class ActiveOperationMetric:
         duration_ns = self._ensure_positive(time.monotonic_ns() - self.start_time_ns, "duration")
         finalized = CompletedOperationMetric(
             op_type=self.op_type,
-            uuid=self.uuid,
             completed_attempts=self.completed_attempts,
             duration_ns=duration_ns,
             final_status=final_status,
