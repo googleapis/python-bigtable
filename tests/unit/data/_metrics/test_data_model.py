@@ -40,10 +40,10 @@ class TestActiveOperationMetric:
         assert metric.cluster_id is None
         assert metric.zone is None
         assert len(metric.completed_attempts) == 0
-        assert metric.was_completed is False
         assert len(metric.handlers) == 0
         assert metric.is_streaming is False
         assert metric.flow_throttling_time_ns == 0
+        assert metric.state == State.CREATED
 
     def test_ctor_explicit(self):
         """
@@ -55,7 +55,7 @@ class TestActiveOperationMetric:
         expected_cluster_id = "cluster"
         expected_zone = "zone"
         expected_completed_attempts = [mock.Mock()]
-        expected_was_completed = True
+        expected_state = State.COMPLETED
         expected_handlers = [mock.Mock()]
         expected_is_streaming = True
         expected_flow_throttling = 12
@@ -65,8 +65,8 @@ class TestActiveOperationMetric:
             active_attempt=expected_active_attempt,
             cluster_id=expected_cluster_id,
             zone=expected_zone,
+            state=expected_state,
             completed_attempts=expected_completed_attempts,
-            was_completed=expected_was_completed,
             handlers=expected_handlers,
             is_streaming=expected_is_streaming,
             flow_throttling_time_ns=expected_flow_throttling,
@@ -77,7 +77,7 @@ class TestActiveOperationMetric:
         assert metric.cluster_id == expected_cluster_id
         assert metric.zone == expected_zone
         assert metric.completed_attempts == expected_completed_attempts
-        assert metric.was_completed == expected_was_completed
+        assert metric.state == expected_state
         assert metric.handlers == expected_handlers
         assert metric.is_streaming == expected_is_streaming
         assert metric.flow_throttling_time_ns == expected_flow_throttling
@@ -99,27 +99,18 @@ class TestActiveOperationMetric:
         metric.end_with_success()
         assert metric.state == State.COMPLETED
 
-    def test_state_machine_w_state(self):
+    def test_state_machine(self):
         """
-        Exercise state machine by directly manupulating state variables
-
-        relevant variables are: active_attempt, completed_attempts, was_completed
+        Exercise state machine by moving through states
         """
         metric = self._make_one(mock.Mock())
-        for was_completed_value in [False, True]:
-            metric.was_completed = was_completed_value
-            for active_operation_value in [None, mock.Mock()]:
-                metric.active_attempt = active_operation_value
-                for completed_attempts_value in [[], [mock.Mock()]]:
-                    metric.completed_attempts = completed_attempts_value
-                    if was_completed_value:
-                        assert metric.state == State.COMPLETED
-                    elif active_operation_value is not None:
-                        assert metric.state == State.ACTIVE_ATTEMPT
-                    elif completed_attempts_value:
-                        assert metric.state == State.BETWEEN_ATTEMPTS
-                    else:
-                        assert metric.state == State.CREATED
+        assert metric.state == State.CREATED
+        metric.start_attempt()
+        assert metric.state == State.ACTIVE_ATTEMPT
+        metric.end_attempt_with_status(0)
+        assert metric.state == State.BETWEEN_ATTEMPTS
+        metric.end_with_success()
+        assert metric.state == State.COMPLETED
 
     @pytest.mark.parametrize(
         "method,args,valid_states,error_method_name",
@@ -161,13 +152,7 @@ class TestActiveOperationMetric:
         for state in invalid_states:
             with mock.patch.object(cls, "_handle_error") as mock_handle_error:
                 mock_handle_error.return_value = None
-                metric = self._make_one(mock.Mock())
-                if state == State.ACTIVE_ATTEMPT:
-                    metric.active_attempt = mock.Mock()
-                elif state == State.BETWEEN_ATTEMPTS:
-                    metric.completed_attempts.append(mock.Mock())
-                elif state == State.COMPLETED:
-                    metric.was_completed = True
+                metric = self._make_one(mock.Mock(), state=state)
                 return_obj = getattr(metric, method)(*args)
                 assert return_obj is None
                 assert mock_handle_error.call_count == 1
@@ -286,7 +271,7 @@ class TestActiveOperationMetric:
         cls = type(self._make_one(mock.Mock()))
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
             metric = self._make_one(
-                mock.Mock(), cluster_id=start_cluster, zone=start_zone
+                mock.Mock(), cluster_id=start_cluster, zone=start_zone, state=State.ACTIVE_ATTEMPT
             )
             metric.active_attempt = mock.Mock()
             metric.active_attempt.gfe_latency_ns = None
@@ -323,7 +308,7 @@ class TestActiveOperationMetric:
 
         cls = type(self._make_one(mock.Mock()))
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
-            metric = self._make_one(mock.Mock())
+            metric = self._make_one(mock.Mock(), state=State.ACTIVE_ATTEMPT)
             metric.cluster_id = None
             metric.zone = None
             metric.active_attempt = mock.Mock()
@@ -371,7 +356,7 @@ class TestActiveOperationMetric:
 
         cls = type(self._make_one(mock.Mock()))
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
-            metric = self._make_one(mock.Mock())
+            metric = self._make_one(mock.Mock(), state=State.ACTIVE_ATTEMPT)
             metric.active_attempt = mock.Mock()
             metric.active_attempt.gfe_latency_ns = None
             metadata = grpc.aio.Metadata()
@@ -477,7 +462,7 @@ class TestActiveOperationMetric:
 
         handlers = [mock.Mock(), mock.Mock()]
         metric = self._make_one(
-            expected_type, handlers=handlers, start_time_ns=expected_start_time
+            expected_type, handlers=handlers, start_time_ns=expected_start_time, state=State.ACTIVE_ATTEMPT
         )
         metric.cluster_id = expected_cluster
         metric.zone = expected_zone
@@ -492,7 +477,6 @@ class TestActiveOperationMetric:
         metric.end_with_status(expected_status)
         # test that ActiveOperation was updated to terminal state
         assert metric.state == State.COMPLETED
-        assert metric.was_completed is True
         assert metric.active_attempt is None
         assert len(metric.completed_attempts) == 1
         # check that finalized operation was passed to handlers
@@ -588,7 +572,6 @@ class TestActiveOperationMetric:
         metric = self._make_one(mock.Mock(), handlers=handlers)
         metric.end_with_success()
         assert metric.state == State.COMPLETED
-        assert metric.was_completed is True
         final_op = handlers[0].on_operation_complete.call_args[0][0]
         assert final_op.final_status == StatusCode.OK
         assert final_op.completed_attempts == []

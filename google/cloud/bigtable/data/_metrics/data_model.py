@@ -64,7 +64,23 @@ class OperationType(Enum):
 
 
 class OperationState(Enum):
-    """Enum for the state of the active operation."""
+    """Enum for the state of the active operation.
+
+       ┌───────────┐
+       │  CREATED  │
+       └─────┬─────┘
+             │
+             ▼
+      ┌▶ ACTIVE_ATTEMPT ───┐
+      │      │             │
+      │      ▼             │
+      └─ BETWEEN_ATTEMPTS  │
+             │             │
+             ▼             ▼
+       ┌───────────┐       │
+       │ COMPLETED │ ◀─────┘
+       └───────────┘
+    """
 
     CREATED = 0
     ACTIVE_ATTEMPT = 1
@@ -138,6 +154,7 @@ class ActiveOperationMetric:
 
     op_type: OperationType
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
+    state: OperationState = OperationState.CREATED
     # create a default backoff generator, initialized with standard default backoff values
     backoff_generator: TrackedBackoffGenerator = field(
         default_factory=lambda: TrackedBackoffGenerator(
@@ -151,7 +168,6 @@ class ActiveOperationMetric:
     zone: str | None = None
     completed_attempts: list[CompletedAttemptMetric] = field(default_factory=list)
     is_streaming: bool = False  # only True for read_rows operations
-    was_completed: bool = False
     handlers: list[MetricsHandler] = field(default_factory=list)
     # the time it takes to recieve the first response from the server, in nanoseconds
     # attached by interceptor
@@ -186,18 +202,6 @@ class ActiveOperationMetric:
             return None
         return op
 
-    @property
-    def state(self) -> OperationState:
-        if self.was_completed:
-            return OperationState.COMPLETED
-        elif self.active_attempt is None:
-            if self.completed_attempts:
-                return OperationState.BETWEEN_ATTEMPTS
-            else:
-                return OperationState.CREATED
-        else:
-            return OperationState.ACTIVE_ATTEMPT
-
     def __post_init__(self):
         """
         Save new instances to contextvars on init
@@ -209,7 +213,8 @@ class ActiveOperationMetric:
         Optionally called to mark the start of the operation. If not called,
         the operation will be started at initialization.
 
-        Assumes operation is in CREATED state.
+        StartState: CREATED
+        EndState: CREATED
         """
         if self.state != OperationState.CREATED:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
@@ -221,7 +226,8 @@ class ActiveOperationMetric:
         """
         Called to initiate a new attempt for the operation.
 
-        Assumes operation is in either CREATED or BETWEEN_ATTEMPTS states
+        StartState: CREATED | BETWEEN_ATTEMPTS
+        EndState: ACTIVE_ATTEMPT
         """
         if (
             self.state != OperationState.BETWEEN_ATTEMPTS
@@ -244,6 +250,7 @@ class ActiveOperationMetric:
             backoff_ns = 0
 
         self.active_attempt = ActiveAttemptMetric(backoff_before_attempt_ns=backoff_ns)
+        self.state = OperationState.ACTIVE_ATTEMPT
         return self.active_attempt
 
     def add_response_metadata(self, metadata: dict[str, bytes | str]) -> None:
@@ -252,7 +259,8 @@ class ActiveOperationMetric:
 
         If not called, default values for the metadata will be used.
 
-        Assumes operation is in ACTIVE_ATTEMPT state.
+        StartState: ACTIVE_ATTEMPT
+        EndState: ACTIVE_ATTEMPT
 
         Args:
           - metadata: the metadata as extracted from the grpc call
@@ -312,7 +320,8 @@ class ActiveOperationMetric:
         be attempted, `end_with_status` or `end_with_success` should be used
         to finalize the operation along with the attempt.
 
-        Assumes operation is in ACTIVE_ATTEMPT state.
+        StartState: ACTIVE_ATTEMPT
+        EndState: BETWEEN_ATTEMPTS
 
         Args:
           - status: The status of the attempt.
@@ -332,6 +341,7 @@ class ActiveOperationMetric:
         )
         self.completed_attempts.append(complete_attempt)
         self.active_attempt = None
+        self.state = OperationState.BETWEEN_ATTEMPTS
         for handler in self.handlers:
             handler.on_attempt_complete(complete_attempt, self)
 
@@ -340,7 +350,8 @@ class ActiveOperationMetric:
         Called to mark the end of the operation. If there is an active attempt,
         end_attempt_with_status will be called with the same status.
 
-        Assumes operation is not already in COMPLETED state.
+        StartState: CREATED | ACTIVE_ATTEMPT | BETWEEN_ATTEMPTS
+        EndState: COMPLETED
 
         Causes on_operation_completed to be called for each registered handler.
 
@@ -356,7 +367,7 @@ class ActiveOperationMetric:
         )
         if self.state == OperationState.ACTIVE_ATTEMPT:
             self.end_attempt_with_status(final_status)
-        self.was_completed = True
+        self.state = OperationState.COMPLETED
         finalized = CompletedOperationMetric(
             op_type=self.op_type,
             uuid=self.uuid,
@@ -376,7 +387,8 @@ class ActiveOperationMetric:
         """
         Called to mark the end of the operation with a successful status.
 
-        Assumes operation is not already in COMPLETED state.
+        StartState: CREATED | ACTIVE_ATTEMPT | BETWEEN_ATTEMPTS
+        EndState: COMPLETED
 
         Causes on_operation_completed to be called for each registered handler.
         """
