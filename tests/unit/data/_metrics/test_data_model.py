@@ -208,7 +208,6 @@ class TestActiveOperationMetric:
         # make sure it was initialized with the correct values
         assert metric.active_attempt.start_time_ns == expected_timestamp
         assert metric.active_attempt.gfe_latency_ns is None
-        assert metric.active_attempt.grpc_throttling_time_ns == 0
         # should be in ACTIVE_ATTEMPT state after completing
         assert metric.state == State.ACTIVE_ATTEMPT
 
@@ -418,13 +417,11 @@ class TestActiveOperationMetric:
         metric.active_attempt.gfe_latency_ns = expected_gfe_latency_ns
         metric.active_attempt.application_blocking_time_ns = expected_app_blocking
         metric.active_attempt.backoff_before_attempt_ns = expected_backoff
-        metric.active_attempt.grpc_throttling_time_ns = expected_grpc_throttle
         metric.end_attempt_with_status(expected_status)
         assert len(metric.completed_attempts) == 1
         got_attempt = metric.completed_attempts[0]
         expected_duration = expected_mock_time - expected_start_time
         assert got_attempt.duration_ns == expected_duration
-        assert got_attempt.grpc_throttling_time_ns == expected_grpc_throttle
         assert got_attempt.end_status == expected_status
         assert got_attempt.gfe_latency_ns == expected_gfe_latency_ns
         assert got_attempt.application_blocking_time_ns == expected_app_blocking

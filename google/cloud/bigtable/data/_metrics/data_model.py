@@ -45,7 +45,7 @@ DEFAULT_ZONE = "global"
 DEFAULT_CLUSTER_ID = "<unspecified>"
 
 # keys for parsing metadata blobs
-BIGTABLE_METADATA_KEY = "x-goog-ext-425905942-bin"
+BIGTABLE_LOCATION_METADATA_KEY = "x-goog-ext-425905942-bin"
 SERVER_TIMING_METADATA_KEY = "server-timing"
 SERVER_TIMING_REGEX = re.compile(r".*gfet4t7;\s*dur=(\d+\.?\d*).*")
 
@@ -87,7 +87,6 @@ class CompletedAttemptMetric:
     gfe_latency_ns: int | None = None
     application_blocking_time_ns: int = 0
     backoff_before_attempt_ns: int = 0
-    grpc_throttling_time_ns: int = 0
 
 
 @dataclass(frozen=True)
@@ -128,9 +127,6 @@ class ActiveAttemptMetric:
     application_blocking_time_ns: int = 0
     # backoff time is added to application_blocking_time_ns
     backoff_before_attempt_ns: int = 0
-    # time waiting on grpc channel, in nanoseconds
-    # TODO: capture grpc_throttling_time
-    grpc_throttling_time_ns: int = 0
 
 
 @dataclass
@@ -266,8 +262,8 @@ class ActiveOperationMetric:
                 INVALID_STATE_ERROR.format("add_response_metadata", self.state)
             )
         if self.cluster_id is None or self.zone is None:
-            # BIGTABLE_METADATA_KEY should give a binary-encoded ResponseParams proto
-            blob = cast(bytes, metadata.get(BIGTABLE_METADATA_KEY))
+            # BIGTABLE_LOCATION_METADATA_KEY should give a binary-encoded ResponseParams proto
+            blob = cast(bytes, metadata.get(BIGTABLE_LOCATION_METADATA_KEY))
             if blob:
                 parse_result = self._parse_response_metadata_blob(blob)
                 if parse_result is not None:
@@ -278,7 +274,7 @@ class ActiveOperationMetric:
                         self.zone = zone
                 else:
                     self._handle_error(
-                        f"Failed to decode {BIGTABLE_METADATA_KEY} metadata: {blob!r}"
+                        f"Failed to decode {BIGTABLE_LOCATION_METADATA_KEY} metadata: {blob!r}"
                     )
         # SERVER_TIMING_METADATA_KEY should give a string with the server-latency headers
         timing_header = cast(str, metadata.get(SERVER_TIMING_METADATA_KEY))
@@ -333,7 +329,6 @@ class ActiveOperationMetric:
             gfe_latency_ns=self.active_attempt.gfe_latency_ns,
             application_blocking_time_ns=self.active_attempt.application_blocking_time_ns,
             backoff_before_attempt_ns=self.active_attempt.backoff_before_attempt_ns,
-            grpc_throttling_time_ns=self.active_attempt.grpc_throttling_time_ns,
         )
         self.completed_attempts.append(complete_attempt)
         self.active_attempt = None
