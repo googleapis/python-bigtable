@@ -17,13 +17,13 @@
 import struct
 
 
-from google.cloud.bigtable.data.row_filters import (
+from google.cloud.bigtable.data.row_filters import (  # noqa: F401
     RowFilter,
     SinkFilter,
-    _BoolFilter as _BaseBoolFilter,
+    _BoolFilter,
     PassAllFilter,
     BlockAllFilter,
-    _RegexFilter as _BaseRegexFilter,
+    _RegexFilter,
     RowKeyRegexFilter,
     RowSampleFilter,
     FamilyNameRegexFilter,
@@ -33,13 +33,13 @@ from google.cloud.bigtable.data.row_filters import (
     ColumnRangeFilter as BaseColumnRangeFilter,
     ValueRegexFilter,
     ValueRangeFilter,
-    _CellCountFilter as _BaseCellCountFilter,
+    _CellCountFilter,
     CellsRowOffsetFilter,
     CellsRowLimitFilter,
     CellsColumnLimitFilter,
     StripValueTransformerFilter,
     ApplyLabelFilter,
-    _FilterCombination as _BaseFilterCombination,
+    _FilterCombination,
     RowFilterChain,
     RowFilterUnion,
     ConditionalRowFilter as BaseConditionalRowFilter,
@@ -47,41 +47,40 @@ from google.cloud.bigtable.data.row_filters import (
 
 _PACK_I64 = struct.Struct(">q").pack
 
+
+class _MappableAttributesMixin:
+    """
+    Mixin for classes that need some of their attribute names remapped.
+
+    This is for taking some of the classes from the data client row filters
+    that are 1:1 with their legacy client counterparts but with some of their
+    attributes renamed. To use in a class, override the base class with this mixin
+    class and define a map _attribute_map from legacy client attributes to data client
+    attributes.
+
+    Attributes are remapped and redefined in __init__ as well as getattr/setattr.
+    """
+
+    def __init__(self, *args, **kwargs):
+        new_kwargs = {self._attribute_map.get(k, k): v for (k, v) in kwargs.items()}
+        super(_MappableAttributesMixin, self).__init__(*args, **new_kwargs)
+
+    def __getattr__(self, name):
+        if name not in self._attribute_map:
+            raise AttributeError
+        return getattr(self, self._attribute_map[name])
+
+    def __setattr__(self, name, value):
+        attribute = self._attribute_map.get(name, name)
+        super(_MappableAttributesMixin, self).__setattr__(attribute, value)
+
+
 # The classes defined below are to provide constructors and members
 # that have an interface that does not match the one used by the data
 # client, for backwards compatibility purposes.
 
 # Each underscored class is an ABC. Make them into classes that can be
 # instantiated with a placeholder to_dict method for consistency.
-
-
-class _BoolFilter(_BaseBoolFilter):
-    """Row filter that uses a boolean flag.
-
-    :type flag: bool
-    :param flag: An indicator if a setting is turned on or off.
-    """
-
-    def _to_dict(self):
-        pass
-
-
-class _RegexFilter(_BaseRegexFilter):
-    """Row filter that uses a regular expression.
-
-    The ``regex`` must be valid RE2 patterns. See Google's
-    `RE2 reference`_ for the accepted syntax.
-
-    .. _RE2 reference: https://github.com/google/re2/wiki/Syntax
-
-    :type regex: bytes or str
-    :param regex:
-        A regular expression (RE2) for some row filter.  String values
-        will be encoded as ASCII.
-    """
-
-    def _to_dict(self):
-        pass
 
 
 class TimestampRangeFilter(BaseTimestampRangeFilter):
@@ -111,21 +110,7 @@ class ExactValueFilter(ValueRegexFilter):
         super(ExactValueFilter, self).__init__(value)
 
 
-class _CellCountFilter(_BaseCellCountFilter):
-    """Row filter that uses an integer count of cells.
-
-    The cell count is used as an offset or a limit for the number
-    of results returned.
-
-    :type num_cells: int
-    :param num_cells: An integer count / offset / limit.
-    """
-
-    def _to_dict(self):
-        pass
-
-
-class ColumnRangeFilter(BaseColumnRangeFilter):
+class ColumnRangeFilter(_MappableAttributesMixin, BaseColumnRangeFilter):
     """A row filter to restrict to a range of columns.
 
     Both the start and end column can be included or excluded in the range.
@@ -162,63 +147,14 @@ class ColumnRangeFilter(BaseColumnRangeFilter):
              is set but no ``end_column`` is given
     """
 
-    def __init__(
-        self,
-        column_family_id,
-        start_column=None,
-        end_column=None,
-        inclusive_start=None,
-        inclusive_end=None,
-    ):
-        super(ColumnRangeFilter, self).__init__(
-            family_id=column_family_id,
-            start_qualifier=start_column,
-            end_qualifier=end_column,
-            inclusive_start=inclusive_start,
-            inclusive_end=inclusive_end,
-        )
-
-    @property
-    def column_family_id(self):
-        return self.family_id
-
-    @column_family_id.setter
-    def column_family_id(self, column_family_id):
-        self.family_id = column_family_id
-
-    @property
-    def start_column(self):
-        return self.start_qualifier
-
-    @start_column.setter
-    def start_column(self, start_column):
-        self.start_qualifier = start_column
-
-    @property
-    def end_column(self):
-        return self.end_qualifier
-
-    @end_column.setter
-    def end_column(self, end_column):
-        self.end_qualifier = end_column
+    _attribute_map = {
+        "column_family_id": "family_id",
+        "start_column": "start_qualifier",
+        "end_column": "end_qualifier",
+    }
 
 
-class _FilterCombination(_BaseFilterCombination):
-    """Chain of row filters.
-
-    Sends rows through several filters in sequence. The filters are "chained"
-    together to process a row. After the first filter is applied, the second
-    is applied to the filtered output and so on for subsequent filters.
-
-    :type filters: list
-    :param filters: List of :class:`RowFilter`
-    """
-
-    def _to_dict(self):
-        pass
-
-
-class ConditionalRowFilter(BaseConditionalRowFilter):
+class ConditionalRowFilter(_MappableAttributesMixin, BaseConditionalRowFilter):
     """Conditional row filter which exhibits ternary behavior.
 
     Executes one of two filters based on another filter. If the ``base_filter``
@@ -248,36 +184,30 @@ class ConditionalRowFilter(BaseConditionalRowFilter):
                          will be returned in the false case.
     """
 
-    @property
-    def base_filter(self):
-        return self.predicate_filter
-
-    @base_filter.setter
-    def base_filter(self, value: RowFilter):
-        self.predicate_filter = value
+    _attribute_map = {"base_filter": "predicate_filter"}
 
 
 __all__ = (
-    RowFilter,
-    SinkFilter,
-    PassAllFilter,
-    BlockAllFilter,
-    RowKeyRegexFilter,
-    RowSampleFilter,
-    FamilyNameRegexFilter,
-    ColumnQualifierRegexFilter,
-    TimestampRange,
-    TimestampRangeFilter,
-    ColumnRangeFilter,
-    ValueRegexFilter,
-    ExactValueFilter,
-    ValueRangeFilter,
-    CellsRowOffsetFilter,
-    CellsRowLimitFilter,
-    CellsColumnLimitFilter,
-    StripValueTransformerFilter,
-    ApplyLabelFilter,
-    RowFilterChain,
-    RowFilterUnion,
-    ConditionalRowFilter,
+    "RowFilter",
+    "SinkFilter",
+    "PassAllFilter",
+    "BlockAllFilter",
+    "RowKeyRegexFilter",
+    "RowSampleFilter",
+    "FamilyNameRegexFilter",
+    "ColumnQualifierRegexFilter",
+    "TimestampRange",
+    "TimestampRangeFilter",
+    "ColumnRangeFilter",
+    "ValueRegexFilter",
+    "ExactValueFilter",
+    "ValueRangeFilter",
+    "CellsRowOffsetFilter",
+    "CellsRowLimitFilter",
+    "CellsColumnLimitFilter",
+    "StripValueTransformerFilter",
+    "ApplyLabelFilter",
+    "RowFilterChain",
+    "RowFilterUnion",
+    "ConditionalRowFilter",
 )

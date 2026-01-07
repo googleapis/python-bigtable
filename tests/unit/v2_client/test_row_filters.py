@@ -15,18 +15,21 @@
 
 import pytest
 
+from google.cloud.bigtable.row_filters import (
+    _BoolFilter as _BaseBoolFilter,
+    _RegexFilter as _BaseRegexFilter,
+    _CellCountFilter as _BaseCellCountFilter,
+    _FilterCombination as _BaseFilterCombination,
+)
+
 
 def test_bool_filter_constructor():
-    from google.cloud.bigtable.row_filters import _BoolFilter
-
     flag = object()
     row_filter = _BoolFilter(flag)
     assert row_filter.flag is flag
 
 
 def test_bool_filter___eq__type_differ():
-    from google.cloud.bigtable.row_filters import _BoolFilter
-
     flag = object()
     row_filter1 = _BoolFilter(flag)
     row_filter2 = object()
@@ -34,8 +37,6 @@ def test_bool_filter___eq__type_differ():
 
 
 def test_bool_filter___eq__same_value():
-    from google.cloud.bigtable.row_filters import _BoolFilter
-
     flag = object()
     row_filter1 = _BoolFilter(flag)
     row_filter2 = _BoolFilter(flag)
@@ -43,8 +44,6 @@ def test_bool_filter___eq__same_value():
 
 
 def test_bool_filter___ne__same_value():
-    from google.cloud.bigtable.row_filters import _BoolFilter
-
     flag = object()
     row_filter1 = _BoolFilter(flag)
     row_filter2 = _BoolFilter(flag)
@@ -82,24 +81,18 @@ def test_block_all_filter_to_pb():
 
 
 def test_regex_filterconstructor():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
     regex = b"abc"
     row_filter = _RegexFilter(regex)
     assert row_filter.regex is regex
 
 
 def test_regex_filterconstructor_non_bytes():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
     regex = "abc"
     row_filter = _RegexFilter(regex)
     assert row_filter.regex == b"abc"
 
 
 def test_regex_filter__eq__type_differ():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
     regex = b"def-rgx"
     row_filter1 = _RegexFilter(regex)
     row_filter2 = object()
@@ -107,8 +100,6 @@ def test_regex_filter__eq__type_differ():
 
 
 def test_regex_filter__eq__same_value():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
     regex = b"trex-regex"
     row_filter1 = _RegexFilter(regex)
     row_filter2 = _RegexFilter(regex)
@@ -116,8 +107,6 @@ def test_regex_filter__eq__same_value():
 
 
 def test_regex_filter__ne__same_value():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
     regex = b"abc"
     row_filter1 = _RegexFilter(regex)
     row_filter2 = _RegexFilter(regex)
@@ -733,16 +722,12 @@ def test_value_range_filter_to_pb_exclusive_end():
 
 
 def test_cell_count_constructor():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
-
     num_cells = object()
     row_filter = _CellCountFilter(num_cells)
     assert row_filter.num_cells is num_cells
 
 
 def test_cell_count___eq__type_differ():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
-
     num_cells = object()
     row_filter1 = _CellCountFilter(num_cells)
     row_filter2 = object()
@@ -750,8 +735,6 @@ def test_cell_count___eq__type_differ():
 
 
 def test_cell_count___eq__same_value():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
-
     num_cells = object()
     row_filter1 = _CellCountFilter(num_cells)
     row_filter2 = _CellCountFilter(num_cells)
@@ -759,8 +742,6 @@ def test_cell_count___eq__same_value():
 
 
 def test_cell_count___ne__same_value():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
-
     num_cells = object()
     row_filter1 = _CellCountFilter(num_cells)
     row_filter2 = _CellCountFilter(num_cells)
@@ -854,23 +835,17 @@ def test_apply_label_filter_to_pb():
 
 
 def test_filter_combination_constructor_defaults():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
     row_filter = _FilterCombination()
     assert row_filter.filters == []
 
 
 def test_filter_combination_constructor_explicit():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
     filters = object()
     row_filter = _FilterCombination(filters=filters)
     assert row_filter.filters is filters
 
 
 def test_filter_combination___eq__():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
     filters = object()
     row_filter1 = _FilterCombination(filters=filters)
     row_filter2 = _FilterCombination(filters=filters)
@@ -878,8 +853,6 @@ def test_filter_combination___eq__():
 
 
 def test_filter_combination___eq__type_differ():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
     filters = object()
     row_filter1 = _FilterCombination(filters=filters)
     row_filter2 = object()
@@ -887,8 +860,6 @@ def test_filter_combination___eq__type_differ():
 
 
 def test_filter_combination___ne__():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
     filters = object()
     other_filters = object()
     row_filter1 = _FilterCombination(filters=filters)
@@ -1114,6 +1085,26 @@ def test_conditional_row_filter_to_pb_false_only():
         )
     )
     assert filter_pb == expected_pb
+
+
+class _BoolFilter(_BaseBoolFilter):
+    def _to_dict(self):
+        pass
+
+
+class _RegexFilter(_BaseRegexFilter):
+    def _to_dict(self):
+        pass
+
+
+class _CellCountFilter(_BaseCellCountFilter):
+    def _to_dict(self):
+        pass
+
+
+class _FilterCombination(_BaseFilterCombination):
+    def _to_dict(self):
+        pass
 
 
 def _ColumnRangePB(*args, **kw):
