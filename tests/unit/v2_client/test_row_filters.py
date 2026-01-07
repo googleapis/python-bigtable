@@ -56,7 +56,7 @@ def test_sink_filter_to_pb():
 
     flag = True
     row_filter = SinkFilter(flag)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(sink=flag)
     assert pb_val == expected_pb
 
@@ -66,7 +66,7 @@ def test_pass_all_filter_to_pb():
 
     flag = True
     row_filter = PassAllFilter(flag)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(pass_all_filter=flag)
     assert pb_val == expected_pb
 
@@ -76,7 +76,7 @@ def test_block_all_filter_to_pb():
 
     flag = True
     row_filter = BlockAllFilter(flag)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(block_all_filter=flag)
     assert pb_val == expected_pb
 
@@ -129,7 +129,7 @@ def test_row_key_regex_filter_to_pb():
 
     regex = b"row-key-regex"
     row_filter = RowKeyRegexFilter(regex)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(row_key_regex_filter=regex)
     assert pb_val == expected_pb
 
@@ -175,7 +175,7 @@ def test_row_sample_filter_to_pb():
 
     sample = 0.25
     row_filter = RowSampleFilter(sample)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(row_sample_filter=sample)
     assert pb_val == expected_pb
 
@@ -185,7 +185,7 @@ def test_family_name_regex_filter_to_pb():
 
     regex = "family-regex"
     row_filter = FamilyNameRegexFilter(regex)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(family_name_regex_filter=regex)
     assert pb_val == expected_pb
 
@@ -195,7 +195,7 @@ def test_column_qualifier_regext_filter_to_pb():
 
     regex = b"column-regex"
     row_filter = ColumnQualifierRegexFilter(regex)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(column_qualifier_regex_filter=regex)
     assert pb_val == expected_pb
 
@@ -251,7 +251,7 @@ def _timestamp_range_to_pb_helper(pb_kwargs, start=None, end=None):
         end = _EPOCH + datetime.timedelta(microseconds=end)
     time_range = TimestampRange(start=start, end=end)
     expected_pb = _TimestampRangePB(**pb_kwargs)
-    time_pb = time_range.to_pb()
+    time_pb = time_range._to_pb()
     assert time_pb.start_timestamp_micros == expected_pb.start_timestamp_micros
     assert time_pb.end_timestamp_micros == expected_pb.end_timestamp_micros
     assert time_pb == expected_pb
@@ -332,7 +332,7 @@ def test_timestamp_range_filter_to_pb():
 
     range_ = TimestampRange()
     row_filter = TimestampRangeFilter(range_)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(timestamp_range_filter=_TimestampRangePB())
     assert pb_val == expected_pb
 
@@ -454,7 +454,7 @@ def test_column_range_filter_to_pb():
     row_filter = ColumnRangeFilter(column_family_id)
     col_range_pb = _ColumnRangePB(family_name=column_family_id)
     expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
-    assert row_filter.to_pb() == expected_pb
+    assert row_filter._to_pb() == expected_pb
 
 
 def test_column_range_filter_to_pb_inclusive_start():
@@ -467,7 +467,7 @@ def test_column_range_filter_to_pb_inclusive_start():
         family_name=column_family_id, start_qualifier_closed=column
     )
     expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
-    assert row_filter.to_pb() == expected_pb
+    assert row_filter._to_pb() == expected_pb
 
 
 def test_column_range_filter_to_pb_exclusive_start():
@@ -482,7 +482,7 @@ def test_column_range_filter_to_pb_exclusive_start():
         family_name=column_family_id, start_qualifier_open=column
     )
     expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
-    assert row_filter.to_pb() == expected_pb
+    assert row_filter._to_pb() == expected_pb
 
 
 def test_column_range_filter_to_pb_inclusive_end():
@@ -495,7 +495,7 @@ def test_column_range_filter_to_pb_inclusive_end():
         family_name=column_family_id, end_qualifier_closed=column
     )
     expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
-    assert row_filter.to_pb() == expected_pb
+    assert row_filter._to_pb() == expected_pb
 
 
 def test_column_range_filter_to_pb_exclusive_end():
@@ -510,7 +510,7 @@ def test_column_range_filter_to_pb_exclusive_end():
         family_name=column_family_id, end_qualifier_open=column
     )
     expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
-    assert row_filter.to_pb() == expected_pb
+    assert row_filter._to_pb() == expected_pb
 
 
 def test_value_regex_filter_to_pb_w_bytes():
@@ -518,7 +518,7 @@ def test_value_regex_filter_to_pb_w_bytes():
 
     value = regex = b"value-regex"
     row_filter = ValueRegexFilter(value)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(value_regex_filter=regex)
     assert pb_val == expected_pb
 
@@ -529,7 +529,7 @@ def test_value_regex_filter_to_pb_w_str():
     value = "value-regex"
     regex = value.encode("ascii")
     row_filter = ValueRegexFilter(value)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(value_regex_filter=regex)
     assert pb_val == expected_pb
 
@@ -539,7 +539,7 @@ def test_exact_value_filter_to_pb_w_bytes():
 
     value = regex = b"value-regex"
     row_filter = ExactValueFilter(value)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(value_regex_filter=regex)
     assert pb_val == expected_pb
 
@@ -550,7 +550,7 @@ def test_exact_value_filter_to_pb_w_str():
     value = "value-regex"
     regex = value.encode("ascii")
     row_filter = ExactValueFilter(value)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(value_regex_filter=regex)
     assert pb_val == expected_pb
 
@@ -562,7 +562,7 @@ def test_exact_value_filter_to_pb_w_int():
     value = 1
     regex = struct.Struct(">q").pack(value)
     row_filter = ExactValueFilter(value)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(value_regex_filter=regex)
     assert pb_val == expected_pb
 
@@ -689,7 +689,7 @@ def test_value_range_filter_to_pb():
 
     row_filter = ValueRangeFilter()
     expected_pb = _RowFilterPB(value_range_filter=_ValueRangePB())
-    assert row_filter.to_pb() == expected_pb
+    assert row_filter._to_pb() == expected_pb
 
 
 def test_value_range_filter_to_pb_inclusive_start():
@@ -699,7 +699,7 @@ def test_value_range_filter_to_pb_inclusive_start():
     row_filter = ValueRangeFilter(start_value=value)
     val_range_pb = _ValueRangePB(start_value_closed=value)
     expected_pb = _RowFilterPB(value_range_filter=val_range_pb)
-    assert row_filter.to_pb() == expected_pb
+    assert row_filter._to_pb() == expected_pb
 
 
 def test_value_range_filter_to_pb_exclusive_start():
@@ -709,7 +709,7 @@ def test_value_range_filter_to_pb_exclusive_start():
     row_filter = ValueRangeFilter(start_value=value, inclusive_start=False)
     val_range_pb = _ValueRangePB(start_value_open=value)
     expected_pb = _RowFilterPB(value_range_filter=val_range_pb)
-    assert row_filter.to_pb() == expected_pb
+    assert row_filter._to_pb() == expected_pb
 
 
 def test_value_range_filter_to_pb_inclusive_end():
@@ -719,7 +719,7 @@ def test_value_range_filter_to_pb_inclusive_end():
     row_filter = ValueRangeFilter(end_value=value)
     val_range_pb = _ValueRangePB(end_value_closed=value)
     expected_pb = _RowFilterPB(value_range_filter=val_range_pb)
-    assert row_filter.to_pb() == expected_pb
+    assert row_filter._to_pb() == expected_pb
 
 
 def test_value_range_filter_to_pb_exclusive_end():
@@ -729,7 +729,7 @@ def test_value_range_filter_to_pb_exclusive_end():
     row_filter = ValueRangeFilter(end_value=value, inclusive_end=False)
     val_range_pb = _ValueRangePB(end_value_open=value)
     expected_pb = _RowFilterPB(value_range_filter=val_range_pb)
-    assert row_filter.to_pb() == expected_pb
+    assert row_filter._to_pb() == expected_pb
 
 
 def test_cell_count_constructor():
@@ -772,7 +772,7 @@ def test_cells_row_offset_filter_to_pb():
 
     num_cells = 76
     row_filter = CellsRowOffsetFilter(num_cells)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(cells_per_row_offset_filter=num_cells)
     assert pb_val == expected_pb
 
@@ -782,7 +782,7 @@ def test_cells_row_limit_filter_to_pb():
 
     num_cells = 189
     row_filter = CellsRowLimitFilter(num_cells)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(cells_per_row_limit_filter=num_cells)
     assert pb_val == expected_pb
 
@@ -792,7 +792,7 @@ def test_cells_column_limit_filter_to_pb():
 
     num_cells = 10
     row_filter = CellsColumnLimitFilter(num_cells)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(cells_per_column_limit_filter=num_cells)
     assert pb_val == expected_pb
 
@@ -802,7 +802,7 @@ def test_strip_value_transformer_filter_to_pb():
 
     flag = True
     row_filter = StripValueTransformerFilter(flag)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(strip_value_transformer=flag)
     assert pb_val == expected_pb
 
@@ -848,7 +848,7 @@ def test_apply_label_filter_to_pb():
 
     label = "label"
     row_filter = ApplyLabelFilter(label)
-    pb_val = row_filter.to_pb()
+    pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(apply_label_transformer=label)
     assert pb_val == expected_pb
 
@@ -902,13 +902,13 @@ def test_row_filter_chain_to_pb():
     from google.cloud.bigtable.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
-    row_filter1_pb = row_filter1.to_pb()
+    row_filter1_pb = row_filter1._to_pb()
 
     row_filter2 = RowSampleFilter(0.25)
-    row_filter2_pb = row_filter2.to_pb()
+    row_filter2_pb = row_filter2._to_pb()
 
     row_filter3 = RowFilterChain(filters=[row_filter1, row_filter2])
-    filter_pb = row_filter3.to_pb()
+    filter_pb = row_filter3._to_pb()
 
     expected_pb = _RowFilterPB(
         chain=_RowFilterChainPB(filters=[row_filter1_pb, row_filter2_pb])
@@ -926,13 +926,13 @@ def test_row_filter_chain_to_pb_nested():
     row_filter2 = RowSampleFilter(0.25)
 
     row_filter3 = RowFilterChain(filters=[row_filter1, row_filter2])
-    row_filter3_pb = row_filter3.to_pb()
+    row_filter3_pb = row_filter3._to_pb()
 
     row_filter4 = CellsRowLimitFilter(11)
-    row_filter4_pb = row_filter4.to_pb()
+    row_filter4_pb = row_filter4._to_pb()
 
     row_filter5 = RowFilterChain(filters=[row_filter3, row_filter4])
-    filter_pb = row_filter5.to_pb()
+    filter_pb = row_filter5._to_pb()
 
     expected_pb = _RowFilterPB(
         chain=_RowFilterChainPB(filters=[row_filter3_pb, row_filter4_pb])
@@ -946,13 +946,13 @@ def test_row_filter_union_to_pb():
     from google.cloud.bigtable.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
-    row_filter1_pb = row_filter1.to_pb()
+    row_filter1_pb = row_filter1._to_pb()
 
     row_filter2 = RowSampleFilter(0.25)
-    row_filter2_pb = row_filter2.to_pb()
+    row_filter2_pb = row_filter2._to_pb()
 
     row_filter3 = RowFilterUnion(filters=[row_filter1, row_filter2])
-    filter_pb = row_filter3.to_pb()
+    filter_pb = row_filter3._to_pb()
 
     expected_pb = _RowFilterPB(
         interleave=_RowFilterInterleavePB(filters=[row_filter1_pb, row_filter2_pb])
@@ -970,13 +970,13 @@ def test_row_filter_union_to_pb_nested():
     row_filter2 = RowSampleFilter(0.25)
 
     row_filter3 = RowFilterUnion(filters=[row_filter1, row_filter2])
-    row_filter3_pb = row_filter3.to_pb()
+    row_filter3_pb = row_filter3._to_pb()
 
     row_filter4 = CellsRowLimitFilter(11)
-    row_filter4_pb = row_filter4.to_pb()
+    row_filter4_pb = row_filter4._to_pb()
 
     row_filter5 = RowFilterUnion(filters=[row_filter3, row_filter4])
-    filter_pb = row_filter5.to_pb()
+    filter_pb = row_filter5._to_pb()
 
     expected_pb = _RowFilterPB(
         interleave=_RowFilterInterleavePB(filters=[row_filter3_pb, row_filter4_pb])
@@ -1049,18 +1049,18 @@ def test_conditional_row_filter_to_pb():
     from google.cloud.bigtable.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
-    row_filter1_pb = row_filter1.to_pb()
+    row_filter1_pb = row_filter1._to_pb()
 
     row_filter2 = RowSampleFilter(0.25)
-    row_filter2_pb = row_filter2.to_pb()
+    row_filter2_pb = row_filter2._to_pb()
 
     row_filter3 = CellsRowOffsetFilter(11)
-    row_filter3_pb = row_filter3.to_pb()
+    row_filter3_pb = row_filter3._to_pb()
 
     row_filter4 = ConditionalRowFilter(
         row_filter1, true_filter=row_filter2, false_filter=row_filter3
     )
-    filter_pb = row_filter4.to_pb()
+    filter_pb = row_filter4._to_pb()
 
     expected_pb = _RowFilterPB(
         condition=_RowFilterConditionPB(
@@ -1078,13 +1078,13 @@ def test_conditional_row_filter_to_pb_true_only():
     from google.cloud.bigtable.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
-    row_filter1_pb = row_filter1.to_pb()
+    row_filter1_pb = row_filter1._to_pb()
 
     row_filter2 = RowSampleFilter(0.25)
-    row_filter2_pb = row_filter2.to_pb()
+    row_filter2_pb = row_filter2._to_pb()
 
     row_filter3 = ConditionalRowFilter(row_filter1, true_filter=row_filter2)
-    filter_pb = row_filter3.to_pb()
+    filter_pb = row_filter3._to_pb()
 
     expected_pb = _RowFilterPB(
         condition=_RowFilterConditionPB(
@@ -1100,13 +1100,13 @@ def test_conditional_row_filter_to_pb_false_only():
     from google.cloud.bigtable.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
-    row_filter1_pb = row_filter1.to_pb()
+    row_filter1_pb = row_filter1._to_pb()
 
     row_filter2 = RowSampleFilter(0.25)
-    row_filter2_pb = row_filter2.to_pb()
+    row_filter2_pb = row_filter2._to_pb()
 
     row_filter3 = ConditionalRowFilter(row_filter1, false_filter=row_filter2)
-    filter_pb = row_filter3.to_pb()
+    filter_pb = row_filter3._to_pb()
 
     expected_pb = _RowFilterPB(
         condition=_RowFilterConditionPB(
