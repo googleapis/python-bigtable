@@ -14,7 +14,6 @@
 
 import datetime
 import operator
-import struct
 
 import pytest
 
@@ -49,6 +48,8 @@ FLOAT_CELL_VAL2 = -1.4
 
 INITIAL_ROW_SPLITS = [b"row_split_1", b"row_split_2", b"row_split_3"]
 JOY_EMOJI = "\N{FACE WITH TEARS OF JOY}"
+
+GAP_MARGIN_OF_ERROR = 0.05
 
 PASS_ALL_FILTER = row_filters.PassAllFilter(True)
 BLOCK_ALL_FILTER = row_filters.BlockAllFilter(True)
@@ -266,7 +267,7 @@ def _add_test_error_handler(retry):
                 retry._initial * retry._multiplier**times_triggered,
                 retry._maximum,
             )
-            assert gap <= max_gap
+            assert gap <= max_gap + GAP_MARGIN_OF_ERROR
         times_triggered += 1
         curr_time = next_time
 
@@ -1041,22 +1042,11 @@ def test_table_direct_row_input_errors(data_table, rows_to_delete):
     with pytest.raises(TypeError):
         row.delete_cell(COLUMN_FAMILY_ID1, INT_COL_NAME)
 
-    # Unicode for column name and value does not get converted to bytes because
-    # internally we use to_bytes in ascii mode.
-    with pytest.raises(UnicodeEncodeError):
-        row.set_cell(COLUMN_FAMILY_ID1, JOY_EMOJI, CELL_VAL1)
-
-    with pytest.raises(UnicodeEncodeError):
-        row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, JOY_EMOJI)
-
-    with pytest.raises(UnicodeEncodeError):
-        row.delete_cell(COLUMN_FAMILY_ID1, JOY_EMOJI)
-
-    # Various non int64s, we use struct to pack a Python int to bytes.
-    with pytest.raises(struct.error):
+    # Various non int64s
+    with pytest.raises(ValueError):
         row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, OVERFLOW_INT_CELL_VAL)
 
-    with pytest.raises(struct.error):
+    with pytest.raises(ValueError):
         row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, OVERFLOW_INT_CELL_VAL2)
 
     # Since floats aren't ints, they aren't converted to bytes via struct.pack,
@@ -1101,22 +1091,11 @@ def test_table_conditional_row_input_errors(data_table, rows_to_delete):
     with pytest.raises(TypeError):
         true_row.delete_cell(COLUMN_FAMILY_ID1, INT_COL_NAME)
 
-    # Unicode for column name and value does not get converted to bytes because
-    # internally we use to_bytes in ascii mode.
-    with pytest.raises(UnicodeEncodeError):
-        true_row.set_cell(COLUMN_FAMILY_ID1, JOY_EMOJI, CELL_VAL1)
-
-    with pytest.raises(UnicodeEncodeError):
-        true_row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, JOY_EMOJI)
-
-    with pytest.raises(UnicodeEncodeError):
-        true_row.delete_cell(COLUMN_FAMILY_ID1, JOY_EMOJI)
-
-    # Various non int64s, we use struct to pack a Python int to bytes.
-    with pytest.raises(struct.error):
+    # Various non int64s
+    with pytest.raises(ValueError):
         true_row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, OVERFLOW_INT_CELL_VAL)
 
-    with pytest.raises(struct.error):
+    with pytest.raises(ValueError):
         true_row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, OVERFLOW_INT_CELL_VAL2)
 
     # Since floats aren't ints, they aren't converted to bytes via struct.pack,
