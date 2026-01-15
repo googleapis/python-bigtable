@@ -15,7 +15,6 @@
 import pytest
 
 from google.cloud.bigtable.data._cross_sync import CrossSync
-from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -60,7 +59,6 @@ class TestReadRowsOperationAsync:
         expected_operation_timeout = 42
         expected_request_timeout = 44
         time_gen_mock = mock.Mock()
-        expected_metric = mock.Mock()
         subpath = "_async" if CrossSync.is_async else "_sync_autogen"
         with mock.patch(
             f"google.cloud.bigtable.data.{subpath}._read_rows._attempt_timeout_generator",
@@ -71,7 +69,6 @@ class TestReadRowsOperationAsync:
                 table,
                 operation_timeout=expected_operation_timeout,
                 attempt_timeout=expected_request_timeout,
-                metric=expected_metric,
             )
         assert time_gen_mock.call_count == 1
         time_gen_mock.assert_called_once_with(
@@ -84,7 +81,6 @@ class TestReadRowsOperationAsync:
         assert instance.request.table_name == "test_table"
         assert instance.request.app_profile_id == table.app_profile_id
         assert instance.request.rows_limit == row_limit
-        assert instance._operation_metric == expected_metric
 
     @pytest.mark.parametrize(
         "in_keys,last_key,expected",
@@ -273,9 +269,7 @@ class TestReadRowsOperationAsync:
         table = mock.Mock()
         table._request_path = {"table_name": "table_name"}
         table.app_profile_id = "app_profile_id"
-        instance = self._make_one(
-            query, table, 10, 10, ActiveOperationMetric("READ_ROWS")
-        )
+        instance = self._make_one(query, table, 10, 10)
         assert instance._remaining_count == start_limit
         # read emit_num rows
         async for val in instance.chunk_stream(awaitable_stream()):
@@ -314,9 +308,7 @@ class TestReadRowsOperationAsync:
         table = mock.Mock()
         table._request_path = {"table_name": "table_name"}
         table.app_profile_id = "app_profile_id"
-        instance = self._make_one(
-            query, table, 10, 10, ActiveOperationMetric("READ_ROWS")
-        )
+        instance = self._make_one(query, table, 10, 10)
         assert instance._remaining_count == start_limit
         with pytest.raises(InvalidChunk) as e:
             # read emit_num rows
@@ -342,9 +334,7 @@ class TestReadRowsOperationAsync:
         with mock.patch.object(
             self._get_target_class(), "_read_rows_attempt"
         ) as mock_attempt:
-            instance = self._make_one(
-                mock.Mock(), mock.Mock(), 1, 1, ActiveOperationMetric("READ_ROWS")
-            )
+            instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1)
             wrapped_gen = mock_stream()
             mock_attempt.return_value = wrapped_gen
             gen = instance.start_operation()
