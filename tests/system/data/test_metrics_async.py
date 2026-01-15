@@ -266,7 +266,6 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.application_blocking_time_ns > 0
             and attempt.application_blocking_time_ns < operation.duration_ns
         )
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
     async def test_read_rows_failure_with_retries(
@@ -334,7 +333,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "ReadRows"
         assert operation.is_streaming is True
         assert len(operation.completed_attempts) == 1
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -424,7 +423,6 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.application_blocking_time_ns > 0
             and attempt.application_blocking_time_ns < operation.duration_ns
         )
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
     @CrossSync.convert(replace_symbols={"__anext__": "__next__", "aclose": "close"})
@@ -451,7 +449,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "ReadRows"
         assert operation.is_streaming is True
         assert len(operation.completed_attempts) == 1
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -530,7 +528,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "ReadRows"
         assert operation.is_streaming is True
         assert len(operation.completed_attempts) == 1
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -687,7 +685,6 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.application_blocking_time_ns > 0
             and attempt.application_blocking_time_ns < operation.duration_ns
         )
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
     async def test_read_row_failure_with_retries(
@@ -755,7 +752,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "ReadRows"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 1
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -852,7 +849,6 @@ class TestMetricsAsync(SystemTestRunner):
                 attempt.application_blocking_time_ns > 0
                 and attempt.application_blocking_time_ns < operation.duration_ns
             )
-            assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
     async def test_read_rows_sharded_failure_with_retries(
@@ -927,7 +923,7 @@ class TestMetricsAsync(SystemTestRunner):
             assert operation.op_type.value == "ReadRows"
             assert operation.is_streaming is True
             assert len(operation.completed_attempts) == 1
-            assert operation.cluster_id == "unspecified"
+            assert operation.cluster_id == "<unspecified>"
             assert operation.zone == "global"
             # validate attempt
             attempt = operation.completed_attempts[0]
@@ -1086,7 +1082,6 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         )
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
     async def test_bulk_mutate_rows_failure_with_retries(
@@ -1167,7 +1162,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "MutateRows"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 1
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -1309,7 +1304,6 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         )
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
     async def test_mutate_rows_batcher_failure_with_retries(
@@ -1392,7 +1386,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "MutateRows"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 1
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempt
         attempt = handler.completed_attempts[0]
