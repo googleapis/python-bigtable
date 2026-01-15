@@ -18,7 +18,6 @@ from typing import ClassVar, Tuple, cast, TYPE_CHECKING
 import time
 import re
 import logging
-import uuid
 import contextvars
 
 from enum import Enum
@@ -42,10 +41,10 @@ LOGGER = logging.getLogger(__name__)
 
 # default values for zone and cluster data, if not captured
 DEFAULT_ZONE = "global"
-DEFAULT_CLUSTER_ID = "unspecified"
+DEFAULT_CLUSTER_ID = "<unspecified>"
 
 # keys for parsing metadata blobs
-BIGTABLE_METADATA_KEY = "x-goog-ext-425905942-bin"
+BIGTABLE_LOCATION_METADATA_KEY = "x-goog-ext-425905942-bin"
 SERVER_TIMING_METADATA_KEY = "server-timing"
 SERVER_TIMING_REGEX = re.compile(r".*gfet4t7;\s*dur=(\d+\.?\d*).*")
 
@@ -64,7 +63,23 @@ class OperationType(Enum):
 
 
 class OperationState(Enum):
-    """Enum for the state of the active operation."""
+    """Enum for the state of the active operation.
+
+     ┌───────────┐
+     │  CREATED  │────────┐
+     └─────┬─────┘        │
+           │              │
+           ▼              │
+    ┌▶ ACTIVE_ATTEMPT ───┐│
+    │      │             ││
+    │      ▼             ││
+    └─ BETWEEN_ATTEMPTS  ││
+           │             ││
+           ▼             ││
+     ┌───────────┐       ││
+     │ COMPLETED │ ◀─────┘│
+     └───────────┘ ◀──────┘
+    """
 
     CREATED = 0
     ACTIVE_ATTEMPT = 1
@@ -87,7 +102,6 @@ class CompletedAttemptMetric:
     gfe_latency_ns: int | None = None
     application_blocking_time_ns: int = 0
     backoff_before_attempt_ns: int = 0
-    grpc_throttling_time_ns: int = 0
 
 
 @dataclass(frozen=True)
@@ -101,7 +115,6 @@ class CompletedOperationMetric:
     """
 
     op_type: OperationType
-    uuid: str
     duration_ns: int
     completed_attempts: list[CompletedAttemptMetric]
     final_status: StatusCode
@@ -128,9 +141,6 @@ class ActiveAttemptMetric:
     application_blocking_time_ns: int = 0
     # backoff time is added to application_blocking_time_ns
     backoff_before_attempt_ns: int = 0
-    # time waiting on grpc channel, in nanoseconds
-    # TODO: capture grpc_throttling_time
-    grpc_throttling_time_ns: int = 0
 
 
 @dataclass
@@ -141,7 +151,7 @@ class ActiveOperationMetric:
     """
 
     op_type: OperationType
-    uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
+    state: OperationState = OperationState.CREATED
     # create a default backoff generator, initialized with standard default backoff values
     backoff_generator: TrackedBackoffGenerator = field(
         default_factory=lambda: TrackedBackoffGenerator(
@@ -155,7 +165,6 @@ class ActiveOperationMetric:
     zone: str | None = None
     completed_attempts: list[CompletedAttemptMetric] = field(default_factory=list)
     is_streaming: bool = False  # only True for read_rows operations
-    was_completed: bool = False
     handlers: list[MetricsHandler] = field(default_factory=list)
     # the time it takes to recieve the first response from the server, in nanoseconds
     # attached by interceptor
@@ -190,18 +199,6 @@ class ActiveOperationMetric:
             return None
         return op
 
-    @property
-    def state(self) -> OperationState:
-        if self.was_completed:
-            return OperationState.COMPLETED
-        elif self.active_attempt is None:
-            if self.completed_attempts:
-                return OperationState.BETWEEN_ATTEMPTS
-            else:
-                return OperationState.CREATED
-        else:
-            return OperationState.ACTIVE_ATTEMPT
-
     def __post_init__(self):
         """
         Save new instances to contextvars on init
@@ -213,7 +210,8 @@ class ActiveOperationMetric:
         Optionally called to mark the start of the operation. If not called,
         the operation will be started at initialization.
 
-        Assumes operation is in CREATED state.
+        StartState: CREATED
+        EndState: CREATED
         """
         if self.state != OperationState.CREATED:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
@@ -225,7 +223,8 @@ class ActiveOperationMetric:
         """
         Called to initiate a new attempt for the operation.
 
-        Assumes operation is in either CREATED or BETWEEN_ATTEMPTS states
+        StartState: CREATED | BETWEEN_ATTEMPTS
+        EndState: ACTIVE_ATTEMPT
         """
         if (
             self.state != OperationState.BETWEEN_ATTEMPTS
@@ -248,6 +247,7 @@ class ActiveOperationMetric:
             backoff_ns = 0
 
         self.active_attempt = ActiveAttemptMetric(backoff_before_attempt_ns=backoff_ns)
+        self.state = OperationState.ACTIVE_ATTEMPT
         return self.active_attempt
 
     def add_response_metadata(self, metadata: dict[str, bytes | str]) -> None:
@@ -256,7 +256,8 @@ class ActiveOperationMetric:
 
         If not called, default values for the metadata will be used.
 
-        Assumes operation is in ACTIVE_ATTEMPT state.
+        StartState: ACTIVE_ATTEMPT
+        EndState: ACTIVE_ATTEMPT
 
         Args:
           - metadata: the metadata as extracted from the grpc call
@@ -266,8 +267,8 @@ class ActiveOperationMetric:
                 INVALID_STATE_ERROR.format("add_response_metadata", self.state)
             )
         if self.cluster_id is None or self.zone is None:
-            # BIGTABLE_METADATA_KEY should give a binary-encoded ResponseParams proto
-            blob = cast(bytes, metadata.get(BIGTABLE_METADATA_KEY))
+            # BIGTABLE_LOCATION_METADATA_KEY should give a binary-encoded ResponseParams proto
+            blob = cast(bytes, metadata.get(BIGTABLE_LOCATION_METADATA_KEY))
             if blob:
                 parse_result = self._parse_response_metadata_blob(blob)
                 if parse_result is not None:
@@ -278,7 +279,7 @@ class ActiveOperationMetric:
                         self.zone = zone
                 else:
                     self._handle_error(
-                        f"Failed to decode {BIGTABLE_METADATA_KEY} metadata: {blob!r}"
+                        f"Failed to decode {BIGTABLE_LOCATION_METADATA_KEY} metadata: {blob!r}"
                     )
         # SERVER_TIMING_METADATA_KEY should give a string with the server-latency headers
         timing_header = cast(str, metadata.get(SERVER_TIMING_METADATA_KEY))
@@ -316,7 +317,8 @@ class ActiveOperationMetric:
         be attempted, `end_with_status` or `end_with_success` should be used
         to finalize the operation along with the attempt.
 
-        Assumes operation is in ACTIVE_ATTEMPT state.
+        StartState: ACTIVE_ATTEMPT
+        EndState: BETWEEN_ATTEMPTS
 
         Args:
           - status: The status of the attempt.
@@ -327,16 +329,19 @@ class ActiveOperationMetric:
             )
         if isinstance(status, BaseException):
             status = self._exc_to_status(status)
+        duration_ns = self._ensure_positive(
+            time.monotonic_ns() - self.active_attempt.start_time_ns, "duration"
+        )
         complete_attempt = CompletedAttemptMetric(
-            duration_ns=time.monotonic_ns() - self.active_attempt.start_time_ns,
+            duration_ns=duration_ns,
             end_status=status,
             gfe_latency_ns=self.active_attempt.gfe_latency_ns,
             application_blocking_time_ns=self.active_attempt.application_blocking_time_ns,
             backoff_before_attempt_ns=self.active_attempt.backoff_before_attempt_ns,
-            grpc_throttling_time_ns=self.active_attempt.grpc_throttling_time_ns,
         )
         self.completed_attempts.append(complete_attempt)
         self.active_attempt = None
+        self.state = OperationState.BETWEEN_ATTEMPTS
         for handler in self.handlers:
             handler.on_attempt_complete(complete_attempt, self)
 
@@ -345,7 +350,8 @@ class ActiveOperationMetric:
         Called to mark the end of the operation. If there is an active attempt,
         end_attempt_with_status will be called with the same status.
 
-        Assumes operation is not already in COMPLETED state.
+        StartState: CREATED | ACTIVE_ATTEMPT | BETWEEN_ATTEMPTS
+        EndState: COMPLETED
 
         Causes on_operation_completed to be called for each registered handler.
 
@@ -361,12 +367,13 @@ class ActiveOperationMetric:
         )
         if self.state == OperationState.ACTIVE_ATTEMPT:
             self.end_attempt_with_status(final_status)
-        self.was_completed = True
+        duration_ns = self._ensure_positive(
+            time.monotonic_ns() - self.start_time_ns, "duration"
+        )
         finalized = CompletedOperationMetric(
             op_type=self.op_type,
-            uuid=self.uuid,
             completed_attempts=self.completed_attempts,
-            duration_ns=time.monotonic_ns() - self.start_time_ns,
+            duration_ns=duration_ns,
             final_status=final_status,
             cluster_id=self.cluster_id or DEFAULT_CLUSTER_ID,
             zone=self.zone or DEFAULT_ZONE,
@@ -374,6 +381,7 @@ class ActiveOperationMetric:
             first_response_latency_ns=self.first_response_latency_ns,
             flow_throttling_time_ns=self.flow_throttling_time_ns,
         )
+        self.state = OperationState.COMPLETED
         for handler in self.handlers:
             handler.on_operation_complete(finalized)
 
@@ -381,7 +389,8 @@ class ActiveOperationMetric:
         """
         Called to mark the end of the operation with a successful status.
 
-        Assumes operation is not already in COMPLETED state.
+        StartState: CREATED | ACTIVE_ATTEMPT | BETWEEN_ATTEMPTS
+        EndState: COMPLETED
 
         Causes on_operation_completed to be called for each registered handler.
         """
@@ -424,6 +433,15 @@ class ActiveOperationMetric:
         """
         full_message = f"Error in Bigtable Metrics: {message}"
         LOGGER.warning(full_message)
+
+    def _ensure_positive(self, value: int, field_name: str) -> int:
+        """
+        Helper to replace negative value with 0, and record an error
+        """
+        if value < 0:
+            self._handle_error(f"received negative value for {field_name}: {value}")
+            return 0
+        return value
 
     def __enter__(self):
         """

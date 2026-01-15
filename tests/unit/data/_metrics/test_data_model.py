@@ -40,10 +40,10 @@ class TestActiveOperationMetric:
         assert metric.cluster_id is None
         assert metric.zone is None
         assert len(metric.completed_attempts) == 0
-        assert metric.was_completed is False
         assert len(metric.handlers) == 0
         assert metric.is_streaming is False
         assert metric.flow_throttling_time_ns == 0
+        assert metric.state == State.CREATED
 
     def test_ctor_explicit(self):
         """
@@ -55,7 +55,7 @@ class TestActiveOperationMetric:
         expected_cluster_id = "cluster"
         expected_zone = "zone"
         expected_completed_attempts = [mock.Mock()]
-        expected_was_completed = True
+        expected_state = State.COMPLETED
         expected_handlers = [mock.Mock()]
         expected_is_streaming = True
         expected_flow_throttling = 12
@@ -65,8 +65,8 @@ class TestActiveOperationMetric:
             active_attempt=expected_active_attempt,
             cluster_id=expected_cluster_id,
             zone=expected_zone,
+            state=expected_state,
             completed_attempts=expected_completed_attempts,
-            was_completed=expected_was_completed,
             handlers=expected_handlers,
             is_streaming=expected_is_streaming,
             flow_throttling_time_ns=expected_flow_throttling,
@@ -77,7 +77,7 @@ class TestActiveOperationMetric:
         assert metric.cluster_id == expected_cluster_id
         assert metric.zone == expected_zone
         assert metric.completed_attempts == expected_completed_attempts
-        assert metric.was_completed == expected_was_completed
+        assert metric.state == expected_state
         assert metric.handlers == expected_handlers
         assert metric.is_streaming == expected_is_streaming
         assert metric.flow_throttling_time_ns == expected_flow_throttling
@@ -99,27 +99,18 @@ class TestActiveOperationMetric:
         metric.end_with_success()
         assert metric.state == State.COMPLETED
 
-    def test_state_machine_w_state(self):
+    def test_state_machine(self):
         """
-        Exercise state machine by directly manupulating state variables
-
-        relevant variables are: active_attempt, completed_attempts, was_completed
+        Exercise state machine by moving through states
         """
         metric = self._make_one(mock.Mock())
-        for was_completed_value in [False, True]:
-            metric.was_completed = was_completed_value
-            for active_operation_value in [None, mock.Mock()]:
-                metric.active_attempt = active_operation_value
-                for completed_attempts_value in [[], [mock.Mock()]]:
-                    metric.completed_attempts = completed_attempts_value
-                    if was_completed_value:
-                        assert metric.state == State.COMPLETED
-                    elif active_operation_value is not None:
-                        assert metric.state == State.ACTIVE_ATTEMPT
-                    elif completed_attempts_value:
-                        assert metric.state == State.BETWEEN_ATTEMPTS
-                    else:
-                        assert metric.state == State.CREATED
+        assert metric.state == State.CREATED
+        metric.start_attempt()
+        assert metric.state == State.ACTIVE_ATTEMPT
+        metric.end_attempt_with_status(0)
+        assert metric.state == State.BETWEEN_ATTEMPTS
+        metric.end_with_success()
+        assert metric.state == State.COMPLETED
 
     @pytest.mark.parametrize(
         "method,args,valid_states,error_method_name",
@@ -161,13 +152,7 @@ class TestActiveOperationMetric:
         for state in invalid_states:
             with mock.patch.object(cls, "_handle_error") as mock_handle_error:
                 mock_handle_error.return_value = None
-                metric = self._make_one(mock.Mock())
-                if state == State.ACTIVE_ATTEMPT:
-                    metric.active_attempt = mock.Mock()
-                elif state == State.BETWEEN_ATTEMPTS:
-                    metric.completed_attempts.append(mock.Mock())
-                elif state == State.COMPLETED:
-                    metric.was_completed = True
+                metric = self._make_one(mock.Mock(), state=state)
                 return_obj = getattr(metric, method)(*args)
                 assert return_obj is None
                 assert mock_handle_error.call_count == 1
@@ -208,7 +193,6 @@ class TestActiveOperationMetric:
         # make sure it was initialized with the correct values
         assert metric.active_attempt.start_time_ns == expected_timestamp
         assert metric.active_attempt.gfe_latency_ns is None
-        assert metric.active_attempt.grpc_throttling_time_ns == 0
         # should be in ACTIVE_ATTEMPT state after completing
         assert metric.state == State.ACTIVE_ATTEMPT
 
@@ -287,7 +271,10 @@ class TestActiveOperationMetric:
         cls = type(self._make_one(mock.Mock()))
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
             metric = self._make_one(
-                mock.Mock(), cluster_id=start_cluster, zone=start_zone
+                mock.Mock(),
+                cluster_id=start_cluster,
+                zone=start_zone,
+                state=State.ACTIVE_ATTEMPT,
             )
             metric.active_attempt = mock.Mock()
             metric.active_attempt.gfe_latency_ns = None
@@ -324,7 +311,7 @@ class TestActiveOperationMetric:
 
         cls = type(self._make_one(mock.Mock()))
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
-            metric = self._make_one(mock.Mock())
+            metric = self._make_one(mock.Mock(), state=State.ACTIVE_ATTEMPT)
             metric.cluster_id = None
             metric.zone = None
             metric.active_attempt = mock.Mock()
@@ -372,7 +359,7 @@ class TestActiveOperationMetric:
 
         cls = type(self._make_one(mock.Mock()))
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
-            metric = self._make_one(mock.Mock())
+            metric = self._make_one(mock.Mock(), state=State.ACTIVE_ATTEMPT)
             metric.active_attempt = mock.Mock()
             metric.active_attempt.gfe_latency_ns = None
             metadata = grpc.aio.Metadata()
@@ -407,7 +394,6 @@ class TestActiveOperationMetric:
         expected_gfe_latency_ns = 5
         expected_app_blocking = 12
         expected_backoff = 2
-        expected_grpc_throttle = 3
         handlers = [mock.Mock(), mock.Mock()]
 
         metric = self._make_one(mock.Mock(), handlers=handlers)
@@ -418,13 +404,11 @@ class TestActiveOperationMetric:
         metric.active_attempt.gfe_latency_ns = expected_gfe_latency_ns
         metric.active_attempt.application_blocking_time_ns = expected_app_blocking
         metric.active_attempt.backoff_before_attempt_ns = expected_backoff
-        metric.active_attempt.grpc_throttling_time_ns = expected_grpc_throttle
         metric.end_attempt_with_status(expected_status)
         assert len(metric.completed_attempts) == 1
         got_attempt = metric.completed_attempts[0]
         expected_duration = expected_mock_time - expected_start_time
         assert got_attempt.duration_ns == expected_duration
-        assert got_attempt.grpc_throttling_time_ns == expected_grpc_throttle
         assert got_attempt.end_status == expected_status
         assert got_attempt.gfe_latency_ns == expected_gfe_latency_ns
         assert got_attempt.application_blocking_time_ns == expected_app_blocking
@@ -455,6 +439,26 @@ class TestActiveOperationMetric:
             assert metric.completed_attempts[0].end_status == expected_status
 
     @mock.patch("time.monotonic_ns")
+    def test_end_attempt_with_negative_duration_ns(self, mock_monotonic_ns):
+        """
+        If duration_ns is negative, it should be set to 0 and _handle_error should be called
+        """
+        cls = type(self._make_one(mock.Mock()))
+        with mock.patch.object(cls, "_handle_error") as mock_handle_error:
+            metric = self._make_one(mock.Mock())
+            metric.start_attempt()
+            metric.active_attempt.start_time_ns = 100
+            mock_monotonic_ns.return_value = 50  # Simulate time going backwards
+            metric.end_attempt_with_status(mock.Mock())
+
+            assert mock_handle_error.call_count == 1
+            assert (
+                "received negative value for duration"
+                in mock_handle_error.call_args[0][0]
+            )
+            assert metric.completed_attempts[0].duration_ns == 0
+
+    @mock.patch("time.monotonic_ns")
     def test_end_with_status(self, mock_monotonic_ns):
         """
         ending the operation should:
@@ -480,7 +484,10 @@ class TestActiveOperationMetric:
 
         handlers = [mock.Mock(), mock.Mock()]
         metric = self._make_one(
-            expected_type, handlers=handlers, start_time_ns=expected_start_time
+            expected_type,
+            handlers=handlers,
+            start_time_ns=expected_start_time,
+            state=State.ACTIVE_ATTEMPT,
         )
         metric.cluster_id = expected_cluster
         metric.zone = expected_zone
@@ -495,7 +502,6 @@ class TestActiveOperationMetric:
         metric.end_with_status(expected_status)
         # test that ActiveOperation was updated to terminal state
         assert metric.state == State.COMPLETED
-        assert metric.was_completed is True
         assert metric.active_attempt is None
         assert len(metric.completed_attempts) == 1
         # check that finalized operation was passed to handlers
@@ -522,6 +528,26 @@ class TestActiveOperationMetric:
             assert final_attempt.end_status == expected_status
             expected_duration = expected_mock_time - expected_attempt_start_time
             assert final_attempt.duration_ns == expected_duration
+
+    @mock.patch("time.monotonic_ns")
+    def test_end_with_negative_duration_ns(self, mock_monotonic_ns):
+        """
+        If operation duration_ns is negative, it should be set to 0 and _handle_error should be called
+        """
+        cls = type(self._make_one(mock.Mock()))
+        with mock.patch.object(cls, "_handle_error") as mock_handle_error:
+            metric = self._make_one(mock.Mock(), handlers=[mock.Mock()])
+            metric.start_time_ns = 100
+            mock_monotonic_ns.return_value = 50  # Simulate time going backwards
+            metric.end_with_status(mock.Mock())
+
+            assert mock_handle_error.call_count == 1
+            assert (
+                "received negative value for duration"
+                in mock_handle_error.call_args[0][0]
+            )
+            final_op = metric.handlers[0].on_operation_complete.call_args[0][0]
+            assert final_op.duration_ns == 0
 
     def test_end_with_status_w_exception(self):
         """
@@ -591,7 +617,6 @@ class TestActiveOperationMetric:
         metric = self._make_one(mock.Mock(), handlers=handlers)
         metric.end_with_success()
         assert metric.state == State.COMPLETED
-        assert metric.was_completed is True
         final_op = handlers[0].on_operation_complete.call_args[0][0]
         assert final_op.final_status == StatusCode.OK
         assert final_op.completed_attempts == []
