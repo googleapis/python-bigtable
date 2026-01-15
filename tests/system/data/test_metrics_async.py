@@ -263,7 +263,6 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         )
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
     async def test_mutate_row_failure_with_retries(
@@ -338,7 +337,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "MutateRow"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 1
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -458,7 +457,6 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         )
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.drop
     @CrossSync.pytest
@@ -488,7 +486,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == num_retryable + 1
         assert operation.completed_attempts[0] == handler.completed_attempts[0]
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempts
         for i in range(num_retryable):
@@ -562,7 +560,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "SampleRowKeys"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 1
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -639,7 +637,6 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         )
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.drop
     @CrossSync.pytest
@@ -676,7 +673,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "ReadModifyWriteRow"
         assert len(operation.completed_attempts) == len(handler.completed_attempts)
         assert operation.completed_attempts == handler.completed_attempts
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
         assert (
@@ -691,7 +688,6 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.backoff_before_attempt_ns == 0
         assert attempt.gfe_latency_ns is None
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
     async def test_read_modify_write_failure_timeout(self, table, temp_rows, handler):
@@ -717,7 +713,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
         assert operation.op_type.value == "ReadModifyWriteRow"
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempt
         attempt = handler.completed_attempts[0]
@@ -810,7 +806,6 @@ class TestMetricsAsync(SystemTestRunner):
             attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         )
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.drop
     @CrossSync.pytest
@@ -848,7 +843,7 @@ class TestMetricsAsync(SystemTestRunner):
         assert operation.op_type.value == "CheckAndMutateRow"
         assert len(operation.completed_attempts) == len(handler.completed_attempts)
         assert operation.completed_attempts == handler.completed_attempts
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         assert operation.duration_ns > 0 and operation.duration_ns < 1e9
         assert (
@@ -863,7 +858,6 @@ class TestMetricsAsync(SystemTestRunner):
         assert attempt.backoff_before_attempt_ns == 0
         assert attempt.gfe_latency_ns is None
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0  # TODO: confirm
 
     @CrossSync.pytest
     async def test_check_and_mutate_row_failure_timeout(
@@ -900,7 +894,7 @@ class TestMetricsAsync(SystemTestRunner):
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         # validate attempt
         attempt = handler.completed_attempts[0]

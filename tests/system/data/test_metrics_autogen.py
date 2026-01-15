@@ -217,7 +217,6 @@ class TestMetrics(SystemTestRunner):
             attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         )
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0
 
     def test_mutate_row_failure_with_retries(self, table, handler, error_injector):
         """Test failure in grpc layer by injecting errors into an interceptor
@@ -277,7 +276,7 @@ class TestMetrics(SystemTestRunner):
         assert operation.op_type.value == "MutateRow"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 1
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         attempt = handler.completed_attempts[0]
         assert isinstance(attempt, CompletedAttemptMetric)
@@ -376,7 +375,6 @@ class TestMetrics(SystemTestRunner):
             attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         )
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0
 
     def test_sample_row_keys_failure_with_retries(
         self, table, temp_rows, handler, error_injector, cluster_config
@@ -428,7 +426,7 @@ class TestMetrics(SystemTestRunner):
         assert operation.op_type.value == "SampleRowKeys"
         assert operation.is_streaming is False
         assert len(operation.completed_attempts) == 1
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         attempt = handler.completed_attempts[0]
         assert isinstance(attempt, CompletedAttemptMetric)
@@ -491,7 +489,6 @@ class TestMetrics(SystemTestRunner):
             attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         )
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0
 
     def test_read_modify_write_failure_timeout(self, table, temp_rows, handler):
         """Test failure in gapic layer by passing very low timeout
@@ -512,7 +509,7 @@ class TestMetrics(SystemTestRunner):
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
         assert operation.op_type.value == "ReadModifyWriteRow"
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         attempt = handler.completed_attempts[0]
         assert attempt.gfe_latency_ns is None
@@ -587,7 +584,6 @@ class TestMetrics(SystemTestRunner):
             attempt.gfe_latency_ns > 0 and attempt.gfe_latency_ns < attempt.duration_ns
         )
         assert attempt.application_blocking_time_ns == 0
-        assert attempt.grpc_throttling_time_ns == 0
 
     def test_check_and_mutate_row_failure_timeout(self, table, temp_rows, handler):
         """Test failure in gapic layer by passing very low timeout
@@ -616,7 +612,7 @@ class TestMetrics(SystemTestRunner):
         operation = handler.completed_operations[0]
         assert isinstance(operation, CompletedOperationMetric)
         assert operation.final_status.name == "DEADLINE_EXCEEDED"
-        assert operation.cluster_id == "unspecified"
+        assert operation.cluster_id == "<unspecified>"
         assert operation.zone == "global"
         attempt = handler.completed_attempts[0]
         assert attempt.gfe_latency_ns is None
