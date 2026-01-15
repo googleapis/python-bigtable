@@ -66,19 +66,19 @@ class OperationState(Enum):
     """Enum for the state of the active operation.
 
      ┌───────────┐
-     │  CREATED  │
-     └─────┬─────┘
-           │
-           ▼
-    ┌▶ ACTIVE_ATTEMPT ───┐
-    │      │             │
-    │      ▼             │
-    └─ BETWEEN_ATTEMPTS  │
-           │             │
-           ▼             ▼
-     ┌───────────┐       │
-     │ COMPLETED │ ◀─────┘
-     └───────────┘
+     │  CREATED  │────────┐
+     └─────┬─────┘        │
+           │              │
+           ▼              │
+    ┌▶ ACTIVE_ATTEMPT ───┐│
+    │      │             ││
+    │      ▼             ││
+    └─ BETWEEN_ATTEMPTS  ││
+           │             ││
+           ▼             ││
+     ┌───────────┐       ││
+     │ COMPLETED │ ◀─────┘│
+     └───────────┘ ◀──────┘
     """
 
     CREATED = 0
