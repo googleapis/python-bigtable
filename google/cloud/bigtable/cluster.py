@@ -511,9 +511,12 @@ class Cluster(object):
     def _to_pb(self):
         """Create cluster proto buff message for API calls"""
         client = self._instance._client
-        location = client.instance_admin_client.common_location_path(
-            client.project, self.location_id
-        )
+        if self.location_id:
+            location = client.instance_admin_client.common_location_path(
+                client.project, self.location_id
+            )
+        else:
+            location = None
 
         cluster_pb = instance.Cluster(
             location=location,
