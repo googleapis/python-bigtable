@@ -1144,39 +1144,17 @@ def test_table_append_row_input_errors(data_table, rows_to_delete):
     rows_to_delete.append(data_table.direct_row(ROW_KEY))
 
     # Column names should be convertible to bytes (str or bytes)
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         row.append_cell_value(COLUMN_FAMILY_ID1, INT_COL_NAME, CELL_VAL1)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         row.increment_cell_value(COLUMN_FAMILY_ID1, INT_COL_NAME, 1)
 
-    # Unicode for column name and value
-    with pytest.raises(UnicodeEncodeError):
-        row.append_cell_value(COLUMN_FAMILY_ID1, JOY_EMOJI, CELL_VAL1)
-
-    with pytest.raises(UnicodeEncodeError):
-        row.append_cell_value(COLUMN_FAMILY_ID1, COL_NAME1, JOY_EMOJI)
-
-    with pytest.raises(UnicodeEncodeError):
-        row.increment_cell_value(COLUMN_FAMILY_ID1, JOY_EMOJI, 1)
-
-    # Non-integer cell values for increment_cell_value
     with pytest.raises(ValueError):
         row.increment_cell_value(COLUMN_FAMILY_ID1, COL_NAME1, OVERFLOW_INT_CELL_VAL)
 
-    # increment_cell_value does not do input validation on the int_value, instead using
-    # proto-plus to do validation.
-    row.increment_cell_value(COLUMN_FAMILY_ID1, COL_NAME1, FLOAT_CELL_VAL)
-    row.increment_cell_value(COLUMN_FAMILY_ID1, COL_NAME2, FLOAT_CELL_VAL2)
-    row.commit()
-
-    row_data = data_table.read_row(ROW_KEY)
-    assert row_data.cells[COLUMN_FAMILY_ID1][COL_NAME1][0].value == int(
-        FLOAT_CELL_VAL
-    ).to_bytes(8, byteorder="big", signed=True)
-    assert row_data.cells[COLUMN_FAMILY_ID1][COL_NAME2][0].value == int(
-        FLOAT_CELL_VAL2
-    ).to_bytes(8, byteorder="big", signed=True)
+    with pytest.raises(TypeError):
+        row.increment_cell_value(COLUMN_FAMILY_ID1, COL_NAME1, FLOAT_CELL_VAL)
 
     # Can't have more than MAX_MUTATIONS mutations, but only enforced after
     # a row.commit

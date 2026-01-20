@@ -303,13 +303,9 @@ def _delete_cells_helper(time_range=None):
 
     expected_mutation = DeleteRangeFromColumn(family=column_family_id, qualifier=column)
     if time_range is not None:
-        time_range_pb = time_range._to_pb()
-        if time_range_pb.start_timestamp_micros:
-            expected_mutation.start_timestamp_micros = (
-                time_range_pb.start_timestamp_micros
-            )
-        if time_range_pb.end_timestamp_micros:
-            expected_mutation.end_timestamp_micros = time_range_pb.end_timestamp_micros
+        timestamps = time_range._to_dict()
+        expected_mutation.start_timestamp_micros = timestamps.get("start_timestamp_micros")
+        expected_mutation.end_timestamp_micros = timestamps.get("end_timestamp_micros")
     _assert_mutations_equal(row._mutations, [expected_mutation])
 
 

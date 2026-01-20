@@ -210,7 +210,6 @@ class _SetDeleteRow(Row):
         :param state: (Optional) The state that is passed along to
                       :meth:`_get_mutations`.
         """
-        mutations_list = self._get_mutations(state)
         if columns is self.ALL_COLUMNS:
             self._get_mutations(state).append(
                 mutations.DeleteAllFromFamily(family_to_delete=column_family_id)
@@ -218,10 +217,9 @@ class _SetDeleteRow(Row):
         else:
             start_timestamp_micros = None
             end_timestamp_micros = None
-            if time_range is not None:
-                timestamps = time_range._to_dict()
-                start_timestamp_micros = timestamps.get("start_timestamp_micros")
-                end_timestamp_micros = timestamps.get("end_timestamp_micros")
+            timestamps = time_range._to_dict() if time_range else {}
+            start_timestamp_micros = timestamps.get("start_timestamp_micros")
+            end_timestamp_micros = timestamps.get("end_timestamp_micros")
 
             to_append = []
             for column in columns:
@@ -237,7 +235,7 @@ class _SetDeleteRow(Row):
 
             # We don't add the mutations until all columns have been
             # processed without error.
-            mutations_list.extend(to_append)
+            self._get_mutations(state).extend(to_append)
 
 
 class DirectRow(_SetDeleteRow):
@@ -973,9 +971,9 @@ def _parse_rmw_row_response(row_response):
     """
     result = {}
     for cell in row_response.cells:
-        result.setdefault(cell.family, {}).setdefault(cell.qualifier, []).append(
-            (cell.value, _datetime_from_microseconds(cell.timestamp_micros))
-        )
+        column_family = result.setdefault(cell.family, {})
+        column = column_family.setdefault(cell.qualifier, [])
+        column.append((cell.value, _datetime_from_microseconds(cell.timestamp_micros)))
     return result
 
 
