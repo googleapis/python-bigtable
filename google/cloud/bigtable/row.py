@@ -215,8 +215,6 @@ class _SetDeleteRow(Row):
                 mutations.DeleteAllFromFamily(family_to_delete=column_family_id)
             )
         else:
-            start_timestamp_micros = None
-            end_timestamp_micros = None
             timestamps = time_range._to_dict() if time_range else {}
             start_timestamp_micros = timestamps.get("start_timestamp_micros")
             end_timestamp_micros = timestamps.get("end_timestamp_micros")
