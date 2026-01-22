@@ -76,6 +76,12 @@ from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import (
+    BigtableMetricsExporter,
+)
+from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import (
+    GoogleCloudMetricsHandler,
+)
 from google.cloud.bigtable.data._metrics import OperationType
 from google.cloud.bigtable.data._metrics import tracked_retry
 from google.cloud.bigtable.data._cross_sync import CrossSync
@@ -178,6 +184,11 @@ class BigtableDataClient(ClientWithProject):
             raise ValueError(
                 f"The configured universe domain ({self.universe_domain}) does not match the universe domain found in the credentials ({self._credentials.universe_domain}). If you haven't configured the universe domain explicitly, `googleapis.com` is the default."
             )
+        self._gcp_metrics_exporter = BigtableMetricsExporter(
+            project_id=self.project,
+            credentials=credentials,
+            client_options=client_options,
+        )
         self._is_closed = CrossSync._Sync_Impl.Event()
         self.transport = cast(TransportType, self._gapic_client.transport)
         self._active_instances: Set[_WarmedInstanceKey] = set()
@@ -827,7 +838,17 @@ class _DataApiTarget(abc.ABC):
         self.default_retryable_errors: Sequence[type[Exception]] = (
             default_retryable_errors or ()
         )
-        self._metrics = BigtableClientSideMetricsController()
+        self._metrics = BigtableClientSideMetricsController(
+            handlers=[
+                GoogleCloudMetricsHandler(
+                    exporter=client._gcp_metrics_exporter,
+                    instance_id=instance_id,
+                    table_id=table_id,
+                    app_profile_id=app_profile_id,
+                    client_version=client._client_version(),
+                )
+            ]
+        )
         try:
             self._register_instance_future = CrossSync._Sync_Impl.create_task(
                 self.client._register_instance,

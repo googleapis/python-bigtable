@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -170,7 +170,7 @@ class TestMetrics(SystemTestRunner):
     @pytest.fixture(scope="session")
     def table(self, client, table_id, instance_id, handler):
         with client.get_table(instance_id, table_id) as table:
-            table._metrics.add_handler(handler)
+            table._metrics.handlers = [handler]
             yield table
 
     @pytest.fixture(scope="session")

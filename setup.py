@@ -43,12 +43,16 @@ release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
     "google-api-core[grpc] >= 2.17.0, <3.0.0",
     "google-cloud-core >= 1.4.4, <3.0.0",
+    "google-cloud-monitoring >= 2.0.0, <3.0.0dev",
     "google-auth >= 2.23.0, <3.0.0,!=2.24.0,!=2.25.0",
     "grpc-google-iam-v1 >= 0.12.4, <1.0.0",
     "proto-plus >= 1.22.3, <2.0.0",
     "proto-plus >= 1.25.0, <2.0.0; python_version>='3.13'",
     "protobuf>=3.20.2,<7.0.0,!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5",
     "google-crc32c>=1.5.0, <2.0.0dev",
+    "googleapis-common-protos[grpc] >= 1.57.0, <2.0.0dev",
+    "opentelemetry-api >= 1.0.0, <2.0.0dev",
+    "opentelemetry-sdk >= 1.0.0, <2.0.0dev",
 ]
 extras = {"libcst": "libcst >= 0.2.5"}
 
