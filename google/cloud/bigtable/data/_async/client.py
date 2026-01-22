@@ -59,6 +59,7 @@ from google.api_core import retry as retries
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import ServiceUnavailable
 from google.api_core.exceptions import Aborted
+from google.api_core.exceptions import Cancelled
 from google.protobuf.message import Message
 from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 
@@ -483,12 +484,11 @@ class BigtableDataClientAsync(ClientWithProject):
             old_channel = super_channel.swap_channel(new_channel)
             self._invalidate_channel_stubs()
             # give old_channel a chance to complete existing rpcs
-            if CrossSync.is_async:
-                await old_channel.close(grace_period)
-            else:
-                if grace_period:
-                    self._is_closed.wait(grace_period)  # type: ignore
-                old_channel.close()  # type: ignore
+            if grace_period:
+                await CrossSync.event_wait(
+                    self._is_closed, grace_period, async_break_early=False
+                )
+            await old_channel.close()
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = max(next_refresh - (time.monotonic() - start_timestamp), 0)
@@ -941,6 +941,7 @@ class _DataApiTargetAsync(abc.ABC):
             DeadlineExceeded,
             ServiceUnavailable,
             Aborted,
+            Cancelled,
         ),
         default_mutate_rows_retryable_errors: Sequence[type[Exception]] = (
             DeadlineExceeded,
