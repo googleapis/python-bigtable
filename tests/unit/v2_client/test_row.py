@@ -474,6 +474,34 @@ def test_direct_row_commit_with_unknown_exception():
     assert app_profile_id == call_args.app_profile_id[0]
 
 
+def test_direct_row_commit_with_invalid_argument():
+    from google.cloud.bigtable_v2.services.bigtable import BigtableClient
+    from google.rpc import code_pb2, status_pb2
+
+    project_id = "project-id"
+    row_key = b"row_key"
+    table_name = "projects/more-stuff"
+    app_profile_id = "app_profile_id"
+
+    credentials = _make_credentials()
+    client = _make_client(project=project_id, credentials=credentials, admin=True)
+    table = _Table(table_name, client=client, app_profile_id=app_profile_id)
+    row = _make_direct_row(row_key, table)
+
+    # Set mock
+    api = mock.create_autospec(BigtableClient)
+    client.table_data_client
+    client._table_data_client._gapic_client = api
+
+    # Perform the method and check the result.
+    result = row.commit()
+    assert row._mutations == []
+    assert result == status_pb2.Status(
+        code=code_pb2.Code.INVALID_ARGUMENT, message="No mutations provided"
+    )
+    api.mutate_row.assert_not_called()
+
+
 def _make_conditional_row(*args, **kwargs):
     from google.cloud.bigtable.row import ConditionalRow
 

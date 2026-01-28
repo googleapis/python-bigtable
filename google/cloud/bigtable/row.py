@@ -467,7 +467,7 @@ class DirectRow(_SetDeleteRow):
         """
         try:
             self._table._table_impl.mutate_row(self.row_key, self._get_mutations())
-            return status_pb2.Status()
+            return status_pb2.Status(code=code_pb2.OK)
         except GoogleAPICallError as e:
             # If the RPC call returns an error, extract the error into a status object, if possible.
             return status_pb2.Status(
@@ -476,6 +476,12 @@ class DirectRow(_SetDeleteRow):
                 else code_pb2.UNKNOWN,
                 message=e.message,
                 details=e.details,
+            )
+        except ValueError as e:
+            # _table_impl.mutate_row raises a ValueError if invalid arguments are provided.
+            return status_pb2.Status(
+                code=code_pb2.INVALID_ARGUMENT,
+                message=str(e),
             )
         finally:
             self.clear()
