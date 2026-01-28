@@ -445,7 +445,9 @@ class DirectRow(_SetDeleteRow):
     def commit(self):
         """Makes a ``MutateRow`` API request.
 
-        If no mutations have been created in the row, no request is made.
+        If no mutations have been created in the row, no request is made and a
+        :class:`~google.rpc.status_pb2.Status` with code INVALID_ARGUMENT is returned
+        instead.
 
         Mutations are applied atomically and in order, meaning that earlier
         mutations can be masked / negated by later ones. Cells already present
