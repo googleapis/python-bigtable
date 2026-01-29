@@ -446,8 +446,7 @@ class DirectRow(_SetDeleteRow):
         """Makes a ``MutateRow`` API request.
 
         If no mutations have been created in the row, no request is made and a
-        :class:`~google.rpc.status_pb2.Status` with code INVALID_ARGUMENT is returned
-        instead.
+        ValueError is raised instead.
 
         Mutations are applied atomically and in order, meaning that earlier
         mutations can be masked / negated by later ones. Cells already present
@@ -466,6 +465,7 @@ class DirectRow(_SetDeleteRow):
         :rtype: :class:`~google.rpc.status_pb2.Status`
         :returns: A response status (`google.rpc.status_pb2.Status`)
                   representing success or failure of the row committed.
+        :raises: ValueError: if no mutations have been created in the row
         """
         try:
             self._table._table_impl.mutate_row(self.row_key, self._get_mutations())
@@ -479,12 +479,8 @@ class DirectRow(_SetDeleteRow):
                 message=e.message,
                 details=e.details,
             )
-        except ValueError as e:
-            # _table_impl.mutate_row raises a ValueError if invalid arguments are provided.
-            return status_pb2.Status(
-                code=code_pb2.INVALID_ARGUMENT,
-                message=str(e),
-            )
+        except ValueError:
+            raise
         finally:
             self.clear()
 

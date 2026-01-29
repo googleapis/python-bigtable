@@ -1092,10 +1092,10 @@ def test_table_direct_row_input_errors(data_table, rows_to_delete):
     resp = row.commit()
     assert resp.code == StatusCode.INVALID_ARGUMENT.value[0]
 
-    # Not having any mutations gives an INVALID_ARGUMENT
+    # Not having any mutations raises a ValueError
     row.clear()
-    resp = row.commit()
-    assert resp.code == StatusCode.INVALID_ARGUMENT.value[0]
+    with pytest.raises(ValueError):
+        resp = row.commit()
 
 
 def test_table_conditional_row_input_errors(data_table, rows_to_delete):

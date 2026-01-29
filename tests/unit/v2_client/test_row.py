@@ -494,11 +494,8 @@ def test_direct_row_commit_with_invalid_argument():
     client._table_data_client._gapic_client = api
 
     # Perform the method and check the result.
-    result = row.commit()
-    assert row._mutations == []
-    assert result == status_pb2.Status(
-        code=code_pb2.Code.INVALID_ARGUMENT, message="No mutations provided"
-    )
+    with pytest.raises(ValueError, match="No mutations provided"):
+        row.commit()
     api.mutate_row.assert_not_called()
 
 
