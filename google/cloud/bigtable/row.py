@@ -479,8 +479,6 @@ class DirectRow(_SetDeleteRow):
                 message=e.message,
                 details=e.details,
             )
-        except ValueError:
-            raise
         finally:
             self.clear()
 
