@@ -29,6 +29,7 @@ from ..utils import wait_for_table
 
 # [START bigtable_hw_imports]
 import datetime
+from datetime import timezone
 
 from google.cloud import bigtable
 from google.cloud.bigtable import column_family
@@ -88,7 +89,7 @@ def main(project_id, instance_id, table_id):
             row_key = f"greeting{i}".encode()
             row = table.direct_row(row_key)
             row.set_cell(
-                column_family_id, column, value, timestamp=datetime.datetime.utcnow(),
+                column_family_id, column, value, timestamp=datetime.datetime.now(timezone.utc),
             )
             rows.append(row)
         table.mutate_rows(rows)

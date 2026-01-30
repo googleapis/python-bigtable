@@ -42,6 +42,7 @@ from test_utils.retry import RetryErrors
 from google.cloud._helpers import UTC
 from google.cloud.bigtable import Client
 from google.cloud.bigtable import enums
+from datetime import timezone
 
 
 UNIQUE_SUFFIX = unique_resource_id("-")
@@ -57,7 +58,7 @@ SERVER_NODES = 3
 STORAGE_TYPE = enums.StorageType.SSD
 LABEL_KEY = "python-snippet"
 LABEL_STAMP = (
-    datetime.datetime.utcnow()
+    datetime.datetime.now(timezone.utc)
     .replace(microsecond=0, tzinfo=UTC)
     .strftime("%Y-%m-%dt%H-%M-%S")
 )

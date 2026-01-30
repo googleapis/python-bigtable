@@ -15,6 +15,7 @@
 
 # [START bigtable_writes_simple]
 import datetime
+from datetime import timezone
 
 from google.cloud import bigtable
 
@@ -24,7 +25,7 @@ def write_simple(project_id, instance_id, table_id):
     instance = client.instance(instance_id)
     table = instance.table(table_id)
 
-    timestamp = datetime.datetime.utcnow()
+    timestamp = datetime.datetime.now(timezone.utc)
     column_family_id = "stats_summary"
 
     row_key = "phone#4c410523#20190501"

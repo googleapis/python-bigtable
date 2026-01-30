@@ -17,6 +17,7 @@ import mock
 import pytest
 
 from ._testing import _make_credentials
+from datetime import timezone
 
 PROJECT = "project"
 INSTANCE_ID = "instance-id"
@@ -420,7 +421,7 @@ def test_cluster_create():
     from google.cloud.bigtable_admin_v2.types import instance as instance_v2_pb2
     from google.cloud.bigtable.enums import StorageType
 
-    NOW = datetime.datetime.utcnow()
+    NOW = datetime.datetime.now(timezone.utc)
     NOW_PB = _datetime_to_pb_timestamp(NOW)
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -475,7 +476,7 @@ def test_cluster_create_w_cmek():
     from google.cloud.bigtable_admin_v2.types import instance as instance_v2_pb2
     from google.cloud.bigtable.enums import StorageType
 
-    NOW = datetime.datetime.utcnow()
+    NOW = datetime.datetime.now(timezone.utc)
     NOW_PB = _datetime_to_pb_timestamp(NOW)
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -535,7 +536,7 @@ def test_cluster_create_w_autoscaling():
     from google.cloud.bigtable_admin_v2.types import instance as instance_v2_pb2
     from google.cloud.bigtable.enums import StorageType
 
-    NOW = datetime.datetime.utcnow()
+    NOW = datetime.datetime.now(timezone.utc)
     NOW_PB = _datetime_to_pb_timestamp(NOW)
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -602,7 +603,7 @@ def test_cluster_update():
     )
     from google.cloud.bigtable.enums import StorageType
 
-    NOW = datetime.datetime.utcnow()
+    NOW = datetime.datetime.now(timezone.utc)
     NOW_PB = _datetime_to_pb_timestamp(NOW)
 
     credentials = _make_credentials()
@@ -669,7 +670,7 @@ def test_cluster_update_w_autoscaling():
     )
     from google.cloud.bigtable.enums import StorageType
 
-    NOW = datetime.datetime.utcnow()
+    NOW = datetime.datetime.now(timezone.utc)
     NOW_PB = _datetime_to_pb_timestamp(NOW)
 
     credentials = _make_credentials()
@@ -728,7 +729,7 @@ def test_cluster_update_w_partial_autoscaling_config():
     )
     from google.cloud.bigtable.enums import StorageType
 
-    NOW = datetime.datetime.utcnow()
+    NOW = datetime.datetime.now(timezone.utc)
     NOW_PB = _datetime_to_pb_timestamp(NOW)
 
     credentials = _make_credentials()
@@ -812,7 +813,7 @@ def test_cluster_update_w_both_manual_and_autoscaling():
     )
     from google.cloud.bigtable.enums import StorageType
 
-    NOW = datetime.datetime.utcnow()
+    NOW = datetime.datetime.now(timezone.utc)
     NOW_PB = _datetime_to_pb_timestamp(NOW)
 
     credentials = _make_credentials()
@@ -873,7 +874,7 @@ def test_cluster_disable_autoscaling():
     from google.cloud.bigtable.instance import Instance
     from google.cloud.bigtable.enums import StorageType
 
-    NOW = datetime.datetime.utcnow()
+    NOW = datetime.datetime.now(timezone.utc)
     NOW_PB = _datetime_to_pb_timestamp(NOW)
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
