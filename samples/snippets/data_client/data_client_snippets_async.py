@@ -138,6 +138,7 @@ async def write_conditional(table):
 
 async def write_aggregate(table):
     # [START bigtable_async_write_aggregate]
+    import time
     from google.cloud.bigtable.data import BigtableDataClientAsync
     from google.cloud.bigtable.data.mutations import AddToCell, RowMutationEntry
     from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
@@ -154,7 +155,10 @@ async def write_aggregate(table):
                     # The `counters` family must be set up to be an aggregate
                     # family with an int64 input type.
                     reading = AddToCell(
-                        family="counters", qualifier="odometer", value=32304
+                        family="counters",
+                        qualifier="odometer",
+                        value=32304,
+                        timestamp_micros=time.time_ns() // 1000,
                     )
                     await batcher.append(
                         RowMutationEntry(row_key.encode("utf-8"), [reading])
