@@ -17,7 +17,6 @@ import datetime
 import grpc
 from google.api_core import exceptions
 from google.cloud import exceptions as core_exceptions
-from google.cloud._helpers import UTC
 from test_utils import retry
 
 
@@ -41,7 +40,7 @@ retry_grpc_unavailable = retry.RetryErrors(
 
 def label_stamp():
     return (
-        datetime.datetime.utcnow()
-        .replace(microsecond=0, tzinfo=UTC)
+        datetime.datetime.now(datetime.timezone.utc)
+        .replace(microsecond=0)
         .strftime("%Y-%m-%dt%H-%M-%S")
     )

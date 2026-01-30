@@ -233,10 +233,9 @@ def test_table_read_row_large_cell(data_table, rows_to_delete, skip_on_emulator)
 def _write_to_row(row1, row2, row3, row4):
     from google.cloud._helpers import _datetime_from_microseconds
     from google.cloud._helpers import _microseconds_from_datetime
-    from google.cloud._helpers import UTC
     from google.cloud.bigtable.row_data import Cell
 
-    timestamp1 = datetime.datetime.utcnow().replace(tzinfo=UTC)
+    timestamp1 = datetime.datetime.now(datetime.timezone.utc)
     timestamp1_micros = _microseconds_from_datetime(timestamp1)
     # Truncate to millisecond granularity.
     timestamp1_micros -= timestamp1_micros % 1000
