@@ -1383,7 +1383,7 @@ def test_table_backup_factory_non_defaults():
 
     instance = Instance(INSTANCE_ID, None)
     table = _make_table(TABLE_ID, instance)
-    timestamp = datetime.datetime.now(datetime.UTC)
+    timestamp = datetime.datetime.now(datetime.timezone.utc)
     backup = table.backup(
         BACKUP_ID,
         cluster_id=CLUSTER_ID,

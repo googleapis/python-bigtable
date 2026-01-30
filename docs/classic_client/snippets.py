@@ -57,8 +57,8 @@ SERVER_NODES = 3
 STORAGE_TYPE = enums.StorageType.SSD
 LABEL_KEY = "python-snippet"
 LABEL_STAMP = (
-    datetime.datetime.now(datetime.UTC)
-    .replace(microsecond=0, tzinfo=UTC)
+    datetime.datetime.now(datetime.timezone.utc)
+    .replace(microsecond=0)
     .strftime("%Y-%m-%dt%H-%M-%S")
 )
 LABELS = {LABEL_KEY: str(LABEL_STAMP)}

@@ -25,7 +25,7 @@ def write_batch(project_id, instance_id, table_id):
     table = instance.table(table_id)
 
     with MutationsBatcher(table=table) as batcher:
-        timestamp = datetime.datetime.now(datetime.UTC)
+        timestamp = datetime.datetime.now(datetime.timezone.utc)
         column_family_id = "stats_summary"
 
         rows = [

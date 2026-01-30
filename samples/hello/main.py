@@ -88,7 +88,7 @@ def main(project_id, instance_id, table_id):
             row_key = f"greeting{i}".encode()
             row = table.direct_row(row_key)
             row.set_cell(
-                column_family_id, column, value, timestamp=datetime.datetime.now(datetime.UTC),
+                column_family_id, column, value, timestamp=datetime.datetime.now(datetime.timezone.utc),
             )
             rows.append(row)
         table.mutate_rows(rows)

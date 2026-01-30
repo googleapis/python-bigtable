@@ -235,7 +235,7 @@ def _write_to_row(row1, row2, row3, row4):
     from google.cloud._helpers import _microseconds_from_datetime
     from google.cloud.bigtable.row_data import Cell
 
-    timestamp1 = datetime.datetime.now(datetime.UTC)
+    timestamp1 = datetime.datetime.now(datetime.timezone.utc)
     timestamp1_micros = _microseconds_from_datetime(timestamp1)
     # Truncate to millisecond granularity.
     timestamp1_micros -= timestamp1_micros % 1000
