@@ -19,7 +19,6 @@ import mock
 import pytest
 
 from ._testing import _make_credentials
-from google.cloud._helpers import UTC
 
 PROJECT_ID = "project-id"
 INSTANCE_ID = "instance-id"

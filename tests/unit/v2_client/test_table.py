@@ -1378,7 +1378,6 @@ def test_table_backup_factory_defaults():
 
 def test_table_backup_factory_non_defaults():
     import datetime
-    from google.cloud._helpers import UTC
     from google.cloud.bigtable.backup import Backup
     from google.cloud.bigtable.instance import Instance
 
