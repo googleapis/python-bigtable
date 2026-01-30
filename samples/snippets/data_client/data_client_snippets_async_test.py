@@ -42,7 +42,6 @@ def column_family_config():
 
 @pytest.fixture(scope="session")
 def table_id(column_family_config):
-
     with create_table_cm(PROJECT, BIGTABLE_INSTANCE, TABLE_ID, column_family_config):
         yield TABLE_ID
 
