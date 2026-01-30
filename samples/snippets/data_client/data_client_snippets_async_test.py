@@ -60,6 +60,11 @@ async def test_write_conditional(table):
 
 
 @pytest.mark.asyncio
+async def test_write_aggregate(table):
+    await data_snippets.write_aggregate(table)
+
+
+@pytest.mark.asyncio
 async def test_read_row(table):
     await data_snippets.read_row(table)
 
