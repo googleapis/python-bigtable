@@ -143,7 +143,6 @@ async def write_aggregate(table):
     from google.cloud.bigtable.data.mutations import AddToCell, RowMutationEntry
     from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 
-
     async def write_aggregate(project_id, instance_id, table_id):
         """Increments a value in a Bigtable table using AddToCell mutation."""
         async with BigtableDataClientAsync(project=project_id) as client:
@@ -173,9 +172,9 @@ async def write_aggregate(table):
                         f"Failed mutation for row {failed_entry.row_key!r} with error: {cause!r}"
                     )
 
-
     # [END bigtable_async_write_aggregate]
     await write_aggregate(table.client.project, table.instance_id, table.table_id)
+
 
 async def read_row(table):
     # [START bigtable_async_reads_row]
