@@ -41,7 +41,6 @@ from google.cloud._helpers import UTC
 from google.cloud.bigtable import Client
 from google.cloud.bigtable import enums
 from google.cloud.bigtable import column_family
-from datetime import timezone
 
 
 INSTANCE_ID = "snippet" + unique_resource_id("-")
@@ -55,7 +54,7 @@ SERVER_NODES = 3
 STORAGE_TYPE = enums.StorageType.SSD
 LABEL_KEY = "python-snippet"
 LABEL_STAMP = (
-    datetime.datetime.now(timezone.utc)
+    datetime.datetime.now(datetime.UTC)
     .replace(microsecond=0, tzinfo=UTC)
     .strftime("%Y-%m-%dt%H-%M-%S")
 )
@@ -180,7 +179,7 @@ def test_bigtable_write_read_drop_truncate():
         value = "value_{}".format(i).encode()
         row = table.row(row_key)
         row.set_cell(
-            COLUMN_FAMILY_ID, col_name, value, timestamp=datetime.datetime.now(timezone.utc)
+            COLUMN_FAMILY_ID, col_name, value, timestamp=datetime.datetime.now(datetime.UTC)
         )
         rows.append(row)
     response = table.mutate_rows(rows)
@@ -271,7 +270,7 @@ def test_bigtable_mutations_batcher():
     row_key = row_keys[0]
     row = table.row(row_key)
     row.set_cell(
-        COLUMN_FAMILY_ID, column_name, "value-0", timestamp=datetime.datetime.now(timezone.utc)
+        COLUMN_FAMILY_ID, column_name, "value-0", timestamp=datetime.datetime.now(datetime.UTC)
     )
     batcher.mutate(row)
     # Add a collections of rows
@@ -280,7 +279,7 @@ def test_bigtable_mutations_batcher():
         row = table.row(row_keys[i])
         value = "value_{}".format(i).encode()
         row.set_cell(
-            COLUMN_FAMILY_ID, column_name, value, timestamp=datetime.datetime.now(timezone.utc)
+            COLUMN_FAMILY_ID, column_name, value, timestamp=datetime.datetime.now(datetime.UTC)
         )
         rows.append(row)
     batcher.mutate_rows(rows)
@@ -760,7 +759,7 @@ def test_bigtable_batcher_mutate_flush_mutate_rows():
     row_key = b"row_key_1"
     row = table.row(row_key)
     row.set_cell(
-        COLUMN_FAMILY_ID, COL_NAME1, "value-0", timestamp=datetime.datetime.now(timezone.utc)
+        COLUMN_FAMILY_ID, COL_NAME1, "value-0", timestamp=datetime.datetime.now(datetime.UTC)
     )
 
     # In batcher, mutate will flush current batch if it
@@ -968,12 +967,12 @@ def test_bigtable_row_data_cells_cell_value_cell_values():
     value = b"value_in_col1"
     row = Config.TABLE.row(b"row_key_1")
     row.set_cell(
-        COLUMN_FAMILY_ID, COL_NAME1, value, timestamp=datetime.datetime.now(timezone.utc)
+        COLUMN_FAMILY_ID, COL_NAME1, value, timestamp=datetime.datetime.now(datetime.UTC)
     )
     row.commit()
 
     row.set_cell(
-        COLUMN_FAMILY_ID, COL_NAME1, value, timestamp=datetime.datetime.now(timezone.utc)
+        COLUMN_FAMILY_ID, COL_NAME1, value, timestamp=datetime.datetime.now(datetime.UTC)
     )
     row.commit()
 
@@ -1051,7 +1050,7 @@ def test_bigtable_row_setcell_rowkey():
 
     cell_val = b"cell-val"
     row.set_cell(
-        COLUMN_FAMILY_ID, COL_NAME1, cell_val, timestamp=datetime.datetime.now(timezone.utc)
+        COLUMN_FAMILY_ID, COL_NAME1, cell_val, timestamp=datetime.datetime.now(datetime.UTC)
     )
     # [END bigtable_api_row_set_cell]
 

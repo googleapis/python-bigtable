@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import datetime
-from datetime import timezone
 
 import grpc
 from google.api_core import exceptions
@@ -42,7 +41,7 @@ retry_grpc_unavailable = retry.RetryErrors(
 
 def label_stamp():
     return (
-        datetime.datetime.now(timezone.utc)
+        datetime.datetime.now(datetime.UTC)
         .replace(microsecond=0, tzinfo=UTC)
         .strftime("%Y-%m-%dt%H-%M-%S")
     )

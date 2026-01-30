@@ -20,7 +20,6 @@ import pytest
 
 from ._testing import _make_credentials
 from google.cloud._helpers import UTC
-from datetime import timezone
 
 PROJECT_ID = "project-id"
 INSTANCE_ID = "instance-id"
@@ -39,7 +38,7 @@ ALT_BACKUP_NAME = ALT_CLUSTER_NAME + "/backups/" + BACKUP_ID
 
 
 def _make_timestamp():
-    return datetime.datetime.now(timezone.utc).replace(tzinfo=UTC)
+    return datetime.datetime.now(datetime.UTC)
 
 
 def _make_table_admin_client():

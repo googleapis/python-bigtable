@@ -17,8 +17,6 @@ import operator
 
 import pytest
 
-from datetime import timezone
-
 COLUMN_FAMILY_ID1 = "col-fam-id1"
 COLUMN_FAMILY_ID2 = "col-fam-id2"
 COL_NAME1 = b"col-name1"
@@ -238,7 +236,7 @@ def _write_to_row(row1, row2, row3, row4):
     from google.cloud._helpers import UTC
     from google.cloud.bigtable.row_data import Cell
 
-    timestamp1 = datetime.datetime.now(timezone.utc).replace(tzinfo=UTC)
+    timestamp1 = datetime.datetime.now(datetime.UTC)
     timestamp1_micros = _microseconds_from_datetime(timestamp1)
     # Truncate to millisecond granularity.
     timestamp1_micros -= timestamp1_micros % 1000

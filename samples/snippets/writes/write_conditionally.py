@@ -14,7 +14,6 @@
 # limitations under the License.
 # [START bigtable_writes_conditional]
 import datetime
-from datetime import timezone
 
 from google.cloud import bigtable
 from google.cloud.bigtable import row_filters
@@ -25,7 +24,7 @@ def write_conditional(project_id, instance_id, table_id):
     instance = client.instance(instance_id)
     table = instance.table(table_id)
 
-    timestamp = datetime.datetime.now(timezone.utc)
+    timestamp = datetime.datetime.now(datetime.UTC)
     column_family_id = "stats_summary"
 
     row_key = "phone#4c410523#20190501"

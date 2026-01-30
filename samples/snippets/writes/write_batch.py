@@ -14,7 +14,6 @@
 # limitations under the License.
 # [START bigtable_writes_batch]
 import datetime
-from datetime import timezone
 
 from google.cloud import bigtable
 from google.cloud.bigtable.batcher import MutationsBatcher
@@ -26,7 +25,7 @@ def write_batch(project_id, instance_id, table_id):
     table = instance.table(table_id)
 
     with MutationsBatcher(table=table) as batcher:
-        timestamp = datetime.datetime.now(timezone.utc)
+        timestamp = datetime.datetime.now(datetime.UTC)
         column_family_id = "stats_summary"
 
         rows = [

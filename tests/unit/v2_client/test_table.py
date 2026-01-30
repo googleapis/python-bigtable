@@ -21,7 +21,6 @@ from grpc import StatusCode
 
 from google.api_core.exceptions import DeadlineExceeded
 from ._testing import _make_credentials
-from datetime import timezone
 
 PROJECT_ID = "project-id"
 INSTANCE_ID = "instance-id"
@@ -1385,7 +1384,7 @@ def test_table_backup_factory_non_defaults():
 
     instance = Instance(INSTANCE_ID, None)
     table = _make_table(TABLE_ID, instance)
-    timestamp = datetime.datetime.now(timezone.utc).replace(tzinfo=UTC)
+    timestamp = datetime.datetime.now(datetime.UTC)
     backup = table.backup(
         BACKUP_ID,
         cluster_id=CLUSTER_ID,
