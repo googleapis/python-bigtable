@@ -151,7 +151,8 @@ async def write_aggregate(table):
             try:
                 async with table.mutations_batcher() as batcher:
                     # The AddToCell mutation increments the value of a cell.
-                    # The value must be a positive or negative integer.
+                    # The `counters` family must be set up to be an aggregate
+                    # family with an int64 input type.
                     reading = AddToCell(
                         family="counters", qualifier="odometer", value=32304
                     )

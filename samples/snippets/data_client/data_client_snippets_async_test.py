@@ -23,10 +23,27 @@ PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
 TABLE_ID = f"data-client-{str(uuid.uuid4())[:16]}"
 
+@pytest.fixture(scope="session")
+def column_family_config(self):
+    from google.cloud.bigtable_admin_v2 import types
+
+    int_aggregate_type = types.Type.Aggregate(
+        input_type=types.Type(int64_type={"encoding": {"big_endian_bytes": {}}}),
+        sum={},
+    )
+
+    returb {
+        "family": types.ColumnFamily(),
+        "stats_summary": types.ColumnFamily(),
+        "counters": types.ColumnFamily(
+            value_type=types.Type(aggregate_type=int_aggregate_type)
+        ),
+    }
 
 @pytest.fixture(scope="session")
-def table_id():
-    with create_table_cm(PROJECT, BIGTABLE_INSTANCE, TABLE_ID, {"family": None, "stats_summary": None}):
+def table_id(column_family_config):
+
+    with create_table_cm(PROJECT, BIGTABLE_INSTANCE, TABLE_ID, column_family_config):
         yield TABLE_ID
 
 
