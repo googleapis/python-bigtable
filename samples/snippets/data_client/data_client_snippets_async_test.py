@@ -24,7 +24,7 @@ BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
 TABLE_ID = f"data-client-{str(uuid.uuid4())[:16]}"
 
 @pytest.fixture(scope="session")
-def column_family_config(self):
+def column_family_config():
     from google.cloud.bigtable_admin_v2 import types
 
     int_aggregate_type = types.Type.Aggregate(
@@ -32,7 +32,7 @@ def column_family_config(self):
         sum={},
     )
 
-    returb {
+    return {
         "family": types.ColumnFamily(),
         "stats_summary": types.ColumnFamily(),
         "counters": types.ColumnFamily(
