@@ -59,10 +59,14 @@ def create_table(project, instance_id, table_id, column_families={}):
     if table.exists():
         table.delete()
 
-    kwargs = {}
-    if column_families:
-        kwargs["column_families"] = column_families
-    table.create(**kwargs)
+    # create table using gapic layer
+    instance._client.table_admin_client.create_table(
+        request={
+            "parent": instance.name,
+            "table_id": table_id,
+            "table": {"column_families": column_families},
+        }
+    )
 
     wait_for_table(table)
 
