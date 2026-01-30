@@ -17,7 +17,6 @@ import datetime
 import grpc
 from google.api_core import exceptions
 from google.cloud import exceptions as core_exceptions
-from google.cloud._helpers import UTC
 from test_utils import retry
 
 
