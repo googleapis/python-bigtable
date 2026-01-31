@@ -88,9 +88,7 @@ from .types.request_stats import RequestStats
 from .types.response_params import ResponseParams
 from .types.types import Type
 
-if hasattr(api_core, "check_python_version") and hasattr(
-    api_core, "check_dependency_versions"
-):  # pragma: NO COVER
+if hasattr(api_core, "check_python_version") and hasattr(api_core, "check_dependency_versions"):  # pragma: NO COVER # fmt: skip
     api_core.check_python_version("google.cloud.bigtable_v2")  # type: ignore
     api_core.check_dependency_versions("google.cloud.bigtable_v2")  # type: ignore
 else:  # pragma: NO COVER
