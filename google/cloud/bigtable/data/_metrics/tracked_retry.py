@@ -49,7 +49,7 @@ def _track_retryable_error(
     """
     Used as input to api_core.Retry classes, to track when retryable errors are encountered
 
-    If an excemption is encountered with Retryinfo set, it will inform the backoff generator
+    If an exception is encountered with Retryinfo set, it will inform the backoff generator
     to give it a chance to override the next backoff value
 
     Should be passed as on_error callback
