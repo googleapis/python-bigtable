@@ -26,6 +26,7 @@ from typing import Callable, List, Optional, Tuple, TypeVar
 from grpc import StatusCode
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core.retry import RetryFailureReason
+from google.rpc.error_details_pb2 import RetryInfo
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._metrics import ActiveOperationMetric
@@ -43,9 +44,13 @@ ExceptionFactoryType = Callable[
 
 def _track_retryable_error(
     operation: ActiveOperationMetric,
+    backoff_generator: TrackedBackoffGenerator,
 ) -> Callable[[Exception], None]:
     """
     Used as input to api_core.Retry classes, to track when retryable errors are encountered
+
+    If an excemption is encountered with Retryinfo set, it will inform the backoff generator
+    to give it a chance to override the next backoff value
 
     Should be passed as on_error callback
     """
@@ -59,6 +64,11 @@ def _track_retryable_error(
                     rpc_error.initial_metadata()
                 )
                 operation.add_response_metadata({k: v for k, v in metadata})
+                # check for RetryInfo:
+                if exc.details:
+                    info_matches = [field for field in exc.details if isinstance(field, RetryInfo)]
+                    if info_matches:
+                        backoff_generator.set_from_exception_info(info_matches[0])
         except Exception:
             # ignore errors in metadata collection
             pass
@@ -127,7 +137,7 @@ def tracked_retry(
     kwargs.pop("sleep_generator", None)
     return retry_fn(
         sleep_generator=operation.backoff_generator,
-        on_error=_track_retryable_error(operation),
+        on_error=_track_retryable_error(operation, operation.backoff_generator),
         exception_factory=_track_terminal_error(operation, in_exception_factory),
         **kwargs,
     )
