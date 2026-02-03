@@ -65,9 +65,9 @@ def _track_retryable_error(
                 operation.add_response_metadata({k: v for k, v in metadata})
                 # check for RetryInfo:
                 if exc.details:
-                    info_matches = [field for field in exc.details if isinstance(field, RetryInfo)]
-                    if info_matches:
-                        operation.backoff_generator.set_from_exception_info(info_matches[0])
+                    info = next((field for field in exc.details if isinstance(field, RetryInfo)), None)
+                    if info:
+                        operation.backoff_generator.set_from_exception_info(info)
         except Exception:
             # ignore errors in metadata collection
             pass
