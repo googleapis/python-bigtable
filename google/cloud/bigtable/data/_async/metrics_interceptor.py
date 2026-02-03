@@ -16,7 +16,6 @@ from __future__ import annotations
 from typing import Sequence
 
 import time
-import contextvars
 from functools import wraps
 
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric

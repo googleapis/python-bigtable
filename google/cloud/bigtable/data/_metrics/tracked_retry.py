@@ -30,7 +30,6 @@ from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics import OperationState
-from google.cloud.bigtable.data._async.metrics_interceptor import AsyncBigtableMetricsInterceptor
 
 
 T = TypeVar("T")
