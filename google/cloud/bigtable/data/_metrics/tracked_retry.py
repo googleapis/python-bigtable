@@ -67,7 +67,9 @@ def _track_retryable_error(
                 if exc.details:
                     info = next((field for field in exc.details if isinstance(field, RetryInfo)), None)
                     if info:
-                        operation.backoff_generator.set_from_exception_info(info)
+                        # override next backoff with server-provided value
+                        retry_seconds = info.retry_delay.ToTimedelta().total_seconds()
+                        operation.backoff_generator.set_next(retry_seconds)
         except Exception:
             # ignore errors in metadata collection
             pass

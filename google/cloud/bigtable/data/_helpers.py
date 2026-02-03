@@ -25,7 +25,6 @@ from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.api_core import exceptions as core_exceptions
 from google.api_core.retry import exponential_sleep_generator
 from google.api_core.retry import RetryFailureReason
-from google.rpc.error_details_pb2 import RetryInfo
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 
 if TYPE_CHECKING:
@@ -308,15 +307,3 @@ class TrackedBackoffGenerator:
         if attempt_idx < 0:
             raise IndexError("received negative attempt number")
         return self.history[attempt_idx]
-
-    def set_from_exception_info(self, retry_info: RetryInfo):
-        """
-        Use a RetryInfo object to set the next sleep time.
-
-        If a problem is encountered, this method does nothing.
-        """
-        try:
-            retry_seconds = retry_info.retry_delay.ToTimedelta().total_seconds()
-            self.set_next(retry_seconds)
-        except Exception:
-            pass
