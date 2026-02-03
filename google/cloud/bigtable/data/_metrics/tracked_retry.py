@@ -30,6 +30,7 @@ from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics import OperationState
+from google.cloud.bigtable.data._async.metrics_interceptor import AsyncBigtableMetricsInterceptor
 
 
 T = TypeVar("T")
@@ -58,7 +59,12 @@ def _track_retryable_error(
                 metadata = list(rpc_error.trailing_metadata()) + list(
                     rpc_error.initial_metadata()
                 )
-                operation.add_response_metadata({k: v for k, v in metadata})
+                metadata_dict = {k: v for k, v in metadata}
+                operation.add_response_metadata(metadata_dict)
+                # check for routing cookie:
+                cookie_headers = {k:v for k,v in metadata_dict.items() if k.startswith("x-goog-cbt-cookie")}
+                if cookie_headers:
+                    AsyncBigtableMetricsInterceptor._routing_cookie_context.set(cookie_headers)
         except Exception:
             # ignore errors in metadata collection
             pass
