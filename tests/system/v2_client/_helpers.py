@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
+from datetime import datetime, timezone
 
 import grpc
 from google.api_core import exceptions
@@ -40,7 +40,7 @@ retry_grpc_unavailable = retry.RetryErrors(
 
 def label_stamp():
     return (
-        datetime.datetime.now(datetime.timezone.utc)
+        datetime.now(timezone.utc)
         .replace(microsecond=0)
         .strftime("%Y-%m-%dt%H-%M-%S")
     )
