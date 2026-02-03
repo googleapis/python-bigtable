@@ -157,6 +157,7 @@ async def write_aggregate(table):
                         family="counters",
                         qualifier="odometer",
                         value=32304,
+                        # Convert nanoseconds to microseconds
                         timestamp_micros=time.time_ns() // 1000,
                     )
                     await batcher.append(
