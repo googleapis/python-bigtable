@@ -44,7 +44,6 @@ ExceptionFactoryType = Callable[
 
 def _track_retryable_error(
     operation: ActiveOperationMetric,
-    backoff_generator: TrackedBackoffGenerator,
 ) -> Callable[[Exception], None]:
     """
     Used as input to api_core.Retry classes, to track when retryable errors are encountered
@@ -68,7 +67,7 @@ def _track_retryable_error(
                 if exc.details:
                     info_matches = [field for field in exc.details if isinstance(field, RetryInfo)]
                     if info_matches:
-                        backoff_generator.set_from_exception_info(info_matches[0])
+                        operation.backoff_generator.set_from_exception_info(info_matches[0])
         except Exception:
             # ignore errors in metadata collection
             pass
@@ -137,7 +136,7 @@ def tracked_retry(
     kwargs.pop("sleep_generator", None)
     return retry_fn(
         sleep_generator=operation.backoff_generator,
-        on_error=_track_retryable_error(operation, operation.backoff_generator),
+        on_error=_track_retryable_error(operation),
         exception_factory=_track_terminal_error(operation, in_exception_factory),
         **kwargs,
     )
