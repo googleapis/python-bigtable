@@ -64,7 +64,7 @@ def _track_retryable_error(
                 # check for routing cookie:
                 cookie_headers = {k:v for k,v in metadata_dict.items() if k.startswith("x-goog-cbt-cookie")}
                 if cookie_headers:
-                    AsyncBigtableMetricsInterceptor._routing_cookie_context.set(cookie_headers)
+                    operation.routing_cookie = cookie_headers
         except Exception:
             # ignore errors in metadata collection
             pass

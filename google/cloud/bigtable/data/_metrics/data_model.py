@@ -172,6 +172,8 @@ class ActiveOperationMetric:
     first_response_latency_ns: int | None = None
     # time waiting on flow control, in nanoseconds
     flow_throttling_time_ns: int = 0
+    # routing cookie, passed in between retry attempts
+    routing_cookie: dict[str, str|bytes] = field(default_factory=dict)
 
     _active_operation_context: ClassVar[
         contextvars.ContextVar[ActiveOperationMetric]

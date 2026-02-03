@@ -96,11 +96,6 @@ class AsyncBigtableMetricsInterceptor(
     An async gRPC interceptor to add client metadata and print server metadata.
     """
 
-    _routing_cookie_context: ClassVar[
-        contextvars.ContextVar[dict[str, str|bytes]]
-    ] = contextvars.ContextVar("routing_cooke_context")
-
-
     @CrossSync.convert
     @_with_active_operation
     async def intercept_unary_unary(
@@ -136,7 +131,7 @@ class AsyncBigtableMetricsInterceptor(
           - SampleRowKeys
         """
         try:
-            for k,v in self._routing_cookie_context.get({}).items():
+            for k,v in operation.routing_cookie.items():
                 client_call_details.metadata.add(k, v)
             return self._streaming_generator_wrapper(
                 operation, await continuation(client_call_details, request)
