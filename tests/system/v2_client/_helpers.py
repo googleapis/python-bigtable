@@ -40,7 +40,5 @@ retry_grpc_unavailable = retry.RetryErrors(
 
 def label_stamp():
     return (
-        datetime.now(timezone.utc)
-        .replace(microsecond=0)
-        .strftime("%Y-%m-%dt%H-%M-%S")
+        datetime.now(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dt%H-%M-%S")
     )
