@@ -288,11 +288,10 @@ class TrackedBackoffGenerator:
         self._next_override = next_value
 
     def __next__(self) -> float:
+        next_backoff = next(self.subgenerator)
         if self._next_override is not None:
             next_backoff = self._next_override
             self._next_override = None
-        else:
-            next_backoff = next(self.subgenerator)
         self.history.append(next_backoff)
         return next_backoff
 
