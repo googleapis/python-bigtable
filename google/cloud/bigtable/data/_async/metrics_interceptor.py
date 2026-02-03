@@ -130,6 +130,8 @@ class AsyncBigtableMetricsInterceptor(
           - SampleRowKeys
         """
         try:
+            for k,v in operation.routing_cookie.items():
+                client_call_details.metadata.add(k, v)
             return self._streaming_generator_wrapper(
                 operation, await continuation(client_call_details, request)
             )
