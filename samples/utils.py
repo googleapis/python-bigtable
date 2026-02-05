@@ -17,6 +17,7 @@ Provides helper logic used across samples
 
 from google.cloud import bigtable
 from google.cloud.bigtable.column_family import ColumnFamily
+from google.cloud.bigtable_admin_v2.types import ColumnFamily as ColumnFamily_pb
 from google.api_core import exceptions
 from google.api_core.retry import Retry
 from google.api_core.retry import if_exception_type
@@ -62,7 +63,7 @@ def create_table(project, instance_id, table_id, column_families={}):
 
     # convert column families to pb if needed
     pb_families = {
-        id: ColumnFamily(id, table, rule).to_pb() if not isinstance(rule, ColumnFamily) else rule
+        id: ColumnFamily(id, table, rule).to_pb() if not isinstance(rule, ColumnFamily_pb) else rule
         for (id, rule) in column_families.items()
     }
 
