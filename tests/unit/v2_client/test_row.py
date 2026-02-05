@@ -20,6 +20,11 @@ from ._testing import _make_credentials
 
 
 _INSTANCE_ID = "test-instance"
+_TIME_NS_RETURN_VALUE = 1234567890
+_EXPECTED_DEFAULT_TIMESTAMP_MICROS = _TIME_NS_RETURN_VALUE // 1000
+_EXPECTED_DEFAULT_TIMESTAMP_MICROS = _EXPECTED_DEFAULT_TIMESTAMP_MICROS - (
+    _EXPECTED_DEFAULT_TIMESTAMP_MICROS % 1000
+)
 
 
 def _make_client(*args, **kwargs):
@@ -140,7 +145,7 @@ def _set_cell_helper(
     column_bytes=None,
     value=b"foobar",
     timestamp=None,
-    timestamp_micros=-1,
+    timestamp_micros=_EXPECTED_DEFAULT_TIMESTAMP_MICROS,
 ):
     import struct
 
@@ -153,18 +158,20 @@ def _set_cell_helper(
     table = object()
     row = _make_direct_row(row_key, table)
     assert row._mutations == []
-    row.set_cell(column_family_id, column, value, timestamp=timestamp)
 
-    if isinstance(value, int):
-        value = struct.pack(">q", value)
-    expected_mutation = SetCell(
-        family=column_family_id,
-        qualifier=column_bytes or column,
-        new_value=value,
-        timestamp_micros=timestamp_micros,
-    )
+    with mock.patch("time.time_ns", return_value=_TIME_NS_RETURN_VALUE):
+        row.set_cell(column_family_id, column, value, timestamp=timestamp)
 
-    _assert_mutations_equal(row._mutations, [expected_mutation])
+        if isinstance(value, int):
+            value = struct.pack(">q", value)
+        expected_mutation = SetCell(
+            family=column_family_id,
+            qualifier=column_bytes or column,
+            new_value=value,
+            timestamp_micros=timestamp_micros,
+        )
+
+        _assert_mutations_equal(row._mutations, [expected_mutation])
 
 
 def test_direct_row_set_cell():
@@ -202,6 +209,14 @@ def test_direct_row_set_cell_with_non_null_timestamp():
     millis_granularity = microseconds - (microseconds % 1000)
     timestamp = _EPOCH + datetime.timedelta(microseconds=microseconds)
     _set_cell_helper(timestamp=timestamp, timestamp_micros=millis_granularity)
+
+
+def test_direct_row_set_cell_with_server_side_timestamp():
+    from google.cloud.bigtable.data.mutations import _SERVER_SIDE_TIMESTAMP
+
+    _set_cell_helper(
+        timestamp=_SERVER_SIDE_TIMESTAMP, timestamp_micros=_SERVER_SIDE_TIMESTAMP
+    )
 
 
 def test_direct_row_delete():
@@ -476,7 +491,6 @@ def test_direct_row_commit_with_unknown_exception():
 
 def test_direct_row_commit_with_invalid_argument():
     from google.cloud.bigtable_v2.services.bigtable import BigtableClient
-    from google.rpc import code_pb2, status_pb2
 
     project_id = "project-id"
     row_key = b"row_key"
