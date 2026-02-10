@@ -153,15 +153,17 @@ class _SetDeleteRow(Row):
                       integer (8 bytes).
 
         :type timestamp: :class:`datetime.datetime`
-        :param timestamp: (Optional) The timestamp of the operation.
+        :param timestamp: (Optional) The timestamp of the operation. If a
+                         timestamp is not provided, the current system time
+                         will be used.
 
         :type state: bool
         :param state: (Optional) The state that is passed along to
                       :meth:`_get_mutations`.
         """
-        if timestamp is None:
-            # Use current Bigtable server time.
-            timestamp_micros = mutations._SERVER_SIDE_TIMESTAMP
+        if timestamp is None or timestamp == mutations._SERVER_SIDE_TIMESTAMP:
+            # Preserve special-case values (client side timestamp generation or server side timestamp)
+            timestamp_micros = timestamp
         else:
             timestamp_micros = _microseconds_from_datetime(timestamp)
             # Truncate to millisecond granularity.
@@ -351,7 +353,9 @@ class DirectRow(_SetDeleteRow):
                       integer (8 bytes).
 
         :type timestamp: :class:`datetime.datetime`
-        :param timestamp: (Optional) The timestamp of the operation.
+        :param timestamp: (Optional) The timestamp of the operation. If a
+                         timestamp is not provided, the current system time
+                         will be used.
         """
         self._set_cell(column_family_id, column, value, timestamp=timestamp, state=None)
 
@@ -651,7 +655,9 @@ class ConditionalRow(_SetDeleteRow):
                       integer (8 bytes).
 
         :type timestamp: :class:`datetime.datetime`
-        :param timestamp: (Optional) The timestamp of the operation.
+        :param timestamp: (Optional) The timestamp of the operation. If a
+                         timestamp is not provided, the current system time
+                         will be used.
 
         :type state: bool
         :param state: (Optional) The state that the mutation should be
