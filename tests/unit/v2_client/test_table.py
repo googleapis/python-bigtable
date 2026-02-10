@@ -721,11 +721,14 @@ def _table_mutate_rows_helper(
     expected_attempt_timeout=None,
     expected_retryable_errors=None,
 ):
-    from google.api_core import exceptions
+    from google.api_core import exceptions as api_exceptions
     from google.rpc import status_pb2
     from google.cloud.bigtable.table import DEFAULT_RETRY
     from google.cloud.bigtable.table import RETRYABLE_MUTATION_ERRORS
+    from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
     from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+    from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -745,10 +748,10 @@ def _table_mutate_rows_helper(
         expected_retryable_errors = RETRYABLE_MUTATION_ERRORS
 
     rows = [
-        _MockRow(b"first"),
-        _MockRow(b"second"),
-        _MockRow(b"third"),
-        _MockRow(b"fourth"),
+        _MockRow(ROW_KEY),
+        _MockRow(ROW_KEY_1),
+        _MockRow(ROW_KEY_2),
+        _MockRow(ROW_KEY_3),
     ]
 
     table = _make_table(TABLE_ID, instance, **ctor_kwargs)
@@ -761,32 +764,44 @@ def _table_mutate_rows_helper(
     if timeout is not None:
         call_kwargs["timeout"] = timeout
 
-    with mock.patch.object(
-        table._table_impl, "_get_mutate_rows_operation"
-    ) as get_operation_mock:
-        get_operation_mock.return_value.start.side_effect = MutationsExceptionGroup(
-            excs=[Exception()], total_entries=4
+    with mock.patch.object(table._table_impl, "bulk_mutate_rows") as mutate_rows_mock:
+        # First entry = success
+        # Second entry = api error
+        # Third entry = non-api error
+        # Fourth entry = retryexceptiongroup
+        mutate_rows_mock.side_effect = MutationsExceptionGroup(
+            excs=[
+                FailedMutationEntryError(
+                    failed_idx=1,
+                    failed_mutation_entry=RowMutationEntry(
+                        ROW_KEY_1, [mock.MagicMock()]
+                    ),
+                    cause=api_exceptions.InternalServerError("Failure"),
+                ),
+                FailedMutationEntryError(
+                    failed_idx=2,
+                    failed_mutation_entry=RowMutationEntry(
+                        ROW_KEY_2, [mock.MagicMock()]
+                    ),
+                    cause=ValueError("Invalid argument"),
+                ),
+                FailedMutationEntryError(
+                    failed_idx=3,
+                    failed_mutation_entry=RowMutationEntry(
+                        ROW_KEY_3, [mock.MagicMock()]
+                    ),
+                    cause=RetryExceptionGroup(
+                        [
+                            api_exceptions.InternalServerError("First failure"),
+                            OSError("Out of memory"),
+                            api_exceptions.InternalServerError("Final failure"),
+                        ]
+                    ),
+                ),
+            ],
+            total_entries=4,
         )
 
-        # First entry = success
-        # Second entry = api errors
-        # Third entry = api errors, but not the first item
-        # Fourth entry = Errors, but no errors with grpc status codes
-        get_operation_mock.return_value.errors = {
-            1: [
-                exceptions.InternalServerError("First exception"),
-                exceptions.InternalServerError("Second exception"),
-            ],
-            2: [
-                ValueError("First exception"),
-                TypeError("Second exception"),
-                exceptions.InternalServerError("API error"),
-            ],
-            3: [
-                ValueError("First exception"),
-                TypeError("Second exception"),
-            ],
-        }
         statuses = table.mutate_rows(rows, **call_kwargs)
 
     assert statuses == [
@@ -796,20 +811,20 @@ def _table_mutate_rows_helper(
         ),
         status_pb2.Status(
             code=STATUS_INTERNAL,
-            message="First exception",
-        ),
-        status_pb2.Status(
-            code=STATUS_INTERNAL,
-            message="API error",
+            message="Failure",
         ),
         status_pb2.Status(
             code=STATUS_UNKNOWN,
-            message="First exception",
+            message="Invalid argument",
+        ),
+        status_pb2.Status(
+            code=STATUS_INTERNAL,
+            message="Final failure",
         ),
     ]
 
     # Check all call args other than mutation_entries
-    get_operation_mock.assert_called_once_with(
+    mutate_rows_mock.assert_called_once_with(
         mock.ANY,
         operation_timeout=expected_operation_timeout,
         attempt_timeout=expected_attempt_timeout,
@@ -817,13 +832,13 @@ def _table_mutate_rows_helper(
     )
 
     # Check that mutation entries are in order
-    mutation_entries = get_operation_mock.call_args.args[0]
+    mutation_entries = mutate_rows_mock.call_args.args[0]
     mutation_entry_keys = [row.row_key for row in mutation_entries]
     assert mutation_entry_keys == [
-        b"first",
-        b"second",
-        b"third",
-        b"fourth",
+        ROW_KEY,
+        ROW_KEY_1,
+        ROW_KEY_2,
+        ROW_KEY_3,
     ]
 
 
@@ -832,7 +847,7 @@ def test_table_mutate_rows_w_default_mutation_timeout_app_profile_id():
 
 
 def test_table_mutate_rows_w_mutation_timeout():
-    mutation_timeout = 123
+    mutation_timeout = 50
     _table_mutate_rows_helper(
         mutation_timeout=mutation_timeout, expected_attempt_timeout=mutation_timeout
     )
@@ -875,13 +890,13 @@ def test_table_mutate_rows_w_none_deadline_retry():
 
 
 def test_table_mutate_rows_w_timeout_arg():
-    timeout = 123
+    timeout = 40
     _table_mutate_rows_helper(timeout=timeout, expected_attempt_timeout=timeout)
 
 
 def test_table_mutate_rows_w_mutation_timeout_and_timeout_arg():
-    mutation_timeout = 123
-    timeout = 456
+    mutation_timeout = 50
+    timeout = 100
     _table_mutate_rows_helper(
         mutation_timeout=mutation_timeout,
         timeout=timeout,

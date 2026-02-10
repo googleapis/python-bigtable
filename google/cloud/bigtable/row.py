@@ -162,6 +162,7 @@ class _SetDeleteRow(Row):
                       :meth:`_get_mutations`.
         """
         if timestamp is None or timestamp == mutations._SERVER_SIDE_TIMESTAMP:
+            # Preserve special-case values (client side timestamp generation or server side timestamp)
             timestamp_micros = timestamp
         else:
             timestamp_micros = _microseconds_from_datetime(timestamp)

@@ -1299,29 +1299,6 @@ class _DataApiTarget(abc.ABC):
             exception_factory=_retry_exception_factory,
         )
 
-    def _get_mutate_rows_operation(
-        self,
-        mutation_entries: list[RowMutationEntry],
-        *,
-        operation_timeout: float | TABLE_DEFAULT,
-        attempt_timeout: float | None | TABLE_DEFAULT,
-        retryable_errors: Sequence[type[Exception]] | TABLE_DEFAULT,
-    ) -> CrossSync._Sync_Impl._MutateRowsOperation:
-        """Gets the bulk mutate rows operation object for the given mutation entries."""
-        (operation_timeout, attempt_timeout) = _get_timeouts(
-            operation_timeout, attempt_timeout, self
-        )
-        retryable_excs = _get_retryable_errors(retryable_errors, self)
-        operation = CrossSync._Sync_Impl._MutateRowsOperation(
-            self.client._gapic_client,
-            self,
-            mutation_entries,
-            operation_timeout,
-            attempt_timeout,
-            retryable_exceptions=retryable_excs,
-        )
-        return operation
-
     def bulk_mutate_rows(
         self,
         mutation_entries: list[RowMutationEntry],
@@ -1360,11 +1337,17 @@ class _DataApiTarget(abc.ABC):
             MutationsExceptionGroup: if one or more mutations fails
                 Contains details about any failed entries in .exceptions
             ValueError: if invalid arguments are provided"""
-        operation = self._get_mutate_rows_operation(
+        (operation_timeout, attempt_timeout) = _get_timeouts(
+            operation_timeout, attempt_timeout, self
+        )
+        retryable_excs = _get_retryable_errors(retryable_errors, self)
+        operation = CrossSync._Sync_Impl._MutateRowsOperation(
+            self.client._gapic_client,
+            self,
             mutation_entries,
-            operation_timeout=operation_timeout,
-            attempt_timeout=attempt_timeout,
-            retryable_errors=retryable_errors,
+            operation_timeout,
+            attempt_timeout,
+            retryable_exceptions=retryable_excs,
         )
         operation.start()
 

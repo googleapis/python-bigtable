@@ -31,7 +31,10 @@ from google.cloud.bigtable.backup import Backup
 from google.cloud.bigtable.column_family import _gc_rule_from_pb
 from google.cloud.bigtable.column_family import ColumnFamily
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
-from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+from google.cloud.bigtable.data.exceptions import (
+    RetryExceptionGroup,
+    MutationsExceptionGroup,
+)
 from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.batcher import MutationsBatcher
 from google.cloud.bigtable.batcher import FLUSH_COUNT, MAX_MUTATION_SIZE
@@ -740,18 +743,20 @@ class Table(object):
         if timeout is DEFAULT:
             timeout = self.mutation_timeout
 
-        # To adhere to the retry strategy of do-nothing being achievable with a deadline
-        # of 0.0, we modify the retryable errors to be empty if such a deadline is passed.
         retryable_errors = RETRYABLE_MUTATION_ERRORS
-        operation_timeout = retry.deadline
 
         # The data client cannot take in zero or null values for deadline, so we set it to
-        # the default if that is the case. It shouldn't affect the behavior of the retry
-        # if a 0.0 deadline is set.
-        if not retry.deadline:
+        # the default if that is the case.
+        if retry.deadline is None:
             operation_timeout = TABLE_DEFAULT.MUTATE_ROWS
-            if retry.deadline == 0.0:
-                retryable_errors = []
+
+        # To adhere to the retry strategy of do-nothing being achievable with a deadline
+        # of 0.0, we modify the retryable errors to be empty if such a deadline is passed.
+        elif retry.deadline == 0:
+            operation_timeout = TABLE_DEFAULT.MUTATE_ROWS
+            retryable_errors = []
+        else:
+            operation_timeout = retry.deadline
 
         attempt_timeout = timeout
         mutation_entries = [
@@ -761,39 +766,49 @@ class Table(object):
             mutation_entries
         )  # By default, return status OKs for everything
 
-        operation = self._table_impl._get_mutate_rows_operation(
-            mutation_entries,
-            operation_timeout=operation_timeout,
-            attempt_timeout=attempt_timeout,
-            retryable_errors=retryable_errors,
-        )
-
         try:
-            operation.start()
-        except MutationsExceptionGroup:
-            # Take the first exception for each error index with a gRPC status code
-            # and set the status of that row entry to that grpc status. if none of the
-            # errors for a given index have gRPC status codes, return an UNKNOWN status
-            # with the first error message of each index.
-            for idx, errors in operation.errors.items():
-                return_statuses[idx] = status_pb2.Status(
-                    code=code_pb2.Code.UNKNOWN,
-                    message=str(errors[0]),
-                )
-
-                for error in errors:
-                    if (
-                        isinstance(error, GoogleAPICallError)
-                        and error.grpc_status_code is not None
-                    ):
-                        return_statuses[idx] = status_pb2.Status(
-                            code=error.grpc_status_code.value[0],
-                            message=error.message,
-                            details=error.details,
-                        )
-                        break
+            self._table_impl.bulk_mutate_rows(
+                mutation_entries,
+                operation_timeout=operation_timeout,
+                attempt_timeout=attempt_timeout,
+                retryable_errors=retryable_errors,
+            )
+        except MutationsExceptionGroup as mut_exc_group:
+            # We exception handle as follows:
+            #
+            # 1. Each exception in the error group is a FailedMutationEntryError, and its
+            #    cause is either a singular exception or a RetryExceptionGroup consisting of
+            #    multiple exceptions.
+            #
+            # 2. In the case of a singular exception, if the error does not have a gRPC status
+            #    code, we return a status code of UNKNOWN.
+            #
+            # 3. In the case of a RetryExceptionGroup, we use terminal exception in the exception
+            #    group and process that.
+            for error in mut_exc_group.exceptions:
+                cause = error.__cause__
+                if isinstance(cause, RetryExceptionGroup):
+                    return_statuses[error.index] = self._get_status(
+                        cause.exceptions[-1]
+                    )
+                else:
+                    return_statuses[error.index] = self._get_status(cause)
 
         return return_statuses
+
+    @staticmethod
+    def _get_status(error):
+        if isinstance(error, GoogleAPICallError) and error.grpc_status_code is not None:
+            return status_pb2.Status(
+                code=error.grpc_status_code.value[0],
+                message=error.message,
+                details=error.details,
+            )
+
+        return status_pb2.Status(
+            code=code_pb2.Code.UNKNOWN,
+            message=str(error),
+        )
 
     def sample_row_keys(self):
         """Read a sample of row keys in the table.
