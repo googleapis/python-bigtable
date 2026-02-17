@@ -358,7 +358,7 @@ def test_table_mutate_rows_retries_timeout(data_table, rows_to_delete):
 
         statuses = data_table.mutate_rows([row, row_2])
         assert statuses[0].code == Code.OK
-        assert statuses[1].code == Code.INTERNAL
+        assert statuses[1].code == Code.DEADLINE_EXCEEDED
 
     # Retries with deadline 0 should do nothing.
     with mock.patch.object(
