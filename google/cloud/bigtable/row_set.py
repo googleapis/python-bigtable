@@ -136,11 +136,11 @@ class RowSet(object):
         :type message: class:`data_messages_v2_pb2.ReadRowsRequest`
         :param message: The ``ReadRowsRequest`` protobuf
         """
-        for each in self._read_rows_query._row_set.row_keys:
+        for each in self._read_rows_query.row_keys:
             message.rows.row_keys._pb.append(_to_bytes(each))
 
-        for each in self._read_rows_query._row_set.row_ranges:
-            message.rows.row_ranges.append(each)
+        for each in self._read_rows_query.row_ranges:
+            message.rows.row_ranges.append(each._to_pb())
 
 
 class RowRange(_MappableAttributesMixin, BaseRowRange):
