@@ -49,7 +49,7 @@ _CONCURRENCY_LIMIT = 10
 _DEFAULT_BIGTABLE_EMULATOR_CLIENT = "google-cloud-bigtable-emulator"
 
 # Internal error messages that can be retried during ReadRows. Internal error messages with this error
-# text should be streated as Unavailable error messages with the same error text, and will therefore be
+# text should be treated as Unavailable error messages with the same error text, and will therefore be
 # treated as Unavailable errors rather than Internal errors.
 _RETRYABLE_INTERNAL_ERROR_MESSAGES = (
     "rst_stream",
@@ -139,7 +139,7 @@ def _read_rows_predicate_with_exceptions(*exception_types: type[Exception]) -> C
     ServiceUnavailable errors and will retry them if the Unavailable exception is retryable.
 
     Args:
-        retryable_exceptions: tuple of Exception types to be retried during operation
+        exception_types: Exception types to be retried during operation
     
     Returns:
         Callable[[Exception], bool]: A retry predicate that takes in an exception and
@@ -148,7 +148,7 @@ def _read_rows_predicate_with_exceptions(*exception_types: type[Exception]) -> C
     is_exception_type = retries.if_exception_type(*exception_types)
     
     def predicate(exception: Exception) -> bool:
-        return (isinstance(exception, core_exceptions.InternalServerError) and exception.message.lower() in _RETRYABLE_INTERNAL_ERROR_MESSAGES) or is_exception_type(exception)
+        return (isinstance(exception, core_exceptions.InternalServerError) and any(m in exception.message.lower() for m in _RETRYABLE_INTERNAL_ERROR_MESSAGES)) or is_exception_type(exception)
 
     # Treating RST_STREAM internal errors as unavailable errors is only done if ServiceUnavailable is one of the
     # given exception types. If InternalServerError is also a retryable exception, we don't necessarily need the
