@@ -1160,7 +1160,7 @@ class TestTable:
         retry_fn = f"CrossSync._Sync_Impl.{retry_fn}"
         subpackage = "_sync_autogen"
         if is_read_rows_fn:
-            predicate_builder = f"google.cloud.bigtable.data.{subpackage}._read_rows._read_rows_predicate_with_exceptions"
+            predicate_builder = f"google.cloud.bigtable.data.{subpackage}._read_rows._rst_stream_aware_predicate"
         else:
             predicate_builder = "google.api_core.retry.if_exception_type"
         with mock.patch(

@@ -222,19 +222,45 @@ class TestAlignTimeouts:
             _helpers._align_timeouts(input_times[0], input_times[1])
 
 
-class TestReadRowsPredicateWithException:
+class TestRstStreamAwarePredicate:
     @pytest.mark.parametrize(
         "retryable_exceptions,exception,expected_is_retryable",
         [
-            ([core_exceptions.Aborted, core_exceptions.InternalServerError], core_exceptions.InternalServerError("Sorry"), True),
-            ([core_exceptions.Aborted, core_exceptions.InternalServerError], core_exceptions.DataLoss("Sorry"), False),
-            ([core_exceptions.ServiceUnavailable, core_exceptions.Aborted], core_exceptions.InternalServerError("Sorry"), False),
-            ([core_exceptions.ServiceUnavailable, core_exceptions.Aborted], core_exceptions.InternalServerError(_helpers._RETRYABLE_INTERNAL_ERROR_MESSAGES[0]), True),
-            ([core_exceptions.InternalServerError, core_exceptions.Aborted], core_exceptions.InternalServerError(_helpers._RETRYABLE_INTERNAL_ERROR_MESSAGES[0]), True),
-        ]
+            (
+                [core_exceptions.Aborted, core_exceptions.InternalServerError],
+                core_exceptions.InternalServerError("Sorry"),
+                True,
+            ),
+            (
+                [core_exceptions.Aborted, core_exceptions.InternalServerError],
+                core_exceptions.DataLoss("Sorry"),
+                False,
+            ),
+            (
+                [core_exceptions.ServiceUnavailable, core_exceptions.Aborted],
+                core_exceptions.InternalServerError("Sorry"),
+                False,
+            ),
+            (
+                [core_exceptions.ServiceUnavailable, core_exceptions.Aborted],
+                core_exceptions.InternalServerError(
+                    _helpers._RETRYABLE_INTERNAL_ERROR_MESSAGES[0]
+                ),
+                True,
+            ),
+            (
+                [core_exceptions.InternalServerError, core_exceptions.Aborted],
+                core_exceptions.InternalServerError(
+                    _helpers._RETRYABLE_INTERNAL_ERROR_MESSAGES[0]
+                ),
+                True,
+            ),
+        ],
     )
-    def test_ctor_retryable_exceptions_predicate(self, retryable_exceptions, exception, expected_is_retryable):
-        predicate = _helpers._read_rows_predicate_with_exceptions(*retryable_exceptions)
+    def test_rst_stream_aware_predicate(
+        self, retryable_exceptions, exception, expected_is_retryable
+    ):
+        predicate = _helpers._rst_stream_aware_predicate(*retryable_exceptions)
         assert predicate(exception) is expected_is_retryable
 
 

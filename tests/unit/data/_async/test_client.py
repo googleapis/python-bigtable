@@ -1454,7 +1454,7 @@ class TestTableAsync:
         # Read Rows has its own custom predicate builder that also takes in
         # a list of exceptions
         if is_read_rows_fn:
-            predicate_builder = f"google.cloud.bigtable.data.{subpackage}._read_rows._read_rows_predicate_with_exceptions"
+            predicate_builder = f"google.cloud.bigtable.data.{subpackage}._read_rows._rst_stream_aware_predicate"
         else:
             predicate_builder = "google.api_core.retry.if_exception_type"
 

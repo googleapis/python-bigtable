@@ -142,7 +142,7 @@ class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # 
 
 
 # TODO: When working on mutations batcher, rework exception handling to guarantee that
-# MutationsExceptionGroup only stores FailedMutationEntryErrors. 
+# MutationsExceptionGroup only stores FailedMutationEntryErrors.
 class MutationsExceptionGroup(_BigtableExceptionGroup):
     """
     Represents one or more exceptions that occur during a bulk mutation operation

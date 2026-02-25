@@ -132,31 +132,31 @@ def _retry_exception_factory(
     return source_exc, cause_exc
 
 
-def _read_rows_predicate_with_exceptions(*exception_types: type[Exception]) -> Callable[[Exception], bool]:
-    """A custom retry predicate for ReadRows.
-    
+def _rst_stream_aware_predicate(
+    *exception_types: type[Exception],
+) -> Callable[[Exception], bool]:
+    """A custom retry predicate.
+
     This predicate treats Internal error messages with RST_STREAM errors as
     ServiceUnavailable errors and will retry them if the Unavailable exception is retryable.
 
     Args:
         exception_types: Exception types to be retried during operation
-    
+
     Returns:
         Callable[[Exception], bool]: A retry predicate that takes in an exception and
             returns whether or not that exception is retryable
     """
-    is_exception_type = retries.if_exception_type(*exception_types)
-    
-    def predicate(exception: Exception) -> bool:
-        return (isinstance(exception, core_exceptions.InternalServerError) and any(m in exception.message.lower() for m in _RETRYABLE_INTERNAL_ERROR_MESSAGES)) or is_exception_type(exception)
+    # predicate to check for retryable error types
+    if_exception_type = retries.if_exception_type(*exception_types)
+    # special case: treat InternalServerError with rst_stream error message as ServiceUnavailable
+    rst_check = (
+        lambda e: core_exceptions.ServiceUnavailable in exception_types
+        and isinstance(e, core_exceptions.InternalServerError)
+        and any(m in e.message.lower() for m in _RETRYABLE_INTERNAL_ERROR_MESSAGES)
+    )
 
-    # Treating RST_STREAM internal errors as unavailable errors is only done if ServiceUnavailable is one of the
-    # given exception types. If InternalServerError is also a retryable exception, we don't necessarily need the
-    # custom predicate either.
-    if core_exceptions.ServiceUnavailable in exception_types and core_exceptions.InternalServerError not in exception_types:
-        return predicate
-
-    return is_exception_type
+    return lambda e: if_exception_type(e) or rst_check(e)
 
 
 def _get_timeouts(
