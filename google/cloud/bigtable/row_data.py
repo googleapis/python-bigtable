@@ -84,7 +84,7 @@ class PartialRowsData(object):
 
     def cancel(self):
         """Cancels the iterator, closing the stream."""
-        self._cancelled = True
+        self._generator.close()
 
     def consume_all(self, max_loops=None):
         """Consume the streamed responses until there are no more.
@@ -107,10 +107,7 @@ class PartialRowsData(object):
         """
         try:
             for row in self._generator:
-                if self._cancelled:
-                    return
-                else:
-                    yield PartialRowData._from_data_client_row(row)
+                yield PartialRowData._from_data_client_row(row)
 
         # Any exception from the generator should cancel the iterator. A
         # timeout, defined by catching a DeadlineExceeded, should be reraised

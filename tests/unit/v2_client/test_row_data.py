@@ -466,12 +466,22 @@ def _partial_rows_data_consume_all(yrd):
     return [row.row_key for row in yrd]
 
 
-def _make_generator(rows):
-    return (row for row in rows)
+def _make_generator(rows, error=None):
+    for row in rows:
+        if error:
+            raise error
+        else:
+            yield row
+
+
+def _assert_generator_closed(generator):
+    with pytest.raises(StopIteration):
+        next(generator)
 
 
 def test_partial_rows_data_consume_all():
-    partial_rows_data = _make_partial_rows_data(_make_generator(ROWS))
+    generator = _make_generator(ROWS)
+    partial_rows_data = _make_partial_rows_data(generator)
     partial_rows_data.consume_all()
 
     row1 = _make_partial_row_data(ROW_KEY)
@@ -493,9 +503,12 @@ def test_partial_rows_data_consume_all():
         row3.row_key: row3,
     }
 
+    _assert_generator_closed(generator)
+
 
 def test_partial_rows_data_cancel():
-    partial_rows_data = _make_partial_rows_data(_make_generator(ROWS))
+    generator = _make_generator(ROWS)
+    partial_rows_data = _make_partial_rows_data(generator)
     row_data = []
 
     count = 0
@@ -511,18 +524,22 @@ def test_partial_rows_data_cancel():
     }
     assert row_data == [row1]
 
+    # We should have closed the generator, so there should be no more
+    # elements left in there even though we haven't iterated through all the rows.
+    _assert_generator_closed(generator)
+
 
 def test_partial_rows_data_deadline_exceeded():
     from google.api_core import exceptions
 
-    def generator_w_error():
-        raise exceptions.DeadlineExceeded("Boom")
-        yield 1
+    generator = _make_generator(ROWS, error=exceptions.DeadlineExceeded("Operation timed out."))
 
-    partial_rows_data = _make_partial_rows_data(generator_w_error())
+    partial_rows_data = _make_partial_rows_data(generator)
     with pytest.raises(exceptions.RetryError):
         list(partial_rows_data)
-    assert partial_rows_data._cancelled
+
+    # An exception should close the generator.
+    _assert_generator_closed(generator)
 
 
 def _make_cell_pb(value):

@@ -920,6 +920,7 @@ def test_table_read_rows_retry_timeout_mid_stream(
     rows_data = data_table_read_rows_retry_tests.read_rows(
         retry=DEFAULT_RETRY_READ_ROWS.with_deadline(10.0)
     )
+    pytest.fail(str(type(rows_data._generator)))
     with pytest.raises(exceptions.RetryError):
         rows_data.consume_all()
 
