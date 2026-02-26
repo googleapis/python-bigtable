@@ -532,7 +532,9 @@ def test_partial_rows_data_cancel():
 def test_partial_rows_data_deadline_exceeded():
     from google.api_core import exceptions
 
-    generator = _make_generator(ROWS, error=exceptions.DeadlineExceeded("Operation timed out."))
+    generator = _make_generator(
+        ROWS, error=exceptions.DeadlineExceeded("Operation timed out.")
+    )
 
     partial_rows_data = _make_partial_rows_data(generator)
     with pytest.raises(exceptions.RetryError):
