@@ -659,6 +659,7 @@ def test_table_read_rows(data_table, rows_to_delete):
     expected_rows = {ROW_KEY: row_data, ROW_KEY_ALT: row_alt_data}
     assert rows_data.rows == expected_rows
 
+
 def test_read_with_label_applied(data_table, rows_to_delete, skip_on_emulator):
     from google.cloud.bigtable.row_filters import ApplyLabelFilter
     from google.cloud.bigtable.row_filters import ColumnQualifierRegexFilter
@@ -734,10 +735,10 @@ def test_table_read_rows_multiple_reads(
     second_iteration.rows = {}
     for item in rows_data:
         first_iteration.rows[item.row_key] = item
-    
+
     for item in rows_data:
         second_iteration.rows[item.row_key] = item
-    
+
     _assert_data_table_read_rows_retry_correct(first_iteration)
     assert second_iteration.rows == {}
 
