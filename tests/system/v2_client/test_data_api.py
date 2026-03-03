@@ -659,7 +659,6 @@ def test_table_read_rows(data_table, rows_to_delete):
     expected_rows = {ROW_KEY: row_data, ROW_KEY_ALT: row_alt_data}
     assert rows_data.rows == expected_rows
 
-
 def test_read_with_label_applied(data_table, rows_to_delete, skip_on_emulator):
     from google.cloud.bigtable.row_filters import ApplyLabelFilter
     from google.cloud.bigtable.row_filters import ColumnQualifierRegexFilter
@@ -720,6 +719,27 @@ def _assert_data_table_read_rows_retry_correct(rows_data):
                 row.cells[COLUMN_FAMILY_ID1][f"col_{col_num}".encode()][0].value
                 == CELL_VAL_READ_ROWS_RETRY
             )
+
+
+def test_table_read_rows_multiple_reads(
+    data_table_read_rows_retry_tests,
+):
+    from types import SimpleNamespace
+
+    rows_data = data_table_read_rows_retry_tests.read_rows()
+    first_iteration = SimpleNamespace()
+    first_iteration.rows = {}
+
+    second_iteration = SimpleNamespace()
+    second_iteration.rows = {}
+    for item in rows_data:
+        first_iteration.rows[item.row_key] = item
+    
+    for item in rows_data:
+        second_iteration.rows[item.row_key] = item
+    
+    _assert_data_table_read_rows_retry_correct(first_iteration)
+    assert second_iteration.rows == {}
 
 
 def test_table_read_rows_retry_unretriable_error_establishing_stream(

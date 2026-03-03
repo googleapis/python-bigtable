@@ -72,15 +72,13 @@ class PartialRowsData(object):
     :param read_method: ``ReadRows`` method.
 
     :type generator: :class:`Iterable[Row]`
-    :param generator: The `Row` iterator from :meth:`Table.read_rows`
+    :param generator: The `Row` iterator from :meth:`Table.read_rows`. This is not intended
+                      to be created directly.
     """
 
     def __init__(self, generator):
         self._generator = generator
         self.rows = {}
-
-        # Flag to stop iteration, for any reason not related to self.retry()
-        self._cancelled = False
 
     def cancel(self):
         """Cancels the iterator, closing the stream."""
@@ -94,9 +92,7 @@ class PartialRowsData(object):
            class as a generator instead.
 
         :type max_loops: int
-        :param max_loops: (Optional) Maximum number of times to try to consume
-                          an additional ``ReadRowsResponse``. You can use this
-                          to avoid long wait times.
+        :param max_loops: (Deprecated). This parameter does nothing.
         """
         for row in self:
             self.rows[row.row_key] = row
