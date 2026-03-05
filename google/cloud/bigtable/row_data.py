@@ -68,12 +68,14 @@ Used by
 class PartialRowsData(object):
     """Convenience wrapper for consuming a ``ReadRows`` streaming response.
 
+    This class will be returned by the ``read_rows`` method, and should not
+    be constructed manually.
+
     :type read_method: :class:`client._table_data_client.read_rows`
     :param read_method: ``ReadRows`` method.
 
     :type generator: :class:`Iterable[Row]`
-    :param generator: The `Row` iterator from :meth:`Table.read_rows`. This is not intended
-                      to be created directly.
+    :param generator: The `Row` iterator from :meth:`Table.read_rows`.
     """
 
     def __init__(self, generator):
@@ -92,7 +94,9 @@ class PartialRowsData(object):
            class as a generator instead.
 
         :type max_loops: int
-        :param max_loops: (Deprecated). This parameter does nothing.
+        :param max_loops: (Deprecated). Maximum number of times to try to consume
+                          an additional ``ReadRowsResponse``. This parameter is
+                          deprecated and is only kept for backwards compatibility.
         """
         for row in self:
             self.rows[row.row_key] = row
