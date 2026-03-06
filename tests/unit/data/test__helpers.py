@@ -16,7 +16,10 @@ import pytest
 import grpc
 from google.api_core import exceptions as core_exceptions
 import google.cloud.bigtable.data._helpers as _helpers
+import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
+
+from google.rpc import code_pb2, status_pb2
 
 import mock
 
@@ -262,6 +265,71 @@ class TestRstStreamAwarePredicate:
     ):
         predicate = _helpers._rst_stream_aware_predicate(*retryable_exceptions)
         assert predicate(exception) is expected_is_retryable
+
+
+class TestPopulateStatusesFromMutationExceptionGroup:
+    @pytest.mark.parametrize(
+        "cause_exc,expected_status",
+        [
+            (
+                core_exceptions.DeadlineExceeded(
+                    "Operation timed out after 40 seconds"
+                ),
+                status_pb2.Status(
+                    code=code_pb2.DEADLINE_EXCEEDED,
+                    message="Operation timed out after 40 seconds",
+                ),
+            ),
+            (
+                RuntimeError("Something happened"),
+                status_pb2.Status(code=code_pb2.UNKNOWN, message="Something happened"),
+            ),
+            (
+                bt_exceptions.RetryExceptionGroup(
+                    excs=[
+                        core_exceptions.ServiceUnavailable("Service Unavailable"),
+                        core_exceptions.ServiceUnavailable("Service Unavailable"),
+                        core_exceptions.DeadlineExceeded(
+                            "Operation timed out after 40 seconds"
+                        ),
+                    ]
+                ),
+                status_pb2.Status(
+                    code=code_pb2.DEADLINE_EXCEEDED,
+                    message="Operation timed out after 40 seconds",
+                ),
+            ),
+            (
+                bt_exceptions.RetryExceptionGroup(
+                    excs=[
+                        core_exceptions.ServiceUnavailable("Service Unavailable"),
+                        core_exceptions.ServiceUnavailable("Service Unavailable"),
+                        RuntimeError("Something happened"),
+                    ]
+                ),
+                status_pb2.Status(code=code_pb2.UNKNOWN, message="Something happened"),
+            ),
+        ],
+    )
+    def test_populate_statuses_from_mutation_exception_group(
+        self, cause_exc, expected_status
+    ):
+        statuses = [status_pb2.Status(code=code_pb2.OK)]
+
+        mutation_exception_group = bt_exceptions.MutationsExceptionGroup(
+            excs=[
+                bt_exceptions.FailedMutationEntryError(
+                    failed_idx=0, failed_mutation_entry=mock.Mock(), cause=cause_exc
+                )
+            ],
+            total_entries=1,
+            message="Mutations failed.",
+        )
+
+        _helpers._populate_statuses_from_mutations_exception_group(
+            statuses, mutation_exception_group
+        )
+        assert statuses[0] == expected_status
 
 
 class TestGetRetryableErrors:

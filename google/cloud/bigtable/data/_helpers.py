@@ -26,6 +26,10 @@ from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
 from google.api_core.retry import RetryFailureReason
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+from google.rpc import code_pb2
+from google.rpc import status_pb2
+
 
 if TYPE_CHECKING:
     import grpc
@@ -222,6 +226,61 @@ def _align_timeouts(operation: float, attempt: float | None) -> tuple[float, flo
 
     _validate_timeouts(operation, final_attempt, allow_none=False)
     return operation, final_attempt
+
+
+def _populate_statuses_from_mutations_exception_group(
+    statuses: list[status_pb2.Status], exc_group: MutationsExceptionGroup
+):
+    """
+    Helper function that populates a list of Status objects with exception information from
+    the exception group.
+
+    Args:
+        statuses: The initial list of Status objects
+        exc_group: The exception group from a mutate rows operation
+    """
+    # We exception handle as follows:
+    #
+    # 1. Each exception in the error group is a FailedMutationEntryError, and its
+    #    cause is either a singular exception or a RetryExceptionGroup consisting of
+    #    multiple exceptions.
+    #
+    # 2. In the case of a singular exception, if the error does not have a gRPC status
+    #    code, we return a status code of UNKNOWN.
+    #
+    # 3. In the case of a RetryExceptionGroup, we use terminal exception in the exception
+    #    group and process that.
+    for error in exc_group.exceptions:
+        cause = error.__cause__
+        if isinstance(cause, RetryExceptionGroup):
+            statuses[error.index] = _get_status(cause.exceptions[-1])
+        else:
+            statuses[error.index] = _get_status(cause)
+
+
+def _get_status(exc: Exception) -> status_pb2.Status:
+    """
+    Helper function that returns a Status object corresponding to the given exception.
+
+    Args:
+        exc: An exception to be converted into a Status.
+    Returns:
+        status_pb2.Status: A Status proto object.
+    """
+    if (
+        isinstance(exc, core_exceptions.GoogleAPICallError)
+        and exc.grpc_status_code is not None
+    ):
+        return status_pb2.Status(
+            code=exc.grpc_status_code.value[0],
+            message=exc.message,
+            details=exc.details,
+        )
+
+    return status_pb2.Status(
+        code=code_pb2.Code.UNKNOWN,
+        message=str(exc),
+    )
 
 
 def _validate_timeouts(

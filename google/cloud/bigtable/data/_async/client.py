@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 from typing import (
+    Callable,
     cast,
     Any,
     AsyncIterable,
@@ -115,6 +116,7 @@ else:
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
+    from google.rpc import status_pb2
 
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.mutations_batcher import (
@@ -1437,6 +1439,7 @@ class _DataApiTargetAsync(abc.ABC):
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
+        _batch_completed_callback: Optional[Callable[list[status_pb2.Status]]] = None,
     ) -> "MutationsBatcherAsync":
         """
         Returns a new mutations batcher instance.
@@ -1472,6 +1475,7 @@ class _DataApiTargetAsync(abc.ABC):
             batch_operation_timeout=batch_operation_timeout,
             batch_attempt_timeout=batch_attempt_timeout,
             batch_retryable_errors=batch_retryable_errors,
+            _batch_completed_callback=_batch_completed_callback,
         )
 
     @CrossSync.convert
