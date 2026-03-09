@@ -331,6 +331,31 @@ class TestPopulateStatusesFromMutationExceptionGroup:
         )
         assert statuses[0] == expected_status
 
+    @pytest.mark.parametrize(
+        "index",
+        [
+            100,
+            None,
+        ],
+    )
+    def test_populate_statuses_from_mutation_exception_group_out_of_bounds(self, index):
+        statuses = [status_pb2.Status(code=code_pb2.OK)]
+
+        mutation_exception_group = bt_exceptions.MutationsExceptionGroup(
+            excs=[
+                bt_exceptions.FailedMutationEntryError(
+                    failed_idx=index, failed_mutation_entry=mock.Mock(), cause=Exception("Boom!")
+                )
+            ],
+            total_entries=1,
+            message="Mutations failed.",
+        )
+
+        _helpers._populate_statuses_from_mutations_exception_group(
+            statuses, mutation_exception_group
+        )
+        assert statuses[0] == status_pb2.Status(code=code_pb2.OK)
+
 
 class TestGetRetryableErrors:
     @pytest.mark.parametrize(

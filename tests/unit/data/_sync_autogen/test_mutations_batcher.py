@@ -821,8 +821,8 @@ class TestMutationsBatcher:
                 assert args[0] == table.client._gapic_client
                 assert args[1] == table
                 assert args[2] == batch
-                kwargs["operation_timeout"] == 17
-                kwargs["attempt_timeout"] == 13
+                assert kwargs["operation_timeout"] == 17
+                assert kwargs["attempt_timeout"] == 13
                 assert result == []
 
     def test__execute_mutate_rows_returns_errors(self):
@@ -875,8 +875,8 @@ class TestMutationsBatcher:
                 assert args[0] == table.client._gapic_client
                 assert args[1] == table
                 assert args[2] == batch
-                kwargs["operation_timeout"] == 17
-                kwargs["attempt_timeout"] == 13
+                assert kwargs["operation_timeout"] == 17
+                assert kwargs["attempt_timeout"] == 13
                 assert result == []
 
     def test__execute_mutate_rows_batch_completed_callback_errors(self):

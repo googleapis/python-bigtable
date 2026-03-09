@@ -251,11 +251,12 @@ def _populate_statuses_from_mutations_exception_group(
     # 3. In the case of a RetryExceptionGroup, we use terminal exception in the exception
     #    group and process that.
     for error in exc_group.exceptions:
-        cause = error.__cause__
-        if isinstance(cause, RetryExceptionGroup):
-            statuses[error.index] = _get_status(cause.exceptions[-1])
-        else:
-            statuses[error.index] = _get_status(cause)
+        if isinstance(error.index, int) and 0 <= error.index < len(statuses):
+            cause = error.__cause__
+            if isinstance(cause, RetryExceptionGroup):
+                statuses[error.index] = _get_status(cause.exceptions[-1])
+            else:
+                statuses[error.index] = _get_status(cause)
 
 
 def _get_status(exc: Exception) -> status_pb2.Status:
