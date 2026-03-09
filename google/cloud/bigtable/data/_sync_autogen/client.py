@@ -1191,7 +1191,9 @@ class _DataApiTarget(abc.ABC):
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        _batch_completed_callback: Optional[Callable[list[status_pb2.Status]]] = None,
+        _batch_completed_callback: Optional[
+            Callable[[list[status_pb2.Status]], None]
+        ] = None,
     ) -> "MutationsBatcher":
         """Returns a new mutations batcher instance.
 

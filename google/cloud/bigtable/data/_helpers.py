@@ -272,7 +272,7 @@ def _get_status(exc: Exception) -> status_pb2.Status:
         isinstance(exc, core_exceptions.GoogleAPICallError)
         and exc.grpc_status_code is not None
     ):
-        return status_pb2.Status(
+        return status_pb2.Status(  # type: ignore[unreachable]
             code=exc.grpc_status_code.value[0],
             message=exc.message,
             details=exc.details,
