@@ -344,7 +344,9 @@ class TestPopulateStatusesFromMutationExceptionGroup:
         mutation_exception_group = bt_exceptions.MutationsExceptionGroup(
             excs=[
                 bt_exceptions.FailedMutationEntryError(
-                    failed_idx=index, failed_mutation_entry=mock.Mock(), cause=Exception("Boom!")
+                    failed_idx=index,
+                    failed_mutation_entry=mock.Mock(),
+                    cause=Exception("Boom!"),
                 )
             ],
             total_entries=1,
