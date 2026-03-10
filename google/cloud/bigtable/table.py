@@ -31,7 +31,7 @@ from google.cloud.bigtable.column_family import _gc_rule_from_pb
 from google.cloud.bigtable.column_family import ColumnFamily
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import (
-    _populate_statuses_from_mutations_exception_group,
+    _get_statuses_from_mutations_exception_group,
 )
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.mutations import RowMutationEntry
@@ -761,9 +761,9 @@ class Table(object):
         mutation_entries = [
             RowMutationEntry(row.row_key, row._get_mutations()) for row in rows
         ]
-        return_statuses = [status_pb2.Status(code=code_pb2.Code.OK)] * len(
+        return_statuses = [status_pb2.Status(code=code_pb2.Code.UNKNOWN)] * len(
             mutation_entries
-        )  # By default, return status OKs for everything
+        )
 
         try:
             self._table_impl.bulk_mutate_rows(
@@ -773,9 +773,12 @@ class Table(object):
                 retryable_errors=retryable_errors,
             )
         except MutationsExceptionGroup as mut_exc_group:
-            _populate_statuses_from_mutations_exception_group(
-                return_statuses,
-                mut_exc_group,
+            return_statuses = _get_statuses_from_mutations_exception_group(
+                mut_exc_group, len(mutation_entries)
+            )
+        else:
+            return_statuses = [status_pb2.Status(code=code_pb2.Code.OK)] * len(
+                mutation_entries
             )
 
         return return_statuses

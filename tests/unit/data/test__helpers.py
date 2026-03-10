@@ -267,11 +267,12 @@ class TestRstStreamAwarePredicate:
         assert predicate(exception) is expected_is_retryable
 
 
-class TestPopulateStatusesFromMutationExceptionGroup:
+class TestGetStatusesFromMutationsExceptionGroup:
     @pytest.mark.parametrize(
-        "cause_exc,expected_status",
+        "failed_idx,cause_exc,expected_status",
         [
             (
+                0,
                 core_exceptions.DeadlineExceeded(
                     "Operation timed out after 40 seconds"
                 ),
@@ -281,10 +282,12 @@ class TestPopulateStatusesFromMutationExceptionGroup:
                 ),
             ),
             (
+                0,
                 RuntimeError("Something happened"),
                 status_pb2.Status(code=code_pb2.UNKNOWN, message="Something happened"),
             ),
             (
+                0,
                 bt_exceptions.RetryExceptionGroup(
                     excs=[
                         core_exceptions.ServiceUnavailable("Service Unavailable"),
@@ -300,6 +303,7 @@ class TestPopulateStatusesFromMutationExceptionGroup:
                 ),
             ),
             (
+                0,
                 bt_exceptions.RetryExceptionGroup(
                     excs=[
                         core_exceptions.ServiceUnavailable("Service Unavailable"),
@@ -309,54 +313,37 @@ class TestPopulateStatusesFromMutationExceptionGroup:
                 ),
                 status_pb2.Status(code=code_pb2.UNKNOWN, message="Something happened"),
             ),
+            (
+                100,
+                RuntimeError("Something happened"),
+                status_pb2.Status(code=code_pb2.OK),
+            ),
+            (
+                None,
+                RuntimeError("Something happened"),
+                status_pb2.Status(code=code_pb2.OK),
+            ),
         ],
     )
-    def test_populate_statuses_from_mutation_exception_group(
-        self, cause_exc, expected_status
+    def test_get_statuses_from_mutations_exception_group(
+        self, failed_idx, cause_exc, expected_status
     ):
-        statuses = [status_pb2.Status(code=code_pb2.OK)]
-
         mutation_exception_group = bt_exceptions.MutationsExceptionGroup(
             excs=[
                 bt_exceptions.FailedMutationEntryError(
-                    failed_idx=0, failed_mutation_entry=mock.Mock(), cause=cause_exc
+                    failed_idx=failed_idx,
+                    failed_mutation_entry=mock.Mock(),
+                    cause=cause_exc,
                 )
             ],
             total_entries=1,
             message="Mutations failed.",
         )
 
-        _helpers._populate_statuses_from_mutations_exception_group(
-            statuses, mutation_exception_group
+        statuses = _helpers._get_statuses_from_mutations_exception_group(
+            mutation_exception_group, 1
         )
         assert statuses[0] == expected_status
-
-    @pytest.mark.parametrize(
-        "index",
-        [
-            100,
-            None,
-        ],
-    )
-    def test_populate_statuses_from_mutation_exception_group_out_of_bounds(self, index):
-        statuses = [status_pb2.Status(code=code_pb2.OK)]
-
-        mutation_exception_group = bt_exceptions.MutationsExceptionGroup(
-            excs=[
-                bt_exceptions.FailedMutationEntryError(
-                    failed_idx=index,
-                    failed_mutation_entry=mock.Mock(),
-                    cause=Exception("Boom!"),
-                )
-            ],
-            total_entries=1,
-            message="Mutations failed.",
-        )
-
-        _helpers._populate_statuses_from_mutations_exception_group(
-            statuses, mutation_exception_group
-        )
-        assert statuses[0] == status_pb2.Status(code=code_pb2.OK)
 
 
 class TestGetRetryableErrors:

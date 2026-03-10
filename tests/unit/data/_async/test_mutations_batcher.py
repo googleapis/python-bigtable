@@ -483,7 +483,7 @@ class TestMutationsBatcherAsync:
         batcher_init_signature.pop("target")
         # both should have same number of arguments
         assert len(get_batcher_signature.keys()) == len(batcher_init_signature.keys())
-        assert len(get_batcher_signature) == 9  # update if expected params change
+        assert len(get_batcher_signature) == 8  # update if expected params change
         # both should have same argument names
         assert set(get_batcher_signature.keys()) == set(batcher_init_signature.keys())
         # both should have same default values
@@ -985,9 +985,8 @@ class TestMutationsBatcherAsync:
             table.default_mutate_rows_attempt_timeout = 13
             table.default_mutate_rows_retryable_errors = ()
             callback = mock.Mock()
-            async with self._make_one(
-                table, _batch_completed_callback=callback
-            ) as instance:
+            async with self._make_one(table) as instance:
+                instance._user_batch_completed_callback = callback
                 batch = [self._make_mutation()]
                 result = await instance._execute_mutate_rows(batch)
                 callback.assert_called_once_with([status_pb2.Status(code=code_pb2.OK)])
@@ -1022,9 +1021,8 @@ class TestMutationsBatcherAsync:
             table.default_mutate_rows_attempt_timeout = 13
             table.default_mutate_rows_retryable_errors = ()
             callback = mock.Mock()
-            async with self._make_one(
-                table, _batch_completed_callback=callback
-            ) as instance:
+            async with self._make_one(table) as instance:
+                instance._user_batch_completed_callback = callback
                 batch = [
                     self._make_mutation(),
                     self._make_mutation(),

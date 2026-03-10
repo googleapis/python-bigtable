@@ -25,7 +25,7 @@ from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import (
-    _populate_statuses_from_mutations_exception_group,
+    _get_statuses_from_mutations_exception_group,
 )
 
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
@@ -230,9 +230,6 @@ class MutationsBatcherAsync:
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        _batch_completed_callback: Optional[
-            Callable[[list[status_pb2.Status]], None]
-        ] = None,
     ):
         self._operation_timeout, self._attempt_timeout = _get_timeouts(
             batch_operation_timeout, batch_attempt_timeout, target
@@ -279,7 +276,7 @@ class MutationsBatcherAsync:
         self._newest_exceptions: deque[Exception] = deque(
             maxlen=self._exception_list_limit
         )
-        self._user_batch_completed_callback = _batch_completed_callback
+        self._user_batch_completed_callback = None
         # clean up on program exit
         atexit.register(self._on_exit)
 
@@ -391,7 +388,7 @@ class MutationsBatcherAsync:
                 list of FailedMutationEntryError objects for mutations that failed.
                 FailedMutationEntryError objects will not contain index information
         """
-        statuses = [status_pb2.Status(code=code_pb2.Code.OK)] * len(batch)
+        statuses = [status_pb2.Status(code=code_pb2.Code.UNKNOWN)] * len(batch)
         try:
             operation = CrossSync._MutateRowsOperation(
                 self._target.client._gapic_client,
@@ -403,12 +400,14 @@ class MutationsBatcherAsync:
             )
             await operation.start()
         except MutationsExceptionGroup as e:
-            _populate_statuses_from_mutations_exception_group(statuses, e)
+            statuses = _get_statuses_from_mutations_exception_group(e, len(batch))
 
             # strip index information from exceptions, since it is not useful in a batch context
             for subexc in e.exceptions:
                 subexc.index = None
             return list(e.exceptions)
+        else:
+            statuses = [status_pb2.Status(code=code_pb2.Code.OK)] * len(batch)
         finally:
             # mark batch as complete in flow control
             await self._flow_control.remove_from_flow(batch)

@@ -228,16 +228,18 @@ def _align_timeouts(operation: float, attempt: float | None) -> tuple[float, flo
     return operation, final_attempt
 
 
-def _populate_statuses_from_mutations_exception_group(
-    statuses: list[status_pb2.Status], exc_group: MutationsExceptionGroup
-):
+def _get_statuses_from_mutations_exception_group(
+    exc_group: MutationsExceptionGroup, batch_size: int
+) -> list[status_pb2.Status]:
     """
     Helper function that populates a list of Status objects with exception information from
     the exception group.
 
     Args:
-        statuses: The initial list of Status objects
         exc_group: The exception group from a mutate rows operation
+        batch_size: How many RowMutationGroups were provided to the batch
+    Returns:
+        list[status_pb2.Status]: A list of Status proto objects
     """
     # We exception handle as follows:
     #
@@ -250,6 +252,7 @@ def _populate_statuses_from_mutations_exception_group(
     #
     # 3. In the case of a RetryExceptionGroup, we use terminal exception in the exception
     #    group and process that.
+    statuses = [status_pb2.Status(code=code_pb2.OK)] * batch_size
     for error in exc_group.exceptions:
         if isinstance(error.index, int) and 0 <= error.index < len(statuses):
             cause = error.__cause__
@@ -257,6 +260,7 @@ def _populate_statuses_from_mutations_exception_group(
                 statuses[error.index] = _get_status(cause.exceptions[-1])
             else:
                 statuses[error.index] = _get_status(cause)
+    return statuses
 
 
 def _get_status(exc: Exception) -> status_pb2.Status:
