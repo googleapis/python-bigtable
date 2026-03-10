@@ -403,9 +403,8 @@ class TestSystem:
         )
         bulk_mutation = RowMutationEntry(row_key, [mutation])
         flush_interval = 0.1
-        with target.mutations_batcher(
-            flush_interval=flush_interval, _batch_completed_callback=callback
-        ) as batcher:
+        with target.mutations_batcher(flush_interval=flush_interval) as batcher:
+            batcher._user_batch_completed_callback = callback
             batcher.append(bulk_mutation)
             CrossSync._Sync_Impl.yield_to_event_loop()
             assert len(batcher._staged_entries) == 1
