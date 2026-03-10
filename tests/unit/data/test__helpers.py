@@ -316,7 +316,9 @@ class TestGetStatusesFromMutationsExceptionGroup:
             (
                 0,
                 None,
-                status_pb2.Status(code=code_pb2.UNKNOWN, message="An unknown error has occurred"),
+                status_pb2.Status(
+                    code=code_pb2.UNKNOWN, message="An unknown error has occurred"
+                ),
             ),
             (
                 100,
