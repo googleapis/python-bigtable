@@ -314,6 +314,22 @@ class TestGetStatusesFromMutationsExceptionGroup:
                 status_pb2.Status(code=code_pb2.UNKNOWN, message="Something happened"),
             ),
             (
+                0,
+                bt_exceptions.RetryExceptionGroup(
+                    excs=[
+                        core_exceptions.ServiceUnavailable("Service Unavailable"),
+                        core_exceptions.ServiceUnavailable("Service Unavailable"),
+                        None,
+                    ]
+                ),
+                status_pb2.Status(code=code_pb2.UNKNOWN, message="An unknown error has occurred"),
+            ),
+            (
+                0,
+                None,
+                status_pb2.Status(code=code_pb2.UNKNOWN, message="An unknown error has occurred"),
+            ),
+            (
                 100,
                 RuntimeError("Something happened"),
                 status_pb2.Status(code=code_pb2.OK),

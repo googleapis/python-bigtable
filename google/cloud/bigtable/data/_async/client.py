@@ -1474,7 +1474,6 @@ class _DataApiTargetAsync(abc.ABC):
             batch_operation_timeout=batch_operation_timeout,
             batch_attempt_timeout=batch_attempt_timeout,
             batch_retryable_errors=batch_retryable_errors,
-            _batch_completed_callback=_batch_completed_callback,
         )
 
     @CrossSync.convert

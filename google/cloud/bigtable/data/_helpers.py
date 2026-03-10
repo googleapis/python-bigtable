@@ -16,7 +16,7 @@ Helper functions used in various places in the library.
 """
 from __future__ import annotations
 
-from typing import Callable, Sequence, List, Tuple, TYPE_CHECKING, Union
+from typing import Callable, Sequence, List, Optional, Tuple, TYPE_CHECKING, Union
 import time
 import enum
 from collections import namedtuple
@@ -263,7 +263,7 @@ def _get_statuses_from_mutations_exception_group(
     return statuses
 
 
-def _get_status(exc: Exception) -> status_pb2.Status:
+def _get_status(exc: Optional[Exception]) -> status_pb2.Status:
     """
     Helper function that returns a Status object corresponding to the given exception.
 
@@ -284,7 +284,7 @@ def _get_status(exc: Exception) -> status_pb2.Status:
 
     return status_pb2.Status(
         code=code_pb2.Code.UNKNOWN,
-        message=str(exc),
+        message=str(exc) if exc else "An unknown error has occurred",
     )
 
 
