@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 from typing import (
-    Callable,
     cast,
     Any,
     AsyncIterable,
@@ -116,7 +115,6 @@ else:
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
-    from google.rpc import status_pb2
 
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.mutations_batcher import (

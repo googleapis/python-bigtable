@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Callable, Optional, Sequence, TYPE_CHECKING, cast
+from typing import Sequence, TYPE_CHECKING, cast
 import atexit
 import warnings
 from collections import deque
