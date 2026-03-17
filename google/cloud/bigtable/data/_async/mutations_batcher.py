@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Sequence, TYPE_CHECKING, cast
+from typing import Callable, Optional, Sequence, TYPE_CHECKING, cast
 import atexit
 import warnings
 from collections import deque
@@ -276,7 +276,9 @@ class MutationsBatcherAsync:
         self._newest_exceptions: deque[Exception] = deque(
             maxlen=self._exception_list_limit
         )
-        self._user_batch_completed_callback = None
+        self._user_batch_completed_callback: Optional[
+            Callable[[list[status_pb2.Status]], None]
+        ] = None
         # clean up on program exit
         atexit.register(self._on_exit)
 

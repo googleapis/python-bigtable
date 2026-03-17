@@ -16,7 +16,7 @@ Helper functions used in various places in the library.
 """
 from __future__ import annotations
 
-from typing import Callable, Sequence, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import cast, Callable, Sequence, List, Optional, Tuple, TYPE_CHECKING, Union
 import time
 import enum
 from collections import namedtuple
@@ -272,14 +272,17 @@ def _get_status(exc: Optional[Exception]) -> status_pb2.Status:
     Returns:
         status_pb2.Status: A Status proto object.
     """
-    if (
-        isinstance(exc, core_exceptions.GoogleAPICallError)
-        and exc.grpc_status_code is not None
-    ):
-        return status_pb2.Status(  # type: ignore[unreachable]
-            code=exc.grpc_status_code.value[0],
-            message=exc.message,
-            details=exc.details,
+    if isinstance(exc, core_exceptions.GoogleAPICallError):
+        status_code = cast(Optional["grpc.StatusCode"], exc.grpc_status_code)
+        if status_code is not None:
+            return status_pb2.Status(
+                code=status_code.value[0],
+                message=exc.message,
+                details=exc.details,
+            )
+        return status_pb2.Status(
+            code=code_pb2.Code.UNKNOWN,
+            message="An unknown error has occurred",
         )
 
     return status_pb2.Status(
