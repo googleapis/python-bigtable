@@ -153,7 +153,9 @@ class MutationsExceptionGroup(_BigtableExceptionGroup):
 
     @staticmethod
     def _format_message(
-        excs: list[Exception], total_entries: int, exc_count: int | None = None
+        excs: list[FailedMutationEntryError],
+        total_entries: int,
+        exc_count: int | None = None,
     ) -> str:
         """
         Format a message for the exception group
@@ -171,7 +173,10 @@ class MutationsExceptionGroup(_BigtableExceptionGroup):
         return f"{exc_count} failed {entry_str} from {total_entries} attempted."
 
     def __init__(
-        self, excs: list[Exception], total_entries: int, message: str | None = None
+        self,
+        excs: list[FailedMutationEntryError],
+        total_entries: int,
+        message: str | None = None,
     ):
         """
         Args:
@@ -189,7 +194,10 @@ class MutationsExceptionGroup(_BigtableExceptionGroup):
         self.total_entries_attempted = total_entries
 
     def __new__(
-        cls, excs: list[Exception], total_entries: int, message: str | None = None
+        cls,
+        excs: list[FailedMutationEntryError],
+        total_entries: int,
+        message: str | None = None,
     ):
         """
         Args:
@@ -209,8 +217,8 @@ class MutationsExceptionGroup(_BigtableExceptionGroup):
     @classmethod
     def from_truncated_lists(
         cls,
-        first_list: list[Exception],
-        last_list: list[Exception],
+        first_list: list[FailedMutationEntryError],
+        last_list: list[FailedMutationEntryError],
         total_excs: int,
         entry_count: int,
     ) -> MutationsExceptionGroup:

@@ -272,10 +272,11 @@ class MutationsBatcherAsync:
         self._exceptions_since_last_raise: int = 0
         # keep track of the first and last _exception_list_limit exceptions
         self._exception_list_limit: int = 10
-        self._oldest_exceptions: list[Exception] = []
-        self._newest_exceptions: deque[Exception] = deque(
+        self._oldest_exceptions: list[FailedMutationEntryError] = []
+        self._newest_exceptions: deque[FailedMutationEntryError] = deque(
             maxlen=self._exception_list_limit
         )
+        # only used by the shim right now.
         self._user_batch_completed_callback: Optional[
             Callable[[list[status_pb2.Status]], None]
         ] = None
@@ -363,13 +364,17 @@ class MutationsBatcherAsync:
         """
         # flush new entries
         in_process_requests: list[CrossSync.Future[list[FailedMutationEntryError]]] = []
+        in_process_batches: list[list[RowMutationEntry]] = []
         async for batch in self._flow_control.add_to_flow(new_entries):
             batch_task = CrossSync.create_task(
                 self._execute_mutate_rows, batch, sync_executor=self._sync_rpc_executor
             )
             in_process_requests.append(batch_task)
+            in_process_batches.append(batch)
         # wait for all inflight requests to complete
-        found_exceptions = await self._wait_for_batch_results(*in_process_requests)
+        found_exceptions = await self._wait_for_batch_results(
+            in_process_requests, in_process_batches
+        )
         # update exception data to reflect any new errors
         self._entries_processed_since_last_raise += len(new_entries)
         self._add_exceptions(found_exceptions)
@@ -419,7 +424,7 @@ class MutationsBatcherAsync:
                 self._user_batch_completed_callback(statuses)
         return []
 
-    def _add_exceptions(self, excs: list[Exception]):
+    def _add_exceptions(self, excs: list[FailedMutationEntryError]):
         """
         Add new list of exceptions to internal store. To avoid unbounded memory,
         the batcher will store the first and last _exception_list_limit exceptions,
@@ -519,9 +524,11 @@ class MutationsBatcherAsync:
     @staticmethod
     @CrossSync.convert
     async def _wait_for_batch_results(
-        *tasks: CrossSync.Future[list[FailedMutationEntryError]]
-        | CrossSync.Future[None],
-    ) -> list[Exception]:
+        tasks: Sequence[
+            CrossSync.Future[list[FailedMutationEntryError]] | CrossSync.Future[None]
+        ],
+        batches: Sequence[list[RowMutationEntry]],
+    ) -> list[FailedMutationEntryError]:
         """
         Takes in a list of futures representing _execute_mutate_rows tasks,
         waits for them to complete, and returns a list of errors encountered.
@@ -529,16 +536,15 @@ class MutationsBatcherAsync:
         Args:
             *tasks: futures representing _execute_mutate_rows or _flush_internal tasks
         Returns:
-            list[Exception]:
-                list of Exceptions encountered by any of the tasks. Errors are expected
-                to be FailedMutationEntryError, representing a failed mutation operation.
-                If a task fails with a different exception, it will be included in the
-                output list. Successful tasks will not be represented in the output list.
+            list[FailedMutationEntryError]:
+                list of FailedMutationEntryError encountered by any of the tasks,
+                representing a failed mutation operation.
+                Successful tasks will not be represented in the output list.
         """
         if not tasks:
             return []
-        exceptions: list[Exception] = []
-        for task in tasks:
+        exceptions: list[FailedMutationEntryError] = []
+        for task, batch in list(zip(tasks, batches)):
             if CrossSync.is_async:
                 # futures don't need to be awaited in sync mode
                 await task
@@ -550,6 +556,16 @@ class MutationsBatcherAsync:
                         # strip index information
                         exc.index = None
                     exceptions.extend(exc_list)
-            except Exception as e:
+            except FailedMutationEntryError as e:
                 exceptions.append(e)
+            except Exception as e:
+                exceptions.extend(
+                    [
+                        FailedMutationEntryError(
+                            failed_idx=None, failed_mutation_entry=entry, cause=e
+                        )
+                        for entry in batch
+                    ]
+                )
+
         return exceptions

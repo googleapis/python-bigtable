@@ -88,9 +88,13 @@ class MutationsBatcher(object):
         batch_completed_callback=None,
     ):
         self.table = table
-        self._flush_count = flush_count
-        self._max_row_bytes = max_row_bytes
-        self._flush_interval = flush_interval
+        self._batcher_kwargs = {
+            "flush_interval": flush_interval,
+            "flush_limit_mutation_count": flush_count,
+            "flush_limit_bytes": max_row_bytes,
+            "flow_control_max_mutation_count": MAX_OUTSTANDING_ELEMENTS,
+            "flow_control_max_bytes": MAX_OUTSTANDING_BYTES,
+        }
         self._user_batch_completed_callback = batch_completed_callback
         self._init_batcher()
         atexit.register(self.close)
@@ -105,11 +109,7 @@ class MutationsBatcher(object):
         return self._max_row_bytes
 
     def _init_batcher(self):
-        self._batcher = self.table._table_impl.mutations_batcher(
-            flush_interval=self._flush_interval,
-            flush_limit_mutation_count=self._flush_count,
-            flush_limit_bytes=self._max_row_bytes,
-        )
+        self._batcher = self.table._table_impl.mutations_batcher(**self._batcher_kwargs)
         self._batcher._user_batch_completed_callback = (
             self._user_batch_completed_callback
         )
@@ -119,8 +119,8 @@ class MutationsBatcher(object):
             self._batcher.close()
         except MutationsExceptionGroup as exc_group:
             for error in exc_group.exceptions:
-                # Return the cause of the FailedMutationEntryError to the user,
-                # as this might be more what they're expecting.
+                # Unpack the root cause of the FailedMutationEntryError
+                # and return that error to the user.
                 self._exceptions.put(error.__cause__)
 
     def __enter__(self):
@@ -178,7 +178,7 @@ class MutationsBatcher(object):
             :dedent: 4
 
         :raises:
-            * :exc:`.batcherMutationsBatchError` if there's any error in the mutations.
+            * :exc:`~batcher.MutationsBatchError` if there's any error in the mutations.
         """
         self._close_batcher()
         self._init_batcher()
@@ -192,7 +192,7 @@ class MutationsBatcher(object):
         Any errors will be raised.
 
         :raises:
-            * :exc:`.batcherMutationsBatchError` if there's any error in the mutations.
+            * :exc:`~batcher.MutationsBatchError` if there's any error in the mutations.
         """
         self._close_batcher()
         atexit.unregister(self.close)

@@ -59,6 +59,9 @@ def _atexit_mock():
 
 
 def test_mutations_batcher_constructor(_setup_batcher, _atexit_mock):
+    from google.cloud.bigtable.batcher import MAX_OUTSTANDING_ELEMENTS
+    from google.cloud.bigtable.batcher import MAX_OUTSTANDING_BYTES
+
     flush_count = 5
     flush_interval = 0.1
     max_row_bytes = 10000
@@ -77,6 +80,8 @@ def test_mutations_batcher_constructor(_setup_batcher, _atexit_mock):
                 flush_interval=flush_interval,
                 flush_limit_mutation_count=flush_count,
                 flush_limit_bytes=max_row_bytes,
+                flow_control_max_mutation_count=MAX_OUTSTANDING_ELEMENTS,
+                flow_control_max_bytes=MAX_OUTSTANDING_BYTES,
             )
             assert mutation_batcher.close in _atexit_mock._functions
 
