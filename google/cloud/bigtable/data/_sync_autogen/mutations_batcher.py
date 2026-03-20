@@ -308,18 +308,17 @@ class MutationsBatcher:
         Args:
             new_entries list of RowMutationEntry objects to flush"""
         in_process_requests: list[
-            CrossSync._Sync_Impl.Future[list[FailedMutationEntryError]]
+            tuple[
+                CrossSync._Sync_Impl.Future[list[FailedMutationEntryError]],
+                list[RowMutationEntry],
+            ]
         ] = []
-        in_process_batches: list[list[RowMutationEntry]] = []
         for batch in self._flow_control.add_to_flow(new_entries):
             batch_task = CrossSync._Sync_Impl.create_task(
                 self._execute_mutate_rows, batch, sync_executor=self._sync_rpc_executor
             )
-            in_process_requests.append(batch_task)
-            in_process_batches.append(batch)
-        found_exceptions = self._wait_for_batch_results(
-            in_process_requests, in_process_batches
-        )
+            in_process_requests.append((batch_task, batch))
+        found_exceptions = self._wait_for_batch_results(*in_process_requests)
         self._entries_processed_since_last_raise += len(new_entries)
         self._add_exceptions(found_exceptions)
 
@@ -439,17 +438,18 @@ class MutationsBatcher:
 
     @staticmethod
     def _wait_for_batch_results(
-        tasks: Sequence[
+        *tasks: tuple[
             CrossSync._Sync_Impl.Future[list[FailedMutationEntryError]]
-            | CrossSync._Sync_Impl.Future[None]
-        ],
-        batches: Sequence[list[RowMutationEntry]],
+            | CrossSync._Sync_Impl.Future[None],
+            list[RowMutationEntry],
+        ]
     ) -> list[FailedMutationEntryError]:
         """Takes in a list of futures representing _execute_mutate_rows tasks,
         waits for them to complete, and returns a list of errors encountered.
 
         Args:
-            *tasks: futures representing _execute_mutate_rows or _flush_internal tasks
+            *tasks: Tuples of futures representing _execute_mutate_rows or
+                    _flush_internal tasks, and their associated batches
         Returns:
             list[FailedMutationEntryError]:
                 list of FailedMutationEntryError encountered by any of the tasks,
@@ -458,7 +458,7 @@ class MutationsBatcher:
         if not tasks:
             return []
         exceptions: list[FailedMutationEntryError] = []
-        for task, batch in list(zip(tasks, batches)):
+        for task, batch in tasks:
             try:
                 exc_list = task.result()
                 if exc_list:

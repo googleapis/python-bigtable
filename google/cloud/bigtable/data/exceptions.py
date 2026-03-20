@@ -141,14 +141,11 @@ class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # 
         return f"{self.__class__.__name__}({message!r}, {self.exceptions!r})"
 
 
-# TODO: When working on mutations batcher, rework exception handling to guarantee that
-# MutationsExceptionGroup only stores FailedMutationEntryErrors.
 class MutationsExceptionGroup(_BigtableExceptionGroup):
     """
     Represents one or more exceptions that occur during a bulk mutation operation
 
-    Exceptions will typically be of type FailedMutationEntryError, but other exceptions may
-    be included if they are raised during the mutation operation
+    Exceptions will be of type FailedMutationEntryError.
     """
 
     @staticmethod

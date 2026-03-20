@@ -363,18 +363,18 @@ class MutationsBatcherAsync:
             new_entries list of RowMutationEntry objects to flush
         """
         # flush new entries
-        in_process_requests: list[CrossSync.Future[list[FailedMutationEntryError]]] = []
-        in_process_batches: list[list[RowMutationEntry]] = []
+        in_process_requests: list[
+            tuple[
+                CrossSync.Future[list[FailedMutationEntryError]], list[RowMutationEntry]
+            ]
+        ] = []
         async for batch in self._flow_control.add_to_flow(new_entries):
             batch_task = CrossSync.create_task(
                 self._execute_mutate_rows, batch, sync_executor=self._sync_rpc_executor
             )
-            in_process_requests.append(batch_task)
-            in_process_batches.append(batch)
+            in_process_requests.append((batch_task, batch))
         # wait for all inflight requests to complete
-        found_exceptions = await self._wait_for_batch_results(
-            in_process_requests, in_process_batches
-        )
+        found_exceptions = await self._wait_for_batch_results(*in_process_requests)
         # update exception data to reflect any new errors
         self._entries_processed_since_last_raise += len(new_entries)
         self._add_exceptions(found_exceptions)
@@ -524,17 +524,18 @@ class MutationsBatcherAsync:
     @staticmethod
     @CrossSync.convert
     async def _wait_for_batch_results(
-        tasks: Sequence[
-            CrossSync.Future[list[FailedMutationEntryError]] | CrossSync.Future[None]
+        *tasks: tuple[
+            CrossSync.Future[list[FailedMutationEntryError]] | CrossSync.Future[None],
+            list[RowMutationEntry],
         ],
-        batches: Sequence[list[RowMutationEntry]],
     ) -> list[FailedMutationEntryError]:
         """
         Takes in a list of futures representing _execute_mutate_rows tasks,
         waits for them to complete, and returns a list of errors encountered.
 
         Args:
-            *tasks: futures representing _execute_mutate_rows or _flush_internal tasks
+            *tasks: Tuples of futures representing _execute_mutate_rows or
+                    _flush_internal tasks, and their associated batches
         Returns:
             list[FailedMutationEntryError]:
                 list of FailedMutationEntryError encountered by any of the tasks,
@@ -544,7 +545,7 @@ class MutationsBatcherAsync:
         if not tasks:
             return []
         exceptions: list[FailedMutationEntryError] = []
-        for task, batch in list(zip(tasks, batches)):
+        for task, batch in tasks:
             if CrossSync.is_async:
                 # futures don't need to be awaited in sync mode
                 await task

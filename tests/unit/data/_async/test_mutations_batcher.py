@@ -642,7 +642,7 @@ class TestMutationsBatcherAsync:
                 # let any flush jobs finish
                 jobs = instance._flush_jobs
                 await instance._wait_for_batch_results(
-                    jobs, [mock.MagicMock()] * len(jobs)
+                    *[(job, mock.MagicMock()) for job in jobs]
                 )
                 # should have only flushed once, with large mutation and first mutation in loop
                 assert op_mock.call_count == 1
@@ -745,7 +745,7 @@ class TestMutationsBatcherAsync:
                 # allow flushes to complete
                 jobs = instance._flush_jobs
                 await instance._wait_for_batch_results(
-                    jobs, [mock.MagicMock()] * len(jobs)
+                    *[(job, mock.MagicMock()) for job in jobs]
                 )
                 duration = time.monotonic() - start_time
                 assert len(instance._oldest_exceptions) == 0
